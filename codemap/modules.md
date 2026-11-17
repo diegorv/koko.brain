@@ -28,11 +28,11 @@ module src/lib/features/auto-organize features files 8 in-modules 1 out-modules 
 module src/lib/features/backlinks features files 6 in-modules 2 out-modules 8 pub 6/13 ipc 4/0 card ~1.1k
 module src/lib/features/canvas features files 19 in-modules 2 out-modules 4 pub 2/62 ipc 0/0 card ~1.2k
 module src/lib/features/collection features files 32 in-modules 6 out-modules 9 pub 49/157 ipc 1/0 card ~6.4k
-module src/lib/features/command-palette features files 5 in-modules 1 out-modules 2 pub 4/6 ipc 0/0 card ~0.8k
+module src/lib/features/command-palette features files 5 in-modules 1 out-modules 2 pub 4/7 ipc 0/0 card ~0.8k
 module src/lib/features/copy-block-link features files 1 in-modules 1 out-modules 3 pub 2/3 ipc 0/0 card ~0.5k
 module src/lib/features/deep-link features files 4 in-modules 4 out-modules 8 pub 14/33 ipc 0/0 card ~1.8k
 module src/lib/features/dock-badge features files 2 in-modules 1 out-modules 3 pub 2/2 ipc 0/0 card ~0.6k
-module src/lib/features/event-calendar features files 36 in-modules 7 out-modules 12 pub 16/229 ipc 1/0 card ~4.5k
+module src/lib/features/event-calendar features files 36 in-modules 7 out-modules 12 pub 17/229 ipc 1/0 card ~4.6k
 module src/lib/features/file-history features files 7 in-modules 2 out-modules 7 pub 5/24 ipc 4/0 card ~1.2k
 module src/lib/features/file-icons features files 9 in-modules 8 out-modules 8 pub 22/42 ipc 1/0 card ~3.7k
 module src/lib/features/note-action-bar features files 4 in-modules 2 out-modules 12 pub 2/19 ipc 0/0 card ~1k
@@ -66,7 +66,7 @@ layer app -> app 11
 layer app -> components 5
 layer app -> contracts 7
 layer app -> core 109
-layer app -> features 121
+layer app -> features 122
 layer app -> plugins 44
 layer app -> utils 17
 layer components -> components 98

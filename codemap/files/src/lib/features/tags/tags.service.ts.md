@@ -10,7 +10,7 @@ imp src/lib/features/tags/tags.service.ts:5 -> src/lib/core/editor/editor.logic.
 imp src/lib/features/tags/tags.service.ts:6 -> src/lib/features/tags/tags.store.svelte.ts tagsStore
 imp src/lib/features/tags/tags.service.ts:7 -> src/lib/features/tags/tags.logic.ts buildTagTree,sortTagTree,tagTreeShape
 ## imported-by
-imp src/lib/app/commands.ts:43 -> src/lib/features/tags/tags.service.ts toggleTagsTab
+imp src/lib/app/commands.ts:44 -> src/lib/features/tags/tags.service.ts toggleTagsTab
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:24 -> src/lib/features/tags/tags.service.ts buildTagIndex,resetTags
 imp src/lib/features/tags/TagsView.svelte:7 -> src/lib/features/tags/tags.service.ts scheduleTagIndexRebuild,updateTagSort
 ## reach
@@ -32,7 +32,7 @@ sym src/lib/features/tags/tags.service.ts:118 fn flushScheduledTagIndexRebuild()
 sym src/lib/features/tags/tags.service.ts:126 fn openTagsTab(): void L14 | Opens or focuses the Tags tab.
 sym src/lib/features/tags/tags.service.ts:142 fn closeTagsTab(): void L6 | Closes the Tags tab if it exists.
 sym src/lib/features/tags/tags.service.ts:150 fn toggleTagsTab(): void L10 | Toggles the Tags tab: opens if closed, closes if active, focuses if open but not active.
-by src/lib/features/tags/tags.service.ts:toggleTagsTab <- src/lib/app/commands.ts:291 in getBuiltInCommands call
+by src/lib/features/tags/tags.service.ts:toggleTagsTab <- src/lib/app/commands.ts:298 in getBuiltInCommands call
 sym src/lib/features/tags/tags.service.ts:162 fn resetTags(): void L7 | Resets all tag state and cancels any pending scheduled rebuild.
 by src/lib/features/tags/tags.service.ts:resetTags <- src/lib/app/lifecycle/app-lifecycle.service.ts:664 in teardownVault call
 ## locals

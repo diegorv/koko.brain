@@ -32,7 +32,7 @@ sym src/lib/plugins/graph-view/graph-view.service.ts:34 fn openGraphTab(): void 
 sym src/lib/plugins/graph-view/graph-view.service.ts:52 fn closeGraphTab(): void L6 | Closes the Graph View tab if it exists.
 by src/lib/plugins/graph-view/graph-view.service.ts:closeGraphTab <- src/lib/plugins/graph-view/GraphControls.svelte:69 in (markup) markup
 sym src/lib/plugins/graph-view/graph-view.service.ts:60 fn toggleGraphTab(): void L11 | Toggles the Graph View tab: opens if closed, closes if active, focuses if open but not active.
-by src/lib/plugins/graph-view/graph-view.service.ts:toggleGraphTab <- src/lib/app/commands.ts:213 in getBuiltInCommands call
+by src/lib/plugins/graph-view/graph-view.service.ts:toggleGraphTab <- src/lib/app/commands.ts:214 in getBuiltInCommands call
 by src/lib/plugins/graph-view/graph-view.service.ts:toggleGraphTab <- src/lib/app/global-keybindings.ts:112 in GLOBAL_KEYBINDINGS call
 sym src/lib/plugins/graph-view/graph-view.service.ts:73 fn resetGraphView() L4 | Resets all graph view state
 by src/lib/plugins/graph-view/graph-view.service.ts:resetGraphView <- src/lib/app/lifecycle/app-lifecycle.service.ts:667 in teardownVault call

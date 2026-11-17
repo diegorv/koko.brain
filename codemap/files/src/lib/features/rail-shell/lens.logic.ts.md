@@ -116,7 +116,7 @@ by src/lib/features/rail-shell/lens.logic.ts:TYPES_RAIL_ITEM <- src/lib/app/rail
 by src/lib/features/rail-shell/lens.logic.ts:TYPES_RAIL_ITEM <- src/lib/features/rail-shell/rail-items.logic.ts:44 in railItems ref
 sym src/lib/features/rail-shell/lens.logic.ts:130 const FILES_RAIL_ITEM L1 | The rail item that opens the Files navigator.
 by src/lib/features/rail-shell/lens.logic.ts:FILES_RAIL_ITEM <- src/lib/app/AppShell.svelte:114 in showsFilesNavigator=$derived ref
-by src/lib/features/rail-shell/lens.logic.ts:FILES_RAIL_ITEM <- src/lib/app/commands.ts:168 in getBuiltInCommands ref
+by src/lib/features/rail-shell/lens.logic.ts:FILES_RAIL_ITEM <- src/lib/app/commands.ts:169 in getBuiltInCommands ref
 by src/lib/features/rail-shell/lens.logic.ts:FILES_RAIL_ITEM <- src/lib/features/rail-shell/rail-items.logic.ts:46 in railItems ref
 sym src/lib/features/rail-shell/lens.logic.ts:133 const NEIGHBOURHOOD_LENS_KIND L1 | The lens kind of a note's neighbourhood; its target is the note's absolute path.
 sym src/lib/features/rail-shell/lens.logic.ts:140 const NEIGHBOURHOOD_RAIL_ITEM L1 | The rail item key while the note list shows a neighbourhood.
@@ -126,7 +126,7 @@ sym src/lib/features/rail-shell/lens.logic.ts:189 fn restoreRailItem(saved: unkn
 by src/lib/features/rail-shell/lens.logic.ts:restoreRailItem <- src/lib/app/AppShell.svelte:106 in railItem=$derived call
 sym src/lib/features/rail-shell/lens.logic.ts:219 fn pinnedRailItems(entries: readonly NoteEntryV2[], typeMetadataMap: Map<string, TypeMetadata>): RailPin[] L21 | The rail's pinned items: every `.view` and type definition in the entries snapshot whose `_rail` is the YAML boolean `true` (only the canonical spelling; `"tru…
 by src/lib/features/rail-shell/lens.logic.ts:pinnedRailItems <- src/lib/app/AppShell.svelte:177 in $effect@161 call
-by src/lib/features/rail-shell/lens.logic.ts:pinnedRailItems <- src/lib/app/commands.ts:64 in railGoToCommands call
+by src/lib/features/rail-shell/lens.logic.ts:pinnedRailItems <- src/lib/app/commands.ts:65 in railGoToCommands call
 by src/lib/features/rail-shell/lens.logic.ts:pinnedRailItems <- src/lib/features/rail-shell/Rail.svelte:85 in items=$derived call
 sym src/lib/features/rail-shell/lens.logic.ts:247 fn staleRailPinFix(railItem: unknown, pinned: readonly RailPin[]): Pick<Partial<LayoutSettings>, 'railItem'> | null L4 | The layout change that sends a saved pin that is no longer pinned (file gone, `_rail` removed) back to the default item: `{ railItem }` when `railItem` is a pi…
 by src/lib/features/rail-shell/lens.logic.ts:staleRailPinFix <- src/lib/app/AppShell.svelte:177 in $effect@161 call

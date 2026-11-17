@@ -96,7 +96,7 @@ sym src/lib/core/vault/vault.store.svelte.ts:60 store vaultStore L100 | Reactive
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/AppShell.svelte:71 in $effect@66 member +6
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/LabsSection.svelte:25 in setModsEnabled member
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/boot.ts:64 in registerAppPorts member +2
-by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/commands.ts:153 in getBuiltInCommands member +3
+by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/commands.ts:154 in getBuiltInCommands member +3
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/editor-host.ts:99 in vaultTags member +5
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/lifecycle/app-lifecycle.service.ts:141 in initializeVault mcall +2
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/lifecycle/watcher-handler.service.ts:41 in rebuildAllIndexes member

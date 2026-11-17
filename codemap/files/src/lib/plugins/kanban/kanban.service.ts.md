@@ -31,7 +31,7 @@ test src/tests/lib/plugins/kanban/kanban-unmodeled-content.test.ts mocks src/lib
 test src/tests/lib/plugins/kanban/kanban-unmodeled-lines.test.ts mocks src/lib/plugins/kanban/kanban.service.ts
 ## symbols
 sym src/lib/plugins/kanban/kanban.service.ts:18 fn createKanbanFile(parentPath: string): Promise<string> L3 | Creates a new `.kanban` file with an empty board (To Do, In Progress, Done).
-by src/lib/plugins/kanban/kanban.service.ts:createKanbanFile <- src/lib/app/commands.ts:189 in getBuiltInCommands call
+by src/lib/plugins/kanban/kanban.service.ts:createKanbanFile <- src/lib/app/commands.ts:190 in getBuiltInCommands call
 sym src/lib/plugins/kanban/kanban.service.ts:27 fn registerKanbanFolderCreator(): () => void L9 | Adds "New Kanban Board" to the Files navigator's folder menu: the rail shell may not import plugins (ADR 0003).
 by src/lib/plugins/kanban/kanban.service.ts:registerKanbanFolderCreator <- src/lib/app/lifecycle/app-lifecycle.service.ts:275 in initializeVault call
 sym src/lib/plugins/kanban/kanban.service.ts:38 fn resetKanban(): void L4 | Resets all kanban state (called during vault teardown)

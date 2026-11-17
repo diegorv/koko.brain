@@ -9,7 +9,7 @@ imp src/lib/features/todoist-sync/todoist-sync.service.ts:5 -> src/lib/features/
 imp src/lib/features/todoist-sync/todoist-sync.service.ts:13 -> src/lib/features/todoist-sync/todoist-client.ts createTodoistClient
 imp src/lib/features/todoist-sync/todoist-sync.service.ts:14 -> src/lib/features/todoist-sync/todoist-sync.store.svelte.ts todoistSyncStore
 ## imported-by
-imp src/lib/app/commands.ts:46 -> src/lib/features/todoist-sync/todoist-sync.service.ts checkSyncConnectionFromUi
+imp src/lib/app/commands.ts:47 -> src/lib/features/todoist-sync/todoist-sync.service.ts checkSyncConnectionFromUi
 imp src/lib/features/todoist-sync/TodoistSection.svelte:13 -> src/lib/features/todoist-sync/todoist-sync.service.ts fetchRootProjectChoices
 ## reach
 in2 src/lib/features/todoist-sync/todoist-sync.service.ts 2 files in 1 modules: src/lib/app(2)
@@ -22,7 +22,7 @@ sym src/lib/features/todoist-sync/todoist-sync.service.ts:23 fn fetchRootProject
 by src/lib/features/todoist-sync/todoist-sync.service.ts:fetchRootProjectChoices <- src/lib/features/todoist-sync/TodoistSection.svelte:60 in loadProjects call
 sym src/lib/features/todoist-sync/todoist-sync.service.ts:38 fn checkSyncConnection(): Promise<SyncCheckOutcome> L28 | Runs one full `/sync` of projects and items and counts what the vault's root tree (plus the Inbox when included) holds.
 sym src/lib/features/todoist-sync/todoist-sync.service.ts:68 fn checkSyncConnectionFromUi(): Promise<void> L5 | Palette entry point: runs the check and shows its message in a toast.
-by src/lib/features/todoist-sync/todoist-sync.service.ts:checkSyncConnectionFromUi <- src/lib/app/commands.ts:272 in getBuiltInCommands call
+by src/lib/features/todoist-sync/todoist-sync.service.ts:checkSyncConnectionFromUi <- src/lib/app/commands.ts:279 in getBuiltInCommands call
 ## calls
 call src/lib/features/todoist-sync/todoist-sync.service.ts:26 in fetchRootProjectChoices -> src/lib/features/todoist-sync/todoist-client.ts:createTodoistClient call
 call src/lib/features/todoist-sync/todoist-sync.service.ts:27 in fetchRootProjectChoices -> src/lib/features/todoist-sync/sync-scope.logic.ts:rootProjectChoices call

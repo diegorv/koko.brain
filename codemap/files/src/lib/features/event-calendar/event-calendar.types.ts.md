@@ -27,6 +27,7 @@ in2 src/lib/features/event-calendar/event-calendar.types.ts 21 files in 5 module
 out2 src/lib/features/event-calendar/event-calendar.types.ts 2 files in 1 modules: src/lib/core/settings(2)
 ## tests
 test src/tests/fixtures/event-notes.fixture.ts imports-type src/lib/features/event-calendar/event-calendar.types.ts
+test src/tests/lib/app/commands.test.ts imports-type src/lib/features/event-calendar/event-calendar.types.ts
 test src/tests/lib/features/event-calendar/EventAllDayLane.test.ts imports-type src/lib/features/event-calendar/event-calendar.types.ts
 test src/tests/lib/features/event-calendar/EventMonthGrid.test.ts imports-type src/lib/features/event-calendar/event-calendar.types.ts
 test src/tests/lib/features/event-calendar/EventPopover.test.ts imports-type src/lib/features/event-calendar/event-calendar.types.ts

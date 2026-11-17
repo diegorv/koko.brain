@@ -96,7 +96,7 @@ more tests 67 not shown: src/tests/lib/features/properties(11) src/tests/lib/fea
 sym src/lib/core/editor/editor.store.svelte.ts:33 store editorStore L141 | Central store for all editor tab state.
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/AppShell.svelte:61 in rightSidebarShown=$derived member +1
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/EditorView.svelte:37 in isCollectionTab=$derived member +25
-by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/commands.ts:383 in getBuiltInCommands member +2
+by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/commands.ts:390 in getBuiltInCommands member +2
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/editor-host.ts:41 in scrollToAnchor member +1
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/global-keybindings.ts:173 in GLOBAL_KEYBINDINGS member
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/core/editor/editor.service.ts:126 in syncExternalContentToEditor member +42
@@ -117,7 +117,7 @@ mem src/lib/core/editor/editor.store.svelte.ts:40 get editorStore.activeTabConte
 mem src/lib/core/editor/editor.store.svelte.ts:41 get editorStore.pendingScrollPosition r:src/lib/core/markdown-editor/MarkdownEditor.svelte:592 w-via:setPendingScrollPosition,reset
 mem src/lib/core/editor/editor.store.svelte.ts:42 get editorStore.isLivePreview r:9 w-via:setLivePreview,reset
 more r 9 not shown: src/lib/app(4) src/lib/core/markdown-editor(3) src/lib/core/editor(1) src/lib/features/note-action-bar(1): q store src/lib/core/editor/editor.store.svelte.ts:editorStore.isLivePreview
-mem src/lib/core/editor/editor.store.svelte.ts:43 get editorStore.editorView r:src/lib/app/commands.ts:383,src/lib/app/commands.ts:393,src/lib/features/file-history/file-history.service.ts:90,src/lib/features/todoist-sync/note-writer.service.ts:69 w-via:setEditorView,reset
+mem src/lib/core/editor/editor.store.svelte.ts:43 get editorStore.editorView r:src/lib/app/commands.ts:390,src/lib/app/commands.ts:400,src/lib/features/file-history/file-history.service.ts:90,src/lib/features/todoist-sync/note-writer.service.ts:69 w-via:setEditorView,reset
 mem src/lib/core/editor/editor.store.svelte.ts:49 get editorStore.externalContentSignal r:src/lib/core/markdown-editor/MarkdownEditor.svelte:631 w-via:bumpExternalContentSignal,reset | Counter that bumps on every external content write (Properties, task toggle, link rename, watcher reload).
 mem src/lib/core/editor/editor.store.svelte.ts:52 do editorStore.addTab w:7 | Opens a new tab and makes it active (unpinned tabs go after pinned ones)
 more w 7 not shown: src/lib/core/editor(1) src/lib/core/filesystem(1) src/lib/features/auto-organize(1) src/lib/features/event-calendar(1) src/lib/features/tags(1) src/lib/features/tasks(1) src/lib/plugins/graph-view(1): q store src/lib/core/editor/editor.store.svelte.ts:editorStore.addTab

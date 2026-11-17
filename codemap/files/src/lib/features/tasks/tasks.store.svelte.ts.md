@@ -35,7 +35,7 @@ test src/tests/lib/features/tasks/tasks-view-settings.test.ts imports src/lib/fe
 test src/tests/lib/features/tasks/tasks.service.test.ts imports src/lib/features/tasks/tasks.store.svelte.ts
 ## symbols
 sym src/lib/features/tasks/tasks.store.svelte.ts:100 store tasksStore L96
-by src/lib/features/tasks/tasks.store.svelte.ts:tasksStore <- src/lib/app/commands.ts:80 in tasksStatusFilterCommand member +1
+by src/lib/features/tasks/tasks.store.svelte.ts:tasksStore <- src/lib/app/commands.ts:81 in tasksStatusFilterCommand member +1
 by src/lib/features/tasks/tasks.store.svelte.ts:tasksStore <- src/lib/features/tasks/SourcesPanel.svelte:79 in sources=$derived member +4
 by src/lib/features/tasks/tasks.store.svelte.ts:tasksStore <- src/lib/features/tasks/TaskLists.svelte:38 in lists=$derived member +16
 by src/lib/features/tasks/tasks.store.svelte.ts:tasksStore <- src/lib/features/tasks/TasksView.svelte:134 in groupRadioValue=$derived member +81

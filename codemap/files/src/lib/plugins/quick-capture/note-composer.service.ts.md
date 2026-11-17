@@ -8,7 +8,7 @@ imp src/lib/plugins/quick-capture/note-composer.service.ts:4 -> src/lib/core/not
 imp src/lib/plugins/quick-capture/note-composer.service.ts:5 -> src/lib/core/note-creator/explicit-organization.logic.ts withUnorganizedFlag
 imp src/lib/plugins/quick-capture/note-composer.service.ts:6 -> src/lib/plugins/quick-capture/note-composer.logic.ts buildCapturePath,getCaptureTitle,buildCaptureVariables
 ## imported-by
-imp src/lib/app/commands.ts:47 -> src/lib/plugins/quick-capture/note-composer.service.ts createNoteComposer
+imp src/lib/app/commands.ts:48 -> src/lib/plugins/quick-capture/note-composer.service.ts createNoteComposer
 imp src/lib/app/global-keybindings.ts:17 -> src/lib/plugins/quick-capture/note-composer.service.ts createNoteComposer
 ## reach
 in2 src/lib/plugins/quick-capture/note-composer.service.ts 2 files in 2 modules: src/lib/app(1) src/routes(1)
@@ -21,7 +21,7 @@ test src/tests/lib/app/global-keybindings.test.ts mocks src/lib/plugins/quick-ca
 test src/tests/lib/features/command-palette/CommandPalette.test.ts mocks src/lib/plugins/quick-capture/note-composer.service.ts
 ## symbols
 sym src/lib/plugins/quick-capture/note-composer.service.ts:20 fn createNoteComposer(): Promise<void> L35 | Creates and opens a new capture note instantly via the in-editor note-composer surface (Cmd+N).
-by src/lib/plugins/quick-capture/note-composer.service.ts:createNoteComposer <- src/lib/app/commands.ts:362 in getBuiltInCommands call
+by src/lib/plugins/quick-capture/note-composer.service.ts:createNoteComposer <- src/lib/app/commands.ts:369 in getBuiltInCommands call
 by src/lib/plugins/quick-capture/note-composer.service.ts:createNoteComposer <- src/lib/app/global-keybindings.ts:152 in GLOBAL_KEYBINDINGS call
 ## calls
 call src/lib/plugins/quick-capture/note-composer.service.ts:28 in createNoteComposer -> src/lib/plugins/quick-capture/note-composer.logic.ts:buildCapturePath call

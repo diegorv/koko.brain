@@ -118,7 +118,7 @@ by src/lib/core/editor/editor.service.ts:syncExternalContentToEditor <- src/lib/
 by src/lib/core/editor/editor.service.ts:syncExternalContentToEditor <- src/lib/features/todoist-sync/sync-now.service.ts:900 in writeProjectId call
 more by 3 not shown: src/lib/plugins/mods(2) src/lib/features/type-definitions(1): q importers src/lib/core/editor/editor.service.ts:syncExternalContentToEditor
 sym src/lib/core/editor/editor.service.ts:148 fn openFileInEditor(filePath: string) L51 | Opens a file in the editor.
-by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/app/commands.ts:156 in getBuiltInCommands call +2
+by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/app/commands.ts:157 in getBuiltInCommands call +2
 by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/app/editor-host.ts:144 in appEditorHost.openLink call
 by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/app/rail-navigation.ts:20 in selectRailItem call +1
 by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/core/editor/open-note-at.service.ts:39 in openNoteAt call
@@ -128,7 +128,7 @@ by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/features/ba
 by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/features/canvas/CanvasInner.svelte:580 in handleDrop call
 more by 27 not shown: src/lib/features/event-calendar(5) src/lib/features/rail-shell(4) src/lib/features/collection(2) src/lib/features/note-list(2) src/lib/plugins/mods(2) src/lib/features/canvas(1) src/lib/features/deep-link(1) src/lib/features/note-action-bar(1) +9 modules: q importers src/lib/core/editor/editor.service.ts:openFileInEditor
 sym src/lib/core/editor/editor.service.ts:201 fn saveCurrentFile() L5 | Writes the active tab's content to disk if it has unsaved changes
-by src/lib/core/editor/editor.service.ts:saveCurrentFile <- src/lib/app/commands.ts:125 in getBuiltInCommands call
+by src/lib/core/editor/editor.service.ts:saveCurrentFile <- src/lib/app/commands.ts:126 in getBuiltInCommands call
 by src/lib/core/editor/editor.service.ts:saveCurrentFile <- src/lib/app/global-keybindings.ts:78 in GLOBAL_KEYBINDINGS call
 by src/lib/core/editor/editor.service.ts:saveCurrentFile <- src/lib/features/file-history/file-history.service.ts:99 in restoreSnapshot call
 sym src/lib/core/editor/editor.service.ts:220 fn saveFileByPath(path: string): Promise<boolean> L9 | Writes a specific tab's content to disk if it has unsaved changes.
@@ -156,18 +156,18 @@ by src/lib/core/editor/editor.service.ts:switchTab <- src/lib/core/markdown-edit
 sym src/lib/core/editor/editor.service.ts:362 fn closeTab(index: number) L33 | Closes a tab by index.
 by src/lib/core/editor/editor.service.ts:closeTab <- src/lib/core/markdown-editor/EditorTabs.svelte:89 in (markup) markup +1
 sym src/lib/core/editor/editor.service.ts:397 fn closeActiveTab() L5 | Convenience: closes whichever tab is currently focused
-by src/lib/core/editor/editor.service.ts:closeActiveTab <- src/lib/app/commands.ts:132 in getBuiltInCommands call
+by src/lib/core/editor/editor.service.ts:closeActiveTab <- src/lib/app/commands.ts:133 in getBuiltInCommands call
 by src/lib/core/editor/editor.service.ts:closeActiveTab <- src/lib/app/global-keybindings.ts:84 in GLOBAL_KEYBINDINGS call
 sym src/lib/core/editor/editor.service.ts:404 fn switchToNextTab() L5 | Cycles to the next tab (wraps around)
-by src/lib/core/editor/editor.service.ts:switchToNextTab <- src/lib/app/commands.ts:139 in getBuiltInCommands call
+by src/lib/core/editor/editor.service.ts:switchToNextTab <- src/lib/app/commands.ts:140 in getBuiltInCommands call
 by src/lib/core/editor/editor.service.ts:switchToNextTab <- src/lib/app/global-keybindings.ts:98 in GLOBAL_KEYBINDINGS call
 sym src/lib/core/editor/editor.service.ts:411 fn switchToPreviousTab() L5 | Cycles to the previous tab (wraps around)
-by src/lib/core/editor/editor.service.ts:switchToPreviousTab <- src/lib/app/commands.ts:146 in getBuiltInCommands call
+by src/lib/core/editor/editor.service.ts:switchToPreviousTab <- src/lib/app/commands.ts:147 in getBuiltInCommands call
 by src/lib/core/editor/editor.service.ts:switchToPreviousTab <- src/lib/app/global-keybindings.ts:91 in GLOBAL_KEYBINDINGS call
 sym src/lib/core/editor/editor.service.ts:418 fn togglePinTab(index: number) L3 | Toggles the pinned state of the tab at the given index
 by src/lib/core/editor/editor.service.ts:togglePinTab <- src/lib/core/markdown-editor/EditorTabs.svelte:99 in (markup) markup
 sym src/lib/core/editor/editor.service.ts:423 fn togglePinActiveTab() L5 | Toggles the pinned state of the currently active tab
-by src/lib/core/editor/editor.service.ts:togglePinActiveTab <- src/lib/app/commands.ts:349 in getBuiltInCommands call
+by src/lib/core/editor/editor.service.ts:togglePinActiveTab <- src/lib/app/commands.ts:356 in getBuiltInCommands call
 sym src/lib/core/editor/editor.service.ts:437 fn toggleSourceMode() L3 | Toggles between live preview and source mode.
 by src/lib/core/editor/editor.service.ts:toggleSourceMode <- src/lib/app/global-keybindings.ts:187 in GLOBAL_KEYBINDINGS call
 by src/lib/core/editor/editor.service.ts:toggleSourceMode <- src/lib/features/note-action-bar/NoteActionBar.svelte:178 in (markup) markup

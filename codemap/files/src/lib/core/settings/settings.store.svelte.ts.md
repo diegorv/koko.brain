@@ -100,7 +100,7 @@ sym src/lib/core/settings/settings.store.svelte.ts:167 store settingsStore L249 
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/AppShell.svelte:61 in rightSidebarShown=$derived member +32
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/EditorView.svelte:9 in (script) import
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/boot.ts:38 in registerAppPorts member +2
-by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/commands.ts:65 in railGoToCommands member +4
+by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/commands.ts:66 in railGoToCommands member +4
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/deep-link-actions.ts:56 in executeDailyAction member +3
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/editor-host.ts:55 in periodicTarget member +1
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/lifecycle/app-lifecycle.service.ts:215 in initializeVault member +11

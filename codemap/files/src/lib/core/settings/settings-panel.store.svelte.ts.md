@@ -22,7 +22,7 @@ test src/tests/lib/features/event-calendar/EventCalendarSection.test.ts imports 
 ## symbols
 sym src/lib/core/settings/settings-panel.store.svelte.ts:7 store settingsPanelStore L18 | Reactive store for the in-app settings panel (open/close + active section).
 by src/lib/core/settings/settings-panel.store.svelte.ts:settingsPanelStore <- src/lib/app/SettingsPanel.svelte:103 in SectionContent=$derived member +6
-by src/lib/core/settings/settings-panel.store.svelte.ts:settingsPanelStore <- src/lib/app/commands.ts:403 in getBuiltInCommands mcall
+by src/lib/core/settings/settings-panel.store.svelte.ts:settingsPanelStore <- src/lib/app/commands.ts:410 in getBuiltInCommands mcall
 by src/lib/core/settings/settings-panel.store.svelte.ts:settingsPanelStore <- src/lib/app/global-keybindings.ts:165 in GLOBAL_KEYBINDINGS mcall
 by src/lib/core/settings/settings-panel.store.svelte.ts:settingsPanelStore <- src/lib/app/tauri-listeners.service.ts:29 in registerMenuSettingsListener mcall
 by src/lib/core/settings/settings-panel.store.svelte.ts:settingsPanelStore <- src/lib/features/event-calendar/EventCalendarSection.svelte:77 in openEventType mcall +1
@@ -32,6 +32,6 @@ mem src/lib/core/settings/settings-panel.store.svelte.ts:8 get settingsPanelStor
 mem src/lib/core/settings/settings-panel.store.svelte.ts:9 get settingsPanelStore.activeSection r:src/lib/app/SettingsPanel.svelte:103,src/lib/app/SettingsPanel.svelte:135 w-via:open,setSection,_reset
 mem src/lib/core/settings/settings-panel.store.svelte.ts:11 do settingsPanelStore.open w:-
 mem src/lib/core/settings/settings-panel.store.svelte.ts:15 do settingsPanelStore.close w:src/lib/app/SettingsPanel.svelte:107,src/lib/app/SettingsPanel.svelte:151,src/lib/features/event-calendar/EventCalendarSection.svelte:77,src/lib/features/event-calendar/EventCalendarSection.svelte:103
-mem src/lib/core/settings/settings-panel.store.svelte.ts:16 do settingsPanelStore.toggle w:src/lib/app/commands.ts:403,src/lib/app/global-keybindings.ts:165,src/lib/app/tauri-listeners.service.ts:29
+mem src/lib/core/settings/settings-panel.store.svelte.ts:16 do settingsPanelStore.toggle w:src/lib/app/commands.ts:410,src/lib/app/global-keybindings.ts:165,src/lib/app/tauri-listeners.service.ts:29
 mem src/lib/core/settings/settings-panel.store.svelte.ts:17 do settingsPanelStore.setSection w:src/lib/app/SettingsPanel.svelte:139
 mem src/lib/core/settings/settings-panel.store.svelte.ts:20 do settingsPanelStore._reset w:-

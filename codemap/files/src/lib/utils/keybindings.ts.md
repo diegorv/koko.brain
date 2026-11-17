@@ -24,7 +24,7 @@ sym src/lib/utils/keybindings.ts:19 fn toCodeMirrorKey(combo: KeyCombo & { key: 
 by src/lib/utils/keybindings.ts:toCodeMirrorKey <- src/lib/core/markdown-editor/setup/editor-extensions.ts:152 in createExtensions call
 sym src/lib/utils/keybindings.ts:40 fn formatShortcut(combo: KeyCombo): string L15 | Writes a combo as the macOS hint shown next to a command or menu item (`⌘⇧L`): modifiers in the order Ctrl, Cmd, Shift, Option, then the key.
 by src/lib/utils/keybindings.ts:formatShortcut <- src/lib/core/markdown-editor/MarkdownEditor.svelte:755 in (markup) markup
-by src/lib/utils/keybindings.ts:formatShortcut <- src/lib/features/command-palette/CommandPalette.svelte:67 in (markup) markup
+by src/lib/utils/keybindings.ts:formatShortcut <- src/lib/features/command-palette/CommandPalette.svelte:62 in (markup) markup
 by src/lib/utils/keybindings.ts:formatShortcut <- src/lib/features/note-list/NoteRowMenu.svelte:280 in (markup) markup
 sym src/lib/utils/keybindings.ts:57 fn registerKeybinding(binding: KeyBinding): () => void L25 | Registers a global keyboard shortcut.
 by src/lib/utils/keybindings.ts:registerKeybinding <- src/lib/app/global-keybindings.ts:224 in registerGlobalKeybindings call

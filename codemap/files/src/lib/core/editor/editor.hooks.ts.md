@@ -106,7 +106,7 @@ sym src/lib/core/editor/editor.hooks.ts:98 type NoteCreatedObserver L1 | Called 
 sym src/lib/core/editor/editor.hooks.ts:104 fn addNoteCreatedObserver(observer: NoteCreatedObserver): () => void L7 | Adds a note-created observer.
 by src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver <- src/lib/plugins/mods/mods-host.service.ts:681 in createModContext call
 sym src/lib/core/editor/editor.hooks.ts:119 fn notifyNoteCreated(filePath: string): void L9 | Notifies the note-created observers.
-by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/app/commands.ts:157 in getBuiltInCommands call
+by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/app/commands.ts:158 in getBuiltInCommands call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/core/note-creator/note-creator.service.ts:130 in openOrCreateNote call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/quick-switcher/QuickSwitcher.svelte:95 in createAndOpenNote call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/rail-shell/FilesNavigator.svelte:129 in handleNewFile call

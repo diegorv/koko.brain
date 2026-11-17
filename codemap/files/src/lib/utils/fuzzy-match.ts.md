@@ -21,5 +21,5 @@ by src/lib/utils/fuzzy-match.ts:fuzzyMatch <- src/lib/core/filesystem/file-entri
 by src/lib/utils/fuzzy-match.ts:fuzzyMatch <- src/lib/core/markdown-editor/extensions/tag/completion.logic.ts:98 in rankTags call
 by src/lib/utils/fuzzy-match.ts:fuzzyMatch <- src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:81 in matchFilesForWikilink call
 by src/lib/utils/fuzzy-match.ts:fuzzyMatch <- src/lib/core/markdown-editor/extensions/wikilink/completion.ts:92 in buildFileCompletions call +2
-by src/lib/utils/fuzzy-match.ts:fuzzyMatch <- src/lib/features/command-palette/command-palette.logic.ts:24 in filterAndRankCommands call
+by src/lib/utils/fuzzy-match.ts:fuzzyMatch <- src/lib/features/command-palette/command-palette.logic.ts:38 in filterAndRankCommands call
 by src/lib/utils/fuzzy-match.ts:fuzzyMatch <- src/lib/plugins/mods/ModDialogHost.svelte:37 in pickItems=$derived call

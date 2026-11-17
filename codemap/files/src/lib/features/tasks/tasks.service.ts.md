@@ -82,10 +82,10 @@ by src/lib/features/tasks/tasks.service.ts:setTaskStatusFromMenu <- src/lib/feat
 sym src/lib/features/tasks/tasks.service.ts:463 fn updateTaskFromMenu(filePath: string, task: TaskItem, newText: string, message: string): Promise<void> L7 | A row menu's text change (due date, priority): `updateTask`, then a toast with `message` whose Undo writes `task.text` back, expecting `newText`.
 by src/lib/features/tasks/tasks.service.ts:updateTaskFromMenu <- src/lib/features/tasks/TasksView.svelte:555 in setRowDue call +1
 sym src/lib/features/tasks/tasks.service.ts:547 fn openTasksTab(): void L14 | Opens or focuses the Tasks tab.
-by src/lib/features/tasks/tasks.service.ts:openTasksTab <- src/lib/app/commands.ts:88 in tasksStatusFilterCommand call
+by src/lib/features/tasks/tasks.service.ts:openTasksTab <- src/lib/app/commands.ts:89 in tasksStatusFilterCommand call
 sym src/lib/features/tasks/tasks.service.ts:563 fn closeTasksTab(): void L6 | Closes the Tasks tab if it exists.
 sym src/lib/features/tasks/tasks.service.ts:571 fn toggleTasksTab(): void L10 | Toggles the Tasks tab: opens if closed, closes if active, focuses if open but not active.
-by src/lib/features/tasks/tasks.service.ts:toggleTasksTab <- src/lib/app/commands.ts:222 in getBuiltInCommands call
+by src/lib/features/tasks/tasks.service.ts:toggleTasksTab <- src/lib/app/commands.ts:223 in getBuiltInCommands call
 by src/lib/features/tasks/tasks.service.ts:toggleTasksTab <- src/lib/app/global-keybindings.ts:121 in GLOBAL_KEYBINDINGS call
 sym src/lib/features/tasks/tasks.service.ts:588 fn resetTasks(): void L8 | Resets all task state.
 by src/lib/features/tasks/tasks.service.ts:resetTasks <- src/lib/app/lifecycle/app-lifecycle.service.ts:673 in teardownVault call

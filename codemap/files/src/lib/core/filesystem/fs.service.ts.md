@@ -110,7 +110,7 @@ by src/lib/core/filesystem/fs.service.ts:addToTree <- src/lib/plugins/templates/
 sym src/lib/core/filesystem/fs.service.ts:179 fn addScannedToTree(path: string, isDirectory: boolean): Promise<void> L11 | `addToTree` for an item that arrived on disk with content (a copied or restored folder): a folder's subtree comes from `scan_vault` on that folder alone.
 by src/lib/core/filesystem/fs.service.ts:addScannedToTree <- src/lib/core/trash/trash.service.ts:159 in restoreItem call
 sym src/lib/core/filesystem/fs.service.ts:198 fn createFile(parentPath: string, fileName: string, content: string = ''): Promise<string> L27 | Creates a file on disk with the given initial content (empty by default) and adds it to the tree.
-by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/app/commands.ts:155 in getBuiltInCommands call
+by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/app/commands.ts:156 in getBuiltInCommands call
 by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/auto-organize/auto-organize.service.ts:612 in createRuleNote call
 by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/canvas/canvas.service.ts:9 in createCanvasFile call
 by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/collection/collection.service.ts:34 in createCollectionFile call
@@ -120,7 +120,7 @@ by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/quick-sw
 by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/rail-shell/FilesNavigator.svelte:86 in fileCreators=$derived call
 more by 3 not shown: src/lib/features/rail-shell(1) src/lib/features/type-definitions(1) src/lib/plugins/kanban(1): q importers src/lib/core/filesystem/fs.service.ts:createFile
 sym src/lib/core/filesystem/fs.service.ts:227 fn createFolder(parentPath: string, folderName: string): Promise<string> L17 | Creates a directory on disk and adds it to the tree.
-by src/lib/core/filesystem/fs.service.ts:createFolder <- src/lib/app/commands.ts:167 in getBuiltInCommands call
+by src/lib/core/filesystem/fs.service.ts:createFolder <- src/lib/app/commands.ts:168 in getBuiltInCommands call
 by src/lib/core/filesystem/fs.service.ts:createFolder <- src/lib/features/rail-shell/FilesNavigator.svelte:140 in handleNewFolder call
 sym src/lib/core/filesystem/fs.service.ts:246 fn deleteItem(itemPath: string, isDirectory: boolean = false): Promise<void> L24 | Moves a file or folder to trash (soft delete), closes open tabs, and removes it from the tree.
 by src/lib/core/filesystem/fs.service.ts:deleteItem <- src/lib/core/filesystem/delete-note.service.ts:22 in deleteNoteWithConfirm call

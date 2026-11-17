@@ -86,21 +86,21 @@ by src/lib/features/type-definitions/type-sidebar.logic.ts:splitPropertyIntoPill
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:321 interface ViewFileEntry L6 | A .view file entry for sidebar rendering.
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:329 fn collectViewFiles(tree: FileTreeNode[]): ViewFileEntry[] L6 | Collects .view files from the file tree, sorted by name in natural order ("Week 2" before "Week 10").
 by src/lib/features/type-definitions/type-sidebar.logic.ts:collectViewFiles <- src/lib/app/AppShell.svelte:123 in viewFilesKey=$derived call +1
-by src/lib/features/type-definitions/type-sidebar.logic.ts:collectViewFiles <- src/lib/app/commands.ts:100 in openViewCommands call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:collectViewFiles <- src/lib/app/commands.ts:101 in openViewCommands call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:collectViewFiles <- src/lib/features/rail-shell/lens.logic.ts:658 in viewNavigatorRows call +1
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:350 fn getViewLabel(entry: NoteEntryV2 | undefined, fallbackName: string): string L4 | Extracts _sidebar_label from a view entry's frontmatter.
-by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewLabel <- src/lib/app/commands.ts:105 in openViewCommands call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewLabel <- src/lib/app/commands.ts:106 in openViewCommands call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewLabel <- src/lib/features/rail-shell/lens.logic.ts:226 in pinnedRailItems call +3
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:364 fn buildNewViewYaml(name: string, filters?: CollectionFilter | string): string L4 | Builds the YAML of a new `.view`: the name as its label and as the name of its one table view, sorted by title.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:buildNewViewYaml <- src/lib/features/type-definitions/type-definitions.service.ts:276 in createView call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:373 fn getViewOpensInEditor(entry: NoteEntryV2 | undefined): boolean L3 | Whether a click on the view's row opens the `.view` in the editor instead of picking it as the note list's lens.
-by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewOpensInEditor <- src/lib/app/commands.ts:102 in openViewCommands call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewOpensInEditor <- src/lib/app/commands.ts:103 in openViewCommands call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewOpensInEditor <- src/lib/app/editor-host.ts:187 in appEditorHost.openView call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewOpensInEditor <- src/lib/features/rail-shell/lens.logic.ts:229 in pinnedRailItems call +1
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:381 fn getViewGroup(entry: NoteEntryV2 | undefined): string | null L5 | The subheading the view is listed under in Views: its trimmed `_group`.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewGroup <- src/lib/features/rail-shell/lens.logic.ts:669 in viewNavigatorRows call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:391 fn getViewVisible(entry: NoteEntryV2 | undefined): boolean L3 | Whether Views lists the view.
-by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewVisible <- src/lib/app/commands.ts:100 in openViewCommands call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewVisible <- src/lib/app/commands.ts:101 in openViewCommands call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewVisible <- src/lib/features/note-list/NoteRowMenu.svelte:90 in isHiddenView call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewVisible <- src/lib/features/rail-shell/lens.logic.ts:660 in viewNavigatorRows call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:396 interface ReservedKeyRule L10 | A reserved frontmatter key and the value shape its reader uses; any other value is ignored.
