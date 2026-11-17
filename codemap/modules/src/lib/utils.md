@@ -1,7 +1,7 @@
 # module card src/lib/utils
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/utils ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src/lib/utils utils files 29 in-modules 42 out-modules 2 pub 84/103 ipc 3/0 card ~9.2k
+module src/lib/utils utils files 30 in-modules 42 out-modules 2 pub 85/104 ipc 3/0 card ~9.4k
 ## neighbors
 dep src/lib/app -> src/lib/utils 17
 dep src/lib/core/editor -> src/lib/utils 7
@@ -29,7 +29,7 @@ dep src/lib/features/outgoing-links -> src/lib/utils 2
 dep src/lib/features/properties -> src/lib/utils 7
 dep src/lib/features/quick-switcher -> src/lib/utils 1
 dep src/lib/features/rail-shell -> src/lib/utils 11
-dep src/lib/features/search -> src/lib/utils 7
+dep src/lib/features/search -> src/lib/utils 8
 dep src/lib/features/tags -> src/lib/utils 5
 dep src/lib/features/tasks -> src/lib/utils 16
 dep src/lib/features/todoist-sync -> src/lib/utils 9
@@ -76,6 +76,7 @@ entry src/lib/utils/menu-action.types.ts ext-in2 src/lib/features/note-list/Note
 entry src/lib/utils/template.ts ext-in2 src/lib/core/note-creator/note-creator.service.ts src/lib/plugins/quick-capture/note-composer.logic.ts
 entry src/lib/utils/app-channel.ts ext-in1 src/lib/core/settings/settings.service.ts
 entry src/lib/utils/build-info.js ext-in1 src/lib/core/settings/BuildInfo.svelte
+entry src/lib/utils/markdown-plain-text.ts ext-in1 src/lib/features/search/SearchResult.svelte
 entry src/lib/utils/text-roles.ts ext-in1 src/lib/utils.ts
 ## files
 file src/lib/utils/app-channel.ts other L17 module src/lib/utils in1 t1
@@ -94,6 +95,7 @@ file src/lib/utils/index-dedupe.ts other L39 module src/lib/utils in3 t33
 file src/lib/utils/inflight.ts other L173 module src/lib/utils in5 t1
 file src/lib/utils/keybindings.ts other L81 module src/lib/utils in5 t4
 file src/lib/utils/log.service.ts service L236 module src/lib/utils in14 t46
+file src/lib/utils/markdown-plain-text.ts other L57 module src/lib/utils in1 t1 | Markdown to plain text for one-line previews such as search snippets.
 file src/lib/utils/menu-action.types.ts types L21 module src/lib/utils in2 t0
 file src/lib/utils/node-shims/fs.js other L3 module src/lib/utils in0 t0
 file src/lib/utils/node-shims/path.js other L4 module src/lib/utils in0 t0
@@ -159,6 +161,7 @@ sym src/lib/utils/log.service.ts:131 fn startHeartbeat(): void L18 | Starts a 25
 sym src/lib/utils/log.service.ts:159 fn stopHeartbeat(): void L10 | Stops the heartbeat.
 sym src/lib/utils/log.service.ts:218 fn isLogSessionActive(): boolean L3 | Returns whether a log session is currently active.
 sym src/lib/utils/log.service.ts:229 fn openLogDir(): Promise<void> L8 | Opens the system log directory in the file manager.
+sym src/lib/utils/markdown-plain-text.ts:39 fn markdownToPlainText(markdown: string): string L19 | Turns a markdown fragment into plain text, keeping `<mark>` tags.
 sym src/lib/utils/menu-action.types.ts:10 interface MenuActionItem L12 | A flat action in note-row or folder menus; rendering reads data only.
 sym src/lib/utils/note-date.ts:31 fn parseDateKey(value: unknown): string | null L14 | Parses a frontmatter date value into a 'YYYY-MM-DD' key in local time.
 sym src/lib/utils/note-date.ts:51 fn noteDateKey({ date, created, diskCreatedAt }: NoteDateSources): string | null L7 | The day a note belongs to (the PRD's "note date"): frontmatter `date`, else frontmatter `created`, else the disk creation time.

@@ -12,7 +12,7 @@ imp src/lib/features/search/search.service.ts:6 -> src/lib/core/vault/vault.stor
 imp src/lib/features/search/search.service.ts:7 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver
 imp src/lib/features/search/search.service.ts:8 -> src/lib/features/search/search-hybrid.logic.ts mergeResults
 imp src/lib/features/search/search.service.ts:9 -> src/lib/features/search/search.logic.ts parseSearchQuery,performSearchOverFiles,performOperatorOnlySearch,matchesPathFilter
-imp src/lib/features/search/search.service.ts:10 -> src/lib/utils/path.ts vaultRelativeKey
+imp src/lib/features/search/search.service.ts:10 -> src/lib/utils/path.ts stem,vaultRelativeKey
 imp src/lib/features/search/search.service.ts:11 -> src/lib/utils/debug.ts debug,error
 imp src/lib/features/search/search.service.ts:12 -> src/lib/features/search/search.types.ts type:SemanticProgress
 ## imported-by
@@ -69,6 +69,7 @@ call src/lib/features/search/search.service.ts:138 in performSearch -> src/lib/f
 call src/lib/features/search/search.service.ts:139 in performSearch -> src/lib/utils/debug.ts:debug call +13
 call src/lib/features/search/search.service.ts:147 in performSearch -> src/lib/features/search/search.logic.ts:parseSearchQuery call +3
 call src/lib/features/search/search.service.ts:150 in performSearch -> src/lib/contracts/ipc.ts:call call +3
+call src/lib/features/search/search.service.ts:164 in performSearch -> src/lib/utils/path.ts:stem call
 call src/lib/features/search/search.service.ts:194 in performSearch -> src/lib/features/search/search.logic.ts:performOperatorOnlySearch call
 call src/lib/features/search/search.service.ts:209 in performSearch -> src/lib/features/search/search.service.ts:loadVaultTagMap call
 call src/lib/features/search/search.service.ts:218 in performSearch -> src/lib/features/search/search.logic.ts:matchesPathFilter call

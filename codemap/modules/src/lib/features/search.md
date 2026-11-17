@@ -14,7 +14,7 @@ dep src/lib/features/search -> src/lib/core/settings 5
 dep src/lib/features/search -> src/lib/core/vault 4
 dep src/lib/features/search -> src/lib/features/event-calendar 1
 dep src/lib/features/search -> src/lib/features/rail-shell 1
-dep src/lib/features/search -> src/lib/utils 7
+dep src/lib/features/search -> src/lib/utils 8
 in2 src/lib/features/search 1 modules: src/lib/plugins/quick-capture(1)
 out2 src/lib/features/search 4 modules: src/lib/features/collection(5) src/lib/features/type-definitions(4) src/lib/core/markdown-editor(1) src/lib/types(1)
 ## entry files
@@ -27,7 +27,7 @@ entry src/lib/features/search/SearchStatus.svelte ext-in1 src/lib/app/AppShell.s
 entry src/lib/features/search/SemanticIndexStatus.svelte ext-in1 src/lib/app/AppShell.svelte
 ## files
 file src/lib/features/search/SearchPanel.svelte component L171 module src/lib/features/search in1 t1
-file src/lib/features/search/SearchResult.svelte component L178 module src/lib/features/search in1 t1
+file src/lib/features/search/SearchResult.svelte component L179 module src/lib/features/search in1 t1
 file src/lib/features/search/SearchSection.svelte component L159 module src/lib/features/search in1 t1
 file src/lib/features/search/SearchStatus.svelte component L29 module src/lib/features/search in1 t0
 file src/lib/features/search/SemanticIndexStatus.svelte component L69 module src/lib/features/search in1 t1
@@ -36,7 +36,7 @@ file src/lib/features/search/search-hybrid.logic.ts logic L73 module src/lib/fea
 file src/lib/features/search/search.logic.ts logic L251 module src/lib/features/search in2 t1
 file src/lib/features/search/search.service.ts service L425 module src/lib/features/search in3 t3
 file src/lib/features/search/search.store.svelte.ts store L90 module src/lib/features/search in8 t12
-file src/lib/features/search/search.types.ts types L47 module src/lib/features/search in6 t0
+file src/lib/features/search/search.types.ts types L51 module src/lib/features/search in6 t0
 file src/lib/features/search/semantic-index-status.logic.ts logic L52 module src/lib/features/search in1 t1
 ## public
 sym src/lib/features/search/SearchPanel.svelte:1 component SearchPanel props:firstPane= L171
