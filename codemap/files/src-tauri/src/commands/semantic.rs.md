@@ -300,24 +300,24 @@ call src-tauri/src/commands/semantic.rs:1635 in check_and_update_model_hash -> s
 call src-tauri/src/commands/semantic.rs:1635 in check_and_update_model_hash -> src-tauri/src/db/semantic_repo.rs:get_meta lexical
 call src-tauri/src/commands/semantic.rs:1640 in check_and_update_model_hash -> src-tauri/src/db/semantic_repo.rs:upsert_meta lexical
 ## ipc-in
-ipc-call src/lib/features/search/search.service.ts:370 in initSemanticSearch -> ipc:init_semantic_search -> src-tauri/src/commands/semantic.rs:371
+ipc-call src/lib/features/search/search.service.ts:404 in initSemanticSearch -> ipc:init_semantic_search -> src-tauri/src/commands/semantic.rs:371
 ipc-call src/lib/features/search/SearchSection.svelte:68 in handleToggle -> ipc:is_semantic_model_available -> src-tauri/src/commands/semantic.rs:399
-ipc-call src/lib/features/search/search.service.ts:364 in initSemanticSearch -> ipc:is_semantic_model_available -> src-tauri/src/commands/semantic.rs:399
+ipc-call src/lib/features/search/search.service.ts:398 in initSemanticSearch -> ipc:is_semantic_model_available -> src-tauri/src/commands/semantic.rs:399
 ipc-call src/lib/features/search/SearchSection.svelte:29 in refreshRerankerStatus -> ipc:is_reranker_model_available -> src-tauri/src/commands/semantic.rs:406
 ipc-call src/lib/features/search/SearchSection.svelte:46 in handleRerankerDownload -> ipc:download_reranker_model -> src-tauri/src/commands/semantic.rs:422
 ipc-call src/lib/features/search/SearchSection.svelte:74 in handleToggle -> ipc:download_semantic_model -> src-tauri/src/commands/semantic.rs:452
-ipc-call src/lib/features/search/search.service.ts:411 in buildSemanticIndex -> ipc:build_semantic_index -> src-tauri/src/commands/semantic.rs:483
-ipc-call src/lib/features/search/search.service.ts:253 in performSearch -> ipc:search_semantic -> src-tauri/src/commands/semantic.rs:798
-ipc-call src/lib/features/search/search.service.ts:154 in performSearch -> ipc:search_hybrid -> src-tauri/src/commands/semantic.rs:986
-ipc-call src/lib/features/search/search.service.ts:373 in initSemanticSearch -> ipc:get_semantic_stats -> src-tauri/src/commands/semantic.rs:1220
+ipc-call src/lib/features/search/search.service.ts:445 in buildSemanticIndex -> ipc:build_semantic_index -> src-tauri/src/commands/semantic.rs:483
+ipc-call src/lib/features/search/search.service.ts:281 in performSearch -> ipc:search_semantic -> src-tauri/src/commands/semantic.rs:798
+ipc-call src/lib/features/search/search.service.ts:173 in performSearch -> ipc:search_hybrid -> src-tauri/src/commands/semantic.rs:986
+ipc-call src/lib/features/search/search.service.ts:407 in initSemanticSearch -> ipc:get_semantic_stats -> src-tauri/src/commands/semantic.rs:1220
 ipc-call src/lib/features/search/SemanticIndexStatus.svelte:44 in $effect@29 -> ipc:get_semantic_file_status -> src-tauri/src/commands/semantic.rs:1235
 ipc-call src/lib/app/lifecycle/app-lifecycle.service.ts:632 in teardownVault -> ipc:shutdown_semantic -> src-tauri/src/commands/semantic.rs:1253
 ipc-call src/lib/core/filesystem/note-change.service.ts:222 in applyNoteChange -> ipc:remove_semantic_file -> src-tauri/src/commands/semantic.rs:1282
 ipc-call src/lib/core/filesystem/note-change.service.ts:257 in applyNoteChange -> ipc:update_semantic_file -> src-tauri/src/commands/semantic.rs:1305
-ipc-call src/lib/features/search/search.service.ts:345 in registerSearchIndexHook -> ipc:update_semantic_file -> src-tauri/src/commands/semantic.rs:1305
+ipc-call src/lib/features/search/search.service.ts:379 in registerSearchIndexHook -> ipc:update_semantic_file -> src-tauri/src/commands/semantic.rs:1305
 ## effects
 fx src-tauri/src/commands/semantic.rs:324 rust-spawn.spawn in schedule_reranker_unload
 fx src-tauri/src/commands/semantic.rs:325 rust-timer.sleep in schedule_reranker_unload
 fx src-tauri/src/commands/semantic.rs:336 rust-spawn.spawn in schedule_embedder_unload
 fx src-tauri/src/commands/semantic.rs:337 rust-timer.sleep in schedule_embedder_unload
-ev src-tauri/src/commands/semantic.rs:414 in emit_progress -> event:semantic-index-progress -> src/lib/features/search/search.service.ts:85 in startSemanticProgressListener
+ev src-tauri/src/commands/semantic.rs:414 in emit_progress -> event:semantic-index-progress -> src/lib/features/search/search.service.ts:95 in startSemanticProgressListener

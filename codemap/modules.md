@@ -41,7 +41,7 @@ module src/lib/features/outgoing-links features files 5 in-modules 2 out-modules
 module src/lib/features/properties features files 13 in-modules 5 out-modules 13 pub 14/34 ipc 1/0 card ~2.3k
 module src/lib/features/quick-switcher features files 4 in-modules 1 out-modules 11 pub 3/8 ipc 1/0 card ~1k
 module src/lib/features/rail-shell features files 30 in-modules 8 out-modules 17 pub 51/162 ipc 2/0 card ~6.4k
-module src/lib/features/search features files 12 in-modules 4 out-modules 9 pub 14/46 ipc 16/0 card ~2.1k
+module src/lib/features/search features files 12 in-modules 4 out-modules 9 pub 14/51 ipc 16/0 card ~2.1k
 module src/lib/features/tags features files 8 in-modules 1 out-modules 7 pub 4/21 ipc 1/0 card ~0.9k
 module src/lib/features/tasks features files 14 in-modules 2 out-modules 10 pub 7/135 ipc 2/0 card ~1.5k
 module src/lib/features/todoist-sync features files 27 in-modules 1 out-modules 9 pub 9/204 ipc 11/0 card ~3k

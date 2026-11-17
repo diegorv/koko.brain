@@ -12,4 +12,4 @@ out2 src/lib/features/search/search-hybrid.logic.ts 1 files in 1 modules: src/li
 test src/tests/lib/features/search/search-hybrid.logic.test.ts imports src/lib/features/search/search-hybrid.logic.ts mirror
 ## symbols
 sym src/lib/features/search/search-hybrid.logic.ts:17 fn mergeResults(textResults: FtsSearchResult[], semanticResults: SemanticSearchResult[]): HybridSearchResult[] L57 | Merges FTS5 text results and semantic results using Reciprocal Rank Fusion (RRF).
-by src/lib/features/search/search-hybrid.logic.ts:mergeResults <- src/lib/features/search/search.service.ts:276 in performSearch call
+by src/lib/features/search/search-hybrid.logic.ts:mergeResults <- src/lib/features/search/search.service.ts:305 in performSearch call

@@ -93,7 +93,7 @@ sym src/lib/core/editor/editor.hooks.ts:52 fn addAfterSaveObserver(observer: Aft
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/auto-organize/auto-organize.service.ts:208 in registerAutoOrganizeHook call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/file-history/file-history.service.ts:192 in registerFileHistoryHook call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/search/SemanticIndexStatus.svelte:23 in (script) call
-by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/search/search.service.ts:322 in registerSearchIndexHook call
+by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/search/search.service.ts:356 in registerSearchIndexHook call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/todoist-sync/sync-scheduler.service.ts:90 in startAutoSync call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/plugins/mods/mods-host.service.ts:630 in createModContext call
 sym src/lib/core/editor/editor.hooks.ts:67 fn notifyAfterSave(filePath: string, content: string): void L26 | Notifies all after-save observers.

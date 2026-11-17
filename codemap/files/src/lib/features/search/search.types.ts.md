@@ -4,11 +4,11 @@ file src/lib/features/search/search.types.ts types L51 module src/lib/features/s
 ## imports
 imp src/lib/features/search/search.types.ts:1 -> src/lib/contracts/index.ts type:FtsSearchResult,type:SemanticResult,type:IndexStats,type:SemanticStats,type:SemanticProgress
 ## imported-by
-imp src/lib/features/search/SearchPanel.svelte:12 -> src/lib/features/search/search.types.ts type:SearchMode
+imp src/lib/features/search/SearchPanel.svelte:13 -> src/lib/features/search/search.types.ts type:SearchMode
 imp src/lib/features/search/SearchResult.svelte:10 -> src/lib/features/search/search.types.ts type:SearchResult,type:FtsSearchResult,type:SemanticSearchResult,type:HybridSearchResult
 imp src/lib/features/search/search-hybrid.logic.ts:1 -> src/lib/features/search/search.types.ts type:FtsSearchResult,type:SemanticSearchResult,type:HybridSearchResult
 imp src/lib/features/search/search.logic.ts:1 -> src/lib/features/search/search.types.ts type:SearchQuery,type:SearchMatch,type:SearchContextSnippet,type:SearchResult
-imp src/lib/features/search/search.service.ts:12 -> src/lib/features/search/search.types.ts type:SemanticProgress
+imp src/lib/features/search/search.service.ts:22 -> src/lib/features/search/search.types.ts type:SemanticProgress
 imp src/lib/features/search/search.store.svelte.ts:1 -> src/lib/features/search/search.types.ts type:SearchResult,type:SearchMode,type:FtsSearchResult,type:SemanticSearchResult,type:HybridSearchResult,type:SearchIndexStats,type:SemanticStats,type:SemanticProgress
 ## reach
 in2 src/lib/features/search/search.types.ts 7 files in 3 modules: src/lib/features/search(4) src/lib/app(2) src/routes(1)
@@ -36,7 +36,7 @@ by src/lib/features/search/search.types.ts:SearchResult <- src/lib/features/sear
 by src/lib/features/search/search.types.ts:SearchResult <- src/lib/features/search/search.logic.ts:1 in (module) import
 by src/lib/features/search/search.types.ts:SearchResult <- src/lib/features/search/search.store.svelte.ts:2 in (module) import
 sym src/lib/features/search/search.types.ts:34 type SearchMode L1 | Search mode selection
-by src/lib/features/search/search.types.ts:SearchMode <- src/lib/features/search/SearchPanel.svelte:12 in (script) import
+by src/lib/features/search/search.types.ts:SearchMode <- src/lib/features/search/SearchPanel.svelte:13 in (script) import
 by src/lib/features/search/search.types.ts:SearchMode <- src/lib/features/search/search.store.svelte.ts:3 in (module) import
 sym src/lib/features/search/search.types.ts:37 interface HybridSearchResult L15 | Combined result for hybrid mode
 by src/lib/features/search/search.types.ts:HybridSearchResult <- src/lib/features/search/SearchResult.svelte:14 in (script) import

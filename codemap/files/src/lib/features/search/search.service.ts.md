@@ -1,7 +1,7 @@
 # file card src/lib/features/search/search.service.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/search/search.service.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls, effects
-file src/lib/features/search/search.service.ts service L444 module src/lib/features/search in4 t3
+file src/lib/features/search/search.service.ts service L478 module src/lib/features/search in4 t4
 ## imports
 imp src/lib/features/search/search.service.ts:1 -> pkg:@tauri-apps/api/event type:UnlistenFn
 imp src/lib/features/search/search.service.ts:2 -> src/lib/contracts/events.ts EVENT_NAMES
@@ -11,13 +11,13 @@ imp src/lib/features/search/search.service.ts:5 -> src/lib/core/filesystem/fs.lo
 imp src/lib/features/search/search.service.ts:6 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/search/search.service.ts:7 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver
 imp src/lib/features/search/search.service.ts:8 -> src/lib/features/search/search-hybrid.logic.ts mergeResults
-imp src/lib/features/search/search.service.ts:9 -> src/lib/features/search/search.logic.ts parseSearchQuery,performSearchOverFiles,performOperatorOnlySearch,matchesPathFilter
-imp src/lib/features/search/search.service.ts:10 -> src/lib/utils/path.ts stem,vaultRelativeKey
-imp src/lib/features/search/search.service.ts:11 -> src/lib/utils/debug.ts debug,error
-imp src/lib/features/search/search.service.ts:12 -> src/lib/features/search/search.types.ts type:SemanticProgress
+imp src/lib/features/search/search.service.ts:9 -> src/lib/features/search/search.logic.ts parseSearchQuery,performSearchOverFiles,performOperatorOnlySearch,matchesPathFilter,FTS_MAX_RESULTS,SEMANTIC_MAX_RESULTS,HYBRID_MAX_RESULTS,OPERATOR_ONLY_MAX_RESULTS,FALLBACK_MAX_RESULTS
+imp src/lib/features/search/search.service.ts:20 -> src/lib/utils/path.ts stem,vaultRelativeKey
+imp src/lib/features/search/search.service.ts:21 -> src/lib/utils/debug.ts debug,error
+imp src/lib/features/search/search.service.ts:22 -> src/lib/features/search/search.types.ts type:SemanticProgress
 ## imported-by
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:26 -> src/lib/features/search/search.service.ts resetSearch,buildSearchIndex,registerSearchIndexHook,initSemanticSearch,buildSemanticIndex,startSemanticProgressListener,stopSemanticProgressListener
-imp src/lib/features/search/SearchPanel.svelte:10 -> src/lib/features/search/search.service.ts performSearch
+imp src/lib/features/search/SearchPanel.svelte:11 -> src/lib/features/search/search.service.ts performSearch
 imp src/lib/features/search/SearchSection.svelte:10 -> src/lib/features/search/search.service.ts initSemanticSearch,buildSemanticIndex,startSemanticProgressListener,stopSemanticProgressListener
 imp src/routes/(app)/+layout.svelte:8 -> src/lib/features/search/search.service.ts performSearch
 ## reach
@@ -26,98 +26,101 @@ out2 src/lib/features/search/search.service.ts 11 files in 5 modules: src/lib/ut
 ## tests
 test src/tests/lib/features/search/search.service.test.ts imports src/lib/features/search/search.service.ts mirror
 test src/tests/lib/core/vault/vault.service.switch-save.test.ts imports src/lib/features/search/search.service.ts
+test src/tests/lib/features/search/SearchPanel.test.ts imports src/lib/features/search/search.service.ts
 test src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts mocks src/lib/features/search/search.service.ts
 ## symbols
-sym src/lib/features/search/search.service.ts:82 fn startSemanticProgressListener(): Promise<void> L23 | Starts listening for semantic-index-progress events from Rust.
+sym src/lib/features/search/search.service.ts:92 fn startSemanticProgressListener(): Promise<void> L23 | Starts listening for semantic-index-progress events from Rust.
 by src/lib/features/search/search.service.ts:startSemanticProgressListener <- src/lib/app/lifecycle/app-lifecycle.service.ts:473 in initializeVault call
 by src/lib/features/search/search.service.ts:startSemanticProgressListener <- src/lib/features/search/SearchSection.svelte:45 in handleRerankerDownload call +1
-sym src/lib/features/search/search.service.ts:107 fn stopSemanticProgressListener(): void L14 | Stops listening for semantic progress events.
+sym src/lib/features/search/search.service.ts:117 fn stopSemanticProgressListener(): void L14 | Stops listening for semantic progress events.
 by src/lib/features/search/search.service.ts:stopSemanticProgressListener <- src/lib/app/lifecycle/app-lifecycle.service.ts:480 in initializeVault call +2
 by src/lib/features/search/search.service.ts:stopSemanticProgressListener <- src/lib/features/search/SearchSection.svelte:93 in handleToggle call
-sym src/lib/features/search/search.service.ts:130 fn performSearch(): Promise<void> L166 | Performs search based on current mode (text/semantic/hybrid).
-by src/lib/features/search/search.service.ts:performSearch <- src/lib/features/search/SearchPanel.svelte:191 in (markup) markup
+sym src/lib/features/search/search.service.ts:140 fn performSearch(): Promise<void> L190 | Performs search based on current mode (text/semantic/hybrid).
+by src/lib/features/search/search.service.ts:performSearch <- src/lib/features/search/SearchPanel.svelte:210 in (markup) markup
 by src/lib/features/search/search.service.ts:performSearch <- src/routes/(app)/+layout.svelte:176 in $effect@170 call
-sym src/lib/features/search/search.service.ts:298 fn buildSearchIndex(): Promise<void> L17 | Builds the FTS5 search index.
+sym src/lib/features/search/search.service.ts:332 fn buildSearchIndex(): Promise<void> L17 | Builds the FTS5 search index.
 by src/lib/features/search/search.service.ts:buildSearchIndex <- src/lib/app/lifecycle/app-lifecycle.service.ts:445 in initializeVault call
-sym src/lib/features/search/search.service.ts:320 fn registerSearchIndexHook(): () => void L30 | Registers AfterSaveObserver for incremental FTS5 + semantic index updates.
+sym src/lib/features/search/search.service.ts:354 fn registerSearchIndexHook(): () => void L30 | Registers AfterSaveObserver for incremental FTS5 + semantic index updates.
 by src/lib/features/search/search.service.ts:registerSearchIndexHook <- src/lib/app/lifecycle/app-lifecycle.service.ts:450 in initializeVault call
-sym src/lib/features/search/search.service.ts:358 fn initSemanticSearch({ fetchStats = true }: { fetchStats?: boolean } = {}): Promise<void> L25 | Initializes semantic search — loads model if available.
+sym src/lib/features/search/search.service.ts:392 fn initSemanticSearch({ fetchStats = true }: { fetchStats?: boolean } = {}): Promise<void> L25 | Initializes semantic search — loads model if available.
 by src/lib/features/search/search.service.ts:initSemanticSearch <- src/lib/app/lifecycle/app-lifecycle.service.ts:475 in initializeVault call
 by src/lib/features/search/search.service.ts:initSemanticSearch <- src/lib/features/search/SearchSection.svelte:79 in handleToggle call
-sym src/lib/features/search/search.service.ts:396 fn buildSemanticIndex(): Promise<void> L39 | Builds the semantic index — chunks and embeds all files.
+sym src/lib/features/search/search.service.ts:430 fn buildSemanticIndex(): Promise<void> L39 | Builds the semantic index — chunks and embeds all files.
 by src/lib/features/search/search.service.ts:buildSemanticIndex <- src/lib/app/lifecycle/app-lifecycle.service.ts:489 in initializeVault call
 by src/lib/features/search/search.service.ts:buildSemanticIndex <- src/lib/features/search/SearchSection.svelte:82 in handleToggle call
-sym src/lib/features/search/search.service.ts:437 fn resetSearch() L8 | Resets search state.
+sym src/lib/features/search/search.service.ts:471 fn resetSearch() L8 | Resets search state.
 by src/lib/features/search/search.service.ts:resetSearch <- src/lib/app/lifecycle/app-lifecycle.service.ts:666 in teardownVault call
 ## locals
-local src/lib/features/search/search.service.ts:24 fn loadVaultContentMap(vaultPath: string): Promise<Map<string, string>> L13
-local src/lib/features/search/search.service.ts:43 fn loadVaultTagMap(): Promise<Map<string, Set<string>>> L8
-local src/lib/features/search/search.service.ts:66 fn flushSemanticProgress(): void L11
+local src/lib/features/search/search.service.ts:34 fn loadVaultContentMap(vaultPath: string): Promise<Map<string, string>> L13
+local src/lib/features/search/search.service.ts:53 fn loadVaultTagMap(): Promise<Map<string, Set<string>>> L8
+local src/lib/features/search/search.service.ts:76 fn flushSemanticProgress(): void L11
 ## calls
-call src/lib/features/search/search.service.ts:25 in loadVaultContentMap -> src/lib/contracts/ipc.ts:call call +1
-call src/lib/features/search/search.service.ts:26 in loadVaultContentMap -> src/lib/core/filesystem/fs.logic.ts:isViewFile call
-call src/lib/features/search/search.service.ts:44 in loadVaultTagMap -> src/lib/contracts/ipc.ts:call call
-call src/lib/features/search/search.service.ts:72 in flushSemanticProgress -> src/lib/features/search/search.store.svelte.ts:searchStore.setSemanticProgress mcall
-call src/lib/features/search/search.service.ts:84 in startSemanticProgressListener -> src/lib/utils/debug.ts:debug call +1
-call src/lib/features/search/search.service.ts:85 in startSemanticProgressListener -> src/lib/contracts/ipc.ts:on call
-call src/lib/features/search/search.service.ts:96 in startSemanticProgressListener -> src/lib/features/search/search.service.ts:flushSemanticProgress call +1
-call src/lib/features/search/search.service.ts:108 in stopSemanticProgressListener -> src/lib/utils/debug.ts:debug call
-call src/lib/features/search/search.service.ts:119 in stopSemanticProgressListener -> src/lib/features/search/search.store.svelte.ts:searchStore.setSemanticProgress mcall
-call src/lib/features/search/search.service.ts:133 in performSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setSearchError mcall +2
-call src/lib/features/search/search.service.ts:135 in performSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setFtsResults mcall +6
-call src/lib/features/search/search.service.ts:136 in performSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setSemanticResults mcall +4
-call src/lib/features/search/search.service.ts:137 in performSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setHybridResults mcall +3
-call src/lib/features/search/search.service.ts:138 in performSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setResults mcall +3
-call src/lib/features/search/search.service.ts:142 in performSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setSearching mcall +1
-call src/lib/features/search/search.service.ts:143 in performSearch -> src/lib/utils/debug.ts:debug call +13
-call src/lib/features/search/search.service.ts:151 in performSearch -> src/lib/features/search/search.logic.ts:parseSearchQuery call +3
-call src/lib/features/search/search.service.ts:154 in performSearch -> src/lib/contracts/ipc.ts:call call +3
-call src/lib/features/search/search.service.ts:168 in performSearch -> src/lib/utils/path.ts:stem call
-call src/lib/features/search/search.service.ts:198 in performSearch -> src/lib/features/search/search.logic.ts:performOperatorOnlySearch call
-call src/lib/features/search/search.service.ts:213 in performSearch -> src/lib/features/search/search.service.ts:loadVaultTagMap call
-call src/lib/features/search/search.service.ts:222 in performSearch -> src/lib/features/search/search.logic.ts:matchesPathFilter call
-call src/lib/features/search/search.service.ts:238 in performSearch -> src/lib/features/search/search.service.ts:loadVaultContentMap call
-call src/lib/features/search/search.service.ts:240 in performSearch -> src/lib/features/search/search.logic.ts:performSearchOverFiles call
-call src/lib/features/search/search.service.ts:267 in performSearch -> src/lib/utils/debug.ts:error call +1
-call src/lib/features/search/search.service.ts:276 in performSearch -> src/lib/features/search/search-hybrid.logic.ts:mergeResults call
-call src/lib/features/search/search.service.ts:301 in buildSearchIndex -> src/lib/utils/debug.ts:debug call +2
-call src/lib/features/search/search.service.ts:302 in buildSearchIndex -> src/lib/features/search/search.store.svelte.ts:searchStore.setIsIndexing mcall +1
-call src/lib/features/search/search.service.ts:305 in buildSearchIndex -> src/lib/contracts/ipc.ts:call call
-call src/lib/features/search/search.service.ts:307 in buildSearchIndex -> src/lib/features/search/search.store.svelte.ts:searchStore.setIndexStats mcall
-call src/lib/features/search/search.service.ts:310 in buildSearchIndex -> src/lib/utils/debug.ts:error call
-call src/lib/features/search/search.service.ts:321 in registerSearchIndexHook -> src/lib/utils/debug.ts:debug call +4
-call src/lib/features/search/search.service.ts:322 in registerSearchIndexHook -> src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver call
-call src/lib/features/search/search.service.ts:330 in registerSearchIndexHook -> src/lib/utils/path.ts:vaultRelativeKey call
-call src/lib/features/search/search.service.ts:339 in registerSearchIndexHook -> src/lib/contracts/ipc.ts:call call +1
-call src/lib/features/search/search.service.ts:341 in registerSearchIndexHook -> src/lib/utils/debug.ts:error call
-call src/lib/features/search/search.service.ts:362 in initSemanticSearch -> src/lib/utils/debug.ts:debug call +5
-call src/lib/features/search/search.service.ts:364 in initSemanticSearch -> src/lib/contracts/ipc.ts:call call +2
-call src/lib/features/search/search.service.ts:366 in initSemanticSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setModelAvailable mcall
-call src/lib/features/search/search.service.ts:375 in initSemanticSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setSemanticStats mcall
-call src/lib/features/search/search.service.ts:380 in initSemanticSearch -> src/lib/utils/debug.ts:error call
-call src/lib/features/search/search.service.ts:398 in buildSemanticIndex -> src/lib/utils/debug.ts:debug call +4
-call src/lib/features/search/search.service.ts:407 in buildSemanticIndex -> src/lib/features/search/search.store.svelte.ts:searchStore.setIsSemanticIndexing mcall +1
-call src/lib/features/search/search.service.ts:411 in buildSemanticIndex -> src/lib/contracts/ipc.ts:call call
-call src/lib/features/search/search.service.ts:417 in buildSemanticIndex -> src/lib/features/search/search.store.svelte.ts:searchStore.setSemanticStats mcall
-call src/lib/features/search/search.service.ts:421 in buildSemanticIndex -> src/lib/utils/debug.ts:error call
-call src/lib/features/search/search.service.ts:427 in buildSemanticIndex -> src/lib/features/search/search.store.svelte.ts:searchStore.setSemanticProgress mcall
-call src/lib/features/search/search.service.ts:438 in resetSearch -> src/lib/utils/debug.ts:debug call
-call src/lib/features/search/search.service.ts:443 in resetSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.reset mcall
+call src/lib/features/search/search.service.ts:35 in loadVaultContentMap -> src/lib/contracts/ipc.ts:call call +1
+call src/lib/features/search/search.service.ts:36 in loadVaultContentMap -> src/lib/core/filesystem/fs.logic.ts:isViewFile call
+call src/lib/features/search/search.service.ts:54 in loadVaultTagMap -> src/lib/contracts/ipc.ts:call call
+call src/lib/features/search/search.service.ts:82 in flushSemanticProgress -> src/lib/features/search/search.store.svelte.ts:searchStore.setSemanticProgress mcall
+call src/lib/features/search/search.service.ts:94 in startSemanticProgressListener -> src/lib/utils/debug.ts:debug call +1
+call src/lib/features/search/search.service.ts:95 in startSemanticProgressListener -> src/lib/contracts/ipc.ts:on call
+call src/lib/features/search/search.service.ts:106 in startSemanticProgressListener -> src/lib/features/search/search.service.ts:flushSemanticProgress call +1
+call src/lib/features/search/search.service.ts:118 in stopSemanticProgressListener -> src/lib/utils/debug.ts:debug call
+call src/lib/features/search/search.service.ts:129 in stopSemanticProgressListener -> src/lib/features/search/search.store.svelte.ts:searchStore.setSemanticProgress mcall
+call src/lib/features/search/search.service.ts:143 in performSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setSearchError mcall +2
+call src/lib/features/search/search.service.ts:145 in performSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setFtsResults mcall +6
+call src/lib/features/search/search.service.ts:146 in performSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setSemanticResults mcall +4
+call src/lib/features/search/search.service.ts:147 in performSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setHybridResults mcall +3
+call src/lib/features/search/search.service.ts:148 in performSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setResults mcall +3
+call src/lib/features/search/search.service.ts:149 in performSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.clearResultsCapped mcall +1
+call src/lib/features/search/search.service.ts:152 in performSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setSearching mcall +2
+call src/lib/features/search/search.service.ts:157 in performSearch -> src/lib/utils/debug.ts:debug call +13
+call src/lib/features/search/search.service.ts:170 in performSearch -> src/lib/features/search/search.logic.ts:parseSearchQuery call +3
+call src/lib/features/search/search.service.ts:173 in performSearch -> src/lib/contracts/ipc.ts:call call +3
+call src/lib/features/search/search.service.ts:187 in performSearch -> src/lib/utils/path.ts:stem call
+call src/lib/features/search/search.service.ts:197 in performSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setResultsCapped mcall +4
+call src/lib/features/search/search.service.ts:221 in performSearch -> src/lib/features/search/search.logic.ts:performOperatorOnlySearch call
+call src/lib/features/search/search.service.ts:240 in performSearch -> src/lib/features/search/search.service.ts:loadVaultTagMap call
+call src/lib/features/search/search.service.ts:249 in performSearch -> src/lib/features/search/search.logic.ts:matchesPathFilter call
+call src/lib/features/search/search.service.ts:265 in performSearch -> src/lib/features/search/search.service.ts:loadVaultContentMap call
+call src/lib/features/search/search.service.ts:267 in performSearch -> src/lib/features/search/search.logic.ts:performSearchOverFiles call
+call src/lib/features/search/search.service.ts:296 in performSearch -> src/lib/utils/debug.ts:error call +1
+call src/lib/features/search/search.service.ts:305 in performSearch -> src/lib/features/search/search-hybrid.logic.ts:mergeResults call
+call src/lib/features/search/search.service.ts:335 in buildSearchIndex -> src/lib/utils/debug.ts:debug call +2
+call src/lib/features/search/search.service.ts:336 in buildSearchIndex -> src/lib/features/search/search.store.svelte.ts:searchStore.setIsIndexing mcall +1
+call src/lib/features/search/search.service.ts:339 in buildSearchIndex -> src/lib/contracts/ipc.ts:call call
+call src/lib/features/search/search.service.ts:341 in buildSearchIndex -> src/lib/features/search/search.store.svelte.ts:searchStore.setIndexStats mcall
+call src/lib/features/search/search.service.ts:344 in buildSearchIndex -> src/lib/utils/debug.ts:error call
+call src/lib/features/search/search.service.ts:355 in registerSearchIndexHook -> src/lib/utils/debug.ts:debug call +4
+call src/lib/features/search/search.service.ts:356 in registerSearchIndexHook -> src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver call
+call src/lib/features/search/search.service.ts:364 in registerSearchIndexHook -> src/lib/utils/path.ts:vaultRelativeKey call
+call src/lib/features/search/search.service.ts:373 in registerSearchIndexHook -> src/lib/contracts/ipc.ts:call call +1
+call src/lib/features/search/search.service.ts:375 in registerSearchIndexHook -> src/lib/utils/debug.ts:error call
+call src/lib/features/search/search.service.ts:396 in initSemanticSearch -> src/lib/utils/debug.ts:debug call +5
+call src/lib/features/search/search.service.ts:398 in initSemanticSearch -> src/lib/contracts/ipc.ts:call call +2
+call src/lib/features/search/search.service.ts:400 in initSemanticSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setModelAvailable mcall
+call src/lib/features/search/search.service.ts:409 in initSemanticSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setSemanticStats mcall
+call src/lib/features/search/search.service.ts:414 in initSemanticSearch -> src/lib/utils/debug.ts:error call
+call src/lib/features/search/search.service.ts:432 in buildSemanticIndex -> src/lib/utils/debug.ts:debug call +4
+call src/lib/features/search/search.service.ts:441 in buildSemanticIndex -> src/lib/features/search/search.store.svelte.ts:searchStore.setIsSemanticIndexing mcall +1
+call src/lib/features/search/search.service.ts:445 in buildSemanticIndex -> src/lib/contracts/ipc.ts:call call
+call src/lib/features/search/search.service.ts:451 in buildSemanticIndex -> src/lib/features/search/search.store.svelte.ts:searchStore.setSemanticStats mcall
+call src/lib/features/search/search.service.ts:455 in buildSemanticIndex -> src/lib/utils/debug.ts:error call
+call src/lib/features/search/search.service.ts:461 in buildSemanticIndex -> src/lib/features/search/search.store.svelte.ts:searchStore.setSemanticProgress mcall
+call src/lib/features/search/search.service.ts:472 in resetSearch -> src/lib/utils/debug.ts:debug call
+call src/lib/features/search/search.service.ts:477 in resetSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.reset mcall
 ## effects
-ipc-call src/lib/features/search/search.service.ts:25 in loadVaultContentMap -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
-ipc-call src/lib/features/search/search.service.ts:27 in loadVaultContentMap -> ipc:read_files_batch -> src-tauri/src/commands/files.rs:24
-ipc-call src/lib/features/search/search.service.ts:44 in loadVaultTagMap -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
-ev src-tauri/src/commands/semantic.rs:414 in emit_progress -> event:semantic-index-progress -> src/lib/features/search/search.service.ts:85 in startSemanticProgressListener
-fx src/lib/features/search/search.service.ts:101 timer.setTimeout delay=PROGRESS_THROTTLE_MS in startSemanticProgressListener
-ipc-call src/lib/features/search/search.service.ts:154 in performSearch -> ipc:search_hybrid -> src-tauri/src/commands/semantic.rs:986
-ipc-call src/lib/features/search/search.service.ts:196 in performSearch -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
-ipc-call src/lib/features/search/search.service.ts:203 in performSearch -> ipc:search_fts -> src-tauri/src/commands/search_index.rs:153
-ipc-call src/lib/features/search/search.service.ts:253 in performSearch -> ipc:search_semantic -> src-tauri/src/commands/semantic.rs:798
-ipc-call src/lib/features/search/search.service.ts:305 in buildSearchIndex -> ipc:build_search_index -> src-tauri/src/commands/search_index.rs:39
-reg src/lib/features/search/search.service.ts:322 src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver in registerSearchIndexHook args=(filePath, content) => { if (!filePath.endsWith('.md') && !filePath.endsWith('.…
-ipc-call src/lib/features/search/search.service.ts:339 in registerSearchIndexHook -> ipc:update_search_index_file -> src-tauri/src/commands/search_index.rs:203
-ipc-call src/lib/features/search/search.service.ts:345 in registerSearchIndexHook -> ipc:update_semantic_file -> src-tauri/src/commands/semantic.rs:1305
-ipc-call src/lib/features/search/search.service.ts:364 in initSemanticSearch -> ipc:is_semantic_model_available -> src-tauri/src/commands/semantic.rs:399
-ipc-call src/lib/features/search/search.service.ts:370 in initSemanticSearch -> ipc:init_semantic_search -> src-tauri/src/commands/semantic.rs:371
-ipc-call src/lib/features/search/search.service.ts:373 in initSemanticSearch -> ipc:get_semantic_stats -> src-tauri/src/commands/semantic.rs:1220
-ipc-call src/lib/features/search/search.service.ts:411 in buildSemanticIndex -> ipc:build_semantic_index -> src-tauri/src/commands/semantic.rs:483
+ipc-call src/lib/features/search/search.service.ts:35 in loadVaultContentMap -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
+ipc-call src/lib/features/search/search.service.ts:37 in loadVaultContentMap -> ipc:read_files_batch -> src-tauri/src/commands/files.rs:24
+ipc-call src/lib/features/search/search.service.ts:54 in loadVaultTagMap -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
+ev src-tauri/src/commands/semantic.rs:414 in emit_progress -> event:semantic-index-progress -> src/lib/features/search/search.service.ts:95 in startSemanticProgressListener
+fx src/lib/features/search/search.service.ts:111 timer.setTimeout delay=PROGRESS_THROTTLE_MS in startSemanticProgressListener
+ipc-call src/lib/features/search/search.service.ts:173 in performSearch -> ipc:search_hybrid -> src-tauri/src/commands/semantic.rs:986
+ipc-call src/lib/features/search/search.service.ts:219 in performSearch -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
+ipc-call src/lib/features/search/search.service.ts:227 in performSearch -> ipc:search_fts -> src-tauri/src/commands/search_index.rs:153
+ipc-call src/lib/features/search/search.service.ts:281 in performSearch -> ipc:search_semantic -> src-tauri/src/commands/semantic.rs:798
+ipc-call src/lib/features/search/search.service.ts:339 in buildSearchIndex -> ipc:build_search_index -> src-tauri/src/commands/search_index.rs:39
+reg src/lib/features/search/search.service.ts:356 src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver in registerSearchIndexHook args=(filePath, content) => { if (!filePath.endsWith('.md') && !filePath.endsWith('.…
+ipc-call src/lib/features/search/search.service.ts:373 in registerSearchIndexHook -> ipc:update_search_index_file -> src-tauri/src/commands/search_index.rs:203
+ipc-call src/lib/features/search/search.service.ts:379 in registerSearchIndexHook -> ipc:update_semantic_file -> src-tauri/src/commands/semantic.rs:1305
+ipc-call src/lib/features/search/search.service.ts:398 in initSemanticSearch -> ipc:is_semantic_model_available -> src-tauri/src/commands/semantic.rs:399
+ipc-call src/lib/features/search/search.service.ts:404 in initSemanticSearch -> ipc:init_semantic_search -> src-tauri/src/commands/semantic.rs:371
+ipc-call src/lib/features/search/search.service.ts:407 in initSemanticSearch -> ipc:get_semantic_stats -> src-tauri/src/commands/semantic.rs:1220
+ipc-call src/lib/features/search/search.service.ts:445 in buildSemanticIndex -> ipc:build_semantic_index -> src-tauri/src/commands/semantic.rs:483

@@ -75,7 +75,7 @@ by src/lib/contracts/ipc.ts:takeQueueWait <- src/lib/utils/debug.ts:140 in logQu
 sym src/lib/contracts/ipc.ts:84 fn on<K extends keyof EventMap>(name: K, handler: (payload: EventMap[K]) => void): Promise<UnlistenFn> L6 | Typed `listen` over `EventMap`: the payload type comes from the event name, and the handler receives `event.payload` instead of the `Event` wrapper.
 by src/lib/contracts/ipc.ts:on <- src/lib/app/tauri-listeners.service.ts:28 in registerMenuSettingsListener call +2
 by src/lib/contracts/ipc.ts:on <- src/lib/core/filesystem/fs.watcher.ts:276 in startWatching call
-by src/lib/contracts/ipc.ts:on <- src/lib/features/search/search.service.ts:85 in startSemanticProgressListener call
+by src/lib/contracts/ipc.ts:on <- src/lib/features/search/search.service.ts:95 in startSemanticProgressListener call
 by src/lib/contracts/ipc.ts:on <- src/lib/plugins/quick-capture/quick-capture.service.ts:62 in registerQuickCaptureListener call
 by src/lib/contracts/ipc.ts:on <- src/lib/utils/debug.ts:128 in startTauriDebugListener call
 by src/lib/contracts/ipc.ts:on <- src/routes/composer/+page.svelte:214 in (script) call +1
