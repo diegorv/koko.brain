@@ -8,7 +8,7 @@ imp src/lib/plugins/graph-view/graph-view.logic.ts:3 -> src/lib/utils/color.ts m
 imp src/lib/plugins/graph-view/graph-view.logic.ts:4 -> src/lib/plugins/graph-view/graph-view.types.ts type:GraphNode,type:GraphLink,type:GraphData,type:GraphFilters
 imp src/lib/plugins/graph-view/graph-view.logic.ts:5 -> src/lib/types/vault-v2.types.ts type:NoteEntryV2
 ## imported-by
-imp src/lib/plugins/graph-view/GraphControls.svelte:10 -> src/lib/plugins/graph-view/graph-view.logic.ts getUniqueFolders,getUniqueTags
+imp src/lib/plugins/graph-view/GraphControls.svelte:13 -> src/lib/plugins/graph-view/graph-view.logic.ts getUniqueFolders,getUniqueTags
 imp src/lib/plugins/graph-view/GraphView.svelte:19 -> src/lib/plugins/graph-view/graph-view.logic.ts filterGraphData,getLocalGraph,getNodeRadius,graphPalette,FALLBACK_GRAPH_PALETTE,type:GraphPalette
 imp src/lib/plugins/graph-view/graph-view.service.ts:5 -> src/lib/plugins/graph-view/graph-view.logic.ts buildGraphData
 ## reach
@@ -27,9 +27,9 @@ by src/lib/plugins/graph-view/graph-view.logic.ts:getLocalGraph <- src/lib/plugi
 sym src/lib/plugins/graph-view/graph-view.logic.ts:134 fn getNodeRadius(linkCount: number, minRadius: number = 4, maxRadius: number = 16): number L4
 by src/lib/plugins/graph-view/graph-view.logic.ts:getNodeRadius <- src/lib/plugins/graph-view/GraphView.svelte:161 in initSimulation call +4
 sym src/lib/plugins/graph-view/graph-view.logic.ts:139 fn getUniqueFolders(nodes: GraphNode[]): string[] L7
-by src/lib/plugins/graph-view/graph-view.logic.ts:getUniqueFolders <- src/lib/plugins/graph-view/GraphControls.svelte:29 in folders=$derived call
+by src/lib/plugins/graph-view/graph-view.logic.ts:getUniqueFolders <- src/lib/plugins/graph-view/GraphControls.svelte:32 in folders=$derived call
 sym src/lib/plugins/graph-view/graph-view.logic.ts:147 fn getUniqueTags(nodes: GraphNode[]): string[] L9
-by src/lib/plugins/graph-view/graph-view.logic.ts:getUniqueTags <- src/lib/plugins/graph-view/GraphControls.svelte:30 in tags=$derived call
+by src/lib/plugins/graph-view/graph-view.logic.ts:getUniqueTags <- src/lib/plugins/graph-view/GraphControls.svelte:33 in tags=$derived call
 sym src/lib/plugins/graph-view/graph-view.logic.ts:158 interface GraphThemeTokens L10 | The four theme tokens the graph palette is derived from, as CSS color strings.
 sym src/lib/plugins/graph-view/graph-view.logic.ts:170 interface GraphPalette L18 | Colors the graph canvas paints with.
 by src/lib/plugins/graph-view/graph-view.logic.ts:GraphPalette <- src/lib/plugins/graph-view/GraphView.svelte:19 in (script) import

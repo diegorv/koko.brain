@@ -47,7 +47,7 @@ module src/lib/features/tasks features files 14 in-modules 2 out-modules 10 pub 
 module src/lib/features/todoist-sync features files 27 in-modules 1 out-modules 9 pub 9/204 ipc 11/0 card ~3k
 module src/lib/features/type-definitions features files 9 in-modules 13 out-modules 12 pub 63/100 ipc 3/0 card ~7.1k
 module src/lib/plugins/calendar plugins files 7 in-modules 1 out-modules 7 pub 2/21 ipc 0/0 card ~0.9k
-module src/lib/plugins/graph-view plugins files 6 in-modules 1 out-modules 8 pub 3/25 ipc 1/0 card ~0.9k
+module src/lib/plugins/graph-view plugins files 6 in-modules 1 out-modules 8 pub 3/27 ipc 1/0 card ~0.9k
 module src/lib/plugins/kanban plugins files 12 in-modules 1 out-modules 6 pub 5/74 ipc 0/0 card ~1.2k
 module src/lib/plugins/mods plugins files 18 in-modules 1 out-modules 17 pub 9/65 ipc 4/0 card ~2.2k
 module src/lib/plugins/one-on-one plugins files 6 in-modules 2 out-modules 14 pub 5/23 ipc 0/0 card ~1.3k
@@ -84,7 +84,7 @@ layer features -> features 728
 layer features -> types 23
 layer features -> utils 98
 layer lib-root -> utils 1
-layer plugins -> components 20
+layer plugins -> components 21
 layer plugins -> contracts 7
 layer plugins -> core 106
 layer plugins -> features 35

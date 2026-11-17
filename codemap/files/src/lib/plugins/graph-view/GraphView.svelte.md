@@ -1,6 +1,6 @@
 # file card src/lib/plugins/graph-view/GraphView.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/plugins/graph-view/GraphView.svelte ' codemap/files
-file src/lib/plugins/graph-view/GraphView.svelte component L517 module src/lib/plugins/graph-view in1 t2
+file src/lib/plugins/graph-view/GraphView.svelte component L518 module src/lib/plugins/graph-view in1 t2
 ## imports
 imp src/lib/plugins/graph-view/GraphView.svelte:17 -> src/lib/plugins/graph-view/graph-view.store.svelte.ts graphViewStore
 imp src/lib/plugins/graph-view/GraphView.svelte:18 -> src/lib/plugins/graph-view/graph-view.service.ts buildGraph
@@ -21,7 +21,7 @@ out2 src/lib/plugins/graph-view/GraphView.svelte 19 files in 9 modules: src/lib/
 test src/tests/lib/plugins/graph-view/GraphView.test.ts imports src/lib/plugins/graph-view/GraphView.svelte mirror
 test src/tests/lib/plugins/graph-view/GraphControls.test.ts imports src/lib/plugins/graph-view/GraphView.svelte
 ## symbols
-sym src/lib/plugins/graph-view/GraphView.svelte:1 component GraphView L517
+sym src/lib/plugins/graph-view/GraphView.svelte:1 component GraphView L518
 by src/lib/plugins/graph-view/GraphView.svelte:default <- src/lib/app/EditorView.svelte:77 in (markup) mount
 ## locals
 local src/lib/plugins/graph-view/GraphView.svelte:73 fn readPalette(): GraphPalette L10
@@ -38,8 +38,8 @@ local src/lib/plugins/graph-view/GraphView.svelte:394 fn handleMouseMove(e: Mous
 local src/lib/plugins/graph-view/GraphView.svelte:405 fn handleZoomIn() L5
 local src/lib/plugins/graph-view/GraphView.svelte:411 fn handleZoomOut() L5
 ## mounts
-mount src/lib/plugins/graph-view/GraphView.svelte:489 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/plugins/graph-view/GraphView.svelte:509 GraphControls -> src/lib/plugins/graph-view/GraphControls.svelte
+mount src/lib/plugins/graph-view/GraphView.svelte:490 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/plugins/graph-view/GraphView.svelte:510 GraphControls -> src/lib/plugins/graph-view/GraphControls.svelte
 ## mounted-at
 mount src/lib/app/EditorView.svelte:77 GraphView -> src/lib/plugins/graph-view/GraphView.svelte
 ## calls
@@ -64,20 +64,20 @@ call src/lib/plugins/graph-view/GraphView.svelte:388 in handleClick -> src/lib/p
 call src/lib/plugins/graph-view/GraphView.svelte:390 in handleClick -> src/lib/core/editor/editor.service.ts:openFileInEditor call
 call src/lib/plugins/graph-view/GraphView.svelte:396 in handleMouseMove -> src/lib/plugins/graph-view/GraphView.svelte:findNodeAt call
 call src/lib/plugins/graph-view/GraphView.svelte:401 in handleMouseMove -> src/lib/plugins/graph-view/GraphView.svelte:render call
-call src/lib/plugins/graph-view/GraphView.svelte:426 in $effect@419 -> src/lib/plugins/graph-view/GraphView.svelte:initSimulation call
-call src/lib/plugins/graph-view/GraphView.svelte:436 in $effect@433 -> src/lib/plugins/graph-view/GraphView.svelte:readPalette call
-call src/lib/plugins/graph-view/GraphView.svelte:437 in $effect@433 -> src/lib/plugins/graph-view/GraphView.svelte:render call
-call src/lib/plugins/graph-view/GraphView.svelte:447 in $effect@444 -> src/lib/plugins/graph-view/GraphView.svelte:loadAndRebuild call
-call src/lib/plugins/graph-view/GraphView.svelte:452 in (script) -> src/lib/plugins/graph-view/GraphView.svelte:resizeCanvas call +1
-call src/lib/plugins/graph-view/GraphView.svelte:453 in (script) -> src/lib/plugins/graph-view/GraphView.svelte:setupInteractions call
-call src/lib/plugins/graph-view/GraphView.svelte:476 in (script) -> src/lib/plugins/graph-view/GraphView.svelte:handleClick ref
-call src/lib/plugins/graph-view/GraphView.svelte:477 in (script) -> src/lib/plugins/graph-view/GraphView.svelte:handleMouseMove ref
-call src/lib/plugins/graph-view/GraphView.svelte:489 in (markup) -> src/lib/plugins/graph-view/GraphView.svelte:loadAndRebuild markup
-call src/lib/plugins/graph-view/GraphView.svelte:511 in (markup) -> src/lib/plugins/graph-view/GraphView.svelte:handleZoomIn markup
-call src/lib/plugins/graph-view/GraphView.svelte:512 in (markup) -> src/lib/plugins/graph-view/GraphView.svelte:handleZoomOut markup
+call src/lib/plugins/graph-view/GraphView.svelte:427 in $effect@419 -> src/lib/plugins/graph-view/GraphView.svelte:initSimulation call
+call src/lib/plugins/graph-view/GraphView.svelte:437 in $effect@434 -> src/lib/plugins/graph-view/GraphView.svelte:readPalette call
+call src/lib/plugins/graph-view/GraphView.svelte:438 in $effect@434 -> src/lib/plugins/graph-view/GraphView.svelte:render call
+call src/lib/plugins/graph-view/GraphView.svelte:448 in $effect@445 -> src/lib/plugins/graph-view/GraphView.svelte:loadAndRebuild call
+call src/lib/plugins/graph-view/GraphView.svelte:453 in (script) -> src/lib/plugins/graph-view/GraphView.svelte:resizeCanvas call +1
+call src/lib/plugins/graph-view/GraphView.svelte:454 in (script) -> src/lib/plugins/graph-view/GraphView.svelte:setupInteractions call
+call src/lib/plugins/graph-view/GraphView.svelte:477 in (script) -> src/lib/plugins/graph-view/GraphView.svelte:handleClick ref
+call src/lib/plugins/graph-view/GraphView.svelte:478 in (script) -> src/lib/plugins/graph-view/GraphView.svelte:handleMouseMove ref
+call src/lib/plugins/graph-view/GraphView.svelte:490 in (markup) -> src/lib/plugins/graph-view/GraphView.svelte:loadAndRebuild markup
+call src/lib/plugins/graph-view/GraphView.svelte:512 in (markup) -> src/lib/plugins/graph-view/GraphView.svelte:handleZoomIn markup
+call src/lib/plugins/graph-view/GraphView.svelte:513 in (markup) -> src/lib/plugins/graph-view/GraphView.svelte:handleZoomOut markup
 ## effects
 fx src/lib/plugins/graph-view/GraphView.svelte:382 dom.click canvasEl in setupInteractions
 fx src/lib/plugins/graph-view/GraphView.svelte:383 dom.mousemove canvasEl in setupInteractions
 fx src/lib/plugins/graph-view/GraphView.svelte:419 svelte.$effect in (script)
-fx src/lib/plugins/graph-view/GraphView.svelte:433 svelte.$effect in (script)
-fx src/lib/plugins/graph-view/GraphView.svelte:444 svelte.$effect in (script)
+fx src/lib/plugins/graph-view/GraphView.svelte:434 svelte.$effect in (script)
+fx src/lib/plugins/graph-view/GraphView.svelte:445 svelte.$effect in (script)

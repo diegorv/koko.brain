@@ -31,7 +31,7 @@ store src/lib/features/tasks/tasks.store.svelte.ts:100 tasksStore get 18 set 0 d
 store src/lib/features/todoist-sync/todoist-sync.store.svelte.ts:45 todoistSyncStore get 7 set 0 do 6 readers 4 writers 5 card codemap/files/src/lib/features/todoist-sync/todoist-sync.store.svelte.ts.md
 store src/lib/features/type-definitions/type-definitions.store.svelte.ts:19 typeDefinitionsStore get 6 set 0 do 8 readers 16 writers 7 card codemap/files/src/lib/features/type-definitions/type-definitions.store.svelte.ts.md
 store src/lib/plugins/calendar/calendar.store.svelte.ts:7 calendarStore get 2 set 0 do 7 readers 1 writers 2 card codemap/files/src/lib/plugins/calendar/calendar.store.svelte.ts.md
-store src/lib/plugins/graph-view/graph-view.store.svelte.ts:15 graphViewStore get 5 set 0 do 6 readers 2 writers 2 card codemap/files/src/lib/plugins/graph-view/graph-view.store.svelte.ts.md
+store src/lib/plugins/graph-view/graph-view.store.svelte.ts:26 graphViewStore get 6 set 0 do 7 readers 2 writers 2 card codemap/files/src/lib/plugins/graph-view/graph-view.store.svelte.ts.md
 store src/lib/plugins/kanban/kanban.store.svelte.ts:15 kanbanStore get 9 set 0 do 7 readers 1 writers 2 card codemap/files/src/lib/plugins/kanban/kanban.store.svelte.ts.md
 store src/lib/plugins/mods/mod-commands.store.svelte.ts:19 modCommandsStore get 1 set 0 do 3 readers 1 writers 1 card codemap/files/src/lib/plugins/mods/mod-commands.store.svelte.ts.md
 store src/lib/plugins/mods/mod-dialogs.store.svelte.ts:73 modDialogsStore get 2 set 0 do 7 readers 1 writers 2 card codemap/files/src/lib/plugins/mods/mod-dialogs.store.svelte.ts.md
