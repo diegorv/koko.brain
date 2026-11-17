@@ -49,24 +49,23 @@ jobs:
 
   cargo-audit:
     name: Cargo Audit
-    # On a schedule audit-check opens an issue per new warning, which this
-    # token cannot do, so the daily run always failed. Pushes and releases
-    # still audit; the daily OSV scan still reports advisories in Cargo.lock.
-    if: github.event_name != 'schedule'
+    # Plain cargo audit, not rustsec/audit-check: that action publishes a
+    # "Security audit" check run and its update often failed with
+    # "Not Found - update-a-check-run" after a clean audit, failing the job
+    # (and the release) with 0 vulnerabilities. cargo audit fails only on
+    # vulnerabilities; unmaintained/unsound warnings are printed, not fatal.
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    permissions:
-      contents: read
-      checks: write
     steps:
       - uses: actions/checkout@v7.0.1
 
-      - name: Audit dependencies
-        uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998 # v2.0.0
+      - uses: taiki-e/install-action@ab49d3c64680143e184118bed66a46419fc15519 # v2.90.5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          working-directory: src-tauri
-          ignore: RUSTSEC-2024-0429
+          tool: cargo-audit@0.23.0
+
+      - name: Audit dependencies
+        working-directory: src-tauri
+        run: cargo audit --ignore RUSTSEC-2024-0429
 
   supply-chain-quarantine:
     name: Supply Chain Quarantine
