@@ -222,6 +222,57 @@ describe('GraphControls', () => {
 		});
 	});
 
+	describe('depth stepper', () => {
+		function depthGroup(): HTMLElement | null {
+			return target.querySelector<HTMLElement>('[role="group"][aria-label="Link depth"]');
+		}
+
+		function depthButton(name: string): HTMLButtonElement {
+			const found = depthGroup()?.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`);
+			if (!found) throw new Error(`no ${name} button in: ${target.textContent}`);
+			return found;
+		}
+
+		it('is hidden in global mode', async () => {
+			await render();
+
+			expect(depthGroup()).toBeNull();
+		});
+
+		it('shows the current depth in local mode with Decrease disabled at 1', async () => {
+			await render();
+
+			graphViewStore.setMode('local');
+			flushSync();
+
+			expect(depthGroup()?.textContent).toContain('1');
+			expect(depthButton('Decrease depth').disabled).toBe(true);
+			expect(depthButton('Increase depth').disabled).toBe(false);
+		});
+
+		it('steps the depth up to 3 and back down', async () => {
+			await render();
+			graphViewStore.setMode('local');
+			flushSync();
+
+			depthButton('Increase depth').click();
+			flushSync();
+			expect(graphViewStore.localDepth).toBe(2);
+			expect(depthGroup()?.textContent).toContain('2');
+
+			depthButton('Increase depth').click();
+			flushSync();
+			expect(graphViewStore.localDepth).toBe(3);
+			expect(depthGroup()?.textContent).toContain('3');
+			expect(depthButton('Increase depth').disabled).toBe(true);
+			expect(depthButton('Decrease depth').disabled).toBe(false);
+
+			depthButton('Decrease depth').click();
+			flushSync();
+			expect(graphViewStore.localDepth).toBe(2);
+		});
+	});
+
 	describe('panel', () => {
 		it('has no native select', async () => {
 			await render();

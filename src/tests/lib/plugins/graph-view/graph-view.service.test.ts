@@ -269,6 +269,57 @@ describe('toggleGraphTab', () => {
 	});
 });
 
+describe('local depth across reopen', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+		graphViewStore.reset();
+	});
+
+	it('openGraphTab resets the depth to 1 when it creates the tab again after a close', () => {
+		openGraphTab();
+		graphViewStore.setLocalDepth(3);
+		closeGraphTab();
+
+		openGraphTab();
+
+		expect(graphViewStore.localDepth).toBe(1);
+	});
+
+	it('toggleGraphTab resets the depth to 1 when it opens the tab again after closing it', () => {
+		toggleGraphTab();
+		graphViewStore.setLocalDepth(3);
+		toggleGraphTab();
+		expect(editorStore.tabs).toHaveLength(0);
+
+		toggleGraphTab();
+
+		expect(graphViewStore.localDepth).toBe(1);
+	});
+
+	it('openGraphTab keeps the depth when it focuses the open tab', () => {
+		openGraphTab();
+		graphViewStore.setLocalDepth(3);
+		editorStore.addTab({ path: '/vault/A.md', name: 'A.md', content: '', savedContent: '' });
+
+		openGraphTab();
+
+		expect(editorStore.activeTabPath).toBe(GRAPH_VIRTUAL_PATH);
+		expect(graphViewStore.localDepth).toBe(3);
+	});
+
+	it('toggleGraphTab keeps the depth when it focuses the open tab', () => {
+		openGraphTab();
+		graphViewStore.setLocalDepth(3);
+		editorStore.addTab({ path: '/vault/A.md', name: 'A.md', content: '', savedContent: '' });
+
+		toggleGraphTab();
+
+		expect(editorStore.activeTabPath).toBe(GRAPH_VIRTUAL_PATH);
+		expect(graphViewStore.localDepth).toBe(3);
+	});
+});
+
 describe('resetGraphView', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();

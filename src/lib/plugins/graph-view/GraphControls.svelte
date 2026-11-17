@@ -3,9 +3,12 @@
 	import ZoomOut from '@lucide/svelte/icons/zoom-out';
 	import Globe from '@lucide/svelte/icons/globe';
 	import Target from '@lucide/svelte/icons/target';
+	import Minus from '@lucide/svelte/icons/minus';
+	import Plus from '@lucide/svelte/icons/plus';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Select from '#lib/components/ui/select/index.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
-	import { graphViewStore } from './graph-view.store.svelte';
+	import { graphViewStore, MAX_LOCAL_DEPTH, MIN_LOCAL_DEPTH } from './graph-view.store.svelte';
 	import type { GraphNode } from './graph-view.types';
 	import { getUniqueFolders, getUniqueTags } from './graph-view.logic';
 
@@ -58,6 +61,35 @@
 		>
 			<Target class="h-3.5 w-3.5" />
 		</button>
+
+		{#if graphViewStore.mode === 'local'}
+			<div class="mx-1 h-4 w-px bg-border"></div>
+
+			<div role="group" aria-label="Link depth" class="flex items-center gap-0.5 text-xs text-muted-foreground">
+				<span class="px-1">Depth</span>
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					class="size-6"
+					aria-label="Decrease depth"
+					disabled={graphViewStore.localDepth <= MIN_LOCAL_DEPTH}
+					onclick={() => graphViewStore.setLocalDepth(graphViewStore.localDepth - 1)}
+				>
+					<Minus class="h-3 w-3" />
+				</Button>
+				<span class="w-3 text-center text-foreground tabular-nums" aria-live="polite">{graphViewStore.localDepth}</span>
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					class="size-6"
+					aria-label="Increase depth"
+					disabled={graphViewStore.localDepth >= MAX_LOCAL_DEPTH}
+					onclick={() => graphViewStore.setLocalDepth(graphViewStore.localDepth + 1)}
+				>
+					<Plus class="h-3 w-3" />
+				</Button>
+			</div>
+		{/if}
 
 		<div class="mx-1 h-4 w-px bg-border"></div>
 

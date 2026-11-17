@@ -93,6 +93,48 @@ describe('GraphView local mode', () => {
 		await vi.waitFor(() => expect(target.textContent).toContain('3 notes'));
 		expect(target.textContent).not.toContain(HINT);
 	});
+
+	describe('depth', () => {
+		// Chain a -> b -> c; d is unrelated.
+		beforeEach(() => {
+			vi.mocked(invoke).mockResolvedValue([
+				entryV2WithContent('/vault/a.md', 'Link to [[b]]'),
+				entryV2WithContent('/vault/b.md', 'Link to [[c]]'),
+				entryV2('/vault/c.md'),
+				entryV2('/vault/d.md'),
+			]);
+		});
+
+		it('shows the second hop at depth 2 without fetching again', async () => {
+			editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: '', savedContent: '' });
+			openGraphTab();
+			graphViewStore.setMode('local');
+			mountGraph();
+			await vi.waitFor(() => expect(target.textContent).toContain('2 notes'));
+			const calls = vi.mocked(invoke).mock.calls.length;
+
+			graphViewStore.setLocalDepth(2);
+			flushSync();
+
+			await vi.waitFor(() => expect(target.textContent).toContain('3 notes'));
+			expect(target.textContent).toContain('2 links');
+			expect(vi.mocked(invoke).mock.calls.length).toBe(calls);
+		});
+
+		it('is ignored in global mode', async () => {
+			editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: '', savedContent: '' });
+			openGraphTab();
+			mountGraph();
+			await vi.waitFor(() => expect(target.textContent).toContain('4 notes'));
+
+			graphViewStore.setLocalDepth(2);
+			flushSync();
+			await Promise.resolve();
+
+			expect(target.textContent).toContain('4 notes');
+			expect(target.textContent).toContain('2 links');
+		});
+	});
 });
 
 describe('GraphView states', () => {

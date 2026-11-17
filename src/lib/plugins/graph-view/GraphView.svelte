@@ -84,7 +84,7 @@
 	/** The graph for the current mode, before filters apply. */
 	function getBaseData(): GraphData {
 		return graphViewStore.mode === 'local' && graphViewStore.centerPath
-			? getLocalGraph(fullData, graphViewStore.centerPath, 1)
+			? getLocalGraph(fullData, graphViewStore.centerPath, graphViewStore.localDepth)
 			: fullData;
 	}
 
@@ -414,12 +414,13 @@
 		zoomBehavior.scaleBy(canvasSel, 1 / 1.4);
 	}
 
-	// Reinitialize simulation when mode / filters / center note change. These
-	// are pure UI knobs over the cached `fullData` — no IPC needed.
+	// Reinitialize simulation when mode / filters / center note / local depth
+	// change. These are pure UI knobs over the cached `fullData` — no IPC needed.
 	$effect(() => {
 		graphViewStore.mode;
 		graphViewStore.filters;
 		graphViewStore.centerPath;
+		graphViewStore.localDepth;
 
 		untrack(() => {
 			if (canvasEl && width > 0) {
