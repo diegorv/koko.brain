@@ -11,6 +11,13 @@
 		commands: AppCommand[];
 	} = $props();
 
+	/** The palette's footer hints, in reading order. */
+	const KEY_HINTS = [
+		{ keys: '↵', label: 'Run' },
+		{ keys: '↑↓', label: 'Navigate' },
+		{ keys: 'Esc', label: 'Close' },
+	];
+
 	let searchQuery = $state('');
 
 	let filteredCommands = $derived(
@@ -43,6 +50,7 @@
 	shouldFilter={false}
 	title="Command Palette"
 	description="Search for a command to run"
+	hints={KEY_HINTS}
 >
 	<Command.Input placeholder="Type a command..." bind:value={searchQuery} />
 	<Command.List>
@@ -53,15 +61,11 @@
 						value={command.id}
 						onSelect={() => executeCommand(command)}
 					>
-						<div class="flex flex-1 items-center justify-between">
-							<div class="flex flex-col gap-0.5">
-								<span>{command.label}</span>
-								<span class="text-xs text-muted-foreground">{command.category}</span>
-							</div>
-							{#if command.shortcut}
-								<Command.Shortcut>{formatShortcut(command.shortcut)}</Command.Shortcut>
-							{/if}
-						</div>
+						<span class="min-w-0 flex-1 truncate">{command.label}</span>
+						<span class="shrink-0 text-xs text-muted-foreground">{command.category}</span>
+						{#if command.shortcut}
+							<Command.Shortcut>{formatShortcut(command.shortcut)}</Command.Shortcut>
+						{/if}
 					</Command.Item>
 				{/each}
 			</Command.Group>

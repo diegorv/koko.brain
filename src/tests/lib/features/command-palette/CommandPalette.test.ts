@@ -78,7 +78,7 @@ function shortcutTexts(): string[] {
 	);
 }
 
-describe('CommandPalette - shortcut hints', () => {
+describe('CommandPalette - rows and hints', () => {
 	let target: HTMLElement;
 	let component: Record<string, unknown> | null = null;
 
@@ -109,5 +109,31 @@ describe('CommandPalette - shortcut hints', () => {
 		expect(shortcutTexts()).not.toContain('⌘⇧E');
 		expect(document.body.textContent).toContain('Toggle Rail Panels');
 		expect(document.body.textContent).not.toContain('Cycle Sidebar View');
+	});
+
+	it('shows each command on one line: label, then the muted category, then the shortcut', () => {
+		const shortcut = [...document.querySelectorAll('[data-slot="command-shortcut"]')].find(
+			(el) => el.textContent === '⌘⇧B',
+		)!;
+		const row = shortcut.closest<HTMLElement>('[data-slot="command-item"]')!;
+		expect(row.querySelector('.flex-col')).toBeNull();
+		const parts = [...row.querySelectorAll('span')];
+		expect(parts.map((el) => el.textContent)).toEqual(['Toggle Rail Panels', 'Layout', '⌘⇧B']);
+		expect(parts[1].classList.contains('text-muted-foreground')).toBe(true);
+		expect(row.classList.contains('min-h-9')).toBe(true);
+	});
+
+	it('caps the list at min(60vh, 400px)', () => {
+		const list = document.querySelector('[data-slot="command-list"]')!;
+		expect(list.classList.contains('max-h-[min(60vh,400px)]')).toBe(true);
+	});
+
+	it('shows the Enter, arrows and Esc hints in the footer', () => {
+		const footer = document.querySelector('[data-slot="command-dialog-footer"]')!;
+		expect(footer).not.toBeNull();
+		expect([...footer.querySelectorAll('kbd')].map((k) => k.textContent)).toEqual(['↵', '↑↓', 'Esc']);
+		expect(footer.textContent).toContain('Run');
+		expect(footer.textContent).toContain('Navigate');
+		expect(footer.textContent).toContain('Close');
 	});
 });

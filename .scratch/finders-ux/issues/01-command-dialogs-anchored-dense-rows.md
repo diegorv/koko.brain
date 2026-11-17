@@ -13,19 +13,19 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh e2e/specs/command-palette.spec.ts e2e/specs/overlay-motion.spec.ts`.
 
-- [ ] Failing test first: a new `src/tests/lib/components/ui/command/command-dialog.test.ts` asserts that a `Command.Dialog`'s `[data-slot="dialog-content"]` has `top-[18vh]` and `translate-y-0`, not `top-[50%]`, and renders no Close button.
-- [ ] `src/tests/lib/components/ui/dialog/dialog-content.test.ts` gains a case that a plain dialog keeps `top-[50%]` and its close button.
-- [ ] E2E: the palette input's `boundingBox().y` is the same before and after typing a filter that shrinks the list; `e2e/specs/overlay-motion.spec.ts` stays green (the palette still animates in).
-- [ ] Component tests: palette rows are one line (label, then category muted right, then shortcut), the list carries `max-h-[min(60vh,400px)]`, and the palette footer shows the Enter, arrows and Esc hints. A dialog that passes no hints shows no footer.
-- [ ] A `ModActionPicker` action with a description shows both lines; the run view's Stop and Close still work (`src/tests/lib/plugins/mods/ModActionPicker.test.ts`).
-- [ ] Keyboard navigation and Escape still work in every command dialog: `TemplatePicker.test.ts`, `OneOnOnePicker.test.ts`, `ModActionPicker.test.ts`, `QuickSwitcher.test.ts` and `CommandPalette.test.ts` stay green.
-- [ ] Inside a command dialog the input wrapper has no `pe-8` and each row has `min-h-9` (asserted in `command-dialog.test.ts`).
-- [ ] Outside a command dialog nothing changes: `src/tests/lib/plugins/mods/ModDialogHost.test.ts` and `src/tests/lib/core/settings/EditorSection.test.ts` stay green, and a `Command.List` rendered outside `Command.Dialog` keeps `max-h-[300px]` and its input keeps `pe-8`.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass; the two E2E specs above pass.
+- [x] Failing test first: a new `src/tests/lib/components/ui/command/command-dialog.test.ts` asserts that a `Command.Dialog`'s `[data-slot="dialog-content"]` has `top-[18vh]` and `translate-y-0`, not `top-[50%]`, and renders no Close button.
+- [x] `src/tests/lib/components/ui/dialog/dialog-content.test.ts` gains a case that a plain dialog keeps `top-[50%]` and its close button.
+- [x] E2E: the palette input's `boundingBox().y` is the same before and after typing a filter that shrinks the list; `e2e/specs/overlay-motion.spec.ts` stays green (the palette still animates in).
+- [x] Component tests: palette rows are one line (label, then category muted right, then shortcut), the list carries `max-h-[min(60vh,400px)]`, and the palette footer shows the Enter, arrows and Esc hints. A dialog that passes no hints shows no footer.
+- [x] A `ModActionPicker` action with a description shows both lines; the run view's Stop and Close still work (`src/tests/lib/plugins/mods/ModActionPicker.test.ts`).
+- [x] Keyboard navigation and Escape still work in every command dialog: `TemplatePicker.test.ts`, `OneOnOnePicker.test.ts`, `ModActionPicker.test.ts`, `QuickSwitcher.test.ts` and `CommandPalette.test.ts` stay green.
+- [x] Inside a command dialog the input wrapper has no `pe-8` and each row has `min-h-9` (asserted in `command-dialog.test.ts`).
+- [x] Outside a command dialog nothing changes: `src/tests/lib/plugins/mods/ModDialogHost.test.ts` and `src/tests/lib/core/settings/EditorSection.test.ts` stay green, and a `Command.List` rendered outside `Command.Dialog` keeps `max-h-[300px]` and its input keeps `pe-8`.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass; the two E2E specs above pass.
 
 ## Original proposal
 
@@ -52,3 +52,4 @@ Checked at `bb57e6165`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided: the list cap is `min(60vh,400px)`, not 480px; the footer hints come from the caller; density is one Svelte context set by CommandDialog and read by the item, list and input, with a minimum row height so ModActionPicker descriptions survive; ModDialogHost and EditorSection keep today's command primitives.
+- 2026-11-17, deliver (issue/01-command-dialogs-anchored-dense-rows): command dialogs anchor the input at 18vh, render dense one-line rows, cap the list at min(60vh,400px), show a caller-supplied key-hint footer and drop the close X. Review round 1 APPROVED with findings; fix round: dialog content capped at calc(82dvh-1rem) with the ModActionPicker run view scrolling (finding 1 fixed), kbd styling suggestion rejected (finding 2). Review round 2 APPROVED, no findings. Full suite at 4a3a8e489: 640 files, 17009 passed, 54 skipped, 1 todo; pnpm check 0 errors.

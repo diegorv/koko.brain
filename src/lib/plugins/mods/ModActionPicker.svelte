@@ -101,9 +101,9 @@
 >
 	{#if run}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="flex flex-col gap-3 p-4" data-mod-run={run.status} onkeydown={handleRunKeydown}>
-			<!-- pr-6 keeps the status clear of the dialog's close button in the top-right corner. -->
-			<div class="flex items-center justify-between gap-2 pr-6">
+		<!-- Same cap as Command.Dialog's content: a tall run (log, error, open stack) scrolls here instead of clipping Close. -->
+		<div class="flex max-h-[calc(82dvh-1rem)] flex-col gap-3 overflow-y-auto p-4" data-mod-run={run.status} onkeydown={handleRunKeydown}>
+			<div class="flex items-center justify-between gap-2">
 				<span class="truncate font-medium">{run.title}</span>
 				<span class="text-xs text-muted-foreground" data-mod-run-status>{STATUS_LABELS[run.status]}</span>
 			</div>
