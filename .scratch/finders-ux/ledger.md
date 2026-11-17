@@ -42,7 +42,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 05 | [Search keeps previous results dimmed while searching, shows "N+" at the cap, and clearing mid-search does not stick on Searching...](issues/05-search-keeps-results-while-searching.md) | 04 | todo | | |
 | 06 | [Palette: calendar Undo/Redo only when they can act, Calendar category, Recent / All commands groups](issues/06-palette-calendar-undo-recent-groups.md) | 01 | todo | | |
 | 07 | [Quick switcher rows: type icon, folder, Archived tag, match highlight, Recent notes heading](issues/07-quick-switcher-rows-type-icon-folder-highlight.md) | 02 | todo | | |
-| 08 | [Tags view keeps its list and expanded tags on screen while it refreshes](issues/08-tags-view-keeps-list-while-refreshing.md) | none | in-progress | | |
+| 08 | [Tags view keeps its list and expanded tags on screen while it refreshes](issues/08-tags-view-keeps-list-while-refreshing.md) | none | done | issue/08-tags-view-keeps-list-while-refreshing (9023e5e61) | 2026-11-17 |
 | 09 | [Tags header says "Showing X of Y" and the empty state explains the rare-tag filter](issues/09-tags-header-showing-x-of-y.md) | 08 | todo | | |
 | 10 | [Tags rows align leaves with parents, name their chevron and colour controls, and the Tags tab shows a tag icon](issues/10-tags-rows-align-label-controls-tab-icon.md) | none | todo | | |
 | 11 | [Tags view filter box matching full paths](issues/11-tags-view-filter-box.md) | 09, 10 | todo | | |
@@ -62,3 +62,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-17 15:46 — 08 — deliver — full suite failed twice on load-flaky tests outside the Issue (codemap timeouts, TasksView.row-edit focus/menu races) while 03 ran in parallel; each passes alone; review APPROVED; worktree kept at e363ab617 — e35c65cb9
 - 2026-11-17 15:56 — 03 — deliver — full suite failed twice on 5000ms timeouts outside the Issue (codemap.test.ts, AutoOrganizeRuleRow.test.ts) while 08 ran in parallel; each passes alone; review APPROVED; worktree kept at 3d059e498 — 0c3af6804
 - 2026-11-17 15:56 — 08 — start — launched by /relay-lite:run (deliver rerun alone; workflow resumed, build and review cached) — b83e0121b
+- 2026-11-17 16:01 — 08 — deliver — merged by hand after a solo full suite (640 files, 17007 tests passed); review APPROVED (claude), nit rejected; earlier deliver runs failed only on load-flaky tests — 9023e5e61
