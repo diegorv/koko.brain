@@ -41,7 +41,7 @@ sym src/lib/core/settings/theme-editor.logic.ts:219 fn normalizeHex(value: strin
 by src/lib/core/settings/theme-editor.logic.ts:normalizeHex <- src/lib/core/settings/sections/ThemeColorRow.svelte:31 in handleTextBlur call
 sym src/lib/core/settings/theme-editor.logic.ts:231 fn hexToColorInputValue(value: string): string L6 | Converts a color value to a format accepted by `<input type="color">` (`#rrggbb`).
 by src/lib/core/settings/theme-editor.logic.ts:hexToColorInputValue <- src/lib/core/settings/sections/ThemeColorRow.svelte:58 in (markup) markup
-by src/lib/core/settings/theme-editor.logic.ts:hexToColorInputValue <- src/lib/features/tags/TagColorPicker.svelte:64 in (markup) markup
+by src/lib/core/settings/theme-editor.logic.ts:hexToColorInputValue <- src/lib/features/tags/TagColorPicker.svelte:66 in (markup) markup
 sym src/lib/core/settings/theme-editor.logic.ts:246 fn validateThemeName(name: string, existingNames: string[]): string | null L13 | Validates a theme name for the editor.
 by src/lib/core/settings/theme-editor.logic.ts:validateThemeName <- src/lib/core/settings/sections/ThemeEditor.svelte:81 in handleSave call
 sym src/lib/core/settings/theme-editor.logic.ts:265 fn serializeThemeForExport(theme: Theme): string L3 | Serializes a theme to a pretty-printed JSON string for export

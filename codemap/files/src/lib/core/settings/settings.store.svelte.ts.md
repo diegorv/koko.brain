@@ -1,7 +1,7 @@
 # file card src/lib/core/settings/settings.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/settings/settings.store.svelte.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, store
-file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in84 t127
+file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in84 t128
 ## imports
 imp src/lib/core/settings/settings.store.svelte.ts:1 -> src/lib/core/settings/settings.types.ts type:AppSettings,type:PeriodicNotesUpdate,type:QuickCaptureUpdate,type:OneOnOneSettings,type:LayoutSettings,type:FolderNotesSettings,type:EditorSettings,type:TemplatesSettings,type:HistorySettings,type:SearchSettings,type:TodoistSettings,type:SentrySettings,type:AutoOrganizeSettings,type:TagColorSettings,type:QueryjsSettings,type:UpdateSettings,type:EventCalendarSettings
 imp src/lib/core/settings/settings.store.svelte.ts:2 -> src/lib/core/settings/theme.types.ts type:AppearanceSettings
@@ -92,7 +92,7 @@ test src/tests/lib/core/settings/HeadingTypographyEditor.test.ts imports src/lib
 test src/tests/lib/core/settings/OneOnOneSection.test.ts imports src/lib/core/settings/settings.store.svelte.ts
 test src/tests/lib/core/settings/TroubleshootingSection.test.ts imports src/lib/core/settings/settings.store.svelte.ts
 test src/tests/lib/core/settings/UpdateSection.channel.test.ts imports src/lib/core/settings/settings.store.svelte.ts
-more tests 87 not shown: src/tests/lib/features/rail-shell(15) src/tests/lib/features/event-calendar(12) src/tests/lib/core/settings(10) src/tests/lib/features/tasks(6) src/tests/lib/features/todoist-sync(5) src/tests/lib/features/search(4) src/tests/lib/plugins/mods(4) src/tests/lib/features/deep-link(3) +18 modules: q tests src/lib/core/settings/settings.store.svelte.ts
+more tests 88 not shown: src/tests/lib/features/rail-shell(15) src/tests/lib/features/event-calendar(12) src/tests/lib/core/settings(10) src/tests/lib/features/tasks(6) src/tests/lib/features/todoist-sync(5) src/tests/lib/features/search(4) src/tests/lib/plugins/mods(4) src/tests/lib/features/deep-link(3) +18 modules: q tests src/lib/core/settings/settings.store.svelte.ts
 ## symbols
 sym src/lib/core/settings/settings.store.svelte.ts:6 const DEFAULT_SETTINGS: AppSettings L157 | Fallback values used when no settings file exists or when it fails to parse
 by src/lib/core/settings/settings.store.svelte.ts:DEFAULT_SETTINGS <- src/lib/core/settings/settings.service.ts:95 in parseSettings member +40

@@ -4,7 +4,7 @@ sections: none
 fx src/lib/app/AppShell.svelte:66 svelte.$effect in (script)
 fx src/lib/app/AppShell.svelte:161 svelte.$effect in (script)
 fx src/lib/app/EditorView.svelte:48 svelte.$effect in (script)
-fx src/lib/core/markdown-editor/EditorTabs.svelte:37 svelte.$effect in (script)
+fx src/lib/core/markdown-editor/EditorTabs.svelte:38 svelte.$effect in (script)
 fx src/lib/core/markdown-editor/MarkdownEditor.svelte:455 svelte.$effect in (script)
 fx src/lib/core/markdown-editor/MarkdownEditor.svelte:591 svelte.$effect in (script)
 fx src/lib/core/markdown-editor/MarkdownEditor.svelte:630 svelte.$effect in (script)

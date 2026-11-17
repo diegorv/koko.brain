@@ -17,8 +17,8 @@ entry src/lib/features/tags/tags.service.ts ext-in2 src/lib/app/commands.ts src/
 entry src/lib/features/tags/TagsView.svelte ext-in1 src/lib/app/EditorView.svelte
 ## files
 file src/lib/features/tags/TagColorDot.svelte component L19 module src/lib/features/tags in1 t0
-file src/lib/features/tags/TagColorPicker.svelte component L110 module src/lib/features/tags in1 t0
-file src/lib/features/tags/TagItem.svelte component L71 module src/lib/features/tags in1 t0
+file src/lib/features/tags/TagColorPicker.svelte component L112 module src/lib/features/tags in1 t0
+file src/lib/features/tags/TagItem.svelte component L79 module src/lib/features/tags in1 t1
 file src/lib/features/tags/TagsView.svelte component L120 module src/lib/features/tags in1 t2
 file src/lib/features/tags/tags.logic.ts logic L137 module src/lib/features/tags in2 t1
 file src/lib/features/tags/tags.service.ts service L168 module src/lib/features/tags in3 t4

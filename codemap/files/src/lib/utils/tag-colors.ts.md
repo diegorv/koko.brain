@@ -14,7 +14,7 @@ test src/tests/lib/utils/tag-colors.test.ts imports src/lib/utils/tag-colors.ts 
 ## symbols
 sym src/lib/utils/tag-colors.ts:2 const TAG_COLOR_PRESETS: Record<string, string> L8 | Preset tag colors (same palette as canvas)
 sym src/lib/utils/tag-colors.ts:12 const TAG_COLOR_PRESET_ENTRIES L1 | All preset color entries as [name, hex] tuples for iteration
-by src/lib/utils/tag-colors.ts:TAG_COLOR_PRESET_ENTRIES <- src/lib/features/tags/TagColorPicker.svelte:46 in (markup) markup +1
+by src/lib/utils/tag-colors.ts:TAG_COLOR_PRESET_ENTRIES <- src/lib/features/tags/TagColorPicker.svelte:48 in (markup) markup +1
 sym src/lib/utils/tag-colors.ts:19 fn getTagColor(tagPath: string, colorMap: Record<string, string>): string | undefined L6 | Looks up the color for a tag from the color map.
 by src/lib/utils/tag-colors.ts:getTagColor <- src/lib/features/properties/PropertyField.svelte:171 in (markup) markup
 by src/lib/utils/tag-colors.ts:getTagColor <- src/lib/features/tags/TagItem.svelte:23 in getColor call
