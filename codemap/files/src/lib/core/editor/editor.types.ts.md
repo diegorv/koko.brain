@@ -9,7 +9,7 @@ imp src/lib/core/editor/editor.store.svelte.ts:2 -> src/lib/core/editor/editor.t
 imp src/lib/core/filesystem/path-change.service.ts:10 -> src/lib/core/editor/editor.types.ts type:EditorTab
 imp src/lib/core/markdown-editor/EditorTabs.svelte:34 -> src/lib/core/editor/editor.types.ts type:EditorTab
 ## reach
-in2 src/lib/core/editor/editor.types.ts 82 files in 37 modules: src/lib/features/rail-shell(9) src/lib/app(8) src/lib/features/event-calendar(5) src/lib/features/properties(4) src/lib/features/todoist-sync(4) +32 modules: q impact src/lib/core/editor/editor.types.ts --depth 2
+in2 src/lib/core/editor/editor.types.ts 83 files in 38 modules: src/lib/features/rail-shell(9) src/lib/app(8) src/lib/features/event-calendar(5) src/lib/features/properties(4) src/lib/features/todoist-sync(4) +33 modules: q impact src/lib/core/editor/editor.types.ts --depth 2
 out2 src/lib/core/editor/editor.types.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/core/editor/editor.logic.test.ts imports-type src/lib/core/editor/editor.types.ts

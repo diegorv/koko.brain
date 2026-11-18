@@ -1,7 +1,7 @@
 # module card src/lib/core/editor
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/core/editor ' codemap/modules
 sections: neighbors, entry files, files, public, stores, effects, debt
-module src/lib/core/editor core files 6 in-modules 37 out-modules 3 pub 46/55 ipc 0/0 card ~4.5k
+module src/lib/core/editor core files 6 in-modules 38 out-modules 3 pub 46/55 ipc 0/0 card ~4.5k
 ## neighbors
 dep src/lib/app -> src/lib/core/editor 18
 dep src/lib/core/filesystem -> src/lib/core/editor 10
@@ -33,6 +33,7 @@ dep src/lib/features/tasks -> src/lib/core/editor 5
 dep src/lib/features/todoist-sync -> src/lib/core/editor 8
 dep src/lib/features/type-definitions -> src/lib/core/editor 4
 dep src/lib/plugins/graph-view -> src/lib/core/editor 3
+dep src/lib/plugins/kanban -> src/lib/core/editor 1
 dep src/lib/plugins/mods -> src/lib/core/editor 8
 dep src/lib/plugins/one-on-one -> src/lib/core/editor 2
 dep src/lib/plugins/periodic-notes -> src/lib/core/editor 1
@@ -43,11 +44,11 @@ dep src/routes -> src/lib/core/editor 2
 dep src/lib/core/editor -> src/lib/core/filesystem 2
 dep src/lib/core/editor -> src/lib/core/markdown-editor 1
 dep src/lib/core/editor -> src/lib/utils 7
-in2 src/lib/core/editor 5 modules: src/lib/core/settings(2) src/lib/plugins/calendar(2) src/lib/plugins/quick-capture(2) src/lib/plugins/templates(2) src/lib/plugins/kanban(1)
+in2 src/lib/core/editor 4 modules: src/lib/core/settings(2) src/lib/plugins/calendar(2) src/lib/plugins/quick-capture(2) src/lib/plugins/templates(2)
 out2 src/lib/core/editor 2 modules: src/lib/contracts(4) src/lib/core/settings(2)
 ## entry files
 entry src/lib/core/editor/editor.service.ts ext-in54 src/lib/app/EditorView.svelte src/lib/app/commands.ts src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/app/global-keybindings.ts more importers 49 not shown: src/lib/features/event-calendar(5) src/lib/features/rail-shell(4) src/lib/core/filesystem(3) +24 modules: q importers src/lib/core/editor/editor.service.ts
-entry src/lib/core/editor/editor.store.svelte.ts ext-in46 src/lib/app/AppShell.svelte src/lib/app/EditorView.svelte src/lib/app/commands.ts src/lib/app/editor-host.ts src/lib/app/global-keybindings.ts more importers 41 not shown: src/lib/features/properties(4) src/lib/features/todoist-sync(4) src/lib/features/rail-shell(3) +24 modules: q importers src/lib/core/editor/editor.store.svelte.ts
+entry src/lib/core/editor/editor.store.svelte.ts ext-in47 src/lib/app/AppShell.svelte src/lib/app/EditorView.svelte src/lib/app/commands.ts src/lib/app/editor-host.ts src/lib/app/global-keybindings.ts more importers 42 not shown: src/lib/features/properties(4) src/lib/features/todoist-sync(4) src/lib/features/rail-shell(3) +25 modules: q importers src/lib/core/editor/editor.store.svelte.ts
 entry src/lib/core/editor/editor.hooks.ts ext-in22 src/lib/app/commands.ts src/lib/app/deep-link-actions.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/app/lifecycle/watcher-handler.service.ts src/lib/core/filesystem/fs.service.ts more importers 17 not shown: src/lib/features/rail-shell(2) src/lib/features/search(2) src/lib/features/todoist-sync(2) +10 modules: q importers src/lib/core/editor/editor.hooks.ts
 entry src/lib/core/editor/editor.logic.ts ext-in19 src/lib/app/EditorView.svelte src/lib/core/filesystem/link-updater.service.ts src/lib/core/filesystem/path-change.service.ts src/lib/core/layout/layout.logic.ts src/lib/core/markdown-editor/EditorTabs.svelte more importers 14 not shown: src/lib/core/markdown-editor(1) src/lib/core/status-bar(1) src/lib/features/auto-organize(1) +11 modules: q importers src/lib/core/editor/editor.logic.ts
 entry src/lib/core/editor/open-note-at.service.ts ext-in5 src/lib/features/event-calendar/EventTaskChip.svelte src/lib/features/search/SearchResult.svelte src/lib/features/tasks/TasksView.svelte src/lib/plugins/mods/mod-app.service.ts src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte
@@ -56,7 +57,7 @@ entry src/lib/core/editor/editor.types.ts ext-in3 src/lib/app/EditorView.svelte 
 file src/lib/core/editor/editor.hooks.ts other L137 module src/lib/core/editor in23 t49
 file src/lib/core/editor/editor.logic.ts logic L192 module src/lib/core/editor in22 t22
 file src/lib/core/editor/editor.service.ts service L527 module src/lib/core/editor in55 t97
-file src/lib/core/editor/editor.store.svelte.ts store L180 module src/lib/core/editor in48 t112
+file src/lib/core/editor/editor.store.svelte.ts store L180 module src/lib/core/editor in49 t113
 file src/lib/core/editor/editor.types.ts types L15 module src/lib/core/editor in6 t0
 file src/lib/core/editor/open-note-at.service.ts service L49 module src/lib/core/editor in5 t3
 ## public

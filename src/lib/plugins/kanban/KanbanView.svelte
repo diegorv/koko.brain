@@ -517,7 +517,8 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="flex h-full flex-col" onkeydown={handleBoardKeydown} tabindex="-1">
+<!-- data-kanban-board: KanbanCard focuses this root after an inline edit; outline-none, since that focus from code matches :focus-visible. -->
+<div class="flex h-full flex-col outline-none" onkeydown={handleBoardKeydown} tabindex="-1" data-kanban-board>
 	<!-- Toolbar -->
 	<div class="pane-toolbar">
 		<div class="flex items-center gap-0.5 rounded-xs border border-border">

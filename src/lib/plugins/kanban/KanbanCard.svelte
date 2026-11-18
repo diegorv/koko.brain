@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import Check from '@lucide/svelte/icons/check';
 	import GripVertical from '@lucide/svelte/icons/grip-vertical';
 	import Pencil from '@lucide/svelte/icons/pencil';
@@ -73,11 +73,31 @@
 		if (e.key === 'Enter') {
 			// Card text is one line (kanban.logic toCardText): Shift+Enter inserts nothing.
 			e.preventDefault();
-			if (!e.shiftKey) commitEdit();
+			if (!e.shiftKey) {
+				const boardRoot = findBoardRoot();
+				commitEdit();
+				focusAfterUnmount(boardRoot);
+			}
 		} else if (e.key === 'Escape') {
+			const boardRoot = findBoardRoot();
 			editText = item.text;
 			onStopEdit();
+			focusAfterUnmount(boardRoot);
 		}
+	}
+
+	function findBoardRoot(): HTMLElement | null {
+		return inputEl?.closest<HTMLElement>('[data-kanban-board]') ?? null;
+	}
+
+	/**
+	 * Hands focus to the board root so its arrow keys keep working. It waits for
+	 * the textarea to unmount: focusing earlier blurs it, and `onblur={commitEdit}`
+	 * would run a second commit against the old `item`.
+	 */
+	async function focusAfterUnmount(boardRoot: HTMLElement | null) {
+		await tick();
+		boardRoot?.focus();
 	}
 
 	function handleWikilinkSelect(filename: string, from: number, to: number) {
@@ -110,6 +130,19 @@
 			inputEl.focus();
 			inputEl.select();
 		}
+	});
+
+	// Grows the textarea to its content on open and on every edit. It measures
+	// after tick(): on open, the effect above writes `editText` in the same flush,
+	// before `bind:value` has put it into the textarea.
+	$effect(() => {
+		void editText;
+		const el = inputEl;
+		if (!el) return;
+		tick().then(() => {
+			el.style.height = 'auto';
+			el.style.height = `${el.scrollHeight}px`;
+		});
 	});
 
 	let cardDate = $derived(extractCardDate(item.text));
@@ -160,7 +193,7 @@
 	<ContextMenu.Trigger>
 		{#snippet children()}
 			<div
-				class="group flex items-start gap-1.5 rounded-lg border border-border bg-background p-2 text-sm shadow-sm transition-colors hover:border-primary/30 {PROXIMITY_CLASSES[dateProximity].border} {isDragging ? 'opacity-50' : ''} {isFocused ? 'ring-2 ring-primary' : ''}"
+				class="group flex items-start gap-1.5 rounded-md border border-border bg-background p-2 text-sm shadow-sm transition-colors hover:border-primary/30 {PROXIMITY_CLASSES[dateProximity].border} {isDragging ? 'opacity-50' : ''} {isFocused ? 'ring-2 ring-primary' : ''}"
 				style={cardColor ? `background: ${COLOR_PRESET_BG[cardColor]}` : ''}
 				draggable={!disableDrag}
 				ondragstart={disableDrag ? undefined : onDragStart}
@@ -189,7 +222,7 @@
 							oninput={updateCursorPos}
 							onclick={updateCursorPos}
 							onblur={commitEdit}
-							class="min-h-[1.25rem] w-full resize-none border-none bg-transparent p-0 text-sm leading-5 outline-none"
+							class="min-h-[1.25rem] w-full resize-none overflow-hidden border-none bg-transparent p-0 text-sm leading-5 outline-none"
 							rows="1"
 						></textarea>
 						<KanbanWikilinkSuggestions
@@ -201,18 +234,28 @@
 					</div>
 				{:else}
 					<div class="flex flex-1 flex-col gap-1">
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<span
-							class="leading-5 cursor-pointer select-none {item.checked ? 'text-muted-foreground line-through' : ''}"
-							ondblclick={onStartEdit}
-						>
-							<KanbanCardText text={displayText} {tagColors} {onWikilinkClick} {onTagClick} />
-						</span>
-						<div class="flex flex-wrap items-center gap-1">
-							<KanbanDatePicker date={cardDate} proximity={dateProximity} onDateChange={handleDateChange} />
+						<div class="flex items-start gap-1">
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<span
+								class="min-w-0 flex-1 leading-5 cursor-pointer select-none {item.checked ? 'text-muted-foreground line-through' : ''}"
+								ondblclick={onStartEdit}
+							>
+								<KanbanCardText text={displayText} {tagColors} {onWikilinkClick} {onTagClick} />
+							</span>
+							{#if !cardDate}
+								<!-- Outside the dblclick span. The popover content is inline, so the wrapper stays opaque while it is open; WebKit does not focus a clicked button, so focus-within alone would not hold it. -->
+								<div class="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-state=open]]:opacity-100">
+									<KanbanDatePicker date={cardDate} proximity={dateProximity} onDateChange={handleDateChange} />
+								</div>
+							{/if}
 						</div>
+						{#if cardDate}
+							<div class="flex flex-wrap items-center gap-1">
+								<KanbanDatePicker date={cardDate} proximity={dateProximity} onDateChange={handleDateChange} />
+							</div>
+						{/if}
 						{#if linkedContent}
-							<div class="max-h-32 overflow-y-auto border-t border-border/50 pt-1 text-xs leading-relaxed text-muted-foreground whitespace-pre-wrap break-words">
+							<div class="line-clamp-3 border-t border-border/50 pt-1 text-xs leading-relaxed text-muted-foreground whitespace-pre-wrap break-words">
 								{linkedContent}
 							</div>
 						{/if}

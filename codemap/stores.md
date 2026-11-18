@@ -1,6 +1,6 @@
 # stores: one line per store object
 cols: store <loc> <name> get <n> set <n> do <n> readers <reader files> writers <writer files> card <card path> · grep: grep -F -- ' editorStore ' codemap/stores.md
-store src/lib/core/editor/editor.store.svelte.ts:33 editorStore get 9 set 0 do 16 readers 48 writers 13 card codemap/files/src/lib/core/editor/editor.store.svelte.ts.md
+store src/lib/core/editor/editor.store.svelte.ts:33 editorStore get 9 set 0 do 16 readers 49 writers 13 card codemap/files/src/lib/core/editor/editor.store.svelte.ts.md
 store src/lib/core/filesystem/fs.store.svelte.ts:25 fsStore get 5 set 0 do 7 readers 23 writers 6 card codemap/files/src/lib/core/filesystem/fs.store.svelte.ts.md
 store src/lib/core/rule-actions/rule-actions.store.svelte.ts:38 ruleActionsStore get 1 set 0 do 3 readers 1 writers 3 card codemap/files/src/lib/core/rule-actions/rule-actions.store.svelte.ts.md
 store src/lib/core/settings/applied-theme.store.svelte.ts:14 appliedThemeStore get 2 set 0 do 3 readers 5 writers 1 card codemap/files/src/lib/core/settings/applied-theme.store.svelte.ts.md

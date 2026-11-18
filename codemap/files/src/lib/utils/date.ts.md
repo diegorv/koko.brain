@@ -12,7 +12,7 @@ imp src/lib/features/tasks/task-row-edit.logic.ts:1 -> src/lib/utils/date.ts for
 imp src/lib/features/tasks/tasks.logic.ts:1 -> src/lib/utils/date.ts formatDate
 imp src/lib/features/tasks/tasks.store.svelte.ts:2 -> src/lib/utils/date.ts formatNow
 imp src/lib/plugins/calendar/calendar.logic.ts:2 -> src/lib/utils/date.ts side-effect
-imp src/lib/plugins/kanban/KanbanCard.svelte:12 -> src/lib/utils/date.ts formatNow
+imp src/lib/plugins/kanban/KanbanCard.svelte:13 -> src/lib/utils/date.ts formatNow
 imp src/lib/plugins/kanban/KanbanListView.svelte:5 -> src/lib/utils/date.ts formatNow
 imp src/lib/plugins/kanban/KanbanTableView.svelte:5 -> src/lib/utils/date.ts formatNow
 imp src/lib/plugins/periodic-notes/periodic-notes.logic.ts:2 -> src/lib/utils/date.ts formatToCapturingRegex
@@ -31,7 +31,7 @@ by src/lib/utils/date.ts:formatNow <- src/lib/core/markdown-editor/extensions/da
 by src/lib/utils/date.ts:formatNow <- src/lib/features/tasks/TaskLists.svelte:55 in savedCounts=$derived call
 by src/lib/utils/date.ts:formatNow <- src/lib/features/tasks/TasksView.svelte:174 in today=$derived call
 by src/lib/utils/date.ts:formatNow <- src/lib/features/tasks/tasks.store.svelte.ts:89 in visibleRows=$derived call +1
-by src/lib/utils/date.ts:formatNow <- src/lib/plugins/kanban/KanbanCard.svelte:114 in dateProximity=$derived call
+by src/lib/utils/date.ts:formatNow <- src/lib/plugins/kanban/KanbanCard.svelte:119 in dateProximity=$derived call
 by src/lib/utils/date.ts:formatNow <- src/lib/plugins/kanban/KanbanListView.svelte:30 in (markup) markup
 by src/lib/utils/date.ts:formatNow <- src/lib/plugins/kanban/KanbanTableView.svelte:37 in (markup) markup
 by src/lib/utils/date.ts:formatNow <- src/lib/utils/template.ts:115 in evaluateDateNow call

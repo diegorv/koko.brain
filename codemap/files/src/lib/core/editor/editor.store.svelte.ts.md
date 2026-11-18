@@ -1,7 +1,7 @@
 # file card src/lib/core/editor/editor.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/editor/editor.store.svelte.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, store, calls
-file src/lib/core/editor/editor.store.svelte.ts store L180 module src/lib/core/editor in48 t112
+file src/lib/core/editor/editor.store.svelte.ts store L180 module src/lib/core/editor in49 t113
 ## imports
 imp src/lib/core/editor/editor.store.svelte.ts:2 -> src/lib/core/editor/editor.types.ts type:EditorTab
 imp src/lib/core/editor/editor.store.svelte.ts:3 -> src/lib/core/editor/editor.logic.ts reorderTabsAfterPinChange,getPinnedBoundary,moveTab
@@ -46,7 +46,7 @@ imp src/lib/features/todoist-sync/note-writer.service.ts:5 -> src/lib/core/edito
 imp src/lib/features/todoist-sync/sync-now.service.ts:14 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/todoist-sync/vault-scan.service.ts:3 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/type-definitions/type-definitions.service.ts:8 -> src/lib/core/editor/editor.store.svelte.ts editorStore
-more imported-by 8 not shown: src/lib/plugins/mods(2) src/lib/plugins/graph-view(1) src/lib/plugins/one-on-one(1) src/lib/plugins/queryjs(1) src/lib/plugins/table-of-contents(1) src/lib/plugins/word-count(1) src/routes(1): q importers src/lib/core/editor/editor.store.svelte.ts
+more imported-by 9 not shown: src/lib/plugins/mods(2) src/lib/plugins/graph-view(1) src/lib/plugins/kanban(1) src/lib/plugins/one-on-one(1) src/lib/plugins/queryjs(1) src/lib/plugins/table-of-contents(1) src/lib/plugins/word-count(1) src/routes(1): q importers src/lib/core/editor/editor.store.svelte.ts
 ## reach
 in2 src/lib/core/editor/editor.store.svelte.ts 59 files in 28 modules: src/lib/features/event-calendar(10) src/lib/app(7) src/lib/features/rail-shell(6) src/lib/features/collection(3) src/lib/features/tasks(3) +23 modules: q impact src/lib/core/editor/editor.store.svelte.ts --depth 2
 out2 src/lib/core/editor/editor.store.svelte.ts 1 files in 1 modules: src/lib/utils(1)
@@ -91,7 +91,7 @@ test src/tests/lib/features/backlinks/backlinks.service.test.ts imports src/lib/
 test src/tests/lib/features/canvas/canvas-tab-switch.test.ts imports src/lib/core/editor/editor.store.svelte.ts
 test src/tests/lib/features/collection/CollectionView.view-writes.test.ts imports src/lib/core/editor/editor.store.svelte.ts
 test src/tests/lib/features/collection/collection-block-click.test.ts imports src/lib/core/editor/editor.store.svelte.ts
-more tests 72 not shown: src/tests/lib/features/properties(11) src/tests/lib/features/tasks(10) src/tests/lib/features/rail-shell(8) src/tests/lib/plugins/mods(7) src/tests/lib/features/event-calendar(5) src/tests/lib/features/todoist-sync(4) src/tests/lib/plugins/graph-view(4) src/tests/lib/features/deep-link(3) +14 modules: q tests src/lib/core/editor/editor.store.svelte.ts
+more tests 73 not shown: src/tests/lib/features/properties(11) src/tests/lib/features/tasks(10) src/tests/lib/features/rail-shell(8) src/tests/lib/plugins/mods(7) src/tests/lib/features/event-calendar(5) src/tests/lib/features/todoist-sync(4) src/tests/lib/plugins/graph-view(4) src/tests/lib/features/deep-link(3) +15 modules: q tests src/lib/core/editor/editor.store.svelte.ts
 ## symbols
 sym src/lib/core/editor/editor.store.svelte.ts:33 store editorStore L148 | Central store for all editor tab state.
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/AppShell.svelte:61 in rightSidebarShown=$derived member +1
@@ -102,15 +102,15 @@ by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/global-
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/core/editor/editor.service.ts:126 in syncExternalContentToEditor member +42
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/core/editor/open-note-at.service.ts:38 in openNoteAt member +2
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/core/filesystem/link-updater.service.ts:52 in updateLinksAfterRename member +3
-more by 40 not shown: src/lib/features/properties(4) src/lib/features/todoist-sync(4) src/lib/features/rail-shell(3) src/lib/core/markdown-editor(2) src/lib/features/auto-organize(2) src/lib/features/backlinks(2) src/lib/features/outgoing-links(2) src/lib/plugins/mods(2) +19 modules: q importers src/lib/core/editor/editor.store.svelte.ts:editorStore
+more by 41 not shown: src/lib/features/properties(4) src/lib/features/todoist-sync(4) src/lib/features/rail-shell(3) src/lib/core/markdown-editor(2) src/lib/features/auto-organize(2) src/lib/features/backlinks(2) src/lib/features/outgoing-links(2) src/lib/plugins/mods(2) +20 modules: q importers src/lib/core/editor/editor.store.svelte.ts:editorStore
 ## store
 store src/lib/core/editor/editor.store.svelte.ts:33 editorStore esc:1
 mem src/lib/core/editor/editor.store.svelte.ts:34 get editorStore.tabs r:58 w-via:addTab,removeTab,updateContent,markSavedByPath,updateTabPath,+6
 more r 58 not shown: src/lib/core/editor(19) src/lib/core/markdown-editor(7) src/lib/features/todoist-sync(6) src/lib/features/tasks(5) src/lib/features/event-calendar(4) src/lib/core/filesystem(3) src/lib/features/auto-organize(3) src/lib/features/tags(3) +5 modules: q store src/lib/core/editor/editor.store.svelte.ts:editorStore.tabs
 mem src/lib/core/editor/editor.store.svelte.ts:35 get editorStore.activeIndex r:16 w-via:addTab,setActiveIndex,removeTab,togglePin,moveTab,+2
 more r 16 not shown: src/lib/core/editor(6) src/lib/core/markdown-editor(5) src/lib/features/auto-organize(1) src/lib/features/event-calendar(1) src/lib/features/tags(1) src/lib/features/tasks(1) src/lib/plugins/graph-view(1): q store src/lib/core/editor/editor.store.svelte.ts:editorStore.activeIndex
-mem src/lib/core/editor/editor.store.svelte.ts:37 get editorStore.activeTab r:43 w-via:addTab,setActiveIndex,removeTab,updateContent,markSavedByPath,+7 | The currently focused tab object, or null if none
-more r 43 not shown: src/lib/app(17) src/lib/features/properties(7) src/lib/core/markdown-editor(3) src/lib/core/editor(2) src/lib/features/outgoing-links(2) src/lib/features/search(2) src/lib/plugins/word-count(2) src/routes(2) +6 modules: q store src/lib/core/editor/editor.store.svelte.ts:editorStore.activeTab
+mem src/lib/core/editor/editor.store.svelte.ts:37 get editorStore.activeTab r:44 w-via:addTab,setActiveIndex,removeTab,updateContent,markSavedByPath,+7 | The currently focused tab object, or null if none
+more r 44 not shown: src/lib/app(17) src/lib/features/properties(7) src/lib/core/markdown-editor(3) src/lib/core/editor(2) src/lib/features/outgoing-links(2) src/lib/features/search(2) src/lib/plugins/word-count(2) src/routes(2) +7 modules: q store src/lib/core/editor/editor.store.svelte.ts:editorStore.activeTab
 mem src/lib/core/editor/editor.store.svelte.ts:39 get editorStore.activeTabPath r:41 w-via:addTab,setActiveIndex,removeTab,updateContent,markSavedByPath,+7 | Shortcut to the active tab's file path, or null
 more r 41 not shown: src/lib/app(5) src/lib/features/backlinks(5) src/lib/features/properties(4) src/lib/features/rail-shell(4) src/lib/plugins/table-of-contents(4) src/lib/core/markdown-editor(3) src/lib/features/outgoing-links(3) src/lib/core/editor(2) +8 modules: q store src/lib/core/editor/editor.store.svelte.ts:editorStore.activeTabPath
 mem src/lib/core/editor/editor.store.svelte.ts:40 get editorStore.activeTabContent r:src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte:35,src/routes/(app)/+layout.svelte:154 w-via:addTab,setActiveIndex,removeTab,updateContent,markSavedByPath,+7

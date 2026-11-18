@@ -29,7 +29,7 @@ imp src/lib/plugins/mods/mod-vault.service.ts:5 -> src/lib/core/editor/editor.lo
 imp src/lib/plugins/word-count/WordCount.svelte:4 -> src/lib/core/editor/editor.logic.ts isVirtualTab
 imp src/routes/(app)/+layout.svelte:21 -> src/lib/core/editor/editor.logic.ts isVirtualTab
 ## reach
-in2 src/lib/core/editor/editor.logic.ts 80 files in 33 modules: src/lib/features/event-calendar(10) src/lib/app(9) src/lib/features/rail-shell(9) src/lib/features/todoist-sync(4) src/lib/features/backlinks(3) +28 modules: q impact src/lib/core/editor/editor.logic.ts --depth 2
+in2 src/lib/core/editor/editor.logic.ts 81 files in 34 modules: src/lib/features/event-calendar(10) src/lib/app(9) src/lib/features/rail-shell(9) src/lib/features/todoist-sync(4) src/lib/features/backlinks(3) +29 modules: q impact src/lib/core/editor/editor.logic.ts --depth 2
 out2 src/lib/core/editor/editor.logic.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/core/editor/editor.logic.test.ts imports src/lib/core/editor/editor.logic.ts mirror
