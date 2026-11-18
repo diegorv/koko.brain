@@ -17,7 +17,7 @@ imp src/lib/features/event-calendar/EventBlock.svelte:4 -> src/lib/features/even
 imp src/lib/features/event-calendar/EventCalendarSection.svelte:21 -> src/lib/features/event-calendar/event-calendar-event.logic.ts resolveEventTypeName
 imp src/lib/features/event-calendar/EventDialog.svelte:10 -> src/lib/features/event-calendar/event-calendar-event.logic.ts eventState
 imp src/lib/features/event-calendar/EventForm.svelte:7 -> src/lib/features/event-calendar/event-calendar-event.logic.ts READ_ONLY_TIMING_NOTE
-imp src/lib/features/event-calendar/EventMonthGrid.svelte:7 -> src/lib/features/event-calendar/event-calendar-event.logic.ts eventColorStyle
+imp src/lib/features/event-calendar/EventMonthGrid.svelte:8 -> src/lib/features/event-calendar/event-calendar-event.logic.ts eventColorStyle
 imp src/lib/features/event-calendar/EventPopover.svelte:10 -> src/lib/features/event-calendar/event-calendar-event.logic.ts READ_ONLY_TIMING_NOTE
 imp src/lib/features/event-calendar/EventTimeGrid.svelte:27 -> src/lib/features/event-calendar/event-calendar-event.logic.ts type:PendingEventNote
 imp src/lib/features/event-calendar/event-calendar-form.logic.ts:13 -> src/lib/features/event-calendar/event-calendar-event.logic.ts eventFileBase
@@ -74,7 +74,7 @@ by src/lib/features/event-calendar/event-calendar-event.logic.ts:resolveEventTyp
 sym src/lib/features/event-calendar/event-calendar-event.logic.ts:434 fn eventColorStyle(color: EventColor): string L3 | Inline style for an event chip.
 by src/lib/features/event-calendar/event-calendar-event.logic.ts:eventColorStyle <- src/lib/features/event-calendar/EventAllDayLane.svelte:82 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-event.logic.ts:eventColorStyle <- src/lib/features/event-calendar/EventBlock.svelte:47 in style=$derived call
-by src/lib/features/event-calendar/event-calendar-event.logic.ts:eventColorStyle <- src/lib/features/event-calendar/EventMonthGrid.svelte:130 in (markup) markup
+by src/lib/features/event-calendar/event-calendar-event.logic.ts:eventColorStyle <- src/lib/features/event-calendar/EventMonthGrid.svelte:136 in (markup) markup
 sym src/lib/features/event-calendar/event-calendar-event.logic.ts:450 fn mergePending(snapshot: EventNote[], pending: PendingWrite[]): PendingEventNote[] L37 | Overlays pending writes on the projected snapshot.
 by src/lib/features/event-calendar/event-calendar-event.logic.ts:mergePending <- src/lib/features/event-calendar/event-calendar.store.svelte.ts:59 in recompute call
 sym src/lib/features/event-calendar/event-calendar-event.logic.ts:503 fn prunePending(pending: PendingWrite[], snapshot: EventNote[], version: number): PendingWrite[] L11 | Drops the pending writes the index has caught up with.

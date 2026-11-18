@@ -60,7 +60,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 23 | [File History says what it compares and when something failed](issues/23-file-history-compares-something-failed.md) | 20 | todo | | |
 | 24 | [Calendar events say what you can do; the new-event form opens without an error](issues/24-calendar-events-say-you-can-do.md) | none | done | issue/24-calendar-events-say-you-can-do (bd8d1575b) | 2026-11-18 |
 | 25 | [Calendar time grid shows what is now and what is hidden](issues/25-calendar-time-grid-shows-now-hidden.md) | 24 | done | issue/25-calendar-time-grid-shows-now-hidden (8856ffdbe) | 2026-11-18 |
-| 26 | [Calendar month grid reads at a glance](issues/26-calendar-month-grid-reads-at-glance.md) | 24, 25 | in-progress | | |
+| 26 | [Calendar month grid reads at a glance](issues/26-calendar-month-grid-reads-at-glance.md) | 24, 25 | done | issue/26-calendar-month-grid-reads-at-glance (115f190fc) | 2026-11-18 |
 | 27 | [The Tasks toolbar and list say what they do](issues/27-tasks-toolbar-list-say-they-do.md) | none | done | issue/27-tasks-toolbar-list-say-they-do (765d89506) | 2026-11-18 |
 | 28 | [The Days mini month works narrow and by screen reader](issues/28-days-mini-month-works-narrow-by.md) | 26 | todo | | |
 | 29 | [The template picker names the template and what Enter will do](issues/29-template-picker-names-template-enter-will.md) | none | done | issue/29-template-picker-names-template-enter-will (e73578399) | 2026-11-18 |
@@ -70,7 +70,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 33 | [Auto Organize property rows: verb mode labels, errors tied to their fields, the legacy icon only where set](issues/33-auto-organize-property-rows-verb-mode.md) | 32 | todo | | |
 | 34 | [The rule filter reads "When" with one "Add condition"](issues/34-rule-filter-reads-one-add-condition.md) | 15, 33 | todo | | |
 | 35 | [Appearance settings: theme rows ignore keys from their buttons, one catalog error with its reason, Install and apply, a theme editor that confirms discards and restores the theme on close](issues/35-appearance-settings-theme-rows-ignore-keys.md) | none | todo | | |
-| 36 | [Periodic Notes and 1:1: live path examples and missing-template marks](issues/36-periodic-notes-11-live-path-examples.md) | 22 | todo | | |
+| 36 | [Periodic Notes and 1:1: live path examples and missing-template marks](issues/36-periodic-notes-11-live-path-examples.md) | 22 | in-progress | | |
 | 37 | [Mods: each mod says what it does; the run view shows status and progress clearly](issues/37-mods-each-mod-run-view-shows.md) | none | todo | | |
 | 38 | [Settings: text you can select, the Todoist root row fits, the update button says it downloads](issues/38-settings-text-you-can-select-todoist.md) | none | todo | | |
 | 39 | [Readable text on coloured fills and faded text in the note list and search](issues/39-readable-chips-faded-text.md) | 12 | todo | | |
@@ -129,3 +129,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 18:40 — 25 — start — launched by /relay-lite:run — 9fa660b19
 - 2026-11-18 18:54 — 25 — deliver — merged after review 1 APPROVED with one nit, fix round (scroll test fakes the date), re-review 2 APPROVED (claude); full vitest suite passed (17649 tests) — 8856ffdbe
 - 2026-11-18 18:54 — 26 — start — launched by /relay-lite:run — a6ac1d10a
+- 2026-11-18 19:15 — 26 — deliver — merged after review 1 APPROVED with 2 findings (left with reasons; light-theme boundary for owner), deliver fix for chrome focus-rule test (focus-within on daily-note button), re-review 2 APPROVED (claude); full vitest suite passed on second run (17658 tests) — 115f190fc
+- 2026-11-18 19:15 — 36 — start — launched by /relay-lite:run — 3ae4a44cd

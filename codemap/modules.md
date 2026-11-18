@@ -10,7 +10,7 @@ module src-tauri/src/semantic rust files 12 in-modules 2 out-modules 1 pub 39/69
 module src-tauri/src/utils rust files 5 in-modules 6 out-modules 0 pub 17/33 ipc 0/0 card ~1.8k
 module src-tauri/src/vault rust files 9 in-modules 2 out-modules 1 pub 46/105 ipc 0/0 card ~3.9k
 module src/lib/app app files 15 in-modules 1 out-modules 46 pub 12/27 ipc 11/0 card ~2.4k
-module src/lib/components components files 98 in-modules 31 out-modules 1 pub 1/1 ipc 0/0 card ~6.2k
+module src/lib/components components files 98 in-modules 31 out-modules 1 pub 1/1 ipc 0/0 card ~6.3k
 module src/lib/contracts contracts files 56 in-modules 26 out-modules 0 pub 45/65 ipc 0/0 card ~4.4k
 module src/lib/core/editor core files 6 in-modules 38 out-modules 3 pub 46/55 ipc 0/0 card ~4.5k
 module src/lib/core/filesystem core files 14 in-modules 29 out-modules 7 pub 60/91 ipc 14/0 card ~7k
@@ -32,7 +32,7 @@ module src/lib/features/command-palette features files 5 in-modules 1 out-module
 module src/lib/features/copy-block-link features files 1 in-modules 1 out-modules 3 pub 2/3 ipc 0/0 card ~0.5k
 module src/lib/features/deep-link features files 4 in-modules 4 out-modules 8 pub 14/33 ipc 0/0 card ~1.8k
 module src/lib/features/dock-badge features files 2 in-modules 1 out-modules 3 pub 2/2 ipc 0/0 card ~0.6k
-module src/lib/features/event-calendar features files 36 in-modules 7 out-modules 12 pub 17/236 ipc 1/0 card ~4.6k
+module src/lib/features/event-calendar features files 36 in-modules 7 out-modules 12 pub 17/238 ipc 1/0 card ~4.6k
 module src/lib/features/file-history features files 7 in-modules 2 out-modules 7 pub 5/24 ipc 4/0 card ~1.2k
 module src/lib/features/file-icons features files 9 in-modules 9 out-modules 8 pub 22/42 ipc 1/0 card ~3.7k
 module src/lib/features/note-action-bar features files 4 in-modules 2 out-modules 12 pub 2/19 ipc 0/0 card ~1k
@@ -77,10 +77,10 @@ layer core -> contracts 15
 layer core -> core 475
 layer core -> types 5
 layer core -> utils 70
-layer features -> components 101
+layer features -> components 104
 layer features -> contracts 43
 layer features -> core 342
-layer features -> features 739
+layer features -> features 740
 layer features -> types 23
 layer features -> utils 100
 layer lib-root -> utils 1

@@ -19,7 +19,9 @@ import {
 	SETTINGS_SECTION_GROUPS,
 	mergeLayout,
 	migrateTypeScale,
+	isTemplateMissing,
 } from '#lib/core/settings/settings.logic.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 
 describe('clampFontSize', () => {
 	it('clamps below minimum to 8', () => {
@@ -678,5 +680,40 @@ describe('migrateTypeScale', () => {
 		const input = saved({ fontSize: 18, headingTypography: { h4: { ...OLD_H4_TO_H6 } } });
 		migrateTypeScale(input);
 		expect(input).toEqual({ fontSize: 18, headingTypography: { h4: OLD_H4_TO_H6 } });
+	});
+});
+
+describe('isTemplateMissing', () => {
+	const tree: FileTreeNode[] = [
+		{
+			name: 'Templates',
+			path: '/vault/Templates',
+			isDirectory: true,
+			children: [{ name: 'daily.md', path: '/vault/Templates/daily.md', isDirectory: false }],
+		},
+	];
+
+	it('is true for a path absent from a loaded tree', () => {
+		expect(isTemplateMissing(tree, '/vault', 'Templates/dialy.md')).toBe(true);
+		expect(isTemplateMissing(tree, '/vault', 'Templates')).toBe(true);
+	});
+
+	it('is false for a file in the tree', () => {
+		expect(isTemplateMissing(tree, '/vault', 'Templates/daily.md')).toBe(false);
+	});
+
+	it('is false for an empty or missing path', () => {
+		expect(isTemplateMissing(tree, '/vault', '')).toBe(false);
+		expect(isTemplateMissing(tree, '/vault', undefined)).toBe(false);
+	});
+
+	it('is false with no vault open or an empty tree', () => {
+		expect(isTemplateMissing(tree, null, 'Templates/dialy.md')).toBe(false);
+		expect(isTemplateMissing([], '/vault', 'Templates/dialy.md')).toBe(false);
+	});
+
+	it('is false when a segment is dot-prefixed, since the scan skips dot folders', () => {
+		expect(isTemplateMissing(tree, '/vault', '.templates/daily.md')).toBe(false);
+		expect(isTemplateMissing(tree, '/vault', 'Templates/.hidden.md')).toBe(false);
 	});
 });

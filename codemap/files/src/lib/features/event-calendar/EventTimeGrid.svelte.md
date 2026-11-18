@@ -21,7 +21,7 @@ imp src/lib/features/event-calendar/EventTimeGrid.svelte:28 -> src/lib/features/
 imp src/lib/features/event-calendar/EventCalendarView.svelte:33 -> src/lib/features/event-calendar/EventTimeGrid.svelte default
 ## reach
 in2 src/lib/features/event-calendar/EventTimeGrid.svelte 1 files in 1 modules: src/lib/app(1)
-out2 src/lib/features/event-calendar/EventTimeGrid.svelte 30 files in 11 modules: src/lib/features/event-calendar(6) src/lib/core/settings(4) src/lib/core/editor(3) src/lib/core/filesystem(3) src/lib/core/frontmatter(3) +6 modules
+out2 src/lib/features/event-calendar/EventTimeGrid.svelte 31 files in 12 modules: src/lib/features/event-calendar(6) src/lib/core/settings(4) src/lib/core/editor(3) src/lib/core/filesystem(3) src/lib/core/frontmatter(3) +7 modules
 ## tests
 test src/tests/lib/features/event-calendar/EventTimeGrid.test.ts imports src/lib/features/event-calendar/EventTimeGrid.svelte mirror
 test src/tests/lib/features/event-calendar/EventDialog.test.ts imports src/lib/features/event-calendar/EventTimeGrid.svelte

@@ -1,4 +1,6 @@
 import { clamp } from '#lib/utils/clamp.js';
+import { findFileNode } from '#lib/core/filesystem/fs.logic.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import type { AppSettings, EditorSettings, EventCalendarSettings, HeadingLevelSettings, HeadingTypography, LayoutSettings, SettingsSection, TodoistSettings } from './settings.types';
 
 /**
@@ -304,3 +306,21 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 		],
 	},
 ] as const;
+
+/**
+ * Whether a template path set in Settings names no file in the loaded tree, resolved
+ * as `${vaultPath}/${templatePath}` like the note creators do. False whenever the
+ * answer is unknown: an empty path, no open vault, a tree not loaded yet, or a
+ * dot-prefixed segment (`scan_vault` skips dot entries, so such a file may exist
+ * without being in the tree).
+ *
+ * Known false marks: paths compare exactly, so on a case-insensitive volume (default
+ * APFS) a path whose case differs from the file on disk is reported missing though
+ * `readTextFile` loads it; and `scan_vault` skips symlinks, so a template that is, or
+ * sits under, a symlink is reported missing too.
+ */
+export function isTemplateMissing(tree: FileTreeNode[], vaultPath: string | null, templatePath: string | undefined): boolean {
+	if (!templatePath || !vaultPath || tree.length === 0) return false;
+	if (templatePath.split('/').some((segment) => segment.startsWith('.'))) return false;
+	return findFileNode(tree, vaultPath, `${vaultPath}/${templatePath}`) === null;
+}

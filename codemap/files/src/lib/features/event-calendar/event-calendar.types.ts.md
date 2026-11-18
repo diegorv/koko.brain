@@ -24,7 +24,7 @@ imp src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:12 -> sr
 imp src/lib/features/event-calendar/event-calendar.service.ts:43 -> src/lib/features/event-calendar/event-calendar.types.ts type:CalendarViewMode,type:EventDraft,type:EventNote,type:EventPatch,type:EventState,type:HistoryOp,type:PendingWrite
 imp src/lib/features/event-calendar/event-calendar.store.svelte.ts:16 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventIssue,type:EventNote,type:EventProjection,type:EventState,type:PendingWrite
 ## reach
-in2 src/lib/features/event-calendar/event-calendar.types.ts 20 files in 5 modules: src/lib/features/event-calendar(12) src/lib/app(4) src/lib/plugins/calendar(2) src/lib/features/rail-shell(1) src/lib/plugins/one-on-one(1)
+in2 src/lib/features/event-calendar/event-calendar.types.ts 21 files in 5 modules: src/lib/features/event-calendar(13) src/lib/app(4) src/lib/plugins/calendar(2) src/lib/features/rail-shell(1) src/lib/plugins/one-on-one(1)
 out2 src/lib/features/event-calendar/event-calendar.types.ts 2 files in 1 modules: src/lib/core/settings(2)
 ## tests
 test src/tests/fixtures/event-notes.fixture.ts imports-type src/lib/features/event-calendar/event-calendar.types.ts

@@ -46,7 +46,7 @@ fx src/lib/features/event-calendar/EventCalendarView.svelte:224 svelte.$effect i
 fx src/lib/features/event-calendar/EventDialog.svelte:64 svelte.$effect in (script)
 fx src/lib/features/event-calendar/EventDialog.svelte:70 svelte.$effect in (script)
 fx src/lib/features/event-calendar/EventDialog.svelte:79 svelte.$effect in (script)
-fx src/lib/features/event-calendar/EventMonthGrid.svelte:35 svelte.$effect in (script)
+fx src/lib/features/event-calendar/EventMonthGrid.svelte:39 svelte.$effect in (script)
 fx src/lib/features/event-calendar/EventPopover.svelte:44 svelte.$effect in (script)
 fx src/lib/features/event-calendar/EventPopover.svelte:50 svelte.$effect in (script)
 fx src/lib/features/event-calendar/EventPopover.svelte:55 svelte.$effect in (script)
