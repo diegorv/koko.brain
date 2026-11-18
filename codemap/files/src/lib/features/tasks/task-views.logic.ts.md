@@ -48,7 +48,7 @@ sym src/lib/features/tasks/task-views.logic.ts:164 fn viewQueryOf(query: TaskQue
 by src/lib/features/tasks/task-views.logic.ts:viewQueryOf <- src/lib/features/tasks/tasks.service.ts:175 in saveTaskView call +1
 sym src/lib/features/tasks/task-views.logic.ts:172 fn findTaskView(id: string, savedViews: readonly SavedTaskView[]): SavedTaskView | undefined L3 | The saved view or built-in list with `id`, saved views first; undefined when none has it.
 by src/lib/features/tasks/task-views.logic.ts:findTaskView <- src/lib/features/tasks/TaskLists.svelte:39 in activeView=$derived call
-by src/lib/features/tasks/task-views.logic.ts:findTaskView <- src/lib/features/tasks/TasksView.svelte:240 in savedQuick=$derived call
+by src/lib/features/tasks/task-views.logic.ts:findTaskView <- src/lib/features/tasks/TasksView.svelte:248 in savedQuick=$derived call
 by src/lib/features/tasks/task-views.logic.ts:findTaskView <- src/lib/features/tasks/tasks.service.ts:153 in loadSavedTasksView call +2
 sym src/lib/features/tasks/task-views.logic.ts:313 fn parseTasksViewState(raw: unknown): { state: TaskViewsState; valid: boolean } L24 | Reads the Tasks view's saved state (`settings.json` `tasksView`, unvalidated) into fresh objects.
 by src/lib/features/tasks/task-views.logic.ts:parseTasksViewState <- src/lib/features/tasks/tasks.service.ts:145 in loadSavedTasksView call

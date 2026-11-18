@@ -19,10 +19,10 @@ sym src/lib/features/tasks/tasks-keys.logic.ts:11 reexport tabStopRow = src/lib/
 sym src/lib/features/tasks/tasks-keys.logic.ts:14 interface TaskKeyInput L20 | A keydown on the task list, as `resolveTaskKey` reads it.
 sym src/lib/features/tasks/tasks-keys.logic.ts:36 type TaskKeyAction L1 | What the list does for a key: focus a row by index, toggle the row, open its note at the task's line, or open the row's menu.
 sym src/lib/features/tasks/tasks-keys.logic.ts:39 fn taskRowKey(filePath: string, lineNumber: number): string L3 | The `<filePath>:<lineNumber>` key that identifies a task row.
-by src/lib/features/tasks/tasks-keys.logic.ts:taskRowKey <- src/lib/features/tasks/TasksView.svelte:307 in rowsByKey=$derived call +7
+by src/lib/features/tasks/tasks-keys.logic.ts:taskRowKey <- src/lib/features/tasks/TasksView.svelte:315 in rowsByKey=$derived call +7
 by src/lib/features/tasks/tasks-keys.logic.ts:taskRowKey <- src/lib/features/tasks/task-query.logic.ts:252 in buildTaskRows call +4
 by src/lib/features/tasks/tasks-keys.logic.ts:taskRowKey <- src/lib/features/tasks/tasks.service.ts:515 in afterTaskWrite call +1
 sym src/lib/features/tasks/tasks-keys.logic.ts:52 fn resolveTaskKey(input: TaskKeyInput): TaskKeyAction | null L16 | Maps a keydown on the task list to an action, or null when the list leaves the key alone: a key on a control inside the row (it keeps its native click), any mo…
-by src/lib/features/tasks/tasks-keys.logic.ts:resolveTaskKey <- src/lib/features/tasks/TasksView.svelte:394 in handleListKeydown call
+by src/lib/features/tasks/tasks-keys.logic.ts:resolveTaskKey <- src/lib/features/tasks/TasksView.svelte:423 in handleListKeydown call
 ## calls
 call src/lib/features/tasks/tasks-keys.logic.ts:57 in resolveTaskKey -> src/lib/utils/roving-list.ts:resolveRovingFocus call

@@ -17,7 +17,7 @@ in2 src/lib/features/tasks/TaskLists.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/tasks/TaskLists.svelte 39 files in 10 modules: src/lib/components(18) src/lib/features/tasks(6) src/lib/core/editor(3) src/lib/core/settings(3) src/lib/utils(3) +5 modules
 ## symbols
 sym src/lib/features/tasks/TaskLists.svelte:1 component TaskLists props:variant L294
-by src/lib/features/tasks/TaskLists.svelte:default <- src/lib/features/tasks/TasksView.svelte:1074 in (markup) mount +2
+by src/lib/features/tasks/TaskLists.svelte:default <- src/lib/features/tasks/TasksView.svelte:1110 in (markup) mount +2
 ## locals
 local src/lib/features/tasks/TaskLists.svelte:77 fn startEditing(next: NonNullable<typeof editing>, initial: string) L7
 local src/lib/features/tasks/TaskLists.svelte:86 fn commit() L5
@@ -30,9 +30,9 @@ local src/lib/features/tasks/TaskLists.svelte:154 fn handleCloseFocus(e: Event) 
 ## mounts
 mount src/lib/features/tasks/TaskLists.svelte:162 Input -> src/lib/components/ui/input/input.svelte
 ## mounted-at
-mount src/lib/features/tasks/TasksView.svelte:1074 TaskLists -> src/lib/features/tasks/TaskLists.svelte
-mount src/lib/features/tasks/TasksView.svelte:1077 TaskLists -> src/lib/features/tasks/TaskLists.svelte
-mount src/lib/features/tasks/TasksView.svelte:1102 TaskLists -> src/lib/features/tasks/TaskLists.svelte
+mount src/lib/features/tasks/TasksView.svelte:1110 TaskLists -> src/lib/features/tasks/TaskLists.svelte
+mount src/lib/features/tasks/TasksView.svelte:1113 TaskLists -> src/lib/features/tasks/TaskLists.svelte
+mount src/lib/features/tasks/TasksView.svelte:1138 TaskLists -> src/lib/features/tasks/TaskLists.svelte
 ## calls
 call src/lib/features/tasks/TaskLists.svelte:39 in activeView=$derived -> src/lib/features/tasks/task-views.logic.ts:findTaskView call
 call src/lib/features/tasks/TaskLists.svelte:44 in modified=$derived -> src/lib/features/tasks/task-query.logic.ts:isQueryModified call

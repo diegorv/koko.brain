@@ -22,9 +22,9 @@ entry src/lib/features/tasks/TasksView.svelte ext-in1 src/lib/app/EditorView.sve
 entry src/lib/features/tasks/task-status.logic.ts ext-in1 src/lib/features/event-calendar/EventTaskChip.svelte
 entry src/lib/features/tasks/tasks.store.svelte.ts ext-in1 src/lib/app/commands.ts
 ## files
-file src/lib/features/tasks/SourcesPanel.svelte component L496 module src/lib/features/tasks in1 t0
+file src/lib/features/tasks/SourcesPanel.svelte component L504 module src/lib/features/tasks in1 t0
 file src/lib/features/tasks/TaskLists.svelte component L294 module src/lib/features/tasks in1 t0
-file src/lib/features/tasks/TasksView.svelte component L1213 module src/lib/features/tasks in1 t2
+file src/lib/features/tasks/TasksView.svelte component L1249 module src/lib/features/tasks in1 t2
 file src/lib/features/tasks/task-headings.logic.ts logic L71 module src/lib/features/tasks in2 t1
 file src/lib/features/tasks/task-metadata.types.ts types L1 module src/lib/features/tasks in7 t0
 file src/lib/features/tasks/task-query.logic.ts logic L1508 module src/lib/features/tasks in6 t9
@@ -37,7 +37,7 @@ file src/lib/features/tasks/tasks.service.ts service L595 module src/lib/feature
 file src/lib/features/tasks/tasks.store.svelte.ts store L195 module src/lib/features/tasks in5 t15
 file src/lib/features/tasks/tasks.types.ts types L25 module src/lib/features/tasks in5 t0
 ## public
-sym src/lib/features/tasks/TasksView.svelte:1 component TasksView props:onOpenWikilink L1213
+sym src/lib/features/tasks/TasksView.svelte:1 component TasksView props:onOpenWikilink L1249
 sym src/lib/features/tasks/task-status.logic.ts:14 fn isTaskOpen(status: TaskStatus): boolean L3 | Whether a task in `status` is open: done and cancelled are closed, every other status is open.
 sym src/lib/features/tasks/tasks.service.ts:143 fn loadSavedTasksView(): void L12 | Loads this vault's saved Tasks state (`tasksView`, `parseTasksViewState`): the global excludes, the saved views, and the active list, whose query it copies int…
 sym src/lib/features/tasks/tasks.service.ts:547 fn openTasksTab(): void L14 | Opens or focuses the Tasks tab.
@@ -47,8 +47,9 @@ sym src/lib/features/tasks/tasks.store.svelte.ts:100 store tasksStore L96
 ## stores
 store src/lib/features/tasks/tasks.store.svelte.ts:100 tasksStore esc:0
 ## effects
+fx-count dom.keydown 1
 fx-count dom.scroll 1
-fx-count svelte.$effect 6
+fx-count svelte.$effect 7
 ipc-count ipc:toggle_task_status 1
 ipc-count ipc:write_task_text 1
 ## debt

@@ -284,3 +284,40 @@ describe('KanbanView: card and lane menus', () => {
 		expect(entries).toEqual(['3 cards', '5 cards', '10 cards', '15 cards', 'No limit (current)']);
 	});
 });
+
+describe('KanbanView: Add Lane', () => {
+	let component: Record<string, unknown> | null = null;
+	let api: HarnessApi | undefined;
+
+	beforeEach(() => {
+		kanbanStore.reset();
+		component = mount(KanbanViewHarness, {
+			target: document.body.appendChild(document.createElement('div')),
+			props: { initialMarkdown: SEED, register: (a: HarnessApi) => { api = a; } },
+		});
+		flushSync();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		api = undefined;
+		document.body.innerHTML = '';
+	});
+
+	function clickAddLane(): void {
+		const button = [...document.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Add Lane');
+		if (!button) throw new Error('"Add Lane" button not found');
+		button.click();
+		flushSync();
+	}
+
+	it('gives each new lane a unique title', () => {
+		clickAddLane();
+		clickAddLane();
+
+		const titles = parseKanbanBoard(api!.getMarkdown()).lanes.map((l) => l.title);
+		expect(titles).toEqual(['To Do', 'Done', 'New Lane', 'New Lane 2']);
+		expect(api?.getPersistCount()).toBe(2);
+	});
+});

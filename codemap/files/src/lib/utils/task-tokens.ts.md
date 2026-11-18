@@ -33,10 +33,10 @@ by src/lib/utils/task-tokens.ts:removeSpans <- src/lib/features/todoist-sync/tas
 sym src/lib/utils/task-tokens.ts:91 fn insertToken(text: string, token: string): string L11 | Inserts a token before the first `🆔`; without one, before a block id that ends the text, so `^id` stays last and keeps resolving; otherwise at the end before …
 by src/lib/utils/task-tokens.ts:insertToken <- src/lib/features/todoist-sync/task-line.logic.ts:197 in addTag call
 sym src/lib/utils/task-tokens.ts:108 fn setDueToken(text: string, date: string | null): string L7 | Sets the `📅 YYYY-MM-DD` due date, or removes every one when `date` is null.
-by src/lib/utils/task-tokens.ts:setDueToken <- src/lib/features/tasks/TasksView.svelte:555 in setRowDue call
+by src/lib/utils/task-tokens.ts:setDueToken <- src/lib/features/tasks/TasksView.svelte:584 in setRowDue call
 by src/lib/utils/task-tokens.ts:setDueToken <- src/lib/features/todoist-sync/task-line.logic.ts:148 in setDueDate call
 sym src/lib/utils/task-tokens.ts:122 fn setPriorityToken(text: string, emoji: PriorityEmoji | null): string L7 | Sets the priority emoji, or removes every one when `emoji` is null.
-by src/lib/utils/task-tokens.ts:setPriorityToken <- src/lib/features/tasks/TasksView.svelte:562 in pickRowPriority call
+by src/lib/utils/task-tokens.ts:setPriorityToken <- src/lib/features/tasks/TasksView.svelte:591 in pickRowPriority call
 by src/lib/utils/task-tokens.ts:setPriorityToken <- src/lib/features/todoist-sync/task-line.logic.ts:156 in setPriority call
 ## locals
 local src/lib/utils/task-tokens.ts:52 fn removeSpan(text: string, start: number, end: number): string L7

@@ -95,7 +95,7 @@ file src/lib/utils/frontmatter-aliases.ts other L31 module src/lib/utils in5 t6
 file src/lib/utils/fuzzy-match.ts other L59 module src/lib/utils in7 t2
 file src/lib/utils/index-dedupe.ts other L39 module src/lib/utils in3 t33
 file src/lib/utils/inflight.ts other L173 module src/lib/utils in5 t1
-file src/lib/utils/keybindings.ts other L81 module src/lib/utils in5 t4
+file src/lib/utils/keybindings.ts other L81 module src/lib/utils in5 t5
 file src/lib/utils/log.service.ts service L236 module src/lib/utils in14 t46
 file src/lib/utils/markdown-plain-text.ts other L57 module src/lib/utils in1 t1 | Markdown to plain text for one-line previews such as search snippets.
 file src/lib/utils/menu-action.types.ts types L21 module src/lib/utils in2 t0

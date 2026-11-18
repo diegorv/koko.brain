@@ -48,6 +48,7 @@ import {
 	filterItems,
 	setViewMode,
 	canReorderItems,
+	uniqueLaneTitle,
 } from '#lib/plugins/kanban/kanban.logic.js';
 import type { KanbanBoard, KanbanSettings } from '#lib/plugins/kanban/kanban.types.js';
 
@@ -560,6 +561,144 @@ describe('renameLane', () => {
 		const board = makeBoard();
 		const result = renameLane(board, 'lane-1', 'Renamed');
 		expect(result.lanes[1].title).toBe('Done');
+	});
+
+	it('moves the lane settings to the new title', () => {
+		const board = makeBoard({
+			settings: { laneSettings: { Done: { autoComplete: true, maxItems: 5, collapsed: true } } },
+		});
+		const result = renameLane(board, 'lane-2', 'Complete');
+		expect(result.lanes[1].title).toBe('Complete');
+		expect(isLaneAutoComplete(result, 'Complete')).toBe(true);
+		expect(getLaneMaxItems(result, 'Complete')).toBe(5);
+		expect(isLaneCollapsed(result, 'Complete')).toBe(true);
+		expect(result.settings.laneSettings).not.toHaveProperty('Done');
+	});
+
+	it('does not give a lane without settings a settings entry', () => {
+		const board = makeBoard({ settings: { laneSettings: { Done: { maxItems: 3 } } } });
+		const result = renameLane(board, 'lane-1', 'Backlog');
+		expect(result.lanes[0].title).toBe('Backlog');
+		expect(result.settings.laneSettings).toEqual({ Done: { maxItems: 3 } });
+	});
+
+	it('does not create laneSettings on a board that has none', () => {
+		const board = makeBoard();
+		const result = renameLane(board, 'lane-1', 'Backlog');
+		expect(result.settings.laneSettings).toBeUndefined();
+	});
+
+	it('does not read an Object.prototype member as the settings of a lane titled "constructor"', () => {
+		const board = makeBoard({ settings: { laneSettings: { Done: { maxItems: 3 } } } });
+		board.lanes[0].title = 'constructor';
+		const result = renameLane(board, 'lane-1', 'Backlog');
+		expect(result.lanes[0].title).toBe('Backlog');
+		expect(result.settings.laneSettings).toEqual({ Done: { maxItems: 3 } });
+	});
+
+	it('suffixes a title another lane already has and keeps that lane\'s settings', () => {
+		const board = makeBoard({
+			settings: {
+				laneSettings: {
+					'To Do': { maxItems: 2 },
+					Done: { autoComplete: true, maxItems: 5 },
+				},
+			},
+		});
+		const result = renameLane(board, 'lane-1', 'Done');
+		expect(result.lanes[0].title).toBe('Done 2');
+		expect(result.lanes[1].title).toBe('Done');
+		expect(result.settings.laneSettings?.Done).toEqual({ autoComplete: true, maxItems: 5 });
+		expect(getLaneMaxItems(result, 'Done 2')).toBe(2);
+		expect(isLaneAutoComplete(result, 'Done 2')).toBe(false);
+		expect(result.settings.laneSettings).not.toHaveProperty('To Do');
+	});
+
+	it('copies a shared entry when another lane still has the old title', () => {
+		const board: KanbanBoard = {
+			lanes: [
+				{ id: 'lane-1', title: 'Done', items: [] },
+				{ id: 'lane-2', title: 'Done', items: [] },
+			],
+			archive: [],
+			settings: { laneSettings: { Done: { autoComplete: true, maxItems: 5 } } },
+		};
+		const result = renameLane(board, 'lane-2', 'Complete');
+		expect(result.lanes.map((l) => l.title)).toEqual(['Done', 'Complete']);
+		expect(result.settings.laneSettings?.Done).toEqual({ autoComplete: true, maxItems: 5 });
+		expect(result.settings.laneSettings?.Complete).toEqual({ autoComplete: true, maxItems: 5 });
+		expect(result.settings.laneSettings?.Complete).not.toBe(result.settings.laneSettings?.Done);
+	});
+
+	it('returns the same board when the title does not change', () => {
+		const board = makeBoard({ settings: { laneSettings: { Done: { maxItems: 5 } } } });
+		expect(renameLane(board, 'lane-2', 'Done')).toBe(board);
+	});
+
+	it('returns the same board when the suffixed title is the lane\'s own title', () => {
+		const board: KanbanBoard = {
+			lanes: [
+				{ id: 'lane-1', title: 'Done', items: [] },
+				{ id: 'lane-2', title: 'Done 2', items: [] },
+			],
+			archive: [],
+			settings: {},
+		};
+		expect(renameLane(board, 'lane-2', 'Done')).toBe(board);
+	});
+
+	it('returns the same board for a nonexistent lane', () => {
+		const board = makeBoard();
+		expect(renameLane(board, 'nonexistent', 'Renamed')).toBe(board);
+	});
+
+	it('keeps the settings under the new title through serialize and parse', () => {
+		const board = makeBoard({
+			settings: { laneSettings: { Done: { autoComplete: true, maxItems: 5, collapsed: true } } },
+		});
+		const parsed = parseKanbanBoard(serializeKanbanBoard(renameLane(board, 'lane-2', 'Complete')));
+		expect(parsed.lanes.map((l) => l.title)).toEqual(['To Do', 'Complete']);
+		expect(parsed.settings.laneSettings).toEqual({
+			Complete: { autoComplete: true, maxItems: 5, collapsed: true },
+		});
+
+		// Lane ids are regenerated on parse, so drive the drop the way KanbanView does.
+		const from = parsed.lanes[0];
+		const to = parsed.lanes[1];
+		const autoCheck = isLaneAutoComplete(parsed, to.title);
+		const moved = moveItem(parsed, from.id, from.items[0].id, to.id, 0, autoCheck);
+		expect(autoCheck).toBe(true);
+		expect(moved.lanes[1].items[0]).toMatchObject({ text: 'Task A', checked: true });
+	});
+});
+
+// ── uniqueLaneTitle ─────────────────────────────────────────────────
+
+describe('uniqueLaneTitle', () => {
+	it('returns the wanted title when no lane has it', () => {
+		expect(uniqueLaneTitle(makeBoard(), 'Backlog')).toBe('Backlog');
+	});
+
+	it('returns the wanted title on an empty board', () => {
+		expect(uniqueLaneTitle(makeBoard({ lanes: [] }), 'New Lane')).toBe('New Lane');
+	});
+
+	it('adds " 2" when the title is taken', () => {
+		expect(uniqueLaneTitle(makeBoard(), 'Done')).toBe('Done 2');
+	});
+
+	it('skips suffixes that are taken too', () => {
+		const board = makeBoard({
+			lanes: [
+				{ id: 'a', title: 'New Lane', items: [] },
+				{ id: 'b', title: 'New Lane 2', items: [] },
+			],
+		});
+		expect(uniqueLaneTitle(board, 'New Lane')).toBe('New Lane 3');
+	});
+
+	it('ignores the lane named by exceptLaneId', () => {
+		expect(uniqueLaneTitle(makeBoard(), 'Done', 'lane-2')).toBe('Done');
 	});
 });
 

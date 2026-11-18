@@ -41,6 +41,7 @@
 		filterItems,
 		setViewMode,
 		canReorderItems,
+		uniqueLaneTitle,
 	} from './kanban.logic';
 	import type { KanbanBoard, KanbanSortMode, KanbanViewMode } from './kanban.types';
 	import { kanbanStore } from './kanban.store.svelte';
@@ -126,7 +127,7 @@
 	}
 
 	function handleAddLane() {
-		applyChange(addLane(board, 'New Lane'));
+		applyChange(addLane(board, uniqueLaneTitle(board, 'New Lane')));
 		// Focus the new lane's title for immediate editing
 		const newLane = board.lanes[board.lanes.length - 1];
 		if (newLane) kanbanStore.setEditingLaneId(newLane.id);

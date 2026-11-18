@@ -24,18 +24,18 @@ sym src/lib/features/tasks/tasks.logic.ts:22 fn parseSectionTags(text: string): 
 by src/lib/features/tasks/tasks.logic.ts:parseSectionTags <- src/lib/features/tasks/task-views.logic.ts:145 in toListView call
 sym src/lib/features/tasks/tasks.logic.ts:33 type TaskTextSegment L4 | A segment of task text for rich rendering in the Tasks view
 sym src/lib/features/tasks/tasks.logic.ts:46 fn parseTaskTextSegments(text: string): TaskTextSegment[] L32 | Parses task text into text, wikilink and markdown-link segments.
-by src/lib/features/tasks/tasks.logic.ts:parseTaskTextSegments <- src/lib/features/tasks/TasksView.svelte:840 in (markup) markup
+by src/lib/features/tasks/tasks.logic.ts:parseTaskTextSegments <- src/lib/features/tasks/TasksView.svelte:873 in (markup) markup
 sym src/lib/features/tasks/tasks.logic.ts:90 fn stripTaskTrailers(text: string): string L3 | Removes a trailing block id, then a trailing Todoist anchor, from task text.
-by src/lib/features/tasks/tasks.logic.ts:stripTaskTrailers <- src/lib/features/tasks/TasksView.svelte:587 in copyTaskText call
+by src/lib/features/tasks/tasks.logic.ts:stripTaskTrailers <- src/lib/features/tasks/TasksView.svelte:616 in copyTaskText call
 sym src/lib/features/tasks/tasks.logic.ts:104 fn usesRawTaskText(task: Pick<TaskItem, 'text' | 'metadata'>): boolean L3 | Whether the row shows its raw text instead of Rust's description.
-by src/lib/features/tasks/tasks.logic.ts:usesRawTaskText <- src/lib/features/tasks/TasksView.svelte:799 in (markup) markup
+by src/lib/features/tasks/tasks.logic.ts:usesRawTaskText <- src/lib/features/tasks/TasksView.svelte:829 in (markup) markup
 sym src/lib/features/tasks/tasks.logic.ts:113 fn taskDisplayText(task: Pick<TaskItem, 'text' | 'metadata'>): string L3 | The text a task row shows: Rust's description (dates, priority, recurrence, ids and tags removed) without its trailing block id, or the raw text without its tr…
-by src/lib/features/tasks/tasks.logic.ts:taskDisplayText <- src/lib/features/tasks/TasksView.svelte:798 in (markup) markup +1
+by src/lib/features/tasks/tasks.logic.ts:taskDisplayText <- src/lib/features/tasks/TasksView.svelte:828 in (markup) markup +1
 by src/lib/features/tasks/tasks.logic.ts:taskDisplayText <- src/lib/features/tasks/task-query.logic.ts:803 in metaPredicate call +2
 by src/lib/features/tasks/tasks.logic.ts:taskDisplayText <- src/lib/features/tasks/tasks.service.ts:483 in holdUndoToast call
 sym src/lib/features/tasks/tasks.logic.ts:118 interface TaskChip L10 | One metadata chip after a task row's text
 sym src/lib/features/tasks/tasks.logic.ts:146 fn taskChips(metadata: TaskMetadata, today: string, options: { tags: boolean; open: boolean }): TaskChip[] L24 | The chips a task row shows after its text, in this order: due, scheduled, start, priority, recurrence, then one per tag.
-by src/lib/features/tasks/tasks.logic.ts:taskChips <- src/lib/features/tasks/TasksView.svelte:799 in (markup) markup
+by src/lib/features/tasks/tasks.logic.ts:taskChips <- src/lib/features/tasks/TasksView.svelte:829 in (markup) markup
 sym src/lib/features/tasks/tasks.logic.ts:183 fn compareTaskPaths(a: string, b: string): number L3 | Orders two note paths for the Tasks list: numbers compare as numbers (`note 9` before `note 10`) and case and accents are ignored, with raw code-unit order bre…
 by src/lib/features/tasks/tasks.logic.ts:compareTaskPaths <- src/lib/features/tasks/task-query.logic.ts:245 in buildTaskRows call +4
 sym src/lib/features/tasks/tasks.logic.ts:192 fn noteFolder(vaultPath: string | null, filePath: string): string L7 | The vault-relative folder of a note, e.g. `Projects/Clients` for `Projects/Clients/ACME.md`.
