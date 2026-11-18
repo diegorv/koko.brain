@@ -56,6 +56,48 @@ describe('MermaidWidget', () => {
 		expect(mermaid.render).not.toHaveBeenCalled();
 	});
 
+	it('shows "Rendering diagram..." until the render resolves', async () => {
+		type RenderResult = Awaited<ReturnType<typeof mermaid.render>>;
+		let resolveRender!: (value: RenderResult) => void;
+		vi.mocked(mermaid.render).mockImplementationOnce(
+			() => new Promise<RenderResult>((resolve) => (resolveRender = resolve)),
+		);
+
+		const dom = new MermaidWidget(SOURCE).toDOM();
+		const diagram = dom.querySelector('.cm-lp-mermaid-diagram')!;
+		await flushAsync();
+
+		expect(diagram.textContent).toBe('Rendering diagram...');
+		expect(diagram.querySelector('svg')).toBeNull();
+
+		resolveRender({ svg: '<svg id="tmp-render"><text>done</text></svg>' } as RenderResult);
+		await flushAsync();
+
+		expect(diagram.textContent).not.toContain('Rendering diagram...');
+		expect(diagram.querySelector('svg')).not.toBeNull();
+	});
+
+	it('replaces the placeholder with the error message when the render fails', async () => {
+		vi.mocked(mermaid.parse).mockRejectedValueOnce(new Error('bad syntax'));
+
+		const dom = new MermaidWidget(SOURCE).toDOM();
+		await flushAsync();
+
+		expect(dom.textContent).not.toContain('Rendering diagram...');
+		expect(dom.querySelector('.cm-lp-mermaid-error')?.textContent).toBe('Mermaid error: bad syntax');
+	});
+
+	it('shows a cached diagram with no placeholder', async () => {
+		new MermaidWidget(SOURCE).toDOM();
+		await flushAsync();
+
+		const cached = new MermaidWidget(SOURCE).toDOM();
+		const diagram = cached.querySelector('.cm-lp-mermaid-diagram')!;
+
+		expect(diagram.textContent).not.toContain('Rendering diagram...');
+		expect(diagram.querySelector('svg')).not.toBeNull();
+	});
+
 	it('never hands the same DOM node to two widgets with the same source', async () => {
 		// Regression: CodeMirror builds new lines detached, so two widgets for a
 		// duplicated diagram can both call toDOM() while nothing is connected.

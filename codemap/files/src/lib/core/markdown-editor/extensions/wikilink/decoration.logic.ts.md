@@ -29,7 +29,7 @@ test src/tests/lib/core/markdown-editor/extensions/live-preview/parsers/combined
 test src/tests/lib/core/markdown-editor/extensions/live-preview/parsers/combined-table-meta-bind.test.ts imports src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts
 ## symbols
 sym src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:2 const WIKILINK_DECORATION_RE L2 | Matches wikilinks: `[[target]]`, `[[target#heading]]`, `[[target|display]]`, `[[#heading]]`
-by src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:WIKILINK_DECORATION_RE <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:323 in renderCellContent assign +1
+by src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:WIKILINK_DECORATION_RE <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:338 in renderCellContent assign +1
 sym src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:6 interface WikilinkDecorationRange L16 | Parsed positions for a single wikilink match
 sym src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:24 fn findWikilinkRanges(text: string, offset: number): WikilinkDecorationRange[] L64 | Finds all wikilink ranges in a line of text
 by src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:findWikilinkRanges <- src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/wikilink-handler.ts:20 in wikilinkHandler.decorate call
@@ -37,7 +37,7 @@ by src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:findWiki
 sym src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:90 interface WikilinkInfo L5 | Full wikilink info including target, heading, and block-id
 by src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:WikilinkInfo <- src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:6 in (module) import
 sym src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:97 fn findWikilinkInfoAtPosition(lineText: string, lineFrom: number, docPos: number): WikilinkInfo | null L32 | Returns full wikilink info (target + heading/blockId) at a given document position, or null
-by src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:findWikilinkInfoAtPosition <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:347 in renderCellContent call
+by src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:findWikilinkInfoAtPosition <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:362 in renderCellContent call
 by src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:findWikilinkInfoAtPosition <- src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts:108 in executeButtonAction call
 by src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:findWikilinkInfoAtPosition <- src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:32 in followWikilinkClick call
 by src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:findWikilinkInfoAtPosition <- src/lib/core/markdown-editor/wikilink-click-target.ts:80 in resolveWikilinkClickPosition call

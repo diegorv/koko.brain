@@ -303,6 +303,14 @@ export const livePreviewStyles = EditorView.baseTheme({
 		display: 'block',
 		padding: '4px 0',
 	},
+	/* Placed after the wrapper rule, whose padding it overrides */
+	'.cm-lp-image-missing': {
+		padding: '8px 12px',
+		border: '1px dashed var(--lp-embed-error)',
+		borderRadius: 'var(--radius-xs)',
+		color: 'var(--muted-foreground)',
+		fontSize: '0.9em',
+	},
 	'.cm-lp-image': {
 		maxWidth: '100%',
 		borderRadius: 'var(--radius-xs)',

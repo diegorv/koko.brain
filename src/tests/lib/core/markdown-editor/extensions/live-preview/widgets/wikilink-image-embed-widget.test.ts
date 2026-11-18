@@ -110,6 +110,34 @@ describe('WikilinkImageEmbedWidget', () => {
 			expect(dom.textContent).toContain('"missing.png" not found');
 		});
 
+		it('replaces a resolved image that fails to load with "Could not load" and the target', () => {
+			fsStore.setFileTree([makeFile('/vault/img.png')]);
+			const view = appView();
+			const measure = vi.spyOn(view, 'requestMeasure');
+			const dom = new WikilinkImageEmbedWidget('img.png', null).toDOM(view);
+			document.body.appendChild(dom);
+
+			dom.querySelector('img')!.dispatchEvent(new Event('error'));
+
+			expect(dom.classList.contains('cm-lp-image-wrapper')).toBe(true);
+			expect(dom.classList.contains('cm-lp-image-missing')).toBe(true);
+			expect(dom.textContent).toBe('Could not load "img.png"');
+			expect(dom.querySelector('img')).toBeNull();
+			expect(measure).toHaveBeenCalled();
+			dom.remove();
+		});
+
+		it('ignores a load failure that fires after the widget left the document', () => {
+			fsStore.setFileTree([makeFile('/vault/img.png')]);
+			const dom = new WikilinkImageEmbedWidget('img.png', null).toDOM(appView());
+			const img = dom.querySelector('img')!;
+
+			expect(() => img.dispatchEvent(new Event('error'))).not.toThrow();
+
+			expect(dom.classList.contains('cm-lp-image-missing')).toBe(false);
+			expect(dom.querySelector('img')).toBe(img);
+		});
+
 		it('applies the width hint as max-width on the image', () => {
 			fsStore.setFileTree([makeFile('/vault/img.png')]);
 			const widget = new WikilinkImageEmbedWidget('img.png', 300);

@@ -12,7 +12,7 @@ test src/tests/lib/core/markdown-editor/extensions/live-preview/parsers/inline-m
 sym src/lib/core/markdown-editor/extensions/live-preview/parsers/inline-markdown.ts:2 type InlineSegmentType L1 | Types of inline markdown segments
 sym src/lib/core/markdown-editor/extensions/live-preview/parsers/inline-markdown.ts:5 interface InlineSegment L12 | A segment of parsed inline markdown
 sym src/lib/core/markdown-editor/extensions/live-preview/parsers/inline-markdown.ts:52 fn renderInlineMarkdown(text: string): InlineSegment[] L49 | Parses inline markdown text into a list of typed segments.
-by src/lib/core/markdown-editor/extensions/live-preview/parsers/inline-markdown.ts:renderInlineMarkdown <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:235 in renderInlineSegments call
+by src/lib/core/markdown-editor/extensions/live-preview/parsers/inline-markdown.ts:renderInlineMarkdown <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:250 in renderInlineSegments call
 ## locals
 local src/lib/core/markdown-editor/extensions/live-preview/parsers/inline-markdown.ts:41 fn unescape(text: string): string L3
 ## calls

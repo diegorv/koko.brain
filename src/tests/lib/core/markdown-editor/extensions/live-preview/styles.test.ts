@@ -55,6 +55,7 @@ describe('livePreviewStyles radius ladder', () => {
 		'.cm-lp-callout-type-label',
 		'.cm-lp-task-checkbox',
 		'.cm-lp-image',
+		'.cm-lp-image-missing',
 		'.cm-lp-audio',
 		'.cm-lp-video',
 		// Nested inside the --radius-md queryjs block, so a smaller rung.

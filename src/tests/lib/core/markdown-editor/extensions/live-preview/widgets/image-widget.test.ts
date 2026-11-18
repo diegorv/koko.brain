@@ -92,6 +92,44 @@ describe('ImageWidget', () => {
 	});
 });
 
+describe('ImageWidget load failure', () => {
+	it('replaces a failed image with "Could not load" and the alt text', () => {
+		const view = hostView();
+		const measure = vi.spyOn(view, 'requestMeasure');
+		const dom = new ImageWidget('https://example.com/gone.png', 'Diagram').toDOM(view);
+		document.body.appendChild(dom);
+
+		dom.querySelector('img')!.dispatchEvent(new Event('error'));
+
+		expect(dom.classList.contains('cm-lp-image-wrapper')).toBe(true);
+		expect(dom.classList.contains('cm-lp-image-missing')).toBe(true);
+		expect(dom.textContent).toBe('Could not load "Diagram"');
+		expect(dom.querySelector('img')).toBeNull();
+		expect(measure).toHaveBeenCalled();
+		dom.remove();
+	});
+
+	it('names the URL when the image has no alt text', () => {
+		const dom = new ImageWidget('https://example.com/gone.png', '').toDOM(hostView());
+		document.body.appendChild(dom);
+
+		dom.querySelector('img')!.dispatchEvent(new Event('error'));
+
+		expect(dom.textContent).toBe('Could not load "https://example.com/gone.png"');
+		dom.remove();
+	});
+
+	it('does nothing when the error fires after the widget left the document', () => {
+		const dom = new ImageWidget('https://example.com/gone.png', 'Diagram').toDOM(hostView());
+		const img = dom.querySelector('img')!;
+
+		expect(() => img.dispatchEvent(new Event('error'))).not.toThrow();
+
+		expect(dom.classList.contains('cm-lp-image-missing')).toBe(false);
+		expect(dom.querySelector('img')).toBe(img);
+	});
+});
+
 describe('F105: a raw % in a file:// image URL must not throw out of toDOM', () => {
 	const host = { ...NOOP_HOST, assetUrl };
 	const BAD_URL = 'file:///Users/me/100%.png';

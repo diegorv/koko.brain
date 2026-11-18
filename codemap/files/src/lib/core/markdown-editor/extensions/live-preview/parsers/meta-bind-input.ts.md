@@ -18,4 +18,4 @@ by src/lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input.
 sym src/lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input.ts:10 interface MetaBindInputRange L12 | Range of an INPUT field found in a line
 sym src/lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input.ts:43 fn findMetaBindInputRanges(text: string, offset: number): MetaBindInputRange[] L64 | Finds all meta-bind INPUT fields in a line of text.
 by src/lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input.ts:findMetaBindInputRanges <- src/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input-plugin.ts:72 in buildMetaBindInputDecorations call
-by src/lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input.ts:findMetaBindInputRanges <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:260 in renderInlineSegments call
+by src/lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input.ts:findMetaBindInputRanges <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:275 in renderInlineSegments call

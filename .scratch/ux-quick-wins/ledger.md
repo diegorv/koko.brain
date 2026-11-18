@@ -37,17 +37,17 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Renaming a kanban lane keeps its settings; new lanes get unique names](issues/01-renaming-kanban-lane-keeps-settings-new.md) | none | todo | | |
 | 02 | [Kanban keyboard shortcuts act only on the card you see; the sort menu is the themed Select](issues/02-kanban-keyboard-shortcuts-act-only-card.md) | 01 | todo | | |
-| 03 | [QueryJS tables: Prev and Next work, tables scroll, buttons show focus](issues/03-queryjs-tables-prev-next-work-tables.md) | none | in-progress | | |
+| 03 | [QueryJS tables: Prev and Next work, tables scroll, buttons show focus](issues/03-queryjs-tables-prev-next-work-tables.md) | none | done | issue/03-queryjs-tables-prev-next-work-tables (0c1205f8f) | 2026-11-18 |
 | 04 | [Canvas file and link cards: a plain click selects, an open button opens, previews skip frontmatter](issues/04-canvas-file-link-cards-plain-click.md) | none | todo | | |
 | 05 | [Kanban filter clears, resets per board, and a tag click filters](issues/05-kanban-filter-clears-resets-per-board.md) | 02 | todo | | |
 | 06 | [Canvas surfaces and overlays draw from theme tokens](issues/06-canvas-surfaces-overlays-draw-theme-tokens.md) | 04 | todo | | |
 | 07 | [Quick Capture says what it does and shows Saving (copy and state only)](issues/07-quick-capture-copy-saving-state.md) | none | todo | | |
-| 08 | [Live-preview widgets show failure and progress](issues/08-livepreview-widgets-show-failure-progress.md) | 03 | todo | | |
+| 08 | [Live-preview widgets show failure and progress](issues/08-livepreview-widgets-show-failure-progress.md) | 03 | done | issue/08-livepreview-widgets-show-failure-progress (e118671bf) | 2026-11-18 |
 | 09 | [Collection table: readable names, visible sort order, sticky header](issues/09-collection-table-readable-names-visible-sort.md) | none | todo | | |
 | 10 | [Kanban cards: no empty date row, clamped preview, growing editor](issues/10-kanban-cards-no-empty-date-row.md) | 05 | todo | | |
 | 11 | [Kanban lanes: visible add row, empty and filtered counts, collapsed rail](issues/11-kanban-lanes-visible-add-row-empty.md) | 05, 10 | todo | | |
 | 12 | [Kanban list, table and archive: named checks, clean cells, restore feedback](issues/12-kanban-list-table-archive-named-checks.md) | 05, 11 | todo | | |
-| 13 | [Callouts, headings and the meta-bind number field read cleanly](issues/13-callouts-headings-metabind-number-field-read.md) | 08 | todo | | |
+| 13 | [Callouts, headings and the meta-bind number field read cleanly](issues/13-callouts-headings-metabind-number-field-read.md) | 08 | in-progress | | |
 | 14 | [Inline collection block: readable table, built-in names, other-views hint](issues/14-inline-collection-block-readable-table-builtin.md) | 09, 13 | todo | | |
 | 15 | [Filter and Sort panels: visible conjunction and named remove buttons](issues/15-filter-sort-conjunction-names.md) | none | todo | | |
 | 16 | [Canvas handles show on selected nodes; image cards get 8 handles and real loading and error states](issues/16-canvas-handles-show-selected-nodes-image.md) | 06 | todo | | |
@@ -87,3 +87,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 - 2026-11-18 13:30 — ledger created (47 Issues)
 - 2026-11-18 13:34 — 03 — start — launched by /relay-lite:run — e69c32d7f
+- 2026-11-18 13:47 — 03 — deliver — merged after review round 1 APPROVED (claude); one nit rejected, no code changed in deliver; full vitest suite passed (17383 tests) — 0c1205f8f
+- 2026-11-18 13:47 — 08 — start — launched by /relay-lite:run — 7566f1272
+- 2026-11-18 14:03 — 08 — deliver — merged after review 1 APPROVED with findings, fix round (copy label timer restart, test DOM cleanup), re-review 2 APPROVED (claude); full vitest suite passed (17397 tests); owner eye check criterion still open — e118671bf
+- 2026-11-18 14:04 — 13 — start — launched by /relay-lite:run — 1d46dd5d6

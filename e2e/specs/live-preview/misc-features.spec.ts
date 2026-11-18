@@ -106,18 +106,32 @@ Another paragraph.
 });
 
 test.describe('Live Preview - Images', () => {
-	const CONTENT = `# Test
+	const IMAGE_URL = 'https://via.placeholder.com/150';
+	const MISSING_URL = 'https://example.test/gone.png';
 
-![Alt text](https://via.placeholder.com/150)
-
-Plain text at the end.
-
-`;
+	/** 150x150 solid-grey PNG served in place of the remote asset; the img is zero-size without it. */
+	const STUB_PNG = Buffer.from(
+		'iVBORw0KGgoAAAANSUhEUgAAAJYAAACWCAIAAACzY+a1AAABb0lEQVR4nO3RQQkAMAzAwPpXVlkVsccI3CkIZJa4+R3AKwvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CPAvzLMyzMM/CvAN53wpz/wbXQQAAAABJRU5ErkJggg==',
+		'base64',
+	);
 
 	test('image renders widget', async ({ lpPage: page }) => {
-		await openMarkdownFile(page, 'test.md', CONTENT);
+		await page.route(IMAGE_URL, (route) =>
+			route.fulfill({ status: 200, contentType: 'image/png', body: STUB_PNG }),
+		);
+		await openMarkdownFile(page, 'test.md', `# Test\n\n![Alt text](${IMAGE_URL})\n\nPlain text at the end.\n\n`);
 		await clickOnLine(page, 'Plain text at the end');
 		await expect(page.locator('.cm-lp-image-wrapper')).toBeVisible();
 		await expect(page.locator('img.cm-lp-image')).toBeVisible();
+	});
+
+	test('image that fails to load says so', async ({ lpPage: page }) => {
+		await page.route(MISSING_URL, (route) => route.fulfill({ status: 404, body: 'not found' }));
+		await openMarkdownFile(page, 'test.md', `# Test\n\n![Gone](${MISSING_URL})\n\nPlain text at the end.\n\n`);
+		await clickOnLine(page, 'Plain text at the end');
+		const missing = page.locator('.cm-lp-image-wrapper.cm-lp-image-missing');
+		await expect(missing).toBeVisible();
+		await expect(missing).toHaveText('Could not load "Gone"');
+		await expect(page.locator('img.cm-lp-image')).toHaveCount(0);
 	});
 });

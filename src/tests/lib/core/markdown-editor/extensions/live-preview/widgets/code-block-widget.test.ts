@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { defaultKeymap, historyKeymap, history, indentWithTab } from '@codemirror/commands';
@@ -183,4 +183,89 @@ describe('CodeBlockWidget — keys in the language <select>', () => {
 			view.destroy();
 		});
 	}
+});
+
+describe('CodeBlockWidget — Copy button', () => {
+	const original = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+
+	/** Replaces `navigator.clipboard` (absent in jsdom) for one test; `undefined` removes it. */
+	function setClipboard(clipboard: Partial<Clipboard> | undefined) {
+		Object.defineProperty(navigator, 'clipboard', { value: clipboard, configurable: true });
+	}
+
+	function copyButton(): HTMLButtonElement {
+		const view = new EditorView({ state: EditorState.create({ doc: '' }) });
+		const dom = new CodeBlockWidget('const x = 1;', 'js', null).toDOM(view);
+		const btn = dom.querySelector<HTMLButtonElement>('.cm-lp-codeblock-copy');
+		if (!btn) throw new Error('no copy button rendered');
+		return btn;
+	}
+
+	function press(btn: HTMLButtonElement) {
+		btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+	}
+
+	beforeEach(() => {
+		vi.useFakeTimers();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		if (original) Object.defineProperty(navigator, 'clipboard', original);
+		else delete (navigator as { clipboard?: Clipboard }).clipboard;
+	});
+
+	it('shows "Copied!" then "Copy" when the write succeeds', async () => {
+		const writeText = vi.fn(async () => {});
+		setClipboard({ writeText });
+		const btn = copyButton();
+
+		press(btn);
+		await vi.advanceTimersByTimeAsync(0);
+
+		expect(writeText).toHaveBeenCalledWith('const x = 1;');
+		expect(btn.textContent).toBe('Copied!');
+		await vi.advanceTimersByTimeAsync(1500);
+		expect(btn.textContent).toBe('Copy');
+	});
+
+	it('shows "Copy failed" then "Copy" when the write rejects', async () => {
+		setClipboard({ writeText: vi.fn(async () => Promise.reject(new Error('denied'))) });
+		const btn = copyButton();
+
+		press(btn);
+		await vi.advanceTimersByTimeAsync(0);
+
+		expect(btn.textContent).toBe('Copy failed');
+		await vi.advanceTimersByTimeAsync(1499);
+		expect(btn.textContent).toBe('Copy failed');
+		await vi.advanceTimersByTimeAsync(1);
+		expect(btn.textContent).toBe('Copy');
+	});
+
+	it('shows "Copy failed" then "Copy" when there is no clipboard API', async () => {
+		setClipboard(undefined);
+		const btn = copyButton();
+
+		expect(() => press(btn)).not.toThrow();
+		await vi.advanceTimersByTimeAsync(0);
+
+		expect(btn.textContent).toBe('Copy failed');
+		await vi.advanceTimersByTimeAsync(1500);
+		expect(btn.textContent).toBe('Copy');
+	});
+
+	it('a second press restarts the 1500 ms before the label resets', async () => {
+		setClipboard({ writeText: vi.fn(async () => {}) });
+		const btn = copyButton();
+
+		press(btn);
+		await vi.advanceTimersByTimeAsync(1000);
+		press(btn);
+		await vi.advanceTimersByTimeAsync(1000);
+
+		expect(btn.textContent).toBe('Copied!');
+		await vi.advanceTimersByTimeAsync(500);
+		expect(btn.textContent).toBe('Copy');
+	});
 });

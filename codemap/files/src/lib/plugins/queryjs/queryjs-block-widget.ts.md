@@ -1,6 +1,6 @@
 # file card src/lib/plugins/queryjs/queryjs-block-widget.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/plugins/queryjs/queryjs-block-widget.ts ' codemap/files
-file src/lib/plugins/queryjs/queryjs-block-widget.ts other L348 module src/lib/plugins/queryjs in2 t5
+file src/lib/plugins/queryjs/queryjs-block-widget.ts other L348 module src/lib/plugins/queryjs in2 t6
 ## imports
 imp src/lib/plugins/queryjs/queryjs-block-widget.ts:2 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/plugins/queryjs/queryjs-block-widget.ts:3 -> src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts type:FencedBlockRenderer
@@ -26,6 +26,7 @@ test src/tests/lib/core/markdown-editor/extensions/live-preview/core/fenced-bloc
 test src/tests/lib/core/markdown-editor/extensions/live-preview/plugins/block-reveal.test.ts imports src/lib/plugins/queryjs/queryjs-block-widget.ts
 test src/tests/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.test.ts imports src/lib/plugins/queryjs/queryjs-block-widget.ts
 test src/tests/lib/core/markdown-editor/extensions/live-preview/plugins/special-fence-detection.test.ts imports src/lib/plugins/queryjs/queryjs-block-widget.ts
+test src/tests/lib/plugins/queryjs/queryjs-table-pager-click.test.ts imports src/lib/plugins/queryjs/queryjs-block-widget.ts
 ## symbols
 sym src/lib/plugins/queryjs/queryjs-block-widget.ts:33 fn invalidateQueryjsCache(): void L3 | Module-level shim for the legacy `invalidateQueryjsCache()` API.
 by src/lib/plugins/queryjs/queryjs-block-widget.ts:invalidateQueryjsCache <- src/lib/plugins/queryjs/queryjs-ports.ts:15 in registerQueryjsBlockPorts ref

@@ -130,6 +130,20 @@ function fileUrlToFsPath(fileUrl: string): string | null {
 	return path;
 }
 
+/**
+ * When the image fails to load, swaps the widget's `<img>` for a
+ * `Could not load "<name>"` message. The `error` event can fire after
+ * CodeMirror destroyed the widget, so a detached wrapper is left alone.
+ */
+function watchImageLoadFailure(img: HTMLImageElement, wrapper: HTMLElement, name: string, view: EditorView): void {
+	img.addEventListener('error', () => {
+		if (!wrapper.isConnected) return;
+		wrapper.classList.add('cm-lp-image-missing');
+		wrapper.textContent = `Could not load "${name}"`;
+		view.requestMeasure();
+	});
+}
+
 export class ImageWidget extends WidgetType {
 	constructor(
 		readonly url: string,
@@ -153,6 +167,7 @@ export class ImageWidget extends WidgetType {
 			img.style.height = `${this.height}px`;
 		}
 		wrapper.appendChild(img);
+		watchImageLoadFailure(img, wrapper, this.alt || this.url, view);
 
 		if (this.url.toLowerCase().startsWith('file:')) {
 			// `file://` URLs cannot be loaded directly by the webview. The host
@@ -470,6 +485,7 @@ export class TableWidget extends WidgetType {
 		addCol.className = 'cm-lp-table-add cm-lp-table-add-col';
 		addCol.textContent = '+';
 		addCol.title = 'Add column';
+		addCol.setAttribute('aria-label', 'Add column');
 		addCol.addEventListener('mousedown', (e) => {
 			e.preventDefault();
 			e.stopPropagation();
@@ -486,6 +502,7 @@ export class TableWidget extends WidgetType {
 		addRow.className = 'cm-lp-table-add cm-lp-table-add-row';
 		addRow.textContent = '+';
 		addRow.title = 'Add row';
+		addRow.setAttribute('aria-label', 'Add row');
 		addRow.addEventListener('mousedown', (e) => {
 			e.preventDefault();
 			e.stopPropagation();
@@ -610,6 +627,7 @@ export class WikilinkImageEmbedWidget extends WidgetType {
 
 		const url = resolveImageEmbedAssetUrl(view.state.facet(editorHost), this.target);
 		if (url) {
+			watchImageLoadFailure(img, wrapper, this.target, view);
 			img.src = url;
 		} else {
 			wrapper.classList.add('cm-lp-image-missing');

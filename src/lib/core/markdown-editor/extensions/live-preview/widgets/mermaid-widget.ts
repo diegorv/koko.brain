@@ -94,6 +94,9 @@ export class MermaidWidget extends WidgetType {
 			return container;
 		}
 
+		// Placeholder until the render below assigns innerHTML (success) or textContent (error)
+		diagramEl.textContent = 'Rendering diagram...';
+
 		// Validate with parse() first to avoid mermaid injecting error elements into the body,
 		// then render only if valid
 		const id = `mermaid-${Date.now()}-${renderCounter++}`;

@@ -20,7 +20,7 @@ sym src/lib/core/markdown-editor/wikilink-click-target.ts:15 const WIKILINK_SELE
 sym src/lib/core/markdown-editor/wikilink-click-target.ts:25 fn findWikilinkElement(target: EventTarget | null): HTMLElement | null L4 | Returns the closest wikilink ancestor element of `target`, or `null` when the click did not happen on a wikilink.
 sym src/lib/core/markdown-editor/wikilink-click-target.ts:35 const TABLE_WIDGET_CLASS L1 | Class of the live-preview table widget's root (`TableWidget.toDOM`), which handles its own cell link clicks.
 by src/lib/core/markdown-editor/wikilink-click-target.ts:TABLE_WIDGET_CLASS <- src/lib/core/markdown-editor/extensions/live-preview/core/block-band-click.ts:97 in bandClickTarget ref
-by src/lib/core/markdown-editor/wikilink-click-target.ts:TABLE_WIDGET_CLASS <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:385 in TableWidget.toDOM ref
+by src/lib/core/markdown-editor/wikilink-click-target.ts:TABLE_WIDGET_CLASS <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:400 in TableWidget.toDOM ref
 sym src/lib/core/markdown-editor/wikilink-click-target.ts:38 type WikilinkClickView L1 | The parts of an `EditorView` the click resolver reads.
 sym src/lib/core/markdown-editor/wikilink-click-target.ts:65 fn resolveWikilinkClickPosition(e: MouseEvent, view: WikilinkClickView, mac: boolean): number | null L17 | Returns the document position of the wikilink a mousedown should open, or `null` to leave the event to CodeMirror.
 by src/lib/core/markdown-editor/wikilink-click-target.ts:resolveWikilinkClickPosition <- src/lib/core/markdown-editor/MarkdownEditor.svelte:275 in handleEditorClick call

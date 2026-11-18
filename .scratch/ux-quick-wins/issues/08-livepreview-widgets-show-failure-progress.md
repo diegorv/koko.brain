@@ -18,18 +18,18 @@ Not in this ticket (deferred): embedded notes rendered as read-only markdown (M)
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> for the specs named in the E2E criterion below.
 
-- [ ] Failing test first, `src/tests/lib/core/markdown-editor/extensions/live-preview/widgets/image-widget.test.ts` and `wikilink-image-embed-widget.test.ts`: dispatching `error` on the `<img>` gives the wrapper `cm-lp-image-missing` and the text `Could not load "<name>"`, keeps `cm-lp-image-wrapper`; a detached wrapper does nothing and throws nothing.
-- [ ] `styles.test.ts` finds an exact `.cm-lp-image-missing` rule with `border-radius: var(--radius-xs)` (added to the ladder list at `:62`).
-- [ ] `mermaid-widget.test.ts`: a pending `render` shows `Rendering diagram...`; when resolved the text is gone and an SVG is present; the cached path shows the SVG with no placeholder; empty source still says "Empty mermaid diagram".
-- [ ] `code-block-widget.test.ts`: `writeText` rejecting, or no `navigator.clipboard`, shows "Copy failed" then "Copy" after 1500 ms (fake timers), no unhandled rejection; success still shows "Copied!".
-- [ ] `table-widget.test.ts` (path `src/tests/lib/core/markdown-editor/extensions/live-preview/table-widget.test.ts`): the two buttons have the names; the mousedown `stopPropagation` (rule 11) and append tests are unchanged.
-- [ ] `e2e/specs/live-preview/misc-features.spec.ts:108-122` ("image renders widget") has no `page.route` today and relies on a broken `<img>` counting as visible, so it routes its URL to a stub PNG (pattern `click-reveal/image.spec.ts:23-27`) and still sees `img.cm-lp-image`; a new step routed to 404 sees `.cm-lp-image-missing` with "Could not load". Also run `click-reveal/code-block-copy`, `embed-widgets` (its wrapper-attached assertion at `:71-74` still holds), `click-reveal/image`, `click-reveal/wikilink-image-embed`, `mermaid`, `click-reveal/table-add-buttons` with `bash scripts/e2e.sh`.
+- [x] Failing test first, `src/tests/lib/core/markdown-editor/extensions/live-preview/widgets/image-widget.test.ts` and `wikilink-image-embed-widget.test.ts`: dispatching `error` on the `<img>` gives the wrapper `cm-lp-image-missing` and the text `Could not load "<name>"`, keeps `cm-lp-image-wrapper`; a detached wrapper does nothing and throws nothing.
+- [x] `styles.test.ts` finds an exact `.cm-lp-image-missing` rule with `border-radius: var(--radius-xs)` (added to the ladder list at `:62`).
+- [x] `mermaid-widget.test.ts`: a pending `render` shows `Rendering diagram...`; when resolved the text is gone and an SVG is present; the cached path shows the SVG with no placeholder; empty source still says "Empty mermaid diagram".
+- [x] `code-block-widget.test.ts`: `writeText` rejecting, or no `navigator.clipboard`, shows "Copy failed" then "Copy" after 1500 ms (fake timers), no unhandled rejection; success still shows "Copied!".
+- [x] `table-widget.test.ts` (path `src/tests/lib/core/markdown-editor/extensions/live-preview/table-widget.test.ts`): the two buttons have the names; the mousedown `stopPropagation` (rule 11) and append tests are unchanged.
+- [x] `e2e/specs/live-preview/misc-features.spec.ts:108-122` ("image renders widget") has no `page.route` today and relies on a broken `<img>` counting as visible, so it routes its URL to a stub PNG (pattern `click-reveal/image.spec.ts:23-27`) and still sees `img.cm-lp-image`; a new step routed to 404 sees `.cm-lp-image-missing` with "Could not load". Also run `click-reveal/code-block-copy`, `embed-widgets` (its wrapper-attached assertion at `:71-74` still holds), `click-reveal/image`, `click-reveal/wikilink-image-embed`, `mermaid`, `click-reveal/table-add-buttons` with `bash scripts/e2e.sh`.
 - [ ] Owner eye check: a note with a deleted image file and one with a mermaid block.
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Original proposal
 
@@ -61,3 +61,4 @@ Tickets 03 (before: `styles.ts` qjs rules), 13 and 14 (after: `styles.ts` and `c
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): none.
+- 2026-11-18, deliver (issue/08-livepreview-widgets-show-failure-progress): image and wikilink-embed widgets show `Could not load "<name>"` on load error, mermaid shows "Rendering diagram..." while pending, code-block copy shows "Copy failed" on clipboard failure (timer restarts on a second press), table +col/+row buttons have accessible names, styles add `.cm-lp-image-missing`. Full suite passed at 2d927f892 (654 files, 17397 passed, 56 skipped, 1 todo); pnpm check clean. Review round 1 APPROVED (findings fixed: copy timer restart, test DOM cleanup); round 2 APPROVED with no findings. Owner eye check still open.

@@ -65,7 +65,7 @@ sym src/lib/core/markdown-editor/editor-host.ts:87 const NOOP_HOST: EditorHost L
 by src/lib/core/markdown-editor/editor-host.ts:NOOP_HOST <- src/lib/plugins/quick-capture/composer-editor-host.service.ts:60 in createComposerEditorHost ref
 sym src/lib/core/markdown-editor/editor-host.ts:104 const editorHost = Facet.define(…) L4 | The editor's host.
 by src/lib/core/markdown-editor/editor-host.ts:editorHost <- src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts:36 in handleLivePreviewLinkMousedown ref +1
-by src/lib/core/markdown-editor/editor-host.ts:editorHost <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:162 in ImageWidget.toDOM ref +3
+by src/lib/core/markdown-editor/editor-host.ts:editorHost <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:177 in ImageWidget.toDOM ref +3
 by src/lib/core/markdown-editor/editor-host.ts:editorHost <- src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts:96 in executeButtonAction ref
 by src/lib/core/markdown-editor/editor-host.ts:editorHost <- src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:62 in followWikilinkInfo ref
 by src/lib/core/markdown-editor/editor-host.ts:editorHost <- src/lib/core/markdown-editor/extensions/tag/completion.ts:26 in tagCompletionSource ref
