@@ -1,7 +1,7 @@
 # file card src/lib/core/frontmatter/properties.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/frontmatter/properties.logic.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls
-file src/lib/core/frontmatter/properties.logic.ts logic L814 module src/lib/core/frontmatter in27 t26
+file src/lib/core/frontmatter/properties.logic.ts logic L814 module src/lib/core/frontmatter in27 t27
 ## imports
 imp src/lib/core/frontmatter/properties.logic.ts:16 -> src/lib/utils/frontmatter-aliases.ts canonicalizeKey
 imp src/lib/core/frontmatter/properties.logic.ts:17 -> src/lib/core/frontmatter/properties.types.ts type:Property,type:PropertyType
@@ -61,6 +61,7 @@ test src/tests/lib/features/properties/lifecycle.logic.test.ts imports src/lib/c
 test src/tests/lib/features/properties/lifecycle.service.test.ts imports src/lib/core/frontmatter/properties.logic.ts
 test src/tests/lib/features/rail-shell/RailNoteList.properties.test.ts imports src/lib/core/frontmatter/properties.logic.ts
 test src/tests/lib/features/rail-shell/list-prefs.service.test.ts imports src/lib/core/frontmatter/properties.logic.ts
+test src/tests/lib/features/type-definitions/TypeNameDialog.svelte.test.ts imports src/lib/core/frontmatter/properties.logic.ts
 test src/tests/lib/plugins/one-on-one/one-on-one.create.test.ts imports src/lib/core/frontmatter/properties.logic.ts
 test src/tests/lib/plugins/quick-capture/note-composer.logic.test.ts imports src/lib/core/frontmatter/properties.logic.ts
 ## symbols

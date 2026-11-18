@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Lock from '@lucide/svelte/icons/lock';
 	import { DayDrag } from './event-calendar-day-drag.svelte';
 	import { previewDayMove } from './event-calendar-drag.logic';
 	import { eventColorStyle } from './event-calendar-event.logic';
@@ -84,7 +85,10 @@
 						data-archived={chip.archived || undefined}
 						onclick={(e) => eventCalendarViewStore.openPopover(chip.path, e.currentTarget.getBoundingClientRect())}
 					>
-						<span class="min-w-0 flex-1 truncate text-sm font-medium">{chip.title}</span>
+						<!-- The chip's name is its text, so the read-only suffix is sr-only text, with no space before it. -->
+						<span class="min-w-0 flex-1 truncate text-sm font-medium">{chip.title}</span>{#if chip.readOnly}<span class="sr-only"
+								>, read-only</span
+							><Lock class="ml-1 size-3.5 shrink-0 opacity-70" aria-hidden="true" data-readonly-lock />{/if}
 					</button>
 				{/each}
 				{#if cell.overflow > 0}

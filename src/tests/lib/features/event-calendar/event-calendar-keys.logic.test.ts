@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+	CALENDAR_GESTURES,
 	CALENDAR_SHORTCUTS,
 	isTypingTarget,
 	resolveCalendarKey,
@@ -240,5 +241,46 @@ describe('CALENDAR_SHORTCUTS', () => {
 		for (const chord of CALENDAR_SHORTCUTS.flatMap((r) => r.keys)) {
 			expect(section, `${file} is missing \`${chord}\``).toContain(`\`${chord}\``);
 		}
+	});
+});
+
+describe('CALENDAR_GESTURES', () => {
+	it('gives every row a gesture, a label and at least one view', () => {
+		expect(CALENDAR_GESTURES.length).toBeGreaterThan(0);
+		for (const row of CALENDAR_GESTURES) {
+			expect(row.gesture.trim()).not.toBe('');
+			expect(row.label.trim(), row.gesture).not.toBe('');
+			expect(row.views.length, row.gesture).toBeGreaterThan(0);
+		}
+	});
+
+	it('gives each gesture one row', () => {
+		// The dialog keys its rows by gesture text.
+		const gestures = CALENDAR_GESTURES.map((r) => r.gesture);
+		expect(new Set(gestures).size).toBe(gestures.length);
+	});
+
+	it('repeats no chord of the key table', () => {
+		const chords = new Set(CALENDAR_SHORTCUTS.flatMap((r) => r.keys));
+		for (const row of CALENDAR_GESTURES) {
+			expect(chords.has(row.gesture), row.gesture).toBe(false);
+			expect(chords.has(row.label), row.label).toBe(false);
+		}
+	});
+
+	it('has a row in the 27-calendar.md creation table for every gesture', () => {
+		const section = helpSection('27-calendar.md', 'Creating, Moving and Resizing Events');
+		// The "How" column of each `| Action | How |` row, bold markers dropped.
+		const how = section
+			.split('\n')
+			.filter((line) => line.startsWith('|'))
+			.map((line) => (line.split('|')[2] ?? '').replaceAll('**', '').trim().toLowerCase());
+		for (const row of CALENDAR_GESTURES) {
+			expect(
+				how.some((cell) => cell.includes(row.gesture.toLowerCase())),
+				`27-calendar.md has no row for "${row.gesture}"`,
+			).toBe(true);
+		}
+		expect(how.some((cell) => cell.startsWith('in the month view') && cell.includes('drag an event chip'))).toBe(true);
 	});
 });

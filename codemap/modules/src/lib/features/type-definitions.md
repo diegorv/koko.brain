@@ -41,17 +41,17 @@ entry src/lib/features/type-definitions/type-note-list.logic.ts ext-in3 src/lib/
 entry src/lib/features/type-definitions/ViewDialog.svelte ext-in2 src/lib/features/rail-shell/FilesNavigator.svelte src/lib/features/rail-shell/TypesNavigator.svelte
 entry src/lib/features/type-definitions/TypeNameDialog.svelte ext-in1 src/lib/features/rail-shell/TypesNavigator.svelte
 ## files
-file src/lib/features/type-definitions/TypeNameDialog.svelte component L76 module src/lib/features/type-definitions in1 t0
+file src/lib/features/type-definitions/TypeNameDialog.svelte component L100 module src/lib/features/type-definitions in1 t1
 file src/lib/features/type-definitions/ViewDialog.svelte component L221 module src/lib/features/type-definitions in2 t1
 file src/lib/features/type-definitions/inbox-workflow.logic.ts logic L24 module src/lib/features/type-definitions in4 t2
-file src/lib/features/type-definitions/type-definitions.logic.ts logic L275 module src/lib/features/type-definitions in9 t21
+file src/lib/features/type-definitions/type-definitions.logic.ts logic L275 module src/lib/features/type-definitions in9 t22
 file src/lib/features/type-definitions/type-definitions.service.ts service L549 module src/lib/features/type-definitions in10 t14
 file src/lib/features/type-definitions/type-definitions.store.svelte.ts store L125 module src/lib/features/type-definitions in20 t38
 file src/lib/features/type-definitions/type-note-list.logic.ts logic L208 module src/lib/features/type-definitions in4 t6
 file src/lib/features/type-definitions/type-sidebar.logic.ts logic L649 module src/lib/features/type-definitions in19 t9
 file src/lib/features/type-definitions/view-parse-cache.ts other L100 module src/lib/features/type-definitions in6 t17
 ## public
-sym src/lib/features/type-definitions/TypeNameDialog.svelte:1 component TypeNameDialog props:open=$bindable,title,confirmLabel,initialValue=,description=,validate,normalize,onConfirm L76
+sym src/lib/features/type-definitions/TypeNameDialog.svelte:1 component TypeNameDialog props:open=$bindable,title,confirmLabel,busyLabel,initialValue=,description=,validate,normalize,onConfirm L100
 sym src/lib/features/type-definitions/ViewDialog.svelte:1 component ViewDialog props:open=$bindable,existingLabels,edit=,oncreated,folder L221
 sym src/lib/features/type-definitions/inbox-workflow.logic.ts:10 fn isInboxEntry(entry: NoteEntryV2): boolean L3 | Whether an entry belongs to the lifecycle inbox: not organized, not archived, and a listable note (`isListableNote`: not a Type Definition, not a `.view`).
 sym src/lib/features/type-definitions/inbox-workflow.logic.ts:18 fn getInboxCount(entries: NoteEntryV2[]): number L7 | Returns the inbox count: entries that are not organized, not archived, and listable notes (not a Type Definition, not a `.view`).

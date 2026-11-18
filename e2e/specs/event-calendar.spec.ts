@@ -283,8 +283,8 @@ test.describe('Event calendar spans', () => {
 		await openCalendar(page);
 
 		const laneChip = (day: string) => page.locator(`[data-all-day-cell="${day}"] [data-event-path="${RETREAT}"]`);
-		await expect(laneChip('2026-11-11')).toHaveText('Retreat', { timeout: 10_000 });
-		await expect(laneChip('2026-11-12')).toHaveText('Retreat');
+		await expect(laneChip('2026-11-11')).toHaveText('Retreat, read-only', { timeout: 10_000 });
+		await expect(laneChip('2026-11-12')).toHaveText('Retreat, read-only');
 		await expect(laneChip('2026-11-10')).toHaveCount(0);
 		await expect(laneChip('2026-11-13')).toHaveCount(0);
 
@@ -301,11 +301,11 @@ test.describe('Event calendar spans', () => {
 
 		await page.getByRole('tab', { name: 'Month' }).click();
 		const monthChip = (day: string, path: string) => page.locator(`[data-month-cell="${day}"] [data-event-path="${path}"]`);
-		await expect(monthChip('2026-11-11', RETREAT)).toHaveText('Retreat');
-		await expect(monthChip('2026-11-12', RETREAT)).toHaveText('Retreat');
+		await expect(monthChip('2026-11-11', RETREAT)).toHaveText('Retreat, read-only');
+		await expect(monthChip('2026-11-12', RETREAT)).toHaveText('Retreat, read-only');
 		await expect(monthChip('2026-11-13', RETREAT)).toHaveCount(0);
-		await expect(monthChip('2026-11-10', LATE)).toHaveText('23:00 Late show');
-		await expect(monthChip('2026-11-11', LATE)).toHaveText('Late show');
+		await expect(monthChip('2026-11-10', LATE)).toHaveText('23:00 Late show, read-only');
+		await expect(monthChip('2026-11-11', LATE)).toHaveText('Late show, read-only');
 	});
 
 	test('a span does not drag: the block stays and the note is unchanged', async ({ vaultPage: page }) => {

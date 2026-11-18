@@ -539,6 +539,56 @@ describe('EventDialog: create', () => {
 		expect(save().disabled).toBe(true);
 	});
 
+	it('opens without a title error, and shows it once the empty title loses focus', async () => {
+		mountView();
+		await openCreate();
+
+		const title = field('title');
+		expect(title.placeholder).toBe('Event title');
+		expect(error('title')).toBeNull();
+		expect(title.hasAttribute('aria-invalid')).toBe(false);
+		expect(title.hasAttribute('aria-describedby')).toBe(false);
+		expect(save().disabled).toBe(true);
+
+		title.focus();
+		title.dispatchEvent(new FocusEvent('blur'));
+		flushSync();
+
+		expect(error('title')?.textContent?.trim()).toBe('Enter a title.');
+		expect(error('title')!.className).toContain('text-meta');
+		expect(title.getAttribute('aria-invalid')).toBe('true');
+		expect(title.getAttribute('aria-describedby')).toBe(error('title')!.id);
+		expect(save().disabled).toBe(true);
+	});
+
+	it('keeps the title message row in place before the error shows, so the footer does not move', async () => {
+		mountView();
+		await openCreate();
+
+		const row = dialog()!.querySelector<HTMLElement>('[data-title-message]');
+		expect(row).not.toBeNull();
+		expect(row!.className).toContain('min-h-4');
+		expect(row!.textContent?.trim()).toBe('');
+		expect(row!.hasAttribute('id')).toBe(false);
+
+		field('title').dispatchEvent(new FocusEvent('blur'));
+		flushSync();
+
+		expect(dialog()!.querySelector('[data-title-message]')).toBe(error('title'));
+	});
+
+	it('shows the title error when the empty, untouched form is submitted', async () => {
+		mountView();
+		await openCreate();
+
+		dialog()!.querySelector<HTMLFormElement>('[data-event-form]')!.requestSubmit();
+		flushSync();
+
+		expect(error('title')?.textContent?.trim()).toBe('Enter a title.');
+		expect(field('title').getAttribute('aria-invalid')).toBe('true');
+		expect(eventCalendarViewStore.dialog).not.toBeNull();
+	});
+
 	it('creates the note with the notes as its body and shows the pending create', async () => {
 		mountView();
 		await openCreate();

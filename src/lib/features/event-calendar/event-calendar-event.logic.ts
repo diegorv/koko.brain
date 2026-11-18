@@ -31,6 +31,12 @@ import type {
 const MINUTES_PER_DAY = 1440;
 
 /**
+ * Why a read-only event (`EventNote.readOnly`) cannot be moved from the calendar:
+ * the edit form's locked-timing notice and the popover's caption.
+ */
+export const READ_ONLY_TIMING_NOTE = 'This event has an end date or crosses midnight. Change its date and time in the note.';
+
+/**
  * Keys whose string value must not contain whitespace before `#`.
  *
  * yaml-rust2 drops a plain `start: 09:30 # standup` comment, so the rule

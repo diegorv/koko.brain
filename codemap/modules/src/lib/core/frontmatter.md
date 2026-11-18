@@ -30,7 +30,7 @@ entry src/lib/core/frontmatter/frontmatter-write.service.ts ext-in12 src/lib/app
 entry src/lib/core/frontmatter/yaml-quoting.logic.ts ext-in1 src/lib/features/todoist-sync/pull.logic.ts
 ## files
 file src/lib/core/frontmatter/frontmatter-write.service.ts service L163 module src/lib/core/frontmatter in12 t3
-file src/lib/core/frontmatter/properties.logic.ts logic L814 module src/lib/core/frontmatter in27 t26
+file src/lib/core/frontmatter/properties.logic.ts logic L814 module src/lib/core/frontmatter in27 t27
 file src/lib/core/frontmatter/properties.types.ts types L12 module src/lib/core/frontmatter in18 t0
 file src/lib/core/frontmatter/yaml-quoting.logic.ts logic L178 module src/lib/core/frontmatter in1 t1 | YAML scalar quoting predicate matching yaml@2.9.1 behavior for the options Kokobrain uses ({ lineWidth: 0, flowCollectionPadding: false }).
 ## public

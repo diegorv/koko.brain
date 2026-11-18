@@ -15,17 +15,17 @@ Not in this ticket: the hover hint on empty month cells (P129 remainder); resize
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`; no E2E selector changes (E2E reads `data-readonly` only: `event-calendar-day-drag.spec.ts`, `event-calendar.spec.ts`)
 
-- [ ] Failing test first, `src/tests/lib/features/event-calendar/EventPopover.test.ts`: the popover of a `readOnly` event shows `[data-popover-readonly]` with the sentence; a normal event does not.
-- [ ] Failing test first, `src/tests/lib/features/event-calendar/EventDialog.test.ts` ("EventDialog: create"): opening create shows no `[data-error="title"]`, no `aria-invalid`, and Save is disabled; focusing then blurring the empty title shows "Enter a title." with `aria-invalid="true"` and `aria-describedby`; the placeholder is "Event title". The existing cases stay green: spaces (`:244-252`), a colon title and the edit-mode cases.
-- [ ] `CALENDAR_GESTURES` is non-empty, every row has a label and a view scope and none repeats a `CALENDAR_SHORTCUTS` chord (`event-calendar-keys.logic.test.ts`); the dialog opened through `openHelp()` shows a "Mouse" heading and one row per gesture, and the key rows are unchanged.
-- [ ] A doc tie: every gesture row has a matching row in the `27-calendar.md` creation table, the month chip drag included (same pattern as `event-calendar-keys.logic.test.ts:229-245`).
-- [ ] A read-only month chip, all-day chip and time block contain the lock marker and their accessible name ends with "read-only"; a normal one has neither. `EventMonthGrid.test.ts:567` and `EventAllDayLane.test.ts:140-141` ("never drags it") pass unchanged.
-- [ ] Tests use the real stores; nothing mocks `event-calendar-*.logic.ts`.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/features/event-calendar/EventPopover.test.ts`: the popover of a `readOnly` event shows `[data-popover-readonly]` with the sentence; a normal event does not.
+- [x] Failing test first, `src/tests/lib/features/event-calendar/EventDialog.test.ts` ("EventDialog: create"): opening create shows no `[data-error="title"]`, no `aria-invalid`, and Save is disabled; focusing then blurring the empty title shows "Enter a title." with `aria-invalid="true"` and `aria-describedby`; the placeholder is "Event title". The existing cases stay green: spaces (`:244-252`), a colon title and the edit-mode cases.
+- [x] `CALENDAR_GESTURES` is non-empty, every row has a label and a view scope and none repeats a `CALENDAR_SHORTCUTS` chord (`event-calendar-keys.logic.test.ts`); the dialog opened through `openHelp()` shows a "Mouse" heading and one row per gesture, and the key rows are unchanged.
+- [x] A doc tie: every gesture row has a matching row in the `27-calendar.md` creation table, the month chip drag included (same pattern as `event-calendar-keys.logic.test.ts:229-245`).
+- [x] A read-only month chip, all-day chip and time block contain the lock marker and their accessible name ends with "read-only"; a normal one has neither. `EventMonthGrid.test.ts:567` and `EventAllDayLane.test.ts:140-141` ("never drags it") pass unchanged.
+- [x] Tests use the real stores; nothing mocks `event-calendar-*.logic.ts`.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -55,3 +55,4 @@ Ticket 25 and ticket 26 edit other lines of `help/documentation/27-calendar.md`;
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): this ticket had no owner question in the old breakdown.
+- 2026-11-18, deliver (branch issue/24-calendar-events-say-you-can-do): read-only events show a lock marker, a "read-only" accessible name and a popover sentence; the new-event form no longer shows the title error on open (shown after blur, with aria-invalid/aria-describedby, reserved message row); calendar help lists mouse gestures, tied to the 27-calendar.md doc. Review round 1 APPROVED (fixes applied in b8219c82b), round 2 APPROVED (one nit accepted, no change). Full suite at b8219c82b: exit 0, 657 files, 17503 passed, 56 skipped, 1 todo; pnpm check 0 errors; event-calendar E2E 48 passed.

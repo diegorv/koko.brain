@@ -42,7 +42,7 @@ import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import EventCalendarView from '#lib/features/event-calendar/EventCalendarView.svelte';
 import { openEventInCalendar, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
-import { CALENDAR_SHORTCUTS } from '#lib/features/event-calendar/event-calendar-keys.logic.js';
+import { CALENDAR_GESTURES, CALENDAR_SHORTCUTS } from '#lib/features/event-calendar/event-calendar-keys.logic.js';
 import { toKey } from '#lib/features/event-calendar/event-calendar-dates.logic.js';
 import { eventCalendarStore } from '#lib/features/event-calendar/event-calendar.store.svelte.js';
 import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
@@ -1055,6 +1055,30 @@ describe('EventCalendarView: shortcuts help', () => {
 			label: tr.querySelectorAll('td')[1]?.textContent?.trim(),
 		}));
 		expect(rows).toEqual(CALENDAR_SHORTCUTS.map((r) => ({ keys: [...r.keys], label: r.label })));
+	});
+
+	it('lists the mouse gestures under a "Mouse" heading after the key rows', async () => {
+		mountView();
+		await settle();
+
+		eventCalendarViewStore.openHelp();
+		await settleDialog();
+
+		const help = HELP()!;
+		const heading = help.querySelector('[data-gesture-heading]');
+		expect(heading?.textContent?.trim()).toBe('Mouse');
+		const names: Record<string, string> = { day: 'Day', week: 'Week', month: 'Month' };
+		const rows = [...help.querySelectorAll('[data-gesture]')].map((tr) => ({
+			gesture: tr.querySelector('[data-gesture-text]')?.textContent?.trim(),
+			label: tr.querySelector('[data-gesture-label]')?.textContent?.trim(),
+			views: tr.querySelector('[data-gesture-views]')?.textContent?.trim(),
+		}));
+		expect(rows).toEqual(CALENDAR_GESTURES.map((r) => ({ gesture: r.gesture, label: r.label, views: r.views.map((v) => names[v]).join(', ') })));
+		expect(rows.length).toBeGreaterThan(0);
+		// The key rows stay as they are, and the gesture group follows them.
+		const keyRows = [...help.querySelectorAll('[data-shortcut]')];
+		expect(keyRows.map((tr) => tr.getAttribute('data-shortcut'))).toEqual(CALENDAR_SHORTCUTS.map((r) => r.action));
+		expect(keyRows.at(-1)!.compareDocumentPosition(heading!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 
 	it('Escape closes the help and returns focus to the view root', async () => {
