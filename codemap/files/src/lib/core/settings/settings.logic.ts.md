@@ -28,15 +28,15 @@ by src/lib/core/settings/settings.logic.ts:mergeLayout <- src/lib/core/settings/
 sym src/lib/core/settings/settings.logic.ts:48 fn migrateTypeScale(saved: Partial<EditorSettings> | undefined): Partial<EditorSettings> | undefined L17 | Moves an editor block saved before the current type scale onto it, once: the font size becomes the size the body rendered at (`round(size x 1.05)`), and an H4-…
 by src/lib/core/settings/settings.logic.ts:migrateTypeScale <- src/lib/core/settings/settings.service.ts:92 in parseSettings call
 sym src/lib/core/settings/settings.logic.ts:67 fn clampFontSize(size: number): number L3 | Clamps a font size to the valid range (8–32 px)
-by src/lib/core/settings/settings.logic.ts:clampFontSize <- src/lib/core/settings/sections/EditorSection.svelte:102 in (markup) markup
+by src/lib/core/settings/settings.logic.ts:clampFontSize <- src/lib/core/settings/sections/EditorSection.svelte:126 in (markup) markup +1
 sym src/lib/core/settings/settings.logic.ts:72 fn clampLineHeight(height: number): number L3 | Clamps a line height to the valid range (1.0–3.0)
-by src/lib/core/settings/settings.logic.ts:clampLineHeight <- src/lib/core/settings/sections/EditorSection.svelte:123 in (markup) markup
+by src/lib/core/settings/settings.logic.ts:clampLineHeight <- src/lib/core/settings/sections/EditorSection.svelte:142 in (markup) markup +1
 sym src/lib/core/settings/settings.logic.ts:77 fn clampContentWidth(width: number): number L4 | Clamps a content width to the valid range (0 = no limit, or 400–2000 px)
-by src/lib/core/settings/settings.logic.ts:clampContentWidth <- src/lib/core/settings/sections/EditorSection.svelte:167 in (markup) markup
+by src/lib/core/settings/settings.logic.ts:clampContentWidth <- src/lib/core/settings/sections/EditorSection.svelte:176 in (markup) markup +1
 sym src/lib/core/settings/settings.logic.ts:83 fn effectiveContentWidth(editor: Pick<EditorSettings, 'contentWidth' | 'wideNotes'>): number L3 | The max width notes are laid out at: 0 (full width) for wide notes, else the configured `contentWidth`
 by src/lib/core/settings/settings.logic.ts:effectiveContentWidth <- src/lib/core/markdown-editor/MarkdownEditor.svelte:117 in freshState call +1
 sym src/lib/core/settings/settings.logic.ts:88 fn clampParagraphSpacing(spacing: number): number L3 | Clamps a paragraph spacing to the valid range (0–2.0 em)
-by src/lib/core/settings/settings.logic.ts:clampParagraphSpacing <- src/lib/core/settings/sections/EditorSection.svelte:144 in (markup) markup
+by src/lib/core/settings/settings.logic.ts:clampParagraphSpacing <- src/lib/core/settings/sections/EditorSection.svelte:158 in (markup) markup +1
 sym src/lib/core/settings/settings.logic.ts:93 fn clampHeadingFontSize(size: number): number L3 | Clamps a heading font size to the valid range (0.5–5.0 em)
 by src/lib/core/settings/settings.logic.ts:clampHeadingFontSize <- src/lib/core/settings/sections/HeadingTypographyEditor.svelte:69 in (markup) markup
 sym src/lib/core/settings/settings.logic.ts:98 fn clampHeadingLineHeight(height: number): number L3 | Clamps a heading line height to the valid range (1.0–3.0)

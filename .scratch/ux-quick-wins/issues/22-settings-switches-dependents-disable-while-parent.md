@@ -16,17 +16,17 @@ Not in this ticket: "Save mod run messages to file" stays as it is. It is a sepa
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh settings.spec.ts` and `bash scripts/e2e.sh vault-mods.spec.ts`
 
-- [ ] Failing test first, new `src/tests/lib/core/settings/PeriodicNotesSection.test.ts` (real `settingsStore`): with Auto-open and Auto-pin off, Auto-pin is disabled; turning Auto-open on enables it; Auto-pin stored on with Auto-open off is enabled, clicking turns it off and then it is disabled. Its `aria-label` is "Auto-pin".
-- [ ] `src/tests/lib/core/settings/TroubleshootingSection.test.ts`: both log options off, Heartbeat and Profile decoration plugins are disabled; either log option on enables both; a stored-on Heartbeat with both logs off is enabled and can be turned off.
-- [ ] Failing test first, `src/tests/lib/app/LabsSection.test.ts` (mocks only `mods-host.service` and `svelte-sonner`, as it does now): `startModsHost` rejects; `modsEnabledStore.enabled` is false, `stopModsHost` ran and `toast.error` fired.
-- [ ] `TroubleshootingSection.test.ts` with `isLogSessionActive` false after `initLogSession`: `debugLogToFile` ends false, a toast fired and `startHeartbeat` was not called; same for the Tauri log switch. With the other log already active, turning one on keeps it on and fires no toast.
-- [ ] The consent test at `TroubleshootingSection.test.ts:41-60` passes unchanged, and so does the consent E2E at `e2e/specs/settings.spec.ts:73-100`.
-- [ ] No test mocks `settingsStore`; mocks are limited to `log.service`, `mods-host.service` and `svelte-sonner` (side-effect services).
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, new `src/tests/lib/core/settings/PeriodicNotesSection.test.ts` (real `settingsStore`): with Auto-open and Auto-pin off, Auto-pin is disabled; turning Auto-open on enables it; Auto-pin stored on with Auto-open off is enabled, clicking turns it off and then it is disabled. Its `aria-label` is "Auto-pin".
+- [x] `src/tests/lib/core/settings/TroubleshootingSection.test.ts`: both log options off, Heartbeat and Profile decoration plugins are disabled; either log option on enables both; a stored-on Heartbeat with both logs off is enabled and can be turned off.
+- [x] Failing test first, `src/tests/lib/app/LabsSection.test.ts` (mocks only `mods-host.service` and `svelte-sonner`, as it does now): `startModsHost` rejects; `modsEnabledStore.enabled` is false, `stopModsHost` ran and `toast.error` fired.
+- [x] `TroubleshootingSection.test.ts` with `isLogSessionActive` false after `initLogSession`: `debugLogToFile` ends false, a toast fired and `startHeartbeat` was not called; same for the Tauri log switch. With the other log already active, turning one on keeps it on and fires no toast.
+- [x] The consent test at `TroubleshootingSection.test.ts:41-60` passes unchanged, and so does the consent E2E at `e2e/specs/settings.spec.ts:73-100`.
+- [x] No test mocks `settingsStore`; mocks are limited to `log.service`, `mods-host.service` and `svelte-sonner` (side-effect services).
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -54,3 +54,4 @@ Ticket 36 (periodic notes path examples) edits `PeriodicNotesSection.svelte` and
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): this ticket had no owner question in the old breakdown.
+- 2026-11-18, deliver (issue/22-settings-switches-dependents-disable-while-parent): Auto-pin disables while Auto-open is off; Heartbeat and Profile decoration plugins disable while both log options are off; a log switch whose session failed to start turns back off with a toast; Vault mods turn back off (host stopped first, toast) when the host fails to start. Tests: pnpm check exit 0; full suite at 14b49e3d0 exit 0 (661 files, 17634 passed, 56 skipped). Reviews: round 1 APPROVED, round 2 APPROVED (one nit, no change).

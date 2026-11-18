@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { toast } from 'svelte-sonner';
+
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { setTauriDebugMode } from '#lib/utils/debug.js';
@@ -13,6 +15,25 @@
 	function isDecoratorDisabled(name: string): boolean {
 		return settingsStore.disabledDecorators[name] ?? false;
 	}
+
+	/**
+	 * Starts the log session for a log switch just turned on. `initLogSession`
+	 * swallows its own errors, so the outcome is read from `isLogSessionActive`:
+	 * with no session, `turnOff` sets that switch back to false and no heartbeat
+	 * starts. With a session the other log switch opened, the switch stays on.
+	 */
+	async function startLogSession(turnOff: () => void) {
+		await initLogSession();
+		if (!isLogSessionActive()) {
+			toast.error('Could not start the log file');
+			turnOff();
+			return;
+		}
+		if (settingsStore.debugHeartbeat) startHeartbeat();
+	}
+
+	/** Heartbeat and profiling write only to a log file, so they need one of the log switches on. */
+	const hasLogFile = $derived(settingsStore.debugLogToFile || settingsStore.debugTauriLogToFile);
 </script>
 
 <div class="flex flex-col gap-2">
@@ -41,9 +62,7 @@
 			onCheckedChange={(v) => {
 				settingsStore.updateDebugLogToFile(v);
 				if (v) {
-					initLogSession().then(() => {
-						if (settingsStore.debugHeartbeat) startHeartbeat();
-					});
+					startLogSession(() => settingsStore.updateDebugLogToFile(false));
 				} else if (!settingsStore.debugTauriLogToFile) {
 					teardownLogSession();
 				}
@@ -66,7 +85,10 @@
 		label="Heartbeat"
 		description="Log a tick every 250 ms, UI and main-thread stalls, and click-to-paint time. Needs a log file. Leave off unless you are chasing a stall."
 	>
+		<!-- An on value stays enabled so it can always be turned off. -->
 		<Switch
+			aria-label="Heartbeat"
+			disabled={!settingsStore.debugHeartbeat && !hasLogFile}
 			checked={settingsStore.debugHeartbeat}
 			onCheckedChange={(v) => {
 				settingsStore.updateDebugHeartbeat(v);
@@ -95,6 +117,8 @@
 		description="Log timing for each live preview decoration rebuild (requires log to file enabled)"
 	>
 		<Switch
+			aria-label="Profile decoration plugins"
+			disabled={!settingsStore.livePreviewProfiling && !hasLogFile}
 			checked={settingsStore.livePreviewProfiling}
 			onCheckedChange={(v) => {
 				settingsStore.updateLivePreviewProfiling(v);
@@ -146,9 +170,7 @@
 			onCheckedChange={(v) => {
 				settingsStore.updateDebugTauriLogToFile(v);
 				if (v) {
-					initLogSession().then(() => {
-						if (settingsStore.debugHeartbeat) startHeartbeat();
-					});
+					startLogSession(() => settingsStore.updateDebugTauriLogToFile(false));
 				} else if (!settingsStore.debugLogToFile) {
 					teardownLogSession();
 				}

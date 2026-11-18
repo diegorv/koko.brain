@@ -56,7 +56,10 @@
 	</SettingItem>
 
 	<SettingItem label="Auto-pin" description="Pin the daily note tab (requires auto-open)">
+		<!-- Disabled only while it is off too, so an Auto-pin stored on can always be turned off. -->
 		<Switch
+			aria-label="Auto-pin"
+			disabled={!(settingsStore.periodicNotes.daily.autoPin ?? false) && !(settingsStore.periodicNotes.daily.autoOpen ?? false)}
 			checked={settingsStore.periodicNotes.daily.autoPin ?? false}
 			onCheckedChange={(v) => updatePeriod('daily', 'autoPin', v)}
 		/>

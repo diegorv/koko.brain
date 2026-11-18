@@ -12,7 +12,10 @@
 
 	/**
 	 * Saves the flag, then loads or unloads the vault's mods right away; on a
-	 * failed write, reports it and keeps the switch at the stored value.
+	 * failed write, reports it and keeps the switch at the stored value. A
+	 * failed start turns the switch back off and stops the host, which
+	 * detaches the file-change listener `startModsHost` registers before its
+	 * first await.
 	 */
 	function setModsEnabled(enabled: boolean) {
 		try {
@@ -26,6 +29,13 @@
 		if (enabled && vaultPath !== null) {
 			startModsHost(vaultPath).catch((err: unknown) => {
 				error('LABS', 'starting vault mods failed:', err);
+				toast.error('Could not start vault mods');
+				stopModsHost();
+				try {
+					modsEnabledStore.setEnabled(false);
+				} catch (writeErr) {
+					error('LABS', 'saving the Vault mods flag off failed:', writeErr);
+				}
 			});
 		} else if (!enabled) {
 			stopModsHost();

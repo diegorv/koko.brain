@@ -23,7 +23,7 @@ by src/lib/utils/font-stacks.ts:MONO_FONT_STACK <- src/lib/core/markdown-editor/
 sym src/lib/utils/font-stacks.ts:13 const APP_SANS_FONT_STACK L1 | App sans stack.
 by src/lib/utils/font-stacks.ts:APP_SANS_FONT_STACK <- src/lib/plugins/queryjs/kb-ui.ts:757 in KBUI.heatmapCalendar ref +1
 sym src/lib/utils/font-stacks.ts:39 fn quoteFontFamily(value: string): string L8 | Makes a `font-family` value safe for CSS.
-by src/lib/utils/font-stacks.ts:quoteFontFamily <- src/lib/core/settings/sections/EditorSection.svelte:74 in (markup) markup
+by src/lib/utils/font-stacks.ts:quoteFontFamily <- src/lib/core/settings/sections/EditorSection.svelte:102 in (markup) markup
 sym src/lib/utils/font-stacks.ts:53 fn editorFontFamily(value: string): string L4 | The editor `font-family`: the user's value (quoted when it is a single name) followed by the app sans stack, so a font the machine lacks falls back to the syst…
 by src/lib/utils/font-stacks.ts:editorFontFamily <- src/lib/core/markdown-editor/setup/editor-theme.ts:33 in buildEditorTheme call
 ## calls

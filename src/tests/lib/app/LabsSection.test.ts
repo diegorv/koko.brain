@@ -121,6 +121,39 @@ describe('LabsSection', () => {
 		expect(stopModsHost).toHaveBeenCalledTimes(1);
 	});
 
+	it('turns the switch back off, stops the host and shows a toast when the mods fail to start', async () => {
+		vi.mocked(startModsHost).mockRejectedValueOnce(new Error('cannot read mods folder'));
+		const root = render();
+
+		modsSwitch(root).click();
+		flushSync();
+		await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not start vault mods'));
+		flushSync();
+
+		expect(modsEnabledStore.enabled).toBe(false);
+		expect(modsSwitch(root).getAttribute('aria-checked')).toBe('false');
+		expect(stopModsHost).toHaveBeenCalledTimes(1);
+	});
+
+	it('still stops the host when the mods fail to start and the flag cannot be saved back off', async () => {
+		vi.mocked(startModsHost).mockRejectedValueOnce(new Error('cannot read mods folder'));
+		const root = render();
+
+		modsSwitch(root).click();
+		flushSync();
+		const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+			throw new Error('QuotaExceededError');
+		});
+		try {
+			await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not start vault mods'));
+			flushSync();
+		} finally {
+			spy.mockRestore();
+		}
+
+		expect(stopModsHost).toHaveBeenCalledTimes(1);
+	});
+
 	it('lists the mods under the toggle only while mods are on', () => {
 		modsStore.setEntries([{ id: 'hello', folder: 'hello', name: 'Hello', version: '1.0.0', state: 'loaded' }]);
 		const root = render();
