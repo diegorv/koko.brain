@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Palette commands toggle each right sidebar panel and open Trash](issues/01-palette-right-panel-toggles-trash.md) | none | todo | | |
+| 01 | [Palette commands toggle each right sidebar panel and open Trash](issues/01-palette-right-panel-toggles-trash.md) | none | in-progress | | |
 | 02 | [Calmer status bar: 24px, no pulse, a save slot that does not shift](issues/02-status-bar-calm-save-slot.md) | none | todo | | |
 | 03 | [My people reads as a feature: setup button, "Nd ago", overdue icon, row ring](issues/03-my-people-setup-ago-overdue.md) | none | todo | | |
 | 04 | [A refused property rename reverts and says why; list chips edit in place and an empty list shows "+ Add"](issues/04-property-rename-refusal-list-chips.md) | none | todo | | |
@@ -73,3 +73,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 ## Log
 
 - 2026-11-18 02:21 — ledger created (34 Issues)
+- 2026-11-18 02:22 — 01 — start — launched by /relay-lite:run — 905af7c93
