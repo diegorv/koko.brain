@@ -6,8 +6,9 @@
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import Archive from '@lucide/svelte/icons/archive';
 	import Palette from '@lucide/svelte/icons/palette';
+	import Tag from '@lucide/svelte/icons/tag';
 	import type { KanbanItem } from './kanban.types';
-	import { extractCardDate, setCardDate, removeCardDate, cardProximity, PROXIMITY_CLASSES, extractCardWikilinks, extractCardColor, setCardColor, removeCardColor, stripCardMetadata } from './kanban.logic';
+	import { extractCardDate, setCardDate, removeCardDate, cardProximity, PROXIMITY_CLASSES, extractCardWikilinks, extractCardColor, setCardColor, removeCardColor, stripCardMetadata, extractCardTags } from './kanban.logic';
 	import { loadLinkedFileContent } from './kanban.service';
 	import { formatNow } from '#lib/utils/date.js';
 	import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
@@ -23,6 +24,8 @@
 		tagColors?: Record<string, string>;
 		onSetTagColor?: (tag: string, color: string) => void;
 		onRemoveTagColor?: (tag: string) => void;
+		/** Called with a tag (no `#`) when its chip is clicked */
+		onTagClick?: (tag: string) => void;
 		onToggle: () => void;
 		onUpdate: (text: string) => void;
 		onDelete: () => void;
@@ -44,6 +47,7 @@
 		tagColors = {},
 		onSetTagColor,
 		onRemoveTagColor,
+		onTagClick,
 		onToggle,
 		onUpdate,
 		onDelete,
@@ -111,6 +115,7 @@
 	let cardDate = $derived(extractCardDate(item.text));
 	let cardColor = $derived(extractCardColor(item.text));
 	let displayText = $derived(stripCardMetadata(item.text));
+	let cardTags = $derived(extractCardTags(displayText));
 	let dateProximity = $derived(cardProximity(cardDate, formatNow('YYYY-MM-DD'), item.checked));
 
 	const COLOR_NAMES = ['blue', 'green', 'red', 'orange', 'purple', 'yellow', 'gray'] as const;
@@ -201,7 +206,7 @@
 							class="leading-5 cursor-pointer select-none {item.checked ? 'text-muted-foreground line-through' : ''}"
 							ondblclick={onStartEdit}
 						>
-							<KanbanCardText text={displayText} {tagColors} {onWikilinkClick} {onSetTagColor} {onRemoveTagColor} />
+							<KanbanCardText text={displayText} {tagColors} {onWikilinkClick} {onTagClick} />
 						</span>
 						<div class="flex flex-wrap items-center gap-1">
 							<KanbanDatePicker date={cardDate} proximity={dateProximity} onDateChange={handleDateChange} />
@@ -256,6 +261,38 @@
 				{/if}
 			</ContextMenu.SubContent>
 		</ContextMenu.Sub>
+		{#if cardTags.length > 0 && onSetTagColor}
+			<ContextMenu.Sub>
+				<ContextMenu.SubTrigger>
+					<Tag class="size-4" />
+					Tag color
+				</ContextMenu.SubTrigger>
+				<ContextMenu.SubContent>
+					{#each cardTags as tag, i (tag)}
+						{#if i > 0}
+							<ContextMenu.Separator />
+						{/if}
+						<ContextMenu.Label>#{tag}</ContextMenu.Label>
+						<div class="flex gap-1.5 px-2 pb-2">
+							{#each COLOR_NAMES as color}
+								<button
+									class="size-5 rounded-full ring-offset-1 transition-opacity hover:opacity-80 {tagColors[tag] === color ? 'ring-2 ring-foreground' : ''}"
+									style="background: {COLOR_PRESET_TEXT[color]}"
+									onclick={() => onSetTagColor(tag, color)}
+									title={color}
+									type="button"
+								></button>
+							{/each}
+						</div>
+						{#if tagColors[tag] && tagColors[tag] !== 'gray'}
+							<ContextMenu.Item onclick={() => onRemoveTagColor?.(tag)}>
+								Reset to default
+							</ContextMenu.Item>
+						{/if}
+					{/each}
+				</ContextMenu.SubContent>
+			</ContextMenu.Sub>
+		{/if}
 		<ContextMenu.Item variant="destructive" onclick={onDelete}>
 			<Trash2 class="size-4" />
 			Delete

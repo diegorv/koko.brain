@@ -22,8 +22,9 @@ vi.mock('#lib/plugins/kanban/kanban.service.js', () => ({
 
 import { mount, unmount, flushSync, tick } from 'svelte';
 import KanbanViewHarness from '../../../fixtures/KanbanViewHarness.svelte';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { kanbanStore } from '#lib/plugins/kanban/kanban.store.svelte.js';
-import { parseKanbanBoard, serializeKanbanBoard, setSortMode, setViewMode, toggleLaneCollapsed } from '#lib/plugins/kanban/kanban.logic.js';
+import { parseKanbanBoard, serializeKanbanBoard, setSortMode, setTagColor, setViewMode, toggleLaneCollapsed } from '#lib/plugins/kanban/kanban.logic.js';
 import type { KanbanSortMode, KanbanViewMode } from '#lib/plugins/kanban/kanban.types.js';
 
 interface HarnessApi {
@@ -222,7 +223,7 @@ describe('KanbanView: card and lane menus', () => {
 	beforeEach(() => {
 		kanbanStore.reset();
 		const markdown = serializeKanbanBoard(
-			setViewMode(parseKanbanBoard('## To Do\n\n- [ ] write the test\n\n## Done\n\n'), 'board'),
+			setViewMode(parseKanbanBoard('## To Do\n\n- [ ] write the test\n- [ ] tagged #design\n\n## Done\n\n'), 'board'),
 		);
 		component = mount(KanbanViewHarness, {
 			target: document.body.appendChild(document.createElement('div')),
@@ -251,6 +252,11 @@ describe('KanbanView: card and lane menus', () => {
 	it('lists the card actions as one group, in sentence case', async () => {
 		const card = document.querySelector('[data-item-id]')!;
 		expect(await openMenu(card)).toEqual(['Edit', 'Archive', 'Card color', 'Delete']);
+	});
+
+	it('adds "Tag color" only on a card with tags', async () => {
+		const tagged = [...document.querySelectorAll('[data-item-id]')].find((el) => el.textContent?.includes('tagged'))!;
+		expect(await openMenu(tagged)).toEqual(['Edit', 'Archive', 'Card color', 'Tag color', 'Delete']);
 	});
 
 	it('lists the lane actions as one group, in sentence case', async () => {
@@ -595,6 +601,240 @@ describe('KanbanView: keyboard shortcuts and toolbar', () => {
 			flushSync();
 			await chooseSort('Text (Z→A)');
 			expect(kanbanStore.focusedLaneIndex).toBe(-1);
+		});
+	});
+});
+
+describe('KanbanView: filter clear, per-board reset and tag filter', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+	let api: HarnessApi | undefined;
+
+	const SOURCE = '## To Do\n\n- [ ] plain card\n- [ ] tagged #design\n- [ ] wider #design-system\n\n';
+	const ALL = ['plain card', 'tagged', 'wider'];
+
+	beforeEach(() => {
+		kanbanStore.reset();
+		editorStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		api = undefined;
+		kanbanStore.reset();
+		editorStore.reset();
+		document.body.innerHTML = '';
+	});
+
+	function markdownOf(source = SOURCE, tagColors: Record<string, string> = {}): string {
+		let board = setViewMode(parseKanbanBoard(source), 'board');
+		for (const [tag, color] of Object.entries(tagColors)) board = setTagColor(board, tag, color);
+		return serializeKanbanBoard(board);
+	}
+
+	function mountBoard(markdown = markdownOf()): void {
+		component = mount(KanbanViewHarness, {
+			target,
+			props: { initialMarkdown: markdown, register: (a: HarnessApi) => { api = a; } },
+		});
+		flushSync();
+	}
+
+	function filterInput(): HTMLInputElement {
+		const el = target.querySelector<HTMLInputElement>('input[placeholder="Filter cards..."]');
+		if (!el) throw new Error('no filter input');
+		return el;
+	}
+
+	function clearButton(): HTMLButtonElement | null {
+		return target.querySelector<HTMLButtonElement>('button[aria-label="Clear filter"]');
+	}
+
+	function type(value: string): void {
+		const input = filterInput();
+		input.value = value;
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+	}
+
+	/** Which of the seeded cards render, by their leading text. */
+	function visible(): string[] {
+		const texts = [...target.querySelectorAll<HTMLElement>('[data-item-id]')].map((el) => el.textContent ?? '');
+		return ALL.filter((name) => texts.some((t) => t.includes(name)));
+	}
+
+	async function settle(): Promise<void> {
+		for (let i = 0; i < 5; i++) await Promise.resolve();
+		flushSync();
+	}
+
+	/** Opens the card's context menu, then its "Tag color" submenu, and returns the submenu. */
+	async function openTagColor(text: string): Promise<HTMLElement> {
+		const card = [...target.querySelectorAll('[data-item-id]')].find((el) => el.textContent?.includes(text))!;
+		card.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 1, clientY: 1 }));
+		await settle();
+		const trigger = [...document.querySelectorAll('[data-slot="context-menu-sub-trigger"]')].find((el) => el.textContent?.includes('Tag color'));
+		if (!trigger) throw new Error('no "Tag color" submenu');
+		trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+		await settle();
+		const sub = document.querySelector<HTMLElement>('[data-slot="context-menu-sub-content"]');
+		if (!sub) throw new Error('"Tag color" submenu did not open');
+		return sub;
+	}
+
+	function kanbanTab(path: string) {
+		const content = markdownOf();
+		return { path, name: path, content, savedContent: content, fileType: 'kanban' as const };
+	}
+
+	describe('clearing the filter', () => {
+		it('shows "Clear filter" only while there is a query; clicking it empties the query and every card renders again', () => {
+			mountBoard();
+			expect(clearButton()).toBeNull();
+
+			type('plain');
+			expect(visible()).toEqual(['plain card']);
+			expect(clearButton()).not.toBeNull();
+
+			clearButton()!.click();
+			flushSync();
+
+			expect(kanbanStore.filterQuery).toBe('');
+			expect(filterInput().value).toBe('');
+			expect(visible()).toEqual(ALL);
+			expect(clearButton()).toBeNull();
+		});
+
+		it('Escape in the filter input clears it', () => {
+			mountBoard();
+			type('plain');
+
+			filterInput().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+			flushSync();
+
+			expect(kanbanStore.filterQuery).toBe('');
+			expect(visible()).toEqual(ALL);
+		});
+	});
+
+	describe('the filter resets per board', () => {
+		beforeEach(() => {
+			editorStore.addTab(kanbanTab('/vault/a.kanban.md'));
+			editorStore.addTab(kanbanTab('/vault/b.kanban.md'));
+			editorStore.setActiveIndex(0);
+		});
+
+		it('switching the active tab path clears the filter and leaves an open card edit alone', () => {
+			mountBoard();
+			kanbanStore.setFilterQuery('plain');
+			flushSync();
+			const card = [...target.querySelectorAll<HTMLElement>('[data-item-id]')].find((el) => el.textContent?.includes('plain card'))!;
+			card.querySelector('span.cursor-pointer')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+			flushSync();
+			const editingId = kanbanStore.editingItemId;
+			expect(editingId).toBe(card.dataset.itemId);
+			expect(card.querySelector('textarea')).not.toBeNull();
+
+			editorStore.setActiveIndex(1);
+			flushSync();
+
+			expect(kanbanStore.filterQuery).toBe('');
+			expect(kanbanStore.editingItemId).toBe(editingId);
+			const editing = target.querySelector<HTMLElement>(`[data-item-id="${editingId}"]`);
+			expect(editing?.querySelector('textarea')).not.toBeNull();
+		});
+
+		it('switching the active tab path clears the focus ring', () => {
+			mountBoard();
+			kanbanStore.setFocus(0, 1);
+			flushSync();
+
+			editorStore.setActiveIndex(1);
+			flushSync();
+
+			expect(kanbanStore.focusedLaneIndex).toBe(-1);
+			expect(kanbanStore.focusedItemIndex).toBe(-1);
+		});
+
+		it('closing an earlier tab moves the active index but not the path, so the filter stays', () => {
+			editorStore.setActiveIndex(1);
+			mountBoard();
+			kanbanStore.setFilterQuery('#design');
+			flushSync();
+
+			editorStore.removeTab(0);
+			flushSync();
+
+			expect(editorStore.activeIndex).toBe(0);
+			expect(editorStore.activeTab?.path).toBe('/vault/b.kanban.md');
+			expect(kanbanStore.filterQuery).toBe('#design');
+		});
+
+		it('unmounting clears the filter', () => {
+			mountBoard();
+			kanbanStore.setFilterQuery('#design');
+			flushSync();
+
+			unmount(component!);
+			component = null;
+
+			expect(kanbanStore.filterQuery).toBe('');
+		});
+	});
+
+	describe('tag chips', () => {
+		it('clicking a #design chip sets the filter to #design and hides an untagged card', () => {
+			mountBoard();
+			const chip = [...target.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.trim() === '#design');
+			expect(chip).toBeDefined();
+
+			chip!.click();
+			flushSync();
+
+			expect(kanbanStore.filterQuery).toBe('#design');
+			expect(filterInput().value).toBe('#design');
+			expect(visible()).not.toContain('plain card');
+			expect(visible()).toContain('tagged');
+			expect(api!.getPersistCount()).toBe(0);
+		});
+
+		it('"Tag color" lists one group per tag of the card', async () => {
+			mountBoard(markdownOf('## To Do\n\n- [ ] two tags #alpha #beta\n\n'));
+			const sub = await openTagColor('two tags');
+			const labels = [...sub.querySelectorAll('[data-slot="context-menu-label"]')].map((el) => el.textContent?.trim());
+			expect(labels).toEqual(['#alpha', '#beta']);
+		});
+
+		it('a "Tag color" swatch writes settings.tagColors in the persisted markdown', async () => {
+			mountBoard();
+			const sub = await openTagColor('tagged');
+			const blue = sub.querySelector<HTMLButtonElement>('button[title="blue"]');
+			expect(blue).not.toBeNull();
+
+			blue!.click();
+			flushSync();
+
+			expect(parseKanbanBoard(api!.getMarkdown()).settings.tagColors).toEqual({ design: 'blue' });
+		});
+
+		it('"Reset to default" removes the tag colour entry', async () => {
+			mountBoard(markdownOf(SOURCE, { design: 'red', other: 'green' }));
+			const sub = await openTagColor('tagged');
+			const reset = [...sub.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((el) => el.textContent?.trim() === 'Reset to default');
+			expect(reset).toBeDefined();
+
+			reset!.click();
+			flushSync();
+
+			expect(parseKanbanBoard(api!.getMarkdown()).settings.tagColors).toEqual({ other: 'green' });
+		});
+
+		it('"Reset to default" is absent for a tag with no colour', async () => {
+			mountBoard();
+			const sub = await openTagColor('tagged');
+			expect(sub.textContent).not.toContain('Reset to default');
 		});
 	});
 });
