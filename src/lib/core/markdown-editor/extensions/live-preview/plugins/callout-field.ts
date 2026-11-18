@@ -170,9 +170,10 @@ export function computeCallouts(state: EditorState): DecorationSet {
 		const isTouched = callout.to <= revealedTo || isRevealed(callout.from, callout.to);
 		if (isTouched) revealedTo = Math.max(revealedTo, callout.to);
 
+		// `--cm-lp-callout-accent` colours the type label (`.cm-lp-callout-type-label`).
 		const lineDeco = Decoration.line({
 			class: 'cm-lp-callout',
-			attributes: { style: `border-left-color: ${header.color}` },
+			attributes: { style: `border-left-color: ${header.color}; --cm-lp-callout-accent: ${header.color}` },
 		});
 
 		// Phase 17: every callout is foldable. Default state for non-foldable

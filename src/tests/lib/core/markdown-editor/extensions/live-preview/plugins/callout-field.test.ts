@@ -91,6 +91,22 @@ describe('calloutField', () => {
 		expect(decos).toHaveLength(6);
 	});
 
+	it('gives the header line its type colour as --cm-lp-callout-accent for the type label', () => {
+		const doc = 'text\n> [!warning]\n> content';
+		const state = createState(doc, 0);
+		const header = doc.indexOf('> [!warning]');
+		const styles: string[] = [];
+		const iter = computeCallouts(state).iter();
+		while (iter.value) {
+			const spec = iter.value.spec as { class?: string; attributes?: { style?: string } };
+			if (iter.from === header && spec.class === 'cm-lp-callout') styles.push(spec.attributes?.style ?? '');
+			iter.next();
+		}
+		expect(styles).toHaveLength(1);
+		expect(styles[0]).toContain('border-left-color: var(--callout-warning)');
+		expect(styles[0]).toContain('--cm-lp-callout-accent: var(--callout-warning)');
+	});
+
 	it('handles header-only callout (no content lines)', () => {
 		const doc = 'text\n> [!tip] Just a tip';
 		const state = createState(doc, 0);

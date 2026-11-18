@@ -198,6 +198,60 @@ describe('livePreviewStyles callout type menu', () => {
 		expect(rule).toContain('background: var(--accent);');
 		expect(rule).toContain('color: var(--accent-foreground);');
 	});
+
+	it('shows the type label in its callout colour, in Title case', () => {
+		const rule = exactRule('.cm-lp-callout-type-label');
+		expect(rule).toContain('text-transform: capitalize;');
+		expect(rule).toContain('color: var(--cm-lp-callout-accent, inherit);');
+		expect(rule).not.toContain('text-transform: lowercase;');
+	});
+});
+
+describe('livePreviewStyles callout body', () => {
+	it('cancels the quote italics with a zero-specificity rule', () => {
+		expect(exactRule(':where(.cm-lp-callout) span')).toContain('font-style: normal;');
+		// A plain class rule would outrank the single-class italic error spans.
+		expect(exactRule('.cm-lp-callout span')).toBeUndefined();
+	});
+
+	it('keeps authored emphasis, and bold inside it, italic', () => {
+		const rule = themeRules().find((r) => /\.cm-lp-callout \.cm-lp-italic[ ,{]/.test(r));
+		expect(rule).toContain('.cm-lp-callout .cm-lp-italic span');
+		expect(rule).toContain('font-style: italic;');
+	});
+});
+
+describe('livePreviewStyles heading space above', () => {
+	it.each([
+		['.cm-lp-h1', 'var(--heading-h1-space-above, 0.6em)'],
+		['.cm-lp-h2', 'var(--heading-h2-space-above, 0.5em)'],
+		['.cm-lp-h3', 'var(--heading-h3-space-above, 0.4em)'],
+	])('%s pads its top through a per-level variable', (selector, value) => {
+		expect(exactRule(selector)).toContain(`padding-top: ${value};`);
+	});
+
+	it.each(['.cm-lp-h4', '.cm-lp-h5', '.cm-lp-h6'])('%s gets no space above', (selector) => {
+		expect(exactRule(selector)).toBeDefined();
+		expect(exactRule(selector)).not.toContain('padding-top');
+	});
+});
+
+describe('livePreviewStyles meta-bind number field', () => {
+	it('sizes the number input to its content', () => {
+		const rule = exactRule('.cm-lp-meta-bind-input[type="number"]');
+		expect(rule).toContain('field-sizing: content;');
+		expect(rule).toContain('min-width: 4ch;');
+		expect(rule).toContain('max-width: 16ch;');
+	});
+
+	it('leaves the shared input rule without a width', () => {
+		const rule = exactRule('.cm-lp-meta-bind-input');
+		expect(rule?.slice(rule.indexOf('{'))).toBe(
+			'{appearance: none; background: var(--lp-meta-bind-select-bg); color: var(--lp-meta-bind-select-text); ' +
+				'border: 1px solid var(--lp-meta-bind-select-border); border-radius: var(--radius-md); padding: 2px 8px; ' +
+				'font-size: 0.85em; line-height: 1.4; outline: none; font-family: inherit;}',
+		);
+	});
 });
 
 describe('livePreviewStyles meta-bind colors', () => {

@@ -15,18 +15,18 @@ Not in this ticket: a default callout title from the type name, chevron dimming 
 
 **Blocked by:** 08
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus `bash scripts/e2e.sh` for the specs below (they are existing specs; no selector changes).
 
-- [ ] Failing test first (`src/tests/lib/core/markdown-editor/extensions/live-preview/styles.test.ts`, `exactRule`): `.cm-lp-callout-type-label` contains `text-transform: capitalize` and `color: var(--callout-accent, inherit)`.
-- [ ] Failing test first (`plugins/callout-field.test.ts`, `computeCallouts`): the header line of a `[!warning]` callout carries `--callout-accent: ` plus the warning colour in its `style`; the existing decoration counts are unchanged.
-- [ ] The emitted theme has a `:where(.cm-lp-callout) span` rule with `font-style: normal` and no plain `.cm-lp-callout span` rule, and a `.cm-lp-callout .cm-lp-italic` rule with `font-style: italic`.
-- [ ] `.cm-lp-h1` to `.cm-lp-h3` contain `padding-top: var(--heading-h1-space-above` (and h2, h3); `.cm-lp-h4` to `.cm-lp-h6` contain no `padding-top`.
-- [ ] A `.cm-lp-meta-bind-input[type="number"]` rule has `field-sizing: content` and `min-width: 4ch`; the shared `.cm-lp-meta-bind-input` rule is unchanged.
-- [ ] E2E: `click-reveal/callout-text.spec.ts`, `click-reveal/callout-controls.spec.ts`, `click-reveal/heading.spec.ts`, `headings.spec.ts` and `click-reveal/meta-bind-*.spec.ts` pass. `callout-text.spec.ts:71,152` use `toHaveText` (textContent), so they stay green and cannot prove the capitalisation; the rule test and the eye check do.
+- [x] Failing test first (`src/tests/lib/core/markdown-editor/extensions/live-preview/styles.test.ts`, `exactRule`): `.cm-lp-callout-type-label` contains `text-transform: capitalize` and `color: var(--callout-accent, inherit)`.
+- [x] Failing test first (`plugins/callout-field.test.ts`, `computeCallouts`): the header line of a `[!warning]` callout carries `--callout-accent: ` plus the warning colour in its `style`; the existing decoration counts are unchanged.
+- [x] The emitted theme has a `:where(.cm-lp-callout) span` rule with `font-style: normal` and no plain `.cm-lp-callout span` rule, and a `.cm-lp-callout .cm-lp-italic` rule with `font-style: italic`.
+- [x] `.cm-lp-h1` to `.cm-lp-h3` contain `padding-top: var(--heading-h1-space-above` (and h2, h3); `.cm-lp-h4` to `.cm-lp-h6` contain no `padding-top`.
+- [x] A `.cm-lp-meta-bind-input[type="number"]` rule has `field-sizing: content` and `min-width: 4ch`; the shared `.cm-lp-meta-bind-input` rule is unchanged.
+- [x] E2E: `click-reveal/callout-text.spec.ts`, `click-reveal/callout-controls.spec.ts`, `click-reveal/heading.spec.ts`, `headings.spec.ts` and `click-reveal/meta-bind-*.spec.ts` pass. `callout-text.spec.ts:71,152` use `toHaveText` (textContent), so they stay green and cannot prove the capitalisation; the rule test and the eye check do.
 - [ ] Owner eye check, recorded in the commit body (jsdom cannot show it): a callout with `*emphasis*` and a meta-bind error inside (both still italic, plain body), a yellow `warning` label readable in the light theme, heading spacing at the top of a note, a number control beside a select in WKWebView.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -61,3 +61,4 @@ Checked at 085b23c5d.
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. No owner questions on this ticket.
+- 2026-11-18, deliver (branch issue/13-callouts-headings-metabind-number-field-read): coloured, capitalised callout type label via `--cm-lp-callout-accent` (renamed from `--callout-accent`, which AC 1 and 2 name, to satisfy theme-css-contract.test.ts), plain callout body with italics kept, top padding for h1-h3, sized meta-bind number field. Tests: full suite at 86036c1fd passed (654 files, 17409 passed, 56 skipped, 1 todo); first run at 97a58f289 failed on the theme contract, fixed by the rename. Reviews: round 1 APPROVED, round 2 APPROVED. Owner eye check in WKWebView still pending.
