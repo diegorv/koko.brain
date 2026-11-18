@@ -30,7 +30,7 @@ imp src/lib/app/SettingsPanel.svelte:99 -> src/lib/core/settings/settings.logic.
 imp src/lib/app/AppOverlays.svelte:3 -> src/lib/app/SettingsPanel.svelte default
 ## reach
 in2 src/lib/app/SettingsPanel.svelte 1 files in 1 modules: src/routes(1)
-out2 src/lib/app/SettingsPanel.svelte 57 files in 18 modules: src/lib/core/settings(12) src/lib/components(8) src/lib/features/auto-organize(5) src/lib/core/trash(4) src/lib/utils(4) +13 modules
+out2 src/lib/app/SettingsPanel.svelte 60 files in 18 modules: src/lib/core/settings(12) src/lib/components(8) src/lib/features/auto-organize(5) src/lib/utils(5) src/lib/core/trash(4) +13 modules
 ## tests
 test src/tests/lib/app/SettingsPanel.test.ts imports src/lib/app/SettingsPanel.svelte mirror
 ## symbols

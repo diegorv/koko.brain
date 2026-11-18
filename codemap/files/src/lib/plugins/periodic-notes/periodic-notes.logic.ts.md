@@ -1,6 +1,6 @@
 # file card src/lib/plugins/periodic-notes/periodic-notes.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/plugins/periodic-notes/periodic-notes.logic.ts ' codemap/files
-file src/lib/plugins/periodic-notes/periodic-notes.logic.ts logic L281 module src/lib/plugins/periodic-notes in5 t4
+file src/lib/plugins/periodic-notes/periodic-notes.logic.ts logic L281 module src/lib/plugins/periodic-notes in5 t5
 ## imports
 imp src/lib/plugins/periodic-notes/periodic-notes.logic.ts:2 -> src/lib/utils/date.ts formatToCapturingRegex
 imp src/lib/plugins/periodic-notes/periodic-notes.logic.ts:3 -> src/lib/core/settings/settings.types.ts type:PeriodType,type:PeriodicNotesSettings
@@ -16,6 +16,7 @@ out2 src/lib/plugins/periodic-notes/periodic-notes.logic.ts 2 files in 1 modules
 ## tests
 test src/tests/lib/plugins/periodic-notes/periodic-notes.logic.test.ts imports src/lib/plugins/periodic-notes/periodic-notes.logic.ts mirror
 test src/tests/lib/app/editor-host.test.ts imports src/lib/plugins/periodic-notes/periodic-notes.logic.ts
+test src/tests/lib/core/settings/PeriodicNotesSection.test.ts imports src/lib/plugins/periodic-notes/periodic-notes.logic.ts
 test src/tests/lib/features/deep-link/deep-link-dirty-buffer.test.ts imports src/lib/plugins/periodic-notes/periodic-notes.logic.ts
 test src/tests/lib/plugins/periodic-notes/periodic-notes.service.test.ts imports src/lib/plugins/periodic-notes/periodic-notes.logic.ts
 ## symbols

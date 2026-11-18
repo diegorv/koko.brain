@@ -1,7 +1,7 @@
 # module card src/lib/core/settings
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/core/settings ' codemap/modules
 sections: neighbors, entry files, files, public, stores, effects, debt
-module src/lib/core/settings core files 38 in-modules 29 out-modules 6 pub 53/175 ipc 3/0 card ~6.7k
+module src/lib/core/settings core files 38 in-modules 29 out-modules 7 pub 53/176 ipc 3/0 card ~6.7k
 ## neighbors
 dep src/lib/app -> src/lib/core/settings 32
 dep src/lib/core/layout -> src/lib/core/settings 2
@@ -34,12 +34,13 @@ dep src/lib/utils -> src/lib/core/settings 3
 dep src/routes -> src/lib/core/settings 3
 dep src/lib/core/settings -> src/lib/components 30
 dep src/lib/core/settings -> src/lib/contracts 5
+dep src/lib/core/settings -> src/lib/core/filesystem 4
 dep src/lib/core/settings -> src/lib/core/markdown-editor 1
 dep src/lib/core/settings -> src/lib/core/trash 4
-dep src/lib/core/settings -> src/lib/core/vault 2
-dep src/lib/core/settings -> src/lib/utils 16
+dep src/lib/core/settings -> src/lib/core/vault 4
+dep src/lib/core/settings -> src/lib/utils 17
 in2 src/lib/core/settings 12 modules: src/lib/core/filesystem(5) src/lib/core/editor(2) src/lib/features/backlinks(2) src/lib/features/collection(2) src/lib/features/note-list(2) +7 modules
-out2 src/lib/core/settings 2 modules: src/lib/core/filesystem(4) src/lib/core/editor(2)
+out2 src/lib/core/settings 1 modules: src/lib/core/editor(2)
 ## entry files
 entry src/lib/core/settings/settings.store.svelte.ts ext-in69 src/lib/app/AppShell.svelte src/lib/app/EditorView.svelte src/lib/app/boot.ts src/lib/app/commands.ts src/lib/app/deep-link-actions.ts more importers 64 not shown: src/lib/features/event-calendar(10) src/lib/features/rail-shell(9) src/lib/features/search(5) +22 modules: q importers src/lib/core/settings/settings.store.svelte.ts
 entry src/lib/core/settings/settings.types.ts ext-in16 src/lib/app/SettingsPanel.svelte src/lib/core/layout/layout.service.ts src/lib/features/event-calendar/EventCalendarSection.svelte src/lib/features/event-calendar/event-calendar-event.logic.ts src/lib/features/event-calendar/event-calendar-form.logic.ts more importers 11 not shown: src/lib/plugins/calendar(2) src/lib/plugins/periodic-notes(2) src/lib/features/event-calendar(1) +6 modules: q importers src/lib/core/settings/settings.types.ts
@@ -78,8 +79,8 @@ file src/lib/core/settings/sections/EditorSection.svelte component L182 module s
 file src/lib/core/settings/sections/FileHistorySection.svelte component L63 module src/lib/core/settings in1 t2
 file src/lib/core/settings/sections/FilesSection.svelte component L46 module src/lib/core/settings in1 t2
 file src/lib/core/settings/sections/HeadingTypographyEditor.svelte component L118 module src/lib/core/settings in1 t1
-file src/lib/core/settings/sections/OneOnOneSection.svelte component L105 module src/lib/core/settings in1 t1
-file src/lib/core/settings/sections/PeriodicNotesSection.svelte component L135 module src/lib/core/settings in1 t2
+file src/lib/core/settings/sections/OneOnOneSection.svelte component L115 module src/lib/core/settings in1 t1
+file src/lib/core/settings/sections/PeriodicNotesSection.svelte component L187 module src/lib/core/settings in1 t2
 file src/lib/core/settings/sections/QuickCaptureSection.svelte component L79 module src/lib/core/settings in1 t2
 file src/lib/core/settings/sections/SentrySection.svelte component L95 module src/lib/core/settings in1 t0
 file src/lib/core/settings/sections/SettingItem.svelte component L41 module src/lib/core/settings in18 t1
@@ -94,10 +95,10 @@ file src/lib/core/settings/sentry.logic.ts logic L28 module src/lib/core/setting
 file src/lib/core/settings/sentry.service.ts service L134 module src/lib/core/settings in3 t6
 file src/lib/core/settings/settings-panel.store.svelte.ts store L24 module src/lib/core/settings in7 t8
 file src/lib/core/settings/settings-persistence.svelte.ts other L122 module src/lib/core/settings in2 t9
-file src/lib/core/settings/settings.logic.ts logic L303 module src/lib/core/settings in11 t2
+file src/lib/core/settings/settings.logic.ts logic L323 module src/lib/core/settings in13 t2
 file src/lib/core/settings/settings.service.ts service L297 module src/lib/core/settings in3 t6
 file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in85 t134
-file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in25 t0
+file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in26 t0
 file src/lib/core/settings/theme-builder.logic.ts logic L318 module src/lib/core/settings in3 t10
 file src/lib/core/settings/theme-catalog.service.ts service L45 module src/lib/core/settings in1 t1
 file src/lib/core/settings/theme-editor.logic.ts logic L303 module src/lib/core/settings in3 t1
@@ -118,8 +119,8 @@ sym src/lib/core/settings/sections/AppearanceSection.svelte:1 component Appearan
 sym src/lib/core/settings/sections/EditorSection.svelte:1 component EditorSection L182
 sym src/lib/core/settings/sections/FileHistorySection.svelte:1 component FileHistorySection L63
 sym src/lib/core/settings/sections/FilesSection.svelte:1 component FilesSection L46
-sym src/lib/core/settings/sections/OneOnOneSection.svelte:1 component OneOnOneSection L105
-sym src/lib/core/settings/sections/PeriodicNotesSection.svelte:1 component PeriodicNotesSection L135
+sym src/lib/core/settings/sections/OneOnOneSection.svelte:1 component OneOnOneSection L115
+sym src/lib/core/settings/sections/PeriodicNotesSection.svelte:1 component PeriodicNotesSection L187
 sym src/lib/core/settings/sections/QuickCaptureSection.svelte:1 component QuickCaptureSection L79
 sym src/lib/core/settings/sections/SentrySection.svelte:1 component SentrySection L95
 sym src/lib/core/settings/sections/SettingItem.svelte:1 component SettingItem props:label,description,layout=,children L41
@@ -134,14 +135,14 @@ sym src/lib/core/settings/settings-panel.store.svelte.ts:7 store settingsPanelSt
 sym src/lib/core/settings/settings-persistence.svelte.ts:55 fn startSettingsPersistence(vaultPath: string, outcome: SettingsLoadOutcome = 'loaded'): void L25 | Starts persisting every settings mutation to `vaultPath`.
 sym src/lib/core/settings/settings-persistence.svelte.ts:86 fn flushSettingsPersistence(): Promise<void> L19 | Writes the pending settings change immediately instead of waiting out the debounce.
 sym src/lib/core/settings/settings-persistence.svelte.ts:113 fn stopSettingsPersistence(): Promise<void> L10 | Flushes the pending write, then stops persisting.
-sym src/lib/core/settings/settings.logic.ts:83 fn effectiveContentWidth(editor: Pick<EditorSettings, 'contentWidth' | 'wideNotes'>): number L3 | The max width notes are laid out at: 0 (full width) for wide notes, else the configured `contentWidth`
-sym src/lib/core/settings/settings.logic.ts:108 const EVENT_CALENDAR_COLORS L1 | Event colors the calendar offers; the only runtime copy of this list
-sym src/lib/core/settings/settings.logic.ts:111 const EVENT_CALENDAR_VIEW_MODES L1 | Calendar view modes; the only runtime copy of this list
-sym src/lib/core/settings/settings.logic.ts:114 fn clampDayStartHour(hour: number): number L5 | Clamps the calendar's first visible hour to an integer within 0–12 (a non-finite value becomes 0)
-sym src/lib/core/settings/settings.logic.ts:121 fn clampEventDuration(minutes: number): number L5 | Rounds a default event duration to a multiple of 15 within 15–480 minutes (a non-finite value becomes 15)
-sym src/lib/core/settings/settings.logic.ts:131 fn normalizeEventTypeName(name: unknown): string L6 | Trims the type name event notes carry.
-sym src/lib/core/settings/settings.logic.ts:168 fn clampSyncIntervalMinutes(minutes: number): number L6 | Rounds the Todoist sync interval to whole minutes, at least 1.
-sym src/lib/core/settings/settings.logic.ts:255 const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] L49 | Navigation items for the settings sidebar, organized by group
+sym src/lib/core/settings/settings.logic.ts:85 fn effectiveContentWidth(editor: Pick<EditorSettings, 'contentWidth' | 'wideNotes'>): number L3 | The max width notes are laid out at: 0 (full width) for wide notes, else the configured `contentWidth`
+sym src/lib/core/settings/settings.logic.ts:110 const EVENT_CALENDAR_COLORS L1 | Event colors the calendar offers; the only runtime copy of this list
+sym src/lib/core/settings/settings.logic.ts:113 const EVENT_CALENDAR_VIEW_MODES L1 | Calendar view modes; the only runtime copy of this list
+sym src/lib/core/settings/settings.logic.ts:116 fn clampDayStartHour(hour: number): number L5 | Clamps the calendar's first visible hour to an integer within 0–12 (a non-finite value becomes 0)
+sym src/lib/core/settings/settings.logic.ts:123 fn clampEventDuration(minutes: number): number L5 | Rounds a default event duration to a multiple of 15 within 15–480 minutes (a non-finite value becomes 15)
+sym src/lib/core/settings/settings.logic.ts:133 fn normalizeEventTypeName(name: unknown): string L6 | Trims the type name event notes carry.
+sym src/lib/core/settings/settings.logic.ts:170 fn clampSyncIntervalMinutes(minutes: number): number L6 | Rounds the Todoist sync interval to whole minutes, at least 1.
+sym src/lib/core/settings/settings.logic.ts:257 const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] L49 | Navigation items for the settings sidebar, organized by group
 sym src/lib/core/settings/settings.service.ts:39 fn loadSettings(vaultPath: string): Promise<SettingsLoadOutcome> L42 | Reads settings from disk and merges them with defaults, then persists the result so new default keys are written to disk.
 sym src/lib/core/settings/settings.service.ts:285 fn applyHeadingTypography(): void L8 | Applies heading typography CSS variables to the document root
 sym src/lib/core/settings/settings.service.ts:295 fn resetSettings() L3 | Restores settings to their defaults (does not write to disk)

@@ -32,7 +32,7 @@ imp src/lib/plugins/mods/mod-vault.service.ts:13 -> src/lib/utils/path.ts relati
 imp src/lib/plugins/mods/mods-host.service.ts:18 -> src/lib/utils/path.ts vaultRelativeKey
 imp src/lib/plugins/one-on-one/one-on-one.service.ts:19 -> src/lib/utils/path.ts stem
 ## reach
-in2 src/lib/utils/path.ts 88 files in 33 modules: src/lib/features/rail-shell(11) src/lib/app(9) src/lib/core/markdown-editor(5) src/lib/features/tasks(5) src/lib/features/type-definitions(5) +28 modules: q impact src/lib/utils/path.ts --depth 2
+in2 src/lib/utils/path.ts 89 files in 34 modules: src/lib/features/rail-shell(11) src/lib/app(9) src/lib/core/markdown-editor(5) src/lib/features/tasks(5) src/lib/features/type-definitions(5) +29 modules: q impact src/lib/utils/path.ts --depth 2
 out2 src/lib/utils/path.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/utils/path.test.ts imports src/lib/utils/path.ts mirror

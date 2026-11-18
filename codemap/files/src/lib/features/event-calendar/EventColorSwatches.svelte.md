@@ -9,7 +9,7 @@ imp src/lib/features/event-calendar/EventCalendarSection.svelte:20 -> src/lib/fe
 imp src/lib/features/event-calendar/EventForm.svelte:16 -> src/lib/features/event-calendar/EventColorSwatches.svelte default
 ## reach
 in2 src/lib/features/event-calendar/EventColorSwatches.svelte 2 files in 2 modules: src/lib/app(1) src/lib/features/event-calendar(1)
-out2 src/lib/features/event-calendar/EventColorSwatches.svelte 2 files in 2 modules: src/lib/core/settings(1) src/lib/utils(1)
+out2 src/lib/features/event-calendar/EventColorSwatches.svelte 4 files in 3 modules: src/lib/core/filesystem(2) src/lib/core/settings(1) src/lib/utils(1)
 ## symbols
 sym src/lib/features/event-calendar/EventColorSwatches.svelte:1 component EventColorSwatches props:value,onchange,label= L58
 by src/lib/features/event-calendar/EventColorSwatches.svelte:default <- src/lib/features/event-calendar/EventCalendarSection.svelte:237 in (markup) mount

@@ -1,6 +1,6 @@
 # file card src/lib/core/filesystem/fs.types.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/filesystem/fs.types.ts ' codemap/files
-file src/lib/core/filesystem/fs.types.ts types L16 module src/lib/core/filesystem in12 t0
+file src/lib/core/filesystem/fs.types.ts types L16 module src/lib/core/filesystem in13 t0
 ## imports
 imp src/lib/core/filesystem/fs.types.ts:1 -> src/lib/contracts/index.ts type:FileNode
 imp src/lib/core/filesystem/fs.types.ts:3 -> src/lib/contracts/index.ts type:FileReadResult
@@ -12,13 +12,14 @@ imp src/lib/core/filesystem/fs.logic.ts:6 -> src/lib/core/filesystem/fs.types.ts
 imp src/lib/core/filesystem/fs.service.ts:4 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode,type:FolderOrderMap
 imp src/lib/core/filesystem/fs.store.svelte.ts:1 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode,type:FolderOrderMap
 imp src/lib/core/filesystem/fs.watcher.ts:9 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode
+imp src/lib/core/settings/settings.logic.ts:3 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode
 imp src/lib/features/rail-shell/FilesNavigator.svelte:25 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode
 imp src/lib/features/rail-shell/lens.logic.ts:4 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode
 imp src/lib/features/rail-shell/rail-shell.types.ts:4 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode
 imp src/lib/features/type-definitions/type-sidebar.logic.ts:4 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode
 imp src/lib/plugins/templates/templates.logic.ts:1 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode
 ## reach
-in2 src/lib/core/filesystem/fs.types.ts 85 files in 30 modules: src/lib/features/rail-shell(18) src/lib/app(9) src/lib/features/type-definitions(6) src/lib/core/markdown-editor(4) src/lib/features/collection(4) +25 modules: q impact src/lib/core/filesystem/fs.types.ts --depth 2
+in2 src/lib/core/filesystem/fs.types.ts 96 files in 31 modules: src/lib/features/rail-shell(18) src/lib/app(10) src/lib/core/settings(7) src/lib/features/type-definitions(6) src/lib/core/markdown-editor(5) +26 modules: q impact src/lib/core/filesystem/fs.types.ts --depth 2
 out2 src/lib/core/filesystem/fs.types.ts 52 files in 1 modules: src/lib/contracts(52)
 ## tests
 test src/tests/fixtures/tauri-api.fixture.ts imports-type src/lib/core/filesystem/fs.types.ts
@@ -35,6 +36,9 @@ test src/tests/lib/core/filesystem/fs.watcher.app-patch.test.ts imports-type src
 test src/tests/lib/core/filesystem/fs.watcher.test.ts imports-type src/lib/core/filesystem/fs.types.ts
 test src/tests/lib/core/filesystem/link-updater.service.test.ts imports-type src/lib/core/filesystem/fs.types.ts
 test src/tests/lib/core/markdown-editor/extensions/live-preview/widgets/wikilink-image-embed-widget.test.ts imports-type src/lib/core/filesystem/fs.types.ts
+test src/tests/lib/core/settings/OneOnOneSection.test.ts imports-type src/lib/core/filesystem/fs.types.ts
+test src/tests/lib/core/settings/PeriodicNotesSection.test.ts imports-type src/lib/core/filesystem/fs.types.ts
+test src/tests/lib/core/settings/settings.logic.test.ts imports-type src/lib/core/filesystem/fs.types.ts
 test src/tests/lib/core/trash/trash.service.test.ts imports-type src/lib/core/filesystem/fs.types.ts
 test src/tests/lib/features/properties/RelationshipSearch.test.ts imports-type src/lib/core/filesystem/fs.types.ts
 test src/tests/lib/features/rail-shell/FilesNavigator.menu.test.ts imports-type src/lib/core/filesystem/fs.types.ts
@@ -58,8 +62,8 @@ by src/lib/core/filesystem/fs.types.ts:FileTreeNode <- src/lib/core/filesystem/f
 by src/lib/core/filesystem/fs.types.ts:FileTreeNode <- src/lib/core/filesystem/fs.service.ts:4 in (module) import
 by src/lib/core/filesystem/fs.types.ts:FileTreeNode <- src/lib/core/filesystem/fs.store.svelte.ts:1 in (module) import
 by src/lib/core/filesystem/fs.types.ts:FileTreeNode <- src/lib/core/filesystem/fs.watcher.ts:9 in (module) import
-by src/lib/core/filesystem/fs.types.ts:FileTreeNode <- src/lib/features/rail-shell/FilesNavigator.svelte:25 in (script) import
-more by 4 not shown: src/lib/features/rail-shell(2) src/lib/features/type-definitions(1) src/lib/plugins/templates(1): q importers src/lib/core/filesystem/fs.types.ts:FileTreeNode
+by src/lib/core/filesystem/fs.types.ts:FileTreeNode <- src/lib/core/settings/settings.logic.ts:3 in (module) import
+more by 5 not shown: src/lib/features/rail-shell(3) src/lib/features/type-definitions(1) src/lib/plugins/templates(1): q importers src/lib/core/filesystem/fs.types.ts:FileTreeNode
 sym src/lib/core/filesystem/fs.types.ts:16 type FolderOrderMap L1 | Maps relative directory paths to ordered arrays of folder names.
 by src/lib/core/filesystem/fs.types.ts:FolderOrderMap <- src/lib/core/filesystem/fs.logic.ts:6 in (module) import
 by src/lib/core/filesystem/fs.types.ts:FolderOrderMap <- src/lib/core/filesystem/fs.service.ts:4 in (module) import

@@ -13,13 +13,13 @@ module src/lib/app app files 15 in-modules 1 out-modules 46 pub 12/27 ipc 11/0 c
 module src/lib/components components files 98 in-modules 31 out-modules 1 pub 1/1 ipc 0/0 card ~6.3k
 module src/lib/contracts contracts files 56 in-modules 26 out-modules 0 pub 45/65 ipc 0/0 card ~4.4k
 module src/lib/core/editor core files 6 in-modules 38 out-modules 3 pub 46/55 ipc 0/0 card ~4.5k
-module src/lib/core/filesystem core files 14 in-modules 29 out-modules 7 pub 60/91 ipc 14/0 card ~7k
+module src/lib/core/filesystem core files 14 in-modules 30 out-modules 7 pub 61/91 ipc 14/0 card ~7.2k
 module src/lib/core/frontmatter core files 4 in-modules 16 out-modules 3 pub 28/40 ipc 0/0 card ~3.5k
 module src/lib/core/layout core files 3 in-modules 6 out-modules 4 pub 8/10 ipc 0/0 card ~1.1k
 module src/lib/core/markdown-editor core files 109 in-modules 11 out-modules 9 pub 35/357 ipc 0/0 card ~9k
 module src/lib/core/note-creator core files 2 in-modules 12 out-modules 5 pub 4/6 ipc 2/0 card ~1.4k
 module src/lib/core/rule-actions core files 1 in-modules 2 out-modules 0 pub 1/3 ipc 0/0 card ~0.5k
-module src/lib/core/settings core files 38 in-modules 29 out-modules 6 pub 53/175 ipc 3/0 card ~6.7k
+module src/lib/core/settings core files 38 in-modules 29 out-modules 7 pub 53/176 ipc 3/0 card ~6.7k
 module src/lib/core/status-bar core files 2 in-modules 1 out-modules 1 pub 2/2 ipc 0/0 card ~0.4k
 module src/lib/core/trash core files 4 in-modules 4 out-modules 3 pub 9/17 ipc 0/0 card ~1.3k
 module src/lib/core/vault core files 7 in-modules 34 out-modules 5 pub 9/17 ipc 1/0 card ~2.2k
@@ -74,9 +74,9 @@ layer components -> lib-root 55
 layer contracts -> contracts 85
 layer core -> components 34
 layer core -> contracts 15
-layer core -> core 475
+layer core -> core 484
 layer core -> types 5
-layer core -> utils 70
+layer core -> utils 71
 layer features -> components 104
 layer features -> contracts 43
 layer features -> core 342

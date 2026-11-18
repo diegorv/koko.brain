@@ -21,7 +21,7 @@ entry src/lib/plugins/periodic-notes/periodic-notes.service.ts ext-in7 src/lib/a
 entry src/lib/plugins/periodic-notes/periodic-notes.logic.ts ext-in4 src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/plugins/one-on-one/one-on-one.logic.ts src/lib/plugins/quick-capture/note-composer.logic.ts
 ## files
 file src/lib/plugins/periodic-notes/DailyNoteButton.svelte component L23 module src/lib/plugins/periodic-notes in0 t0
-file src/lib/plugins/periodic-notes/periodic-notes.logic.ts logic L281 module src/lib/plugins/periodic-notes in5 t4
+file src/lib/plugins/periodic-notes/periodic-notes.logic.ts logic L281 module src/lib/plugins/periodic-notes in5 t5
 file src/lib/plugins/periodic-notes/periodic-notes.service.ts service L170 module src/lib/plugins/periodic-notes in8 t9
 ## public
 sym src/lib/plugins/periodic-notes/periodic-notes.logic.ts:10 fn buildPeriodicNotePath(vaultPath: string, folder: string, format: string, date: dayjs.Dayjs): string L13 | Builds the full absolute path for a periodic note given a specific date.

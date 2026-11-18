@@ -12,7 +12,7 @@ imp src/lib/core/settings/sections/HeadingTypographyEditor.svelte:11 -> src/lib/
 imp src/lib/core/settings/sections/EditorSection.svelte:12 -> src/lib/core/settings/sections/HeadingTypographyEditor.svelte default
 ## reach
 in2 src/lib/core/settings/sections/HeadingTypographyEditor.svelte 1 files in 1 modules: src/lib/app(1)
-out2 src/lib/core/settings/sections/HeadingTypographyEditor.svelte 15 files in 3 modules: src/lib/components(12) src/lib/core/settings(2) src/lib/utils(1)
+out2 src/lib/core/settings/sections/HeadingTypographyEditor.svelte 17 files in 4 modules: src/lib/components(12) src/lib/core/filesystem(2) src/lib/core/settings(2) src/lib/utils(1)
 ## tests
 test src/tests/lib/core/settings/HeadingTypographyEditor.test.ts imports src/lib/core/settings/sections/HeadingTypographyEditor.svelte
 ## symbols
