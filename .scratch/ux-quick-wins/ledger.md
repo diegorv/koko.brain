@@ -47,7 +47,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 10 | [Kanban cards: no empty date row, clamped preview, growing editor](issues/10-kanban-cards-no-empty-date-row.md) | 05 | todo | | |
 | 11 | [Kanban lanes: visible add row, empty and filtered counts, collapsed rail](issues/11-kanban-lanes-visible-add-row-empty.md) | 05, 10 | todo | | |
 | 12 | [Kanban list, table and archive: named checks, clean cells, restore feedback](issues/12-kanban-list-table-archive-named-checks.md) | 05, 11 | todo | | |
-| 13 | [Callouts, headings and the meta-bind number field read cleanly](issues/13-callouts-headings-metabind-number-field-read.md) | 08 | in-progress | | |
+| 13 | [Callouts, headings and the meta-bind number field read cleanly](issues/13-callouts-headings-metabind-number-field-read.md) | 08 | done | issue/13-callouts-headings-metabind-number-field-read (51497add3) | 2026-11-18 |
 | 14 | [Inline collection block: readable table, built-in names, other-views hint](issues/14-inline-collection-block-readable-table-builtin.md) | 09, 13 | todo | | |
 | 15 | [Filter and Sort panels: visible conjunction and named remove buttons](issues/15-filter-sort-conjunction-names.md) | none | todo | | |
 | 16 | [Canvas handles show on selected nodes; image cards get 8 handles and real loading and error states](issues/16-canvas-handles-show-selected-nodes-image.md) | 06 | todo | | |
@@ -91,3 +91,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 13:47 — 08 — start — launched by /relay-lite:run — 7566f1272
 - 2026-11-18 14:03 — 08 — deliver — merged after review 1 APPROVED with findings, fix round (copy label timer restart, test DOM cleanup), re-review 2 APPROVED (claude); full vitest suite passed (17397 tests); owner eye check criterion still open — e118671bf
 - 2026-11-18 14:04 — 13 — start — launched by /relay-lite:run — 1d46dd5d6
+- 2026-11-18 14:22 — 13 — deliver — merged after review 1 APPROVED, fix round (meta-bind rule pin, --cm-lp-callout-accent rename for theme-css-contract), re-review 2 APPROVED (claude); full vitest suite passed on second run (17409 tests); owner eye check in WKWebView still open — 51497add3
