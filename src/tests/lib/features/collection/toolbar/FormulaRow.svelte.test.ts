@@ -119,3 +119,47 @@ describe('FormulaRow — confirming an edit', () => {
 		expect(check().disabled).toBe(true);
 	});
 });
+
+describe('FormulaRow — remove button name', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+	let removed = 0;
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	function render(entry: FormulaEntry): void {
+		removed = 0;
+		target = document.body.appendChild(document.createElement('div'));
+		component = mount(FormulaRow, {
+			target,
+			props: { entry, onUpdate: () => {}, onRemove: () => { removed++; } },
+		});
+		flushSync();
+	}
+
+	/** The button whose accessible name (its aria-label) is `name`, as getByRole would find it. */
+	function removeButton(name: string): HTMLButtonElement {
+		const el = target.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`);
+		if (!el) throw new Error(`button "${name}" not found`);
+		return el;
+	}
+
+	it.each([true, false])('names the remove after the formula with editing %s, with a matching title', (editing) => {
+		render({ id: 'f1', name: 'double', expression: 'priority * 2', editing });
+
+		const button = removeButton('Remove formula double');
+		expect(button.title).toBe('Remove formula double');
+		button.click();
+		expect(removed).toBe(1);
+	});
+
+	it.each([true, false])('names the remove "Remove formula" for an unnamed entry with editing %s', (editing) => {
+		render({ id: 'f1', name: '', expression: '', editing });
+
+		expect(removeButton('Remove formula').title).toBe('Remove formula');
+	});
+});

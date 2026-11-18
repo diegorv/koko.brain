@@ -88,7 +88,7 @@ layer plugins -> components 22
 layer plugins -> contracts 7
 layer plugins -> core 111
 layer plugins -> features 35
-layer plugins -> plugins 141
+layer plugins -> plugins 142
 layer plugins -> types 4
 layer plugins -> utils 43
 layer routes -> app 7

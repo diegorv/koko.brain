@@ -46,10 +46,10 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [Collection table: readable names, visible sort order, sticky header](issues/09-collection-table-readable-names-visible-sort.md) | none | done | issue/09-collection-table-readable-names-visible-sort (8611869b7) | 2026-11-18 |
 | 10 | [Kanban cards: no empty date row, clamped preview, growing editor](issues/10-kanban-cards-no-empty-date-row.md) | 05 | done | issue/10-kanban-cards-no-empty-date-row (5c06e1aa7) | 2026-11-18 |
 | 11 | [Kanban lanes: visible add row, empty and filtered counts, collapsed rail](issues/11-kanban-lanes-visible-add-row-empty.md) | 05, 10 | done | issue/11-kanban-lanes-visible-add-row-empty (8191a458c) | 2026-11-18 |
-| 12 | [Kanban list, table and archive: named checks, clean cells, restore feedback](issues/12-kanban-list-table-archive-named-checks.md) | 05, 11 | in-progress | | |
+| 12 | [Kanban list, table and archive: named checks, clean cells, restore feedback](issues/12-kanban-list-table-archive-named-checks.md) | 05, 11 | done | issue/12-kanban-list-table-archive-named-checks (00dcb35b4) | 2026-11-18 |
 | 13 | [Callouts, headings and the meta-bind number field read cleanly](issues/13-callouts-headings-metabind-number-field-read.md) | 08 | done | issue/13-callouts-headings-metabind-number-field-read (51497add3) | 2026-11-18 |
 | 14 | [Inline collection block: readable table, built-in names, other-views hint](issues/14-inline-collection-block-readable-table-builtin.md) | 09, 13 | done | issue/14-inline-collection-block-readable-table-builtin (7bf8332b1) | 2026-11-18 |
-| 15 | [Filter and Sort panels: visible conjunction and named remove buttons](issues/15-filter-sort-conjunction-names.md) | none | todo | | |
+| 15 | [Filter and Sort panels: visible conjunction and named remove buttons](issues/15-filter-sort-conjunction-names.md) | none | done | issue/15-filter-sort-conjunction-names (6a3c28e99) | 2026-11-18 |
 | 16 | [Canvas handles show on selected nodes; image cards get 8 handles and real loading and error states](issues/16-canvas-handles-show-selected-nodes-image.md) | 06 | todo | | |
 | 17 | [The canvas context menu and pickers work from the keyboard and show Mac shortcut glyphs](issues/17-canvas-context-menu-pickers-work-keyboard.md) | 06 | todo | | |
 | 18 | [Note action bar: Mac glyph tooltips, and the width toggle says when it cannot work](issues/18-note-action-bar-mac-glyph-tooltips.md) | 17 | todo | | |
@@ -117,3 +117,6 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 17:32 — 11 — start — launched by /relay-lite:run — 58d10c28e
 - 2026-11-18 17:46 — 11 — deliver — merged after review 1 APPROVED with minor findings, fix round (lane count sr-only label, rail double-click test), re-review 2 APPROVED (claude); full vitest suite passed (17583 tests) — 8191a458c
 - 2026-11-18 17:47 — 12 — start — launched by /relay-lite:run — eab1431e9
+- 2026-11-18 17:56 — 12 — deliver — merged after review 1 APPROVED, fix round (help restore toast placeholder; restoreItem guard rejected), re-review 2 APPROVED (claude); full vitest suite passed (17591 tests) — 00dcb35b4
+- 2026-11-18 17:57 — 15 — start — launched by /relay-lite:run — c0377cab6
+- 2026-11-18 18:06 — 15 — deliver — merged after review 1 APPROVED with 3 nits, fix round (attribute layout, chevron test; w-fit kept), re-review 2 APPROVED (claude); full vitest suite passed (17600 tests) — 6a3c28e99

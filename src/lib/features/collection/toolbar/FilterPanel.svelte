@@ -13,6 +13,7 @@
 		DropdownMenuItem,
 	} from '#lib/components/ui/dropdown-menu/index.js';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import Plus from '@lucide/svelte/icons/plus';
 	import type { FilterConjunction, FilterGroup, FilterRow as FilterRowType } from './toolbar.types';
 	import { CONJUNCTION_LABELS } from './toolbar.types';
@@ -110,8 +111,11 @@
 						<!-- Conjunction selector -->
 						<DropdownMenu>
 							<DropdownMenuTrigger>
-								<button class="text-xs text-muted-foreground hover:text-foreground">
-									{CONJUNCTION_LABELS[group.conjunction]}
+								<button
+									class="flex h-7 w-fit items-center justify-between gap-1 rounded-md border border-input bg-background px-2 text-xs hover:bg-accent"
+								>
+									<span class="truncate">{CONJUNCTION_LABELS[group.conjunction]}</span>
+									<ChevronDown class="size-3 shrink-0 opacity-50" />
 								</button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent>
@@ -172,8 +176,11 @@
 					<!-- Conjunction selector -->
 					<DropdownMenu>
 						<DropdownMenuTrigger>
-							<button class="text-xs text-muted-foreground hover:text-foreground">
-								{CONJUNCTION_LABELS[group.conjunction]}
+							<button
+								class="flex h-7 w-fit items-center justify-between gap-1 rounded-md border border-input bg-background px-2 text-xs hover:bg-accent"
+							>
+								<span class="truncate">{CONJUNCTION_LABELS[group.conjunction]}</span>
+								<ChevronDown class="size-3 shrink-0 opacity-50" />
 							</button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent>

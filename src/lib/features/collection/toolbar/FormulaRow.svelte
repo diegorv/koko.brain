@@ -32,6 +32,9 @@
 	let canConfirm = $derived(
 		!nameError && !expressionError && entry.expression.trim() !== '',
 	);
+
+	/** Accessible name and tooltip of the icon-only remove buttons */
+	let removeLabel = $derived(entry.name ? `Remove formula ${entry.name}` : 'Remove formula');
 </script>
 
 {#if entry.editing}
@@ -54,7 +57,14 @@
 			>
 				<Check class="size-3.5" />
 			</Button>
-			<Button variant="ghost" size="icon-sm" class="size-7 shrink-0" onclick={onRemove}>
+			<Button
+				variant="ghost"
+				size="icon-sm"
+				class="size-7 shrink-0"
+				aria-label={removeLabel}
+				title={removeLabel}
+				onclick={onRemove}
+			>
 				<X class="size-3.5" />
 			</Button>
 		</div>
@@ -84,7 +94,12 @@
 		>
 			<Pencil class="size-3" />
 		</button>
-		<button class="text-muted-foreground/50 hover:text-destructive" onclick={onRemove}>
+		<button
+			class="text-muted-foreground/50 hover:text-destructive"
+			aria-label={removeLabel}
+			title={removeLabel}
+			onclick={onRemove}
+		>
 			<X class="size-3" />
 		</button>
 	</div>

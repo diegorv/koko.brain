@@ -25,12 +25,12 @@ describe('FilterPanel', () => {
 		document.body.innerHTML = '';
 	});
 
-	function render(options: { showGlobal?: boolean; viewFilters?: FilterGroup[] } = {}) {
+	function render(options: { showGlobal?: boolean; viewFilters?: FilterGroup[]; globalFilters?: FilterGroup[] } = {}) {
 		viewChanges = [];
 		globalChanges = [];
 		target = document.body.appendChild(document.createElement('div'));
 		const props = $state({
-			globalFilters: [] as FilterGroup[],
+			globalFilters: options.globalFilters ?? ([] as FilterGroup[]),
 			viewFilters: options.viewFilters ?? ([] as FilterGroup[]),
 			availableProperties: ['file.name', 'status'],
 			propertyIndex: new Map(),
@@ -107,5 +107,40 @@ describe('FilterPanel', () => {
 		await settle();
 		expect(lastView()).toEqual([]);
 		expect(globalChanges).toEqual([]);
+	});
+
+	describe('conjunction trigger', () => {
+		const group = (id: string): FilterGroup[] => [
+			{ conjunction: 'and', rows: [{ id, property: 'status', operator: 'is', value: 'done' }] },
+		];
+
+		/** The styled conjunction buttons: the innermost button carrying the label, inside the menu trigger. */
+		function conjunctionTriggers(text: string): HTMLButtonElement[] {
+			return buttons(text).filter((b) => !b.querySelector('button'));
+		}
+
+		it('looks like the row selectors in both groups: bordered, with a chevron, the label unchanged', () => {
+			render({ globalFilters: group('g1'), viewFilters: group('v1') });
+
+			const triggers = conjunctionTriggers('All the following are true');
+			expect(triggers).toHaveLength(2);
+			for (const trigger of triggers) {
+				expect(trigger.lastElementChild?.tagName.toLowerCase()).toBe('svg');
+				for (const cls of ['border', 'h-7', 'rounded-md', 'px-2', 'hover:bg-accent']) {
+					expect(trigger.classList.contains(cls)).toBe(true);
+				}
+				expect(trigger.classList.contains('min-w-[80px]')).toBe(false);
+			}
+		});
+
+		it('still reports "Any" as or for the global group', async () => {
+			render({ globalFilters: group('g1'), viewFilters: group('v1') });
+
+			await openMenu(conjunctionTriggers('All the following are true')[0]);
+			await clickMenuItem('Any of the following are true');
+
+			expect(globalChanges[globalChanges.length - 1][0].conjunction).toBe('or');
+			expect(viewChanges).toEqual([]);
+		});
 	});
 });
