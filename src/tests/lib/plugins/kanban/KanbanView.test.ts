@@ -8,6 +8,10 @@ class ResizeObserverStub {
 	disconnect() {}
 }
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
+// jsdom lacks the pointer-capture and scroll APIs the sort Select calls when it opens.
+Element.prototype.hasPointerCapture ??= () => false;
+Element.prototype.releasePointerCapture ??= () => {};
+Element.prototype.scrollIntoView ??= () => {};
 
 // The linked-file loader reaches Tauri IPC — legitimately mocked. Stores and
 // kanban.logic stay real (CLAUDE.md rule 1): the view is driven through the real
@@ -16,10 +20,11 @@ vi.mock('#lib/plugins/kanban/kanban.service.js', () => ({
 	loadLinkedFileContent: vi.fn(async () => null),
 }));
 
-import { mount, unmount, flushSync } from 'svelte';
+import { mount, unmount, flushSync, tick } from 'svelte';
 import KanbanViewHarness from '../../../fixtures/KanbanViewHarness.svelte';
 import { kanbanStore } from '#lib/plugins/kanban/kanban.store.svelte.js';
-import { parseKanbanBoard, serializeKanbanBoard, setViewMode } from '#lib/plugins/kanban/kanban.logic.js';
+import { parseKanbanBoard, serializeKanbanBoard, setSortMode, setViewMode, toggleLaneCollapsed } from '#lib/plugins/kanban/kanban.logic.js';
+import type { KanbanSortMode, KanbanViewMode } from '#lib/plugins/kanban/kanban.types.js';
 
 interface HarnessApi {
 	setMarkdown: (markdown: string) => void;
@@ -319,5 +324,277 @@ describe('KanbanView: Add Lane', () => {
 		const titles = parseKanbanBoard(api!.getMarkdown()).lanes.map((l) => l.title);
 		expect(titles).toEqual(['To Do', 'Done', 'New Lane', 'New Lane 2']);
 		expect(api?.getPersistCount()).toBe(2);
+	});
+});
+
+describe('KanbanView: keyboard shortcuts and toolbar', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+	let api: HarnessApi | undefined;
+
+	/** Tagged and untagged cards interleaved, so a `#x` filter hides some of them. */
+	const MIXED = '## To Do\n\n- [ ] hidden one\n- [ ] keep #x\n- [ ] hidden two\n- [ ] other #x\n\n## Done\n\n- [ ] hidden done\n\n';
+
+	beforeEach(() => {
+		kanbanStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		api = undefined;
+		kanbanStore.reset();
+		document.body.innerHTML = '';
+	});
+
+	function mountBoard(source = MIXED, mode: KanbanViewMode = 'board', sortMode?: KanbanSortMode): void {
+		let board = setViewMode(parseKanbanBoard(source), mode);
+		if (sortMode) board = setSortMode(board, sortMode);
+		component = mount(KanbanViewHarness, {
+			target,
+			props: { initialMarkdown: serializeKanbanBoard(board), register: (a: HarnessApi) => { api = a; } },
+		});
+		flushSync();
+	}
+
+	/** The view's root, which carries the keydown handler. */
+	function root(): HTMLElement {
+		return target.firstElementChild as HTMLElement;
+	}
+
+	function press(el: Element, key: string): void {
+		el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+		flushSync();
+	}
+
+	function card(text: string): HTMLElement {
+		const found = [...target.querySelectorAll<HTMLElement>('[data-item-id]')].find((el) => el.textContent?.includes(text));
+		if (!found) throw new Error(`card "${text}" not found`);
+		return found;
+	}
+
+	/** Texts of the cards carrying the focus ring. */
+	function ringed(): string[] {
+		return [...target.querySelectorAll<HTMLElement>('[data-item-id]')]
+			.filter((el) => el.className.includes('ring-2'))
+			.map((el) => el.textContent?.trim() ?? '');
+	}
+
+	function cardTexts(): string[] {
+		return parseKanbanBoard(api!.getMarkdown()).lanes.flatMap((l) => l.items.map((i) => i.text));
+	}
+
+	function sortTrigger(): HTMLElement {
+		const el = target.querySelector<HTMLElement>('[data-slot="select-trigger"][aria-label="Sort cards"]');
+		if (!el) throw new Error('no "Sort cards" control');
+		return el;
+	}
+
+	async function settle(): Promise<void> {
+		for (let i = 0; i < 20; i++) {
+			await Promise.resolve();
+			await tick();
+		}
+		flushSync();
+	}
+
+	/** Opens the sort Select and returns its options' text. */
+	async function openSortOptions(): Promise<string[]> {
+		const el = sortTrigger();
+		el.focus();
+		el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		flushSync();
+		return vi.waitFor(() => {
+			const listbox = document.getElementById(el.getAttribute('aria-controls') ?? '');
+			const found = [...(listbox?.querySelectorAll<HTMLElement>('[role="option"]') ?? [])].map((o) => o.textContent?.trim() ?? '');
+			if (found.length === 0) throw new Error('sort Select did not open');
+			return found;
+		});
+	}
+
+	async function chooseSort(option: string): Promise<void> {
+		if (sortTrigger().getAttribute('aria-expanded') !== 'true') await openSortOptions();
+		const listbox = document.getElementById(sortTrigger().getAttribute('aria-controls') ?? '');
+		const item = [...(listbox?.querySelectorAll<HTMLElement>('[role="option"]') ?? [])].find((o) => o.textContent?.trim() === option);
+		if (!item) throw new Error(`no option ${option}`);
+		item.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, pointerType: 'mouse' }));
+		item.click();
+		await settle();
+	}
+
+	describe('board keys act on the visible card', () => {
+		it('with a filter on, ArrowDown then Backspace deletes the ringed visible card and keeps every hidden card', () => {
+			mountBoard();
+			kanbanStore.setFilterQuery('#x');
+			flushSync();
+
+			press(root(), 'ArrowDown');
+			expect(ringed()).toEqual(['keep #x']);
+
+			press(root(), 'Backspace');
+			expect(cardTexts()).toEqual(['hidden one', 'hidden two', 'other #x', 'hidden done']);
+		});
+
+		it('a collapsed lane has no ringable cards, so Space and Backspace leave them in the file', () => {
+			let board = setViewMode(parseKanbanBoard('## A\n\n- [ ] a1\n\n## B\n\n- [ ] secret\n\n'), 'board');
+			board = toggleLaneCollapsed(board, 'B');
+			component = mount(KanbanViewHarness, {
+				target,
+				props: { initialMarkdown: serializeKanbanBoard(board), register: (a: HarnessApi) => { api = a; } },
+			});
+			flushSync();
+			const before = api!.getMarkdown();
+
+			press(root(), 'ArrowRight');
+			press(root(), 'ArrowRight');
+			press(root(), ' ');
+			press(root(), 'Backspace');
+
+			expect(cardTexts()).toEqual(['a1', 'secret']);
+			expect(api!.getMarkdown()).toBe(before);
+		});
+
+		it('ArrowDown from a card trigger div still moves the ring', () => {
+			mountBoard();
+			const triggerDiv = card('hidden one').closest<HTMLElement>('[data-context-menu-trigger]');
+			expect(triggerDiv).not.toBeNull();
+			triggerDiv!.focus();
+
+			press(triggerDiv!, 'ArrowDown');
+			press(triggerDiv!, 'ArrowDown');
+			expect(kanbanStore.focusedItemIndex).toBe(1);
+			expect(ringed()).toEqual(['keep #x']);
+		});
+
+		it.each(['list', 'table'] as const)('in %s mode Delete, Backspace and Space on the root change nothing', (mode) => {
+			mountBoard(MIXED, mode);
+			kanbanStore.setFocus(0, 0);
+			const before = api!.getMarkdown();
+
+			for (const key of ['Delete', 'Backspace', ' ']) press(root(), key);
+
+			expect(api!.getPersistCount()).toBe(0);
+			expect(api!.getMarkdown()).toBe(before);
+		});
+
+		it('Space or Enter on a card check button does not toggle or edit the ringed card', () => {
+			mountBoard();
+			kanbanStore.setFocus(0, 0);
+			flushSync();
+			const check = card('keep #x').querySelector<HTMLButtonElement>('button[aria-label="Check"]')!;
+
+			press(check, ' ');
+			press(check, 'Enter');
+
+			expect(api!.getPersistCount()).toBe(0);
+			expect(kanbanStore.editingItemId).toBeNull();
+		});
+
+		it('Space or Enter on a calendar day does not toggle or edit the ringed card', async () => {
+			mountBoard('## To Do\n\n- [ ] ringed card\n- [ ] dated card {2026-01-15}\n\n');
+			kanbanStore.setFocus(0, 0);
+			flushSync();
+			const badge = [...card('dated card').querySelectorAll<HTMLElement>('button')].filter((b) => b.textContent?.trim() === '2026-01-15').at(-1)!;
+			badge.click();
+			await settle();
+			const day = card('dated card').querySelector<HTMLElement>('[role="gridcell"] [data-bits-day], [role="gridcell"]');
+			expect(day).not.toBeNull();
+
+			press(day!, ' ');
+			press(day!, 'Enter');
+
+			const ringedItem = parseKanbanBoard(api!.getMarkdown()).lanes[0].items[0];
+			expect(ringedItem.text).toBe('ringed card');
+			expect(ringedItem.checked).toBe(false);
+			expect(kanbanStore.editingItemId).toBeNull();
+		});
+
+		it('keys bubbling from the sort trigger leave the focused card untouched and issue no save', () => {
+			mountBoard();
+			kanbanStore.setFocus(0, 0);
+			flushSync();
+
+			for (const key of [' ', 'Enter', 'Backspace', 'n']) press(sortTrigger(), key);
+
+			expect(cardTexts()).toContain('hidden one');
+			expect(parseKanbanBoard(api!.getMarkdown()).lanes[0].items[0].checked).toBe(false);
+			expect(kanbanStore.editingItemId).toBeNull();
+			expect(api!.getPersistCount()).toBe(0);
+		});
+	});
+
+	describe('sort control', () => {
+		it('is the themed Select, not a native select, listing SORT_LABELS in order', async () => {
+			mountBoard();
+			expect(target.querySelector('.pane-toolbar select')).toBeNull();
+			expect(await openSortOptions()).toEqual(['Manual', 'Date (oldest)', 'Date (newest)', 'Text (A→Z)', 'Text (Z→A)', 'Unchecked first']);
+		});
+
+		it('choosing "Text (A→Z)" persists text-asc', async () => {
+			mountBoard();
+			await chooseSort('Text (A→Z)');
+			expect(parseKanbanBoard(api!.getMarkdown()).settings.sortMode).toBe('text-asc');
+			expect(sortTrigger().textContent).toContain('Text (A→Z)');
+		});
+
+		it('mounting and re-choosing the current option issue no save', async () => {
+			mountBoard();
+			expect(sortTrigger().textContent).toContain('Manual');
+			await chooseSort('Manual');
+			expect(api!.getPersistCount()).toBe(0);
+		});
+
+		it('an unknown stored sortMode mounts without a save and does not read "Manual"', () => {
+			mountBoard(MIXED, 'board', 'unchecked' as KanbanSortMode);
+			expect(api!.getPersistCount()).toBe(0);
+			expect(sortTrigger().textContent).not.toContain('Manual');
+			expect(sortTrigger().textContent).toContain('Custom sort');
+		});
+	});
+
+	describe('view buttons and the focus ring', () => {
+		function pressedModes(): string[] {
+			return [...target.querySelectorAll<HTMLButtonElement>('button[aria-pressed="true"]')].map((b) => b.getAttribute('aria-label') ?? '');
+		}
+
+		it('mark only the current mode as pressed, named by their title', () => {
+			mountBoard();
+			for (const name of ['Board view', 'List view', 'Table view']) {
+				const button = target.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`);
+				expect(button?.title).toBe(name);
+			}
+			expect(pressedModes()).toEqual(['Board view']);
+
+			target.querySelector<HTMLButtonElement>('button[title="List view"]')!.click();
+			flushSync();
+			expect(pressedModes()).toEqual(['List view']);
+		});
+
+		it('changing the view clears the ring', () => {
+			mountBoard();
+			kanbanStore.setFocus(0, 1);
+			flushSync();
+			target.querySelector<HTMLButtonElement>('button[title="List view"]')!.click();
+			flushSync();
+			expect(kanbanStore.focusedLaneIndex).toBe(-1);
+		});
+
+		it('changing the filter clears the ring', () => {
+			mountBoard();
+			kanbanStore.setFocus(0, 1);
+			flushSync();
+			kanbanStore.setFilterQuery('#x');
+			flushSync();
+			expect(kanbanStore.focusedLaneIndex).toBe(-1);
+		});
+
+		it('changing the sort clears the ring', async () => {
+			mountBoard();
+			kanbanStore.setFocus(0, 1);
+			flushSync();
+			await chooseSort('Text (Z→A)');
+			expect(kanbanStore.focusedLaneIndex).toBe(-1);
+		});
 	});
 });

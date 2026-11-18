@@ -18,18 +18,18 @@ Not in this ticket: roving tabindex, a focus-visible ring and a shortcut hint (M
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes. Also run the `chrome-state-styles`, `menu-item-anatomy` and `chrome-type-scale` tests (markup changes).
 
-- [ ] Failing test first, `src/tests/lib/plugins/kanban/KanbanView.test.ts` (harness `src/tests/fixtures/KanbanViewHarness.svelte`, real store and logic, only `kanban.service.js` mocked): lanes with `#x` and untagged cards, `setFilterQuery('#x')`, ArrowDown then Backspace on the board root deletes the ringed visible card and every hidden card stays in the persisted markdown.
-- [ ] Focus a card's trigger div; ArrowDown still moves the ring.
-- [ ] In list and table mode, Delete, Backspace and Space on the root change nothing.
-- [ ] Space or Enter on a button inside a card (check button, a calendar day) does not toggle or edit the ringed card.
-- [ ] With `kanbanStore.setFocus(0, 0)`, bubbling keydown of Space, Enter, Backspace and `n` on the sort trigger leaves the card, its checked state and `editingItemId` unchanged and issues no save.
-- [ ] No `select` element in the toolbar; "Sort cards" lists the `SORT_LABELS` in order; choosing "Text (A->Z)" persists `settings.sortMode === 'text-asc'`; mounting and re-choosing the current option issue no save; `"sortMode": "unchecked"` mounts without a save and the trigger does not read "Manual".
-- [ ] View buttons: `aria-pressed="true"` only on the current mode; `clickToolbarButton('List view')` (`KanbanView.test.ts:71-76`) still works. Changing sort, view or filter clears the ring.
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, `src/tests/lib/plugins/kanban/KanbanView.test.ts` (harness `src/tests/fixtures/KanbanViewHarness.svelte`, real store and logic, only `kanban.service.js` mocked): lanes with `#x` and untagged cards, `setFilterQuery('#x')`, ArrowDown then Backspace on the board root deletes the ringed visible card and every hidden card stays in the persisted markdown.
+- [x] Focus a card's trigger div; ArrowDown still moves the ring.
+- [x] In list and table mode, Delete, Backspace and Space on the root change nothing.
+- [x] Space or Enter on a button inside a card (check button, a calendar day) does not toggle or edit the ringed card.
+- [x] With `kanbanStore.setFocus(0, 0)`, bubbling keydown of Space, Enter, Backspace and `n` on the sort trigger leaves the card, its checked state and `editingItemId` unchanged and issues no save.
+- [x] No `select` element in the toolbar; "Sort cards" lists the `SORT_LABELS` in order; choosing "Text (A->Z)" persists `settings.sortMode === 'text-asc'`; mounting and re-choosing the current option issue no save; `"sortMode": "unchecked"` mounts without a save and the trigger does not read "Manual".
+- [x] View buttons: `aria-pressed="true"` only on the current mode; `clickToolbarButton('List view')` (`KanbanView.test.ts:71-76`) still works. Changing sort, view or filter clears the ring.
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Original proposal
 
@@ -61,3 +61,4 @@ Tickets 05, 10, 11, 12 and 42 edit the toolbar, the card menu or the board root 
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): none.
+- 2026-11-18, delivered from issue/02-kanban-keyboard-shortcuts-act-only-card: board keys read the displayed (filtered/sorted) lanes, treat collapsed lanes as empty, skip list/table mode and in-card controls; sort menu is the themed Select; view buttons carry aria-pressed. Review round 1 APPROVED (collapsed-lane finding fixed, JSDoc and import-order nits fixed, optional test nit declined); round 2 APPROVED. Tests: pnpm check 0 errors; kanban tests 312 passed; full suite at 38707115f exit 0 (657 files, 17543 passed, 56 skipped, 1 todo).

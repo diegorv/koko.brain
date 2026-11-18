@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Archive from '@lucide/svelte/icons/archive';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
@@ -10,6 +11,7 @@
 	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 	import List from '@lucide/svelte/icons/list';
 	import Table from '@lucide/svelte/icons/table';
+	import * as Select from '#lib/components/ui/select/index.js';
 	import {
 		parseKanbanBoard,
 		serializeKanbanBoard,
@@ -194,6 +196,12 @@
 		checked: 'Unchecked first',
 	};
 
+	/**
+	 * Trigger text. A stored mode outside SORT_LABELS (a hand-edited file) is
+	 * not called "Manual": it keeps the stored order, but card drag is off.
+	 */
+	let sortLabel = $derived(Object.hasOwn(SORT_LABELS, currentSortMode) ? SORT_LABELS[currentSortMode] : 'Custom sort');
+
 	// ── View mode ──────────────────────────────────────────────
 
 	let currentViewMode = $derived(board.settings.viewMode ?? 'board');
@@ -234,13 +242,31 @@
 
 	// ── Keyboard navigation ────────────────────────────────────
 
-	function handleBoardKeydown(e: KeyboardEvent) {
-		// Don't handle when editing or when focus is inside an input
-		if (kanbanStore.editingItemId || kanbanStore.editingLaneId) return;
-		const target = e.target as HTMLElement;
-		if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') return;
+	/**
+	 * Targets whose keys are their own. A card's ContextMenu trigger `div` is
+	 * not one of them, so the arrows keep working after a click on a card.
+	 */
+	const OWN_KEYS_SELECTOR =
+		'input, textarea, select, button, a, [role="button"], [role="gridcell"], [role="menuitem"], [contenteditable]';
 
-		const lanes = board.lanes;
+	// The ring indexes the visible cards, so a new filter, sort or view would
+	// point it at a different card.
+	$effect(() => {
+		void kanbanStore.filterQuery;
+		void currentSortMode;
+		void currentViewMode;
+		untrack(() => kanbanStore.clearFocus());
+	});
+
+	function handleBoardKeydown(e: KeyboardEvent) {
+		// The root wraps every view mode; only the board shows the ring.
+		if (currentViewMode !== 'board') return;
+		// Don't handle when editing or when focus is inside a control
+		if (kanbanStore.editingItemId || kanbanStore.editingLaneId) return;
+		if ((e.target as HTMLElement).closest(OWN_KEYS_SELECTOR)) return;
+
+		// A collapsed lane renders no cards, so it offers none to the ring.
+		const lanes = displayBoard.lanes.map((lane) => (isLaneCollapsed(board, lane.title) ? { ...lane, items: [] } : lane));
 		if (lanes.length === 0) return;
 
 		const li = kanbanStore.focusedLaneIndex;
@@ -466,6 +492,8 @@
 				class="rounded-l-xs p-1 transition-colors {currentViewMode === 'board' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}"
 				onclick={() => handleSetViewMode('board')}
 				title="Board view"
+				aria-label="Board view"
+				aria-pressed={currentViewMode === 'board'}
 			>
 				<LayoutGrid class="size-3.5" />
 			</button>
@@ -473,6 +501,8 @@
 				class="p-1 transition-colors {currentViewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}"
 				onclick={() => handleSetViewMode('list')}
 				title="List view"
+				aria-label="List view"
+				aria-pressed={currentViewMode === 'list'}
 			>
 				<List class="size-3.5" />
 			</button>
@@ -480,21 +510,28 @@
 				class="rounded-r-xs p-1 transition-colors {currentViewMode === 'table' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}"
 				onclick={() => handleSetViewMode('table')}
 				title="Table view"
+				aria-label="Table view"
+				aria-pressed={currentViewMode === 'table'}
 			>
 				<Table class="size-3.5" />
 			</button>
 		</div>
 		<div class="flex items-center gap-1.5">
 			<ArrowUpDown class="size-3.5 text-muted-foreground" />
-			<select
-				class="rounded-xs border border-border bg-background px-2 py-0.5 text-xs text-foreground outline-none"
+			<Select.Root
+				type="single"
 				value={currentSortMode}
-				onchange={(e) => handleSetSortMode(e.currentTarget.value as KanbanSortMode)}
+				onValueChange={(v) => handleSetSortMode(v as KanbanSortMode)}
 			>
-				{#each Object.entries(SORT_LABELS) as [mode, label]}
-					<option value={mode}>{label}</option>
-				{/each}
-			</select>
+				<Select.Trigger size="sm" class="h-7 text-xs" aria-label="Sort cards">
+					<span data-slot="select-value">{sortLabel}</span>
+				</Select.Trigger>
+				<Select.Content>
+					{#each Object.entries(SORT_LABELS) as [mode, label] (mode)}
+						<Select.Item value={mode} {label} />
+					{/each}
+				</Select.Content>
+			</Select.Root>
 		</div>
 		<div class="flex items-center gap-1.5">
 			<Search class="size-3.5 text-muted-foreground" />
@@ -520,9 +557,9 @@
 		role="region"
 		aria-label="Kanban board"
 	>
-	{#each board.lanes as lane, laneIndex (lane.id)}
+	{#each displayBoard.lanes as lane, laneIndex (lane.id)}
 		<KanbanLane
-			lane={displayLane(lane)}
+			{lane}
 			editingItemId={kanbanStore.editingItemId}
 			editingLaneId={kanbanStore.editingLaneId}
 			focusedItemId={kanbanStore.focusedLaneIndex === laneIndex && kanbanStore.focusedItemIndex >= 0 ? lane.items[kanbanStore.focusedItemIndex]?.id ?? null : null}
