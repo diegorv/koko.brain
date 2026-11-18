@@ -24,6 +24,8 @@
 		laneWidth?: number;
 		maxItems?: number;
 		atLimit?: boolean;
+		/** The stored lane's card count, passed only while the board filter is on; `lane.items` is then the filtered list */
+		totalCount?: number;
 		autoComplete?: boolean;
 		tagColors?: Record<string, string>;
 		disableDrag?: boolean;
@@ -68,6 +70,7 @@
 		laneWidth = 272,
 		maxItems = 0,
 		atLimit = false,
+		totalCount,
 		autoComplete = false,
 		tagColors = {},
 		disableDrag = false,
@@ -149,6 +152,12 @@
 		}
 	}
 
+	/** A 40 px rail has no room for the title input, so a collapsed lane expands first */
+	function startRename() {
+		if (collapsed) onToggleCollapse(lane.id);
+		onStartEditLane(lane.id);
+	}
+
 	function commitTitleEdit() {
 		const trimmed = laneTitle.trim();
 		if (trimmed && trimmed !== lane.title) {
@@ -178,10 +187,26 @@
 
 	let hasCompleted = $derived(lane.items.some((i) => i.checked));
 
+	/** "n of m" while filtering, else "n/max" with a limit, else "n" */
+	let countText = $derived(
+		totalCount !== undefined
+			? `${lane.items.length} of ${totalCount}`
+			: maxItems > 0
+				? `${lane.items.length}/${maxItems}`
+				: `${lane.items.length}`,
+	);
+	let countLabel = $derived.by(() => {
+		const n = lane.items.length;
+		const of = totalCount ?? (maxItems > 0 ? maxItems : undefined);
+		if (of === undefined) return `${n} ${n === 1 ? 'card' : 'cards'}`;
+		return `${n} of ${of} ${of === 1 ? 'card' : 'cards'}`;
+	});
+
 	// ── Lane width resize ───────────────────────────────────────
 
 	const MIN_LANE_WIDTH = 200;
 	const MAX_LANE_WIDTH = 500;
+	const COLLAPSED_LANE_WIDTH = 40;
 
 	let currentWidth = $state(0);
 	let isResizing = $state(false);
@@ -216,13 +241,20 @@
 
 <div
 	class="group/lane relative flex h-full shrink-0 flex-col rounded-lg border bg-muted/30 transition-colors {isDragOver ? 'border-primary/50 bg-primary/5' : atLimit ? 'border-destructive/50' : 'border-border'}"
-	style="width: {currentWidth}px"
+	style="width: {collapsed ? COLLAPSED_LANE_WIDTH : currentWidth}px"
 	data-lane-id={lane.id}
 	role="group"
 	aria-label={lane.title}
 >
-	<!-- Lane header -->
-	<div class="flex items-center gap-1 px-2 py-2">
+	{#snippet count()}
+		<!-- A generic span cannot be named (ARIA 1.2), so the spoken label is sr-only text -->
+		<span class="text-xs {atLimit ? 'font-semibold text-destructive' : 'text-muted-foreground'}" data-lane-count>
+			<span aria-hidden="true">{countText}</span><span class="sr-only">{countLabel}</span>
+		</span>
+	{/snippet}
+
+	<!-- Lane header; a collapsed lane is a vertical rail: chevron, count, then the title -->
+	<div class={collapsed ? 'flex min-h-0 flex-1 flex-col items-center gap-2 px-1 py-2' : 'flex items-center gap-1 px-2 py-2'}>
 		<button
 			class="rounded-xs p-0.5 text-muted-foreground hover:text-foreground transition-colors"
 			onclick={() => onToggleCollapse(lane.id)}
@@ -247,6 +279,9 @@
 				<GripVertical class="size-4 text-muted-foreground" />
 			</div>
 		{/if}
+		{#if collapsed}
+			{@render count()}
+		{/if}
 
 		{#if isEditingTitle}
 			<input
@@ -258,19 +293,19 @@
 			/>
 		{:else}
 			<ContextMenu.Root>
-				<ContextMenu.Trigger>
+				<ContextMenu.Trigger class={collapsed ? 'flex min-h-0 flex-1 justify-center' : undefined}>
 					{#snippet children()}
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<h3
-							class="flex-1 cursor-default truncate px-1 text-sm font-semibold"
-							ondblclick={() => onStartEditLane(lane.id)}
+							class="cursor-default truncate text-sm font-semibold {collapsed ? '[writing-mode:vertical-rl]' : 'flex-1 px-1'}"
+							ondblclick={startRename}
 						>
 							{lane.title}
 						</h3>
 					{/snippet}
 				</ContextMenu.Trigger>
 				<ContextMenu.Content class="w-48">
-					<ContextMenu.Item onclick={() => onStartEditLane(lane.id)}>
+					<ContextMenu.Item onclick={startRename}>
 						<Pencil class="size-4" />
 						Rename
 					</ContextMenu.Item>
@@ -309,11 +344,11 @@
 		{/if}
 
 		{#if autoComplete}
-			<CircleCheck class="size-3.5 text-success" />
+			<CircleCheck class="size-3.5 text-success" role="img" aria-label="Auto-complete on" />
 		{/if}
-		<span class="text-xs {atLimit ? 'font-semibold text-destructive' : 'text-muted-foreground'}">
-			{lane.items.length}{#if maxItems > 0}/{maxItems}{/if}
-		</span>
+		{#if !collapsed}
+			{@render count()}
+		{/if}
 	</div>
 
 	{#if !collapsed}
@@ -353,43 +388,49 @@
 			{#if isDragOver && dropIndicatorIndex >= lane.items.length}
 				<div class="h-0.5 rounded-full bg-primary" aria-hidden="true"></div>
 			{/if}
-
-			<!-- Add card input -->
-			<form
-				onsubmit={(e) => { e.preventDefault(); handleAddItem(); }}
-				class="flex items-center gap-1 pt-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover/lane:opacity-100"
-			>
-				<div class="relative flex-1">
-					<input
-						bind:this={newItemInput}
-						bind:value={newItemText}
-						onkeydown={handleAddItemKeydown}
-						oninput={updateAddCursorPos}
-						onclick={updateAddCursorPos}
-						placeholder="Add a card..."
-						class="w-full rounded-xs border border-border bg-background px-2 py-1 text-sm outline-none placeholder:text-muted-foreground/50 focus:border-primary"
-					/>
-					<KanbanWikilinkSuggestions
-						bind:this={addSuggestionsRef}
-						text={newItemText}
-						cursorPos={newItemCursorPos}
-						onSelect={handleAddWikilinkSelect}
-					/>
-				</div>
-				<button
-					type="submit"
-					class="rounded-xs p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-					aria-label="Add card"
-					disabled={!newItemText.trim()}
-				>
-					<Plus class="size-4" />
-				</button>
-			</form>
+			{#if lane.items.length === 0}
+				<p class="px-1 py-2 text-xs text-muted-foreground">
+					{(totalCount ?? 0) > 0 ? 'No matching cards' : 'No cards. Drag one here or add a card.'}
+				</p>
+			{/if}
 		</div>
+
+		<!-- Add card input: pinned below the scroll list so a long lane never scrolls it away -->
+		<form
+			onsubmit={(e) => { e.preventDefault(); handleAddItem(); }}
+			class="flex shrink-0 items-center gap-1 px-2 pb-2"
+		>
+			<div class="relative flex-1">
+				<input
+					bind:this={newItemInput}
+					bind:value={newItemText}
+					onkeydown={handleAddItemKeydown}
+					oninput={updateAddCursorPos}
+					onclick={updateAddCursorPos}
+					placeholder="Add a card..."
+					class="w-full rounded-xs border border-border bg-background px-2 py-1 text-sm outline-none placeholder:text-muted-foreground/50 focus:border-primary"
+				/>
+				<KanbanWikilinkSuggestions
+					bind:this={addSuggestionsRef}
+					text={newItemText}
+					cursorPos={newItemCursorPos}
+					onSelect={handleAddWikilinkSelect}
+					placement="above"
+				/>
+			</div>
+			<button
+				type="submit"
+				class="rounded-xs p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+				aria-label="Add card"
+				disabled={!newItemText.trim()}
+			>
+				<Plus class="size-4" />
+			</button>
+		</form>
 	{/if}
 
 	<!-- Lane resize handle -->
-	{#if onLaneWidthChange}
+	{#if onLaneWidthChange && !collapsed}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="absolute right-0 top-0 h-full w-1.5 cursor-col-resize rounded-r-lg opacity-0 transition-opacity hover:bg-primary/30 group-hover/lane:opacity-60 {isResizing ? 'opacity-100 bg-primary/30' : ''}"

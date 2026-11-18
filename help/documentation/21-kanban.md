@@ -45,7 +45,7 @@ You can:
 - **Rename a lane** — double-click the lane title to edit it inline, or right-click the title and choose Rename.
 - **Reorder lanes** — drag a lane header (via the grip handle) to a new position.
 - **Delete a lane** — right-click the lane title and choose Delete lane.
-- **Collapse a lane** — click the collapse icon in the lane header. Collapsed state is saved per board.
+- **Collapse a lane** — click the collapse icon in the lane header. A collapsed lane shrinks to a narrow rail with its card count and its title written vertically; click the expand icon to restore it. Renaming a collapsed lane expands it first. Collapsed state is saved per board.
 - **Resize a lane** — drag the resize handle on a lane's right edge (200-500 px). The width applies to all lanes and is saved per board.
 
 ### Cards
@@ -67,7 +67,7 @@ Each card is a Markdown task item inside a lane:
 - `- [x]` = checked (completed) card
 
 You can:
-- **Add a card** — type in the **Add a card...** input at the bottom of a lane and press `Enter` (or click the **+** button).
+- **Add a card** — type in the **Add a card...** input pinned to the bottom of a lane and press `Enter` (or click the **+** button). The input is always visible, even when the lane scrolls. An empty lane says "No cards. Drag one here or add a card."
 - **Edit a card** — double-click the card text to edit inline. The editor grows with the text. `Enter` saves and `Escape` cancels; either one returns focus to the board, so the arrow keys keep working.
 - **Check/uncheck a card** — click the checkbox on the card.
 - **Move a card** — drag it to a different lane or position within the same lane.
@@ -176,6 +176,8 @@ Use the **filter bar** at the top of the board to search across all cards. The f
 To clear the filter, click the **X** at the end of the filter bar or press `Escape` in it. The filter also clears when you leave the board: switch to another tab, toggle source mode, or close it.
 
 The filter matches raw text, so `#design` also shows cards tagged `#design-system`.
+
+While a filter is on, each lane count reads "n of m": the cards shown out of the cards in the lane. A lane the filter empties says "No matching cards".
 
 ## Sorting Cards
 

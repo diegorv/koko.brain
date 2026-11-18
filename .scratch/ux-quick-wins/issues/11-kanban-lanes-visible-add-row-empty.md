@@ -16,17 +16,17 @@ Not in this ticket: the "..." lane menu (M), edge fades, a visible scrollbar, Ad
 
 **Blocked by:** 05, 10
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus `src/tests/lib/chrome-state-styles.test.ts` and `menu-item-anatomy.test.ts` (markup changes); no E2E needed (`e2e/specs/kanban-view.spec.ts:32-60` only checks the board renders).
 
-- [ ] Failing test first (`src/tests/lib/plugins/kanban/KanbanView.test.ts`, harness `src/tests/fixtures/KanbanViewHarness.svelte`, real store and logic, only `kanban.service.js` mocked): a stored-empty lane renders "No cards. Drag one here or add a card."
-- [ ] The add input is outside the `role="list"` element; its form has no `opacity-0` class; its suggestions use the upward placement while the card editor's keep the default.
-- [ ] `setFilterQuery` that empties a lane shows "No matching cards"; the count reads "1 of 3" while filtering and is unchanged (including `n/max`) with no filter; the icon and the count have accessible names.
-- [ ] The `n` shortcut still focuses the focused lane's add input.
-- [ ] A collapsed lane is 40 px wide, shows its title, has no "Resize lane" separator; "Rename" on it expands the lane and shows the title input; expanding restores the board width.
-- [ ] No drag handler is edited (`handleItemDragOver`, `handleItemDrop`, `KanbanLane.svelte` `handleDrop`); existing drag tests unchanged.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first (`src/tests/lib/plugins/kanban/KanbanView.test.ts`, harness `src/tests/fixtures/KanbanViewHarness.svelte`, real store and logic, only `kanban.service.js` mocked): a stored-empty lane renders "No cards. Drag one here or add a card."
+- [x] The add input is outside the `role="list"` element; its form has no `opacity-0` class; its suggestions use the upward placement while the card editor's keep the default.
+- [x] `setFilterQuery` that empties a lane shows "No matching cards"; the count reads "1 of 3" while filtering and is unchanged (including `n/max`) with no filter; the icon and the count have accessible names.
+- [x] The `n` shortcut still focuses the focused lane's add input.
+- [x] A collapsed lane is 40 px wide, shows its title, has no "Resize lane" separator; "Rename" on it expands the lane and shows the title input; expanding restores the board width.
+- [x] No drag handler is edited (`handleItemDragOver`, `handleItemDrop`, `KanbanLane.svelte` `handleDrop`); existing drag tests unchanged.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -63,3 +63,4 @@ Checked at 085b23c5d.
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. No owner questions on this ticket.
+- 2026-11-18, deliver (branch issue/11-kanban-lanes-visible-add-row-empty): visible add row outside the lane list, empty and filtered lane text and "n of total" counts with accessible names, 40 px collapsed rail. Review round 1 APPROVED with minor findings, fixed (count reads its name from an sr-only span, rail double-click test); round 2 APPROVED, no findings. Tests: pnpm check 0 errors; KanbanView + KanbanWikilinkSuggestions 71 passed; full suite at 718dcb8c3 exit 0, 17583 passed, 56 skipped.

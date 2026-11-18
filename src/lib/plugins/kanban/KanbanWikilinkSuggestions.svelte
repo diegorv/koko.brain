@@ -12,9 +12,11 @@
 		cursorPos: number;
 		/** Called when user selects a file. Receives the replacement text and the range to replace. */
 		onSelect: (filename: string, from: number, to: number) => void;
+		/** Which side of the input the list opens on; `above` for an input pinned to the bottom of a lane */
+		placement?: 'below' | 'above';
 	}
 
-	let { text, cursorPos, onSelect }: Props = $props();
+	let { text, cursorPos, onSelect, placement = 'below' }: Props = $props();
 
 	const MAX_SUGGESTIONS = 8;
 
@@ -77,7 +79,7 @@
 </script>
 
 {#if showSuggestions}
-	<div class="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-md border bg-popover shadow-md">
+	<div class="absolute left-0 right-0 z-50 {placement === 'above' ? 'bottom-full mb-1' : 'mt-1'} max-h-48 overflow-y-auto rounded-md border bg-popover shadow-md">
 		{#each files as file, i}
 			<button
 				class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors {i === selectedIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'}"

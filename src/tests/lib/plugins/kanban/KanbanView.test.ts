@@ -28,7 +28,7 @@ import KanbanViewHarness from '../../../fixtures/KanbanViewHarness.svelte';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { kanbanStore } from '#lib/plugins/kanban/kanban.store.svelte.js';
-import { parseKanbanBoard, serializeKanbanBoard, setSortMode, setTagColor, setViewMode, toggleLaneCollapsed } from '#lib/plugins/kanban/kanban.logic.js';
+import { DEFAULT_LANE_WIDTH, isLaneCollapsed, parseKanbanBoard, serializeKanbanBoard, setLaneAutoComplete, setLaneMaxItems, setSortMode, setTagColor, setViewMode, toggleLaneCollapsed } from '#lib/plugins/kanban/kanban.logic.js';
 import type { KanbanSortMode, KanbanViewMode } from '#lib/plugins/kanban/kanban.types.js';
 
 interface HarnessApi {
@@ -1085,6 +1085,228 @@ describe('KanbanView: card anatomy and inline edit', () => {
 			mountBoard('## To Do\n\n- [ ] dated card {2026-01-15} {color:blue}\n\n');
 			const textarea = startEdit('dated card');
 			expect(textarea.value).toBe('dated card {2026-01-15} {color:blue}');
+		});
+	});
+});
+
+describe('KanbanView: lanes, add row, counts and rail', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+	let api: HarnessApi | undefined;
+
+	const SOURCE = '## To Do\n\n- [ ] alpha #x\n- [ ] beta\n- [ ] gamma\n\n## Empty\n\n';
+
+	beforeEach(() => {
+		kanbanStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		api = undefined;
+		kanbanStore.reset();
+		fsStore.reset();
+		document.body.innerHTML = '';
+	});
+
+	function mountBoard(source = SOURCE, edit: (b: ReturnType<typeof parseKanbanBoard>) => ReturnType<typeof parseKanbanBoard> = (b) => b): void {
+		const board = edit(setViewMode(parseKanbanBoard(source), 'board'));
+		component = mount(KanbanViewHarness, {
+			target,
+			props: { initialMarkdown: serializeKanbanBoard(board), register: (a: HarnessApi) => { api = a; } },
+		});
+		flushSync();
+	}
+
+	function lane(title: string): HTMLElement {
+		const found = target.querySelector<HTMLElement>(`[data-lane-id][aria-label="${title}"]`);
+		if (!found) throw new Error(`lane "${title}" not found`);
+		return found;
+	}
+
+	function addInput(title: string): HTMLInputElement {
+		const input = lane(title).querySelector<HTMLInputElement>('input[placeholder="Add a card..."]');
+		if (!input) throw new Error(`lane "${title}" has no add input`);
+		return input;
+	}
+
+	function typeInto(el: HTMLInputElement | HTMLTextAreaElement, value: string): void {
+		el.value = value;
+		el.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+	}
+
+	function press(el: Element, key: string): void {
+		el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+		flushSync();
+	}
+
+	describe('add row', () => {
+		it('a stored-empty lane says "No cards. Drag one here or add a card."', () => {
+			mountBoard();
+			expect(lane('Empty').textContent).toContain('No cards. Drag one here or add a card.');
+			expect(lane('To Do').textContent).not.toContain('No cards.');
+		});
+
+		it('the add input sits outside the card list, in a form with no opacity-0', () => {
+			mountBoard();
+			const input = addInput('To Do');
+			expect(input.closest('[role="list"]')).toBeNull();
+			expect(input.closest('[data-lane-id]')).toBe(lane('To Do'));
+			expect(input.closest('form')!.className).not.toContain('opacity-0');
+		});
+
+		it('the add row suggestions open upward; the card editor keeps the default placement', () => {
+			fsStore.setFileTree([{ name: 'Projects.md', path: '/vault/Projects.md', isDirectory: false }]);
+			mountBoard();
+
+			typeInto(addInput('To Do'), '[[Pro');
+			const addSuggestion = [...lane('To Do').querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Projects');
+			expect(addSuggestion?.parentElement?.className).toContain('bottom-full');
+			typeInto(addInput('To Do'), '');
+
+			const span = [...lane('To Do').querySelectorAll<HTMLElement>('[data-item-id] span')].filter((el) => el.textContent?.includes('beta')).at(-1)!;
+			span.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+			flushSync();
+			typeInto(target.querySelector('textarea')!, 'beta [[Pro');
+			const editSuggestion = [...target.querySelectorAll('[data-item-id] button')].find((b) => b.textContent?.trim() === 'Projects');
+			expect(editSuggestion?.parentElement?.className).toContain('mt-1');
+			expect(editSuggestion?.parentElement?.className).not.toContain('bottom-full');
+		});
+
+		it('"n" focuses the focused lane\'s add input', () => {
+			mountBoard();
+			const root = target.firstElementChild as HTMLElement;
+			press(root, 'ArrowDown');
+			press(root, 'n');
+			expect(document.activeElement).toBe(addInput('To Do'));
+		});
+	});
+
+	describe('counts and empty text', () => {
+		/** The lane's card count element. */
+		function count(title: string): HTMLElement {
+			const found = lane(title).querySelector<HTMLElement>('[data-lane-count]');
+			if (!found) throw new Error(`lane "${title}" has no count`);
+			return found;
+		}
+
+		/** The count text a sighted user sees; hidden from assistive tech. */
+		function shown(title: string): string | undefined {
+			return count(title).querySelector('[aria-hidden="true"]')?.textContent?.trim();
+		}
+
+		/** The count's spoken text: a screen-reader-only span, since a generic span cannot carry an aria-label. */
+		function spoken(title: string): string | undefined {
+			return count(title).querySelector('.sr-only')?.textContent?.trim();
+		}
+
+		it('with no filter the count reads n, or n/max with a limit, named "3 cards" / "3 of 5 cards"', () => {
+			mountBoard(SOURCE, (b) => setLaneMaxItems(b, 'To Do', 5));
+			expect(shown('To Do')).toBe('3/5');
+			expect(spoken('To Do')).toBe('3 of 5 cards');
+			expect(shown('Empty')).toBe('0');
+			expect(spoken('Empty')).toBe('0 cards');
+			expect(count('To Do').hasAttribute('aria-label')).toBe(false);
+		});
+
+		it('while filtering the count reads "1 of 3" with no /max, and atLimit still comes from the stored count', () => {
+			mountBoard(SOURCE, (b) => setLaneMaxItems(b, 'To Do', 3));
+			expect(count('To Do').className).toContain('text-destructive');
+
+			kanbanStore.setFilterQuery('#x');
+			flushSync();
+
+			expect(shown('To Do')).toBe('1 of 3');
+			expect(spoken('To Do')).toBe('1 of 3 cards');
+			expect(count('To Do').className).toContain('text-destructive');
+		});
+
+		it('a lane the filter empties says "No matching cards"; a stored-empty lane keeps its own text', () => {
+			mountBoard();
+			kanbanStore.setFilterQuery('nothing matches this');
+			flushSync();
+
+			expect(lane('To Do').textContent).toContain('No matching cards');
+			expect(lane('To Do').textContent).not.toContain('No cards.');
+			expect(shown('To Do')).toBe('0 of 3');
+			expect(lane('Empty').textContent).toContain('No cards. Drag one here or add a card.');
+			expect(lane('Empty').textContent).not.toContain('No matching cards');
+		});
+
+		it('a whitespace-only filter counts as no filter', () => {
+			mountBoard();
+			kanbanStore.setFilterQuery('   ');
+			flushSync();
+			expect(shown('To Do')).toBe('3');
+		});
+
+		it('the auto-complete icon is named "Auto-complete on"', () => {
+			mountBoard(SOURCE, (b) => setLaneAutoComplete(b, 'To Do', true));
+			expect(lane('To Do').querySelector('[role="img"][aria-label="Auto-complete on"]')).not.toBeNull();
+			expect(lane('Empty').querySelector('[aria-label="Auto-complete on"]')).toBeNull();
+		});
+	});
+
+	describe('collapsed lane rail', () => {
+		const collapsedToDo = (b: ReturnType<typeof parseKanbanBoard>) => toggleLaneCollapsed(b, 'To Do');
+
+		function resizeHandle(title: string): Element | null {
+			return lane(title).querySelector('[role="separator"][aria-label="Resize lane"]');
+		}
+
+		it('is 40 px wide, shows its title and count, and has no resize handle or add row', () => {
+			mountBoard(SOURCE, collapsedToDo);
+			expect(lane('To Do').style.width).toBe('40px');
+			expect(lane('To Do').querySelector('h3')?.textContent?.trim()).toBe('To Do');
+			const railCount = lane('To Do').querySelector('[data-lane-count]');
+			expect(railCount?.querySelector('[aria-hidden="true"]')?.textContent?.trim()).toBe('3');
+			expect(railCount?.querySelector('.sr-only')?.textContent?.trim()).toBe('3 cards');
+			expect(lane('To Do').querySelector('button[aria-label="Expand lane"]')).not.toBeNull();
+			expect(resizeHandle('To Do')).toBeNull();
+			expect(lane('To Do').querySelector('form')).toBeNull();
+
+			expect(lane('Empty').style.width).toBe(`${DEFAULT_LANE_WIDTH}px`);
+			expect(resizeHandle('Empty')).not.toBeNull();
+		});
+
+		it('expanding restores the board lane width and the resize handle', () => {
+			mountBoard(SOURCE, collapsedToDo);
+			lane('To Do').querySelector<HTMLButtonElement>('button[aria-label="Expand lane"]')!.click();
+			flushSync();
+
+			expect(lane('To Do').style.width).toBe(`${DEFAULT_LANE_WIDTH}px`);
+			expect(resizeHandle('To Do')).not.toBeNull();
+			expect(isLaneCollapsed(parseKanbanBoard(api!.getMarkdown()), 'To Do')).toBe(false);
+		});
+
+		it('double-clicking the rail title expands the lane and shows the title input', () => {
+			mountBoard(SOURCE, collapsedToDo);
+			lane('To Do').querySelector('h3')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+			flushSync();
+
+			expect(lane('To Do').style.width).toBe(`${DEFAULT_LANE_WIDTH}px`);
+			expect(isLaneCollapsed(parseKanbanBoard(api!.getMarkdown()), 'To Do')).toBe(false);
+			const input = lane('To Do').querySelector<HTMLInputElement>('input:not([placeholder])');
+			expect(input?.value).toBe('To Do');
+		});
+
+		it('"Rename" on the rail expands the lane and shows the title input', async () => {
+			mountBoard(SOURCE, collapsedToDo);
+			const title = lane('To Do').querySelector('h3')!;
+			title.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 1, clientY: 1 }));
+			for (let i = 0; i < 5; i++) await Promise.resolve();
+			flushSync();
+			const rename = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((el) => el.textContent?.trim() === 'Rename');
+			if (!rename) throw new Error('no "Rename" item');
+			rename.click();
+			flushSync();
+
+			expect(lane('To Do').style.width).toBe(`${DEFAULT_LANE_WIDTH}px`);
+			expect(isLaneCollapsed(parseKanbanBoard(api!.getMarkdown()), 'To Do')).toBe(false);
+			const input = lane('To Do').querySelector<HTMLInputElement>('input:not([placeholder])');
+			expect(input?.value).toBe('To Do');
 		});
 	});
 });
