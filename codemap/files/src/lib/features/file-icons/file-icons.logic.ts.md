@@ -16,7 +16,7 @@ imp src/lib/features/note-list/NoteRow.svelte:9 -> src/lib/features/file-icons/f
 imp src/lib/features/properties/PropertiesView.svelte:26 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
 imp src/lib/features/properties/RelationshipSearch.svelte:11 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:15 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
-imp src/lib/features/rail-shell/FilesNavigator.svelte:46 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
+imp src/lib/features/rail-shell/FilesNavigator.svelte:49 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
 imp src/lib/features/rail-shell/Rail.svelte:19 -> src/lib/features/file-icons/file-icons.logic.ts iconColorCss,parseIconValuePermissive
 imp src/lib/features/rail-shell/TypesNavigator.svelte:29 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
 imp src/lib/features/tasks/TasksView.svelte:30 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
@@ -58,7 +58,7 @@ by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/fea
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/properties/PropertiesView.svelte:268 in (markup) markup
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/properties/RelationshipSearch.svelte:76 in (markup) markup
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/quick-switcher/QuickSwitcher.svelte:139 in (markup) markup
-by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/rail-shell/FilesNavigator.svelte:489 in (markup) markup +1
+by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/rail-shell/FilesNavigator.svelte:538 in (markup) markup +1
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/rail-shell/TypesNavigator.svelte:292 in (markup) markup +1
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/tasks/TasksView.svelte:762 in (markup) markup
 sym src/lib/features/file-icons/file-icons.logic.ts:237 fn filterIcons(icons: NormalizedIcon[], query: string): NormalizedIcon[] L9 | Filters icons by a search query matching name or keywords

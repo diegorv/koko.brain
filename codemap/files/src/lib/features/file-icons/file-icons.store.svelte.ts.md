@@ -10,7 +10,7 @@ imp src/lib/features/file-icons/IconPicker.svelte:6 -> src/lib/features/file-ico
 imp src/lib/features/file-icons/file-icons.service.ts:6 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore,type:FrontmatterIconRef
 imp src/lib/features/file-icons/icon-resolver.ts:1 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore,type:FrontmatterIconRef
 imp src/lib/features/note-list/NoteRowMenu.svelte:20 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
-imp src/lib/features/rail-shell/FilesNavigator.svelte:49 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
+imp src/lib/features/rail-shell/FilesNavigator.svelte:52 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
 imp src/lib/features/rail-shell/Rail.svelte:20 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
 imp src/lib/features/rail-shell/TypesNavigator.svelte:32 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
 ## reach
@@ -55,7 +55,7 @@ by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/file-icons/file-icons.service.ts:18 in (module) mcall +23
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/file-icons/icon-resolver.ts:65 in resolveIconForPath member +3
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/note-list/NoteRowMenu.svelte:55 in iconPickerRef=$derived mcall
-by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/rail-shell/FilesNavigator.svelte:102 in iconPickerRef=$derived mcall
+by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/rail-shell/FilesNavigator.svelte:122 in iconPickerRef=$derived mcall
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/rail-shell/Rail.svelte:200 in actionIcon member
 more by 1 not shown: src/lib/features/rail-shell(1): q importers src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore
 ## store

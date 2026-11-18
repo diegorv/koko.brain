@@ -77,7 +77,7 @@ layer core -> contracts 15
 layer core -> core 468
 layer core -> types 5
 layer core -> utils 68
-layer features -> components 100
+layer features -> components 101
 layer features -> contracts 43
 layer features -> core 341
 layer features -> features 731

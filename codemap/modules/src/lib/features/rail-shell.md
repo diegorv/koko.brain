@@ -11,7 +11,7 @@ dep src/lib/plugins/calendar -> src/lib/features/rail-shell 4
 dep src/lib/plugins/kanban -> src/lib/features/rail-shell 1
 dep src/lib/plugins/mods -> src/lib/features/rail-shell 2
 dep src/lib/plugins/one-on-one -> src/lib/features/rail-shell 2
-dep src/lib/features/rail-shell -> src/lib/components 11
+dep src/lib/features/rail-shell -> src/lib/components 12
 dep src/lib/features/rail-shell -> src/lib/contracts 2
 dep src/lib/features/rail-shell -> src/lib/core/editor 9
 dep src/lib/features/rail-shell -> src/lib/core/filesystem 22
@@ -46,7 +46,7 @@ entry src/lib/features/rail-shell/files-navigator.service.ts ext-in1 src/lib/app
 entry src/lib/features/rail-shell/kind-icons.ts ext-in1 src/lib/features/quick-switcher/QuickSwitcher.svelte
 entry src/lib/features/rail-shell/types-navigator.service.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 ## files
-file src/lib/features/rail-shell/FilesNavigator.svelte component L502 module src/lib/features/rail-shell in1 t4
+file src/lib/features/rail-shell/FilesNavigator.svelte component L551 module src/lib/features/rail-shell in1 t4
 file src/lib/features/rail-shell/LayoutSection.svelte component L201 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/Rail.svelte component L380 module src/lib/features/rail-shell in1 t3
 file src/lib/features/rail-shell/RailArchivedMenu.svelte component L67 module src/lib/features/rail-shell in1 t0
@@ -78,7 +78,7 @@ file src/lib/features/rail-shell/types-navigator.service.ts service L21 module s
 file src/lib/features/rail-shell/view-lens-seed.logic.ts logic L56 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/view-lens.service.ts service L48 module src/lib/features/rail-shell in1 t2
 ## public
-sym src/lib/features/rail-shell/FilesNavigator.svelte:1 component FilesNavigator props:picked,expanded,onPick,onToggle,onPickView L502
+sym src/lib/features/rail-shell/FilesNavigator.svelte:1 component FilesNavigator props:picked,expanded,onPick,onToggle,onPickView L551
 sym src/lib/features/rail-shell/LayoutSection.svelte:1 component LayoutSection L201
 sym src/lib/features/rail-shell/Rail.svelte:1 component Rail props:activeItem,onSelect L380
 sym src/lib/features/rail-shell/RailNoteList.svelte:1 component RailNoteList props:lens,firstPane= L984

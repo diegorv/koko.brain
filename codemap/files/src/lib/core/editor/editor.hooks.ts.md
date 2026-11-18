@@ -21,7 +21,7 @@ imp src/lib/features/auto-organize/auto-organize.service.ts:3 -> src/lib/core/ed
 imp src/lib/features/deep-link/deep-link.service.ts:14 -> src/lib/core/editor/editor.hooks.ts markRecentSave,notifyAfterSave
 imp src/lib/features/file-history/file-history.service.ts:8 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:6 -> src/lib/core/editor/editor.hooks.ts notifyNoteCreated
-imp src/lib/features/rail-shell/FilesNavigator.svelte:19 -> src/lib/core/editor/editor.hooks.ts notifyNoteCreated
+imp src/lib/features/rail-shell/FilesNavigator.svelte:22 -> src/lib/core/editor/editor.hooks.ts notifyNoteCreated
 imp src/lib/features/rail-shell/new-note.service.ts:2 -> src/lib/core/editor/editor.hooks.ts notifyNoteCreated
 imp src/lib/features/search/SemanticIndexStatus.svelte:9 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver
 imp src/lib/features/search/search.service.ts:7 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver
@@ -109,7 +109,7 @@ sym src/lib/core/editor/editor.hooks.ts:119 fn notifyNoteCreated(filePath: strin
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/app/commands.ts:158 in getBuiltInCommands call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/core/note-creator/note-creator.service.ts:130 in openOrCreateNote call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/quick-switcher/QuickSwitcher.svelte:110 in createAndOpenNote call
-by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/rail-shell/FilesNavigator.svelte:129 in handleNewFile call
+by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/rail-shell/FilesNavigator.svelte:149 in handleNewFile call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/rail-shell/new-note.service.ts:41 in createNoteHere call
 sym src/lib/core/editor/editor.hooks.ts:130 fn resetHooks(): void L8 | Removes all hooks and observers.
 by src/lib/core/editor/editor.hooks.ts:resetHooks <- src/lib/app/lifecycle/app-lifecycle.service.ts:651 in teardownVault call

@@ -17,7 +17,7 @@ imp src/lib/features/collection/collection.service.ts:11 -> src/lib/features/col
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:20 -> src/lib/features/collection/collection.service.ts buildPropertyIndex,registerCollectionNoteChangeConsumer,registerCollectionPathChangeConsumer,resetCollection
 imp src/lib/app/lifecycle/watcher-handler.service.ts:3 -> src/lib/features/collection/collection.service.ts buildPropertyIndex
 imp src/lib/app/tauri-listeners.service.ts:17 -> src/lib/features/collection/collection.service.ts applyPropertyDelta,buildPropertyIndex,propertyIndexNeedsWholeRead
-imp src/lib/features/rail-shell/FilesNavigator.svelte:44 -> src/lib/features/collection/collection.service.ts createCollectionFile
+imp src/lib/features/rail-shell/FilesNavigator.svelte:47 -> src/lib/features/collection/collection.service.ts createCollectionFile
 ## reach
 in2 src/lib/features/collection/collection.service.ts 2 files in 2 modules: src/lib/app(1) src/routes(1)
 out2 src/lib/features/collection/collection.service.ts 25 files in 9 modules: src/lib/core/editor(5) src/lib/core/filesystem(4) src/lib/features/collection(4) src/lib/utils(4) src/lib/contracts(3) +4 modules
@@ -46,7 +46,7 @@ test src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts mocks src/lib/fea
 test src/tests/lib/app/lifecycle/watcher-handler.service.test.ts mocks src/lib/features/collection/collection.service.ts
 ## symbols
 sym src/lib/features/collection/collection.service.ts:30 fn createCollectionFile(parentPath: string): Promise<string> L6 | Creates the `Untitled.view` of New table in `parentPath` (`Untitled 1.view` when taken) with `NEW_TABLE_TEMPLATE`.
-by src/lib/features/collection/collection.service.ts:createCollectionFile <- src/lib/features/rail-shell/FilesNavigator.svelte:89 in fileCreators=$derived ref
+by src/lib/features/collection/collection.service.ts:createCollectionFile <- src/lib/features/rail-shell/FilesNavigator.svelte:97 in fileCreators=$derived ref
 sym src/lib/features/collection/collection.service.ts:90 fn buildPropertyIndex(): Promise<void> L22 | Builds the property index from the Rust `VaultIndex`.
 by src/lib/features/collection/collection.service.ts:buildPropertyIndex <- src/lib/app/lifecycle/app-lifecycle.service.ts:434 in initializeVault call
 by src/lib/features/collection/collection.service.ts:buildPropertyIndex <- src/lib/app/lifecycle/watcher-handler.service.ts:77 in rebuildAllIndexes call

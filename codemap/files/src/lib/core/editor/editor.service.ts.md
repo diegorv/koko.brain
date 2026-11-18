@@ -53,7 +53,7 @@ imp src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:10 -> src/lib/core
 imp src/lib/features/properties/PropertiesView.svelte:10 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/properties/properties.service.ts:2 -> src/lib/core/editor/editor.service.ts syncExternalContentToEditor
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:5 -> src/lib/core/editor/editor.service.ts openFileInEditor
-imp src/lib/features/rail-shell/FilesNavigator.svelte:20 -> src/lib/core/editor/editor.service.ts openFileInEditor
+imp src/lib/features/rail-shell/FilesNavigator.svelte:23 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/rail-shell/RailNoteList.svelte:19 -> src/lib/core/editor/editor.service.ts openFileInEditor
 more imported-by 15 not shown: src/lib/features/rail-shell(2) src/lib/features/tasks(2) src/lib/features/todoist-sync(2) src/lib/plugins/mods(2) src/lib/plugins/queryjs(2) src/lib/features/search(1) src/lib/features/type-definitions(1) src/lib/plugins/graph-view(1) +2 modules: q importers src/lib/core/editor/editor.service.ts
 ## reach

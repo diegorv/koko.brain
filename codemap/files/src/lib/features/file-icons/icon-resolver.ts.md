@@ -12,7 +12,7 @@ imp src/lib/features/note-list/NoteRow.svelte:10 -> src/lib/features/file-icons/
 imp src/lib/features/properties/PropertiesView.svelte:25 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath,resolveIconForType
 imp src/lib/features/properties/RelationshipSearch.svelte:10 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:13 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
-imp src/lib/features/rail-shell/FilesNavigator.svelte:45 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
+imp src/lib/features/rail-shell/FilesNavigator.svelte:48 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 imp src/lib/features/rail-shell/Rail.svelte:21 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 imp src/lib/features/rail-shell/RailNoteList.svelte:34 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 imp src/lib/features/rail-shell/TypesNavigator.svelte:28 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
@@ -34,7 +34,7 @@ by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/ap
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/properties/PropertiesView.svelte:258 in (markup) markup
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/properties/RelationshipSearch.svelte:65 in (markup) markup
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/quick-switcher/QuickSwitcher.svelte:129 in (markup) markup
-by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/FilesNavigator.svelte:433 in (markup) markup
+by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/FilesNavigator.svelte:482 in (markup) markup
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/Rail.svelte:167 in pinRow call +1
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/RailNoteList.svelte:662 in resolveNoteIcon call +1
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/TypesNavigator.svelte:279 in (markup) markup +1

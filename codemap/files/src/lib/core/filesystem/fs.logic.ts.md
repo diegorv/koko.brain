@@ -34,7 +34,7 @@ imp src/lib/features/file-icons/file-icons.service.ts:4 -> src/lib/core/filesyst
 imp src/lib/features/note-action-bar/note-action-bar.service.ts:5 -> src/lib/core/filesystem/fs.logic.ts getParentPath
 imp src/lib/features/note-list/NoteRowMenu.svelte:18 -> src/lib/core/filesystem/fs.logic.ts fileOperationErrorMessage,getFileName,getRelativePath,isMarkdownFile,isViewFile,PreDeleteSaveError
 imp src/lib/features/properties/bookmark-migration.service.ts:3 -> src/lib/core/filesystem/fs.logic.ts isMarkdownFile
-imp src/lib/features/rail-shell/FilesNavigator.svelte:33 -> src/lib/core/filesystem/fs.logic.ts fileOperationErrorMessage,findNodeByPath,getFileName,getFileNameError,getRelativePath,PreDeleteSaveError,validateDragDrop
+imp src/lib/features/rail-shell/FilesNavigator.svelte:36 -> src/lib/core/filesystem/fs.logic.ts fileOperationErrorMessage,findNodeByPath,getFileName,getFileNameError,getRelativePath,PreDeleteSaveError,validateDragDrop
 imp src/lib/features/rail-shell/RailNoteList.svelte:22 -> src/lib/core/filesystem/fs.logic.ts findNodeByPath
 imp src/lib/features/rail-shell/TypesNavigator.svelte:20 -> src/lib/core/filesystem/fs.logic.ts getRelativePath,isViewFile
 imp src/lib/features/rail-shell/lens.logic.ts:5 -> src/lib/core/filesystem/fs.logic.ts getFileExtension,getFileName,getRelativePath,isCanvasFile,isKanbanFile,isMarkdownFile,isViewFile,naturalCompare
@@ -71,7 +71,7 @@ sym src/lib/core/filesystem/fs.logic.ts:9 fn findNodeByPath(nodes: FileTreeNode[
 by src/lib/core/filesystem/fs.logic.ts:findNodeByPath <- src/lib/app/editor-host.ts:185 in appEditorHost.openView call
 by src/lib/core/filesystem/fs.logic.ts:findNodeByPath <- src/lib/core/filesystem/path-change.service.ts:164 in applyPathChange call
 by src/lib/core/filesystem/fs.logic.ts:findNodeByPath <- src/lib/core/trash/trash.service.ts:166 in restoreItem call
-by src/lib/core/filesystem/fs.logic.ts:findNodeByPath <- src/lib/features/rail-shell/FilesNavigator.svelte:285 in handleDrop call
+by src/lib/core/filesystem/fs.logic.ts:findNodeByPath <- src/lib/features/rail-shell/FilesNavigator.svelte:316 in handleDrop call
 by src/lib/core/filesystem/fs.logic.ts:findNodeByPath <- src/lib/features/rail-shell/RailNoteList.svelte:217 in viewInTree=$derived call
 sym src/lib/core/filesystem/fs.logic.ts:25 fn findFileNode(tree: FileTreeNode[], vaultPath: string, path: string): FileTreeNode | null L15 | The file node at `path`, found by walking the path's segments down from the root (O(depth x siblings), not a whole-tree scan).
 by src/lib/core/filesystem/fs.logic.ts:findFileNode <- src/lib/core/filesystem/fs.watcher.ts:185 in handleChangedPaths call
@@ -88,7 +88,7 @@ by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/core/filesystem/pa
 by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/features/collection/collection.logic.ts:29 in buildNoteRecord call
 by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/features/event-calendar/event-calendar.service.ts:531 in fileBase call
 by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/features/note-list/NoteRowMenu.svelte:80 in runOrToast call +1
-by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/features/rail-shell/FilesNavigator.svelte:148 in startRename call +4
+by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/features/rail-shell/FilesNavigator.svelte:168 in startRename call +4
 by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/features/rail-shell/lens.logic.ts:226 in pinnedRailItems call +2
 by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/features/type-definitions/ViewDialog.svelte:80 in load call +1
 sym src/lib/core/filesystem/fs.logic.ts:59 fn getFileExtension(fileName: string): string L4 | Returns the file extension including the dot (e.g. "note.md" → ".md")
@@ -128,20 +128,20 @@ by src/lib/core/filesystem/fs.logic.ts:isBinaryFile <- src/lib/core/markdown-edi
 sym src/lib/core/filesystem/fs.logic.ts:120 fn getLanguageForFile(fileName: string): LanguageDescription | null L7 | Returns the CodeMirror LanguageDescription for the given file, or null if the file is markdown or the extension is unrecognized.
 by src/lib/core/filesystem/fs.logic.ts:getLanguageForFile <- src/lib/core/markdown-editor/highlight-styles.ts:107 in getLanguageEffectsSync call +1
 sym src/lib/core/filesystem/fs.logic.ts:133 fn getFileNameError(name: string): string | null L8 | Returns a user-facing message naming the rule a file name breaks, or null when the name is valid.
-by src/lib/core/filesystem/fs.logic.ts:getFileNameError <- src/lib/features/rail-shell/FilesNavigator.svelte:174 in commitRename call
+by src/lib/core/filesystem/fs.logic.ts:getFileNameError <- src/lib/features/rail-shell/FilesNavigator.svelte:205 in commitRename call
 by src/lib/core/filesystem/fs.logic.ts:getFileNameError <- src/lib/features/type-definitions/type-definitions.logic.ts:189 in validateViewName call
 by src/lib/core/filesystem/fs.logic.ts:getFileNameError <- src/lib/features/type-definitions/type-note-list.logic.ts:30 in buildRenameFileName call
 sym src/lib/core/filesystem/fs.logic.ts:148 fn fileOperationErrorMessage(verb: string, name: string, err: unknown): string L5 | Builds the user-facing text for a failed file operation: `Could not <verb> "<name>": <reason>`.
 by src/lib/core/filesystem/fs.logic.ts:fileOperationErrorMessage <- src/lib/core/filesystem/delete-note.service.ts:26 in deleteNoteWithConfirm call
 by src/lib/core/filesystem/fs.logic.ts:fileOperationErrorMessage <- src/lib/features/auto-organize/auto-organize.service.ts:415 in reportMoveFailure call
 by src/lib/core/filesystem/fs.logic.ts:fileOperationErrorMessage <- src/lib/features/note-list/NoteRowMenu.svelte:80 in runOrToast call +1
-by src/lib/core/filesystem/fs.logic.ts:fileOperationErrorMessage <- src/lib/features/rail-shell/FilesNavigator.svelte:118 in runOrToast call
+by src/lib/core/filesystem/fs.logic.ts:fileOperationErrorMessage <- src/lib/features/rail-shell/FilesNavigator.svelte:138 in runOrToast call
 by src/lib/core/filesystem/fs.logic.ts:fileOperationErrorMessage <- src/lib/features/type-definitions/ViewDialog.svelte:87 in load call +3
 sym src/lib/core/filesystem/fs.logic.ts:159 class PreDeleteSaveError extends Error L10 | Thrown by `applyPathChange` on a delete when saving a dirty tab at or under the deleted path failed: nothing was closed or moved.
 by src/lib/core/filesystem/fs.logic.ts:PreDeleteSaveError <- src/lib/core/filesystem/delete-note.service.ts:25 in deleteNoteWithConfirm ref
 by src/lib/core/filesystem/fs.logic.ts:PreDeleteSaveError <- src/lib/core/filesystem/path-change.service.ts:70 in saveDirtyTabsUnder new
 by src/lib/core/filesystem/fs.logic.ts:PreDeleteSaveError <- src/lib/features/note-list/NoteRowMenu.svelte:79 in runOrToast ref
-by src/lib/core/filesystem/fs.logic.ts:PreDeleteSaveError <- src/lib/features/rail-shell/FilesNavigator.svelte:118 in runOrToast ref
+by src/lib/core/filesystem/fs.logic.ts:PreDeleteSaveError <- src/lib/features/rail-shell/FilesNavigator.svelte:138 in runOrToast ref
 sym src/lib/core/filesystem/fs.logic.ts:174 class TargetExistsError extends Error L6 | Thrown by `renameItem` and `moveItem` when the target folder already holds the name.
 by src/lib/core/filesystem/fs.logic.ts:TargetExistsError <- src/lib/core/filesystem/fs.service.ts:279 in renameItem new +2
 by src/lib/core/filesystem/fs.logic.ts:TargetExistsError <- src/lib/features/auto-organize/auto-organize.service.ts:395 in moveToFreeName ref
@@ -159,11 +159,11 @@ sym src/lib/core/filesystem/fs.logic.ts:276 fn getRelativePath(vaultPath: string
 by src/lib/core/filesystem/fs.logic.ts:getRelativePath <- src/lib/core/trash/trash.service.ts:50 in moveToTrash call
 by src/lib/core/filesystem/fs.logic.ts:getRelativePath <- src/lib/features/event-calendar/event-calendar.service.ts:1061 in deleteNow call +1
 by src/lib/core/filesystem/fs.logic.ts:getRelativePath <- src/lib/features/note-list/NoteRowMenu.svelte:249 in (markup) markup +1
-by src/lib/core/filesystem/fs.logic.ts:getRelativePath <- src/lib/features/rail-shell/FilesNavigator.svelte:211 in handleCopyRelativePath call +1
+by src/lib/core/filesystem/fs.logic.ts:getRelativePath <- src/lib/features/rail-shell/FilesNavigator.svelte:85 in pickedPlace=$derived call +2
 by src/lib/core/filesystem/fs.logic.ts:getRelativePath <- src/lib/features/rail-shell/TypesNavigator.svelte:328 in (markup) markup +1
 by src/lib/core/filesystem/fs.logic.ts:getRelativePath <- src/lib/features/rail-shell/lens.logic.ts:1001 in resolveFolderLens call
 sym src/lib/core/filesystem/fs.logic.ts:284 fn validateDragDrop(sourcePath: string, targetDirPath: string): string | null L11 | Validates whether a drag-and-drop move operation is allowed.
-by src/lib/core/filesystem/fs.logic.ts:validateDragDrop <- src/lib/features/rail-shell/FilesNavigator.svelte:283 in handleDrop call
+by src/lib/core/filesystem/fs.logic.ts:validateDragDrop <- src/lib/features/rail-shell/FilesNavigator.svelte:314 in handleDrop call
 sym src/lib/core/filesystem/fs.logic.ts:297 fn collectAllDirPaths(nodes: FileTreeNode[]): Set<string> L14 | Recursively collects the paths of every directory in the tree into a flat Set
 sym src/lib/core/filesystem/fs.logic.ts:322 fn resolveRescanParents(changedPaths: string[], vaultPath: string, tree: FileTreeNode[]): string[] L16 | Picks the directories to rescan for a batch of changed paths.
 by src/lib/core/filesystem/fs.logic.ts:resolveRescanParents <- src/lib/core/filesystem/fs.watcher.ts:200 in handleChangedPaths call
