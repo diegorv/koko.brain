@@ -1,7 +1,7 @@
 # module card src/lib/components
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/components ' codemap/modules
 sections: neighbors, entry files, files, public, debt
-module src/lib/components components files 98 in-modules 31 out-modules 1 pub 1/1 ipc 0/0 card ~6.2k
+module src/lib/components components files 98 in-modules 31 out-modules 1 pub 1/1 ipc 0/0 card ~6.3k
 ## neighbors
 dep src/lib/app -> src/lib/components 5
 dep src/lib/core/layout -> src/lib/components 1
@@ -11,7 +11,7 @@ dep src/lib/features/auto-organize -> src/lib/components 11
 dep src/lib/features/backlinks -> src/lib/components 2
 dep src/lib/features/collection -> src/lib/components 13
 dep src/lib/features/command-palette -> src/lib/components 1
-dep src/lib/features/event-calendar -> src/lib/components 15
+dep src/lib/features/event-calendar -> src/lib/components 18
 dep src/lib/features/file-history -> src/lib/components 4
 dep src/lib/features/file-icons -> src/lib/components 3
 dep src/lib/features/note-action-bar -> src/lib/components 1
@@ -48,9 +48,9 @@ entry src/lib/components/ui/popover/index.ts ext-in9 src/lib/core/settings/secti
 entry src/lib/components/ui/select/index.ts ext-in9 src/lib/core/settings/sections/HeadingTypographyEditor.svelte src/lib/core/settings/sections/UpdateSection.svelte src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte src/lib/features/event-calendar/EventCalendarSection.svelte more importers 4 not shown: src/lib/features/todoist-sync(1) src/lib/plugins/graph-view(1) src/lib/plugins/kanban(1) +1 modules: q importers src/lib/components/ui/select/index.ts
 entry src/lib/components/ui/scroll-area/index.ts ext-in8 src/lib/app/AppShell.svelte src/lib/app/SettingsPanel.svelte src/lib/core/settings/sections/TrashSection.svelte src/lib/features/file-history/DiffViewer.svelte src/lib/features/file-history/SnapshotList.svelte more importers 3 not shown: src/lib/features/file-icons(1) src/lib/features/search(1) src/lib/features/tasks(1): q importers src/lib/components/ui/scroll-area/index.ts
 entry src/lib/components/ui/command/index.ts ext-in7 src/lib/core/settings/sections/EditorSection.svelte src/lib/features/command-palette/CommandPalette.svelte src/lib/features/quick-switcher/QuickSwitcher.svelte src/lib/plugins/mods/ModActionPicker.svelte src/lib/plugins/mods/ModDialogHost.svelte more importers 2 not shown: src/lib/plugins/one-on-one(1) src/lib/plugins/templates(1): q importers src/lib/components/ui/command/index.ts
+entry src/lib/components/ui/tooltip/index.ts ext-in6 src/lib/features/event-calendar/EventCalendarHeader.svelte src/lib/features/event-calendar/EventCalendarView.svelte src/lib/features/event-calendar/EventDailyNoteButton.svelte src/lib/features/event-calendar/EventDayHeaders.svelte src/lib/features/event-calendar/EventMonthGrid.svelte more importers 1 not shown: src/lib/plugins/periodic-notes(1): q importers src/lib/components/ui/tooltip/index.ts
 entry src/lib/components/ui/separator/index.ts ext-in5 src/lib/features/backlinks/BacklinksPanel.svelte src/lib/features/collection/toolbar/FilterPanel.svelte src/lib/features/outgoing-links/OutgoingLinksPanel.svelte src/lib/features/properties/PropertiesView.svelte src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte
 entry src/lib/components/ui/collapsible/index.ts ext-in4 src/lib/core/layout/SidebarSection.svelte src/lib/features/backlinks/BacklinksPanel.svelte src/lib/features/collection/toolbar/FilterPanel.svelte src/lib/features/tags/TagItem.svelte
-entry src/lib/components/ui/tooltip/index.ts ext-in3 src/lib/features/event-calendar/EventCalendarHeader.svelte src/lib/features/event-calendar/EventCalendarView.svelte src/lib/plugins/periodic-notes/DailyNoteButton.svelte
 entry src/lib/components/EmptyState.svelte ext-in1 src/lib/features/rail-shell/RailNoteList.svelte
 entry src/lib/components/ui/resizable/index.ts ext-in1 src/lib/app/AppShell.svelte
 ## files
@@ -146,7 +146,7 @@ file src/lib/components/ui/separator/index.ts other L7 module src/lib/components
 file src/lib/components/ui/separator/separator.svelte component L21 module src/lib/components in1 t1
 file src/lib/components/ui/switch/index.ts other L7 module src/lib/components in19 t0
 file src/lib/components/ui/switch/switch.svelte component L29 module src/lib/components in1 t0
-file src/lib/components/ui/tooltip/index.ts other L19 module src/lib/components in3 t0
+file src/lib/components/ui/tooltip/index.ts other L19 module src/lib/components in6 t0
 file src/lib/components/ui/tooltip/tooltip-content.svelte component L52 module src/lib/components in1 t0
 file src/lib/components/ui/tooltip/tooltip-portal.svelte component L7 module src/lib/components in2 t0
 file src/lib/components/ui/tooltip/tooltip-provider.svelte component L7 module src/lib/components in1 t0

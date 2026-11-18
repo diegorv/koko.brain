@@ -24,7 +24,7 @@ sym src/lib/features/event-calendar/event-calendar-layout.logic.ts:15 const SNAP
 sym src/lib/features/event-calendar/event-calendar-layout.logic.ts:18 const MIN_EVENT_MINUTES L1 | Shortest event a drag or resize can produce, in minutes.
 by src/lib/features/event-calendar/event-calendar-layout.logic.ts:MIN_EVENT_MINUTES <- src/lib/features/event-calendar/event-calendar-drag.logic.ts:101 in beginCreate ref +2
 by src/lib/features/event-calendar/event-calendar-layout.logic.ts:MIN_EVENT_MINUTES <- src/lib/features/event-calendar/event-calendar-form.logic.ts:100 in draftForCreate ref +2
-by src/lib/features/event-calendar/event-calendar-layout.logic.ts:MIN_EVENT_MINUTES <- src/lib/features/event-calendar/event-calendar-view.logic.ts:419 in defaultCreateSlot ref
+by src/lib/features/event-calendar/event-calendar-layout.logic.ts:MIN_EVENT_MINUTES <- src/lib/features/event-calendar/event-calendar-view.logic.ts:424 in defaultCreateSlot ref
 sym src/lib/features/event-calendar/event-calendar-layout.logic.ts:21 const MIN_COLUMN_PX L1 | Narrowest day column, in px; below it the week scrolls sideways.
 by src/lib/features/event-calendar/event-calendar-layout.logic.ts:MIN_COLUMN_PX <- src/lib/features/event-calendar/EventTimeGrid.svelte:262 in (markup) markup
 sym src/lib/features/event-calendar/event-calendar-layout.logic.ts:24 fn minutesToPx(m: number): number L1 | Converts minutes to a vertical offset in px on the time grid.
@@ -36,7 +36,7 @@ sym src/lib/features/event-calendar/event-calendar-layout.logic.ts:30 fn snap(m:
 by src/lib/features/event-calendar/event-calendar-layout.logic.ts:snap <- src/lib/features/event-calendar/event-calendar-drag.logic.ts:158 in updateDrag call +2
 sym src/lib/features/event-calendar/event-calendar-layout.logic.ts:33 fn floorToSnap(m: number, step = SNAP_MINUTES): number L1 | Rounds minutes down to a multiple of `step`.
 by src/lib/features/event-calendar/event-calendar-layout.logic.ts:floorToSnap <- src/lib/features/event-calendar/event-calendar-drag.logic.ts:101 in beginCreate call
-by src/lib/features/event-calendar/event-calendar-layout.logic.ts:floorToSnap <- src/lib/features/event-calendar/event-calendar-view.logic.ts:418 in defaultCreateSlot call
+by src/lib/features/event-calendar/event-calendar-layout.logic.ts:floorToSnap <- src/lib/features/event-calendar/event-calendar-view.logic.ts:423 in defaultCreateSlot call
 sym src/lib/features/event-calendar/event-calendar-layout.logic.ts:40 fn clampMinutes(n: number, min: number, max: number): number L1 | Clamps `n` into `[min, max]`.
 by src/lib/features/event-calendar/event-calendar-layout.logic.ts:clampMinutes <- src/lib/features/event-calendar/event-calendar-drag.logic.ts:89 in slotFromPoint call +3
 sym src/lib/features/event-calendar/event-calendar-layout.logic.ts:50 fn layoutDay(events: EventNote[]): PositionedEvent[] L29 | Lays out a day's timed events side by side.

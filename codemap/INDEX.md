@@ -1,5 +1,5 @@
 # Kokobrain code map
-> Generated from the code by scripts/codemap.mjs; no hand-written text. inputs=sha256:54739b73cbf6 · check freshness: node scripts/codemap.mjs --stale · written by CI on main only; never edit or stage codemap/.
+> Generated from the code by scripts/codemap.mjs; no hand-written text. inputs=sha256:54f40f7d2e41 · check freshness: node scripts/codemap.mjs --stale · written by CI on main only; never edit or stage codemap/.
 
 Use this map to find code, then Read the code at the given path:line. Facts are static; read "Blind spots" before trusting an empty answer. On a branch, cards of files you changed lag the code; q commands read the working tree and are always current.
 Search code with Grep path src or src-tauri; search the map with path codemap. IDs contain regex characters: grep with -F and end the ID with a space.
@@ -65,7 +65,7 @@ hub core src/lib/core/vault/vault.store.svelte.ts in85 t154
 hub core src/lib/core/settings/settings.store.svelte.ts in85 t134
 hub core src/lib/core/editor/editor.service.ts in55 t97
 hub features src/lib/features/collection/collection.types.ts in37 t0
-hub features src/lib/features/event-calendar/event-calendar-view.store.svelte.ts in21 t21
+hub features src/lib/features/event-calendar/event-calendar-view.store.svelte.ts in22 t21
 hub features src/lib/features/type-definitions/type-definitions.store.svelte.ts in20 t38
 hub plugins src/lib/plugins/periodic-notes/periodic-notes.service.ts in8 t9
 hub plugins src/lib/plugins/mods/mods.logic.ts in8 t3
@@ -83,7 +83,7 @@ hub rust src-tauri/src/utils/fs.rs in8 t2
 hub rust src-tauri/src/db/mod.rs in6 t8
 
 ## Counts
-files 1674 (cards 655) · modules 60 · symbols 3226 · locals 1456 · calls 7039 · ipc 72 · events 9 · dto 51 · stores 44 · registries 27 · effect sites 567
+files 1674 (cards 655) · modules 60 · symbols 3228 · locals 1456 · calls 7040 · ipc 72 · events 9 · dto 51 · stores 44 · registries 27 · effect sites 567
 
 ## Optional
 - Layer rules, layer edge totals, baseline debt: codemap/modules.md

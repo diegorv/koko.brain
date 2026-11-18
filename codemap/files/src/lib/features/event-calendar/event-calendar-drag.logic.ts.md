@@ -6,7 +6,7 @@ imp src/lib/features/event-calendar/event-calendar-drag.logic.ts:13 -> src/lib/f
 imp src/lib/features/event-calendar/event-calendar-drag.logic.ts:14 -> src/lib/features/event-calendar/event-calendar.types.ts type:DayDragState,type:DragState,type:EventNote
 ## imported-by
 imp src/lib/features/event-calendar/EventAllDayLane.svelte:4 -> src/lib/features/event-calendar/event-calendar-drag.logic.ts previewDayMove
-imp src/lib/features/event-calendar/EventMonthGrid.svelte:6 -> src/lib/features/event-calendar/event-calendar-drag.logic.ts previewDayMove
+imp src/lib/features/event-calendar/EventMonthGrid.svelte:7 -> src/lib/features/event-calendar/event-calendar-drag.logic.ts previewDayMove
 imp src/lib/features/event-calendar/EventTimeGrid.svelte:5 -> src/lib/features/event-calendar/event-calendar-drag.logic.ts beginCreate,beginMove,beginResize,createGhost,previewDayEvents,resolveDrag,slotFromPoint,updateDrag,type:EventTiming,type:Slot
 imp src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:1 -> src/lib/features/event-calendar/event-calendar-drag.logic.ts beginDayDrag,cellFromPoint,resolveDayDrag,updateDayDrag
 imp src/lib/features/event-calendar/event-calendar.service.ts:36 -> src/lib/features/event-calendar/event-calendar-drag.logic.ts type:EventTiming
@@ -53,7 +53,7 @@ sym src/lib/features/event-calendar/event-calendar-drag.logic.ts:302 fn resolveD
 by src/lib/features/event-calendar/event-calendar-drag.logic.ts:resolveDayDrag <- src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:115 in DayDrag.#pointerup call
 sym src/lib/features/event-calendar/event-calendar-drag.logic.ts:315 fn previewDayMove<T extends EventNote>(events: T[], drag: DayDragState | null, days: string[]): T[] L5 | Events as a day drag shows them: the dragged event re-dated to the target day, keeping its other fields.
 by src/lib/features/event-calendar/event-calendar-drag.logic.ts:previewDayMove <- src/lib/features/event-calendar/EventAllDayLane.svelte:29 in cells=$derived call
-by src/lib/features/event-calendar/event-calendar-drag.logic.ts:previewDayMove <- src/lib/features/event-calendar/EventMonthGrid.svelte:24 in chipsByDay=$derived call
+by src/lib/features/event-calendar/event-calendar-drag.logic.ts:previewDayMove <- src/lib/features/event-calendar/EventMonthGrid.svelte:28 in chipsByDay=$derived call
 ## locals
 local src/lib/features/event-calendar/event-calendar-drag.logic.ts:118 fn beginOnEvent(kind: 'move' | 'resize', event: EventNote, slot: Slot): DragState L14
 ## calls
