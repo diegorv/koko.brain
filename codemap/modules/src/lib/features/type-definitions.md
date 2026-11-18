@@ -4,7 +4,7 @@ sections: neighbors, entry files, files, public, stores, effects, debt
 module src/lib/features/type-definitions features files 9 in-modules 13 out-modules 12 pub 63/100 ipc 3/0 card ~7.1k
 ## neighbors
 dep src/lib/app -> src/lib/features/type-definitions 14
-dep src/lib/features/auto-organize -> src/lib/features/type-definitions 2
+dep src/lib/features/auto-organize -> src/lib/features/type-definitions 3
 dep src/lib/features/dock-badge -> src/lib/features/type-definitions 1
 dep src/lib/features/event-calendar -> src/lib/features/type-definitions 6
 dep src/lib/features/note-action-bar -> src/lib/features/type-definitions 1
@@ -31,7 +31,7 @@ dep src/lib/features/type-definitions -> src/lib/utils 1
 in2 src/lib/features/type-definitions 3 modules: src/routes(4) src/lib/features/quick-switcher(1) src/lib/features/search(1)
 out2 src/lib/features/type-definitions 2 modules: src/lib/core/markdown-editor(1) src/lib/core/trash(1)
 ## entry files
-entry src/lib/features/type-definitions/type-definitions.store.svelte.ts ext-in19 src/lib/app/AppShell.svelte src/lib/app/boot.ts src/lib/app/commands.ts src/lib/app/editor-host.ts src/lib/app/lifecycle/app-lifecycle.service.ts more importers 14 not shown: src/lib/features/rail-shell(4) src/lib/features/event-calendar(2) src/lib/app(1) +7 modules: q importers src/lib/features/type-definitions/type-definitions.store.svelte.ts
+entry src/lib/features/type-definitions/type-definitions.store.svelte.ts ext-in20 src/lib/app/AppShell.svelte src/lib/app/boot.ts src/lib/app/commands.ts src/lib/app/editor-host.ts src/lib/app/lifecycle/app-lifecycle.service.ts more importers 15 not shown: src/lib/features/rail-shell(4) src/lib/features/auto-organize(2) src/lib/features/event-calendar(2) +7 modules: q importers src/lib/features/type-definitions/type-definitions.store.svelte.ts
 entry src/lib/features/type-definitions/type-sidebar.logic.ts ext-in16 src/lib/app/AppShell.svelte src/lib/app/boot.ts src/lib/app/commands.ts src/lib/app/editor-host.ts src/lib/features/event-calendar/event-calendar-event.logic.ts more importers 11 not shown: src/lib/features/rail-shell(7) src/lib/features/note-list(2) src/lib/plugins/calendar(1) +1 modules: q importers src/lib/features/type-definitions/type-sidebar.logic.ts
 entry src/lib/features/type-definitions/type-definitions.service.ts ext-in9 src/lib/app/EditorView.svelte src/lib/app/tauri-listeners.service.ts src/lib/features/event-calendar/EventCalendarSection.svelte src/lib/features/event-calendar/event-calendar.service.ts src/lib/features/note-list/NoteRowMenu.svelte more importers 4 not shown: src/lib/features/rail-shell(3) src/lib/plugins/mods(1): q importers src/lib/features/type-definitions/type-definitions.service.ts
 entry src/lib/features/type-definitions/type-definitions.logic.ts ext-in5 src/lib/features/auto-organize/type-lifecycle-rules.ts src/lib/features/event-calendar/EventCalendarSection.svelte src/lib/features/rail-shell/TypesNavigator.svelte src/lib/features/rail-shell/lens.logic.ts src/lib/features/rail-shell/rail-shell.types.ts
@@ -44,9 +44,9 @@ entry src/lib/features/type-definitions/TypeNameDialog.svelte ext-in1 src/lib/fe
 file src/lib/features/type-definitions/TypeNameDialog.svelte component L100 module src/lib/features/type-definitions in1 t1
 file src/lib/features/type-definitions/ViewDialog.svelte component L221 module src/lib/features/type-definitions in2 t1
 file src/lib/features/type-definitions/inbox-workflow.logic.ts logic L24 module src/lib/features/type-definitions in4 t2
-file src/lib/features/type-definitions/type-definitions.logic.ts logic L275 module src/lib/features/type-definitions in9 t22
+file src/lib/features/type-definitions/type-definitions.logic.ts logic L275 module src/lib/features/type-definitions in9 t23
 file src/lib/features/type-definitions/type-definitions.service.ts service L549 module src/lib/features/type-definitions in10 t14
-file src/lib/features/type-definitions/type-definitions.store.svelte.ts store L125 module src/lib/features/type-definitions in20 t38
+file src/lib/features/type-definitions/type-definitions.store.svelte.ts store L125 module src/lib/features/type-definitions in21 t39
 file src/lib/features/type-definitions/type-note-list.logic.ts logic L208 module src/lib/features/type-definitions in4 t6
 file src/lib/features/type-definitions/type-sidebar.logic.ts logic L649 module src/lib/features/type-definitions in19 t9
 file src/lib/features/type-definitions/view-parse-cache.ts other L100 module src/lib/features/type-definitions in6 t17

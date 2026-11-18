@@ -1,7 +1,7 @@
 # module card src/lib/core/filesystem
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/core/filesystem ' codemap/modules
 sections: neighbors, entry files, files, public, stores, effects, debt
-module src/lib/core/filesystem core files 14 in-modules 30 out-modules 7 pub 61/91 ipc 14/0 card ~7.2k
+module src/lib/core/filesystem core files 14 in-modules 30 out-modules 7 pub 62/91 ipc 14/0 card ~7.2k
 ## neighbors
 dep src/lib/app -> src/lib/core/filesystem 22
 dep src/lib/core/editor -> src/lib/core/filesystem 2
@@ -10,7 +10,7 @@ dep src/lib/core/markdown-editor -> src/lib/core/filesystem 6
 dep src/lib/core/note-creator -> src/lib/core/filesystem 3
 dep src/lib/core/settings -> src/lib/core/filesystem 4
 dep src/lib/core/trash -> src/lib/core/filesystem 4
-dep src/lib/features/auto-organize -> src/lib/core/filesystem 4
+dep src/lib/features/auto-organize -> src/lib/core/filesystem 6
 dep src/lib/features/canvas -> src/lib/core/filesystem 3
 dep src/lib/features/collection -> src/lib/core/filesystem 8
 dep src/lib/features/deep-link -> src/lib/core/filesystem 2
@@ -43,9 +43,9 @@ dep src/lib/core/filesystem -> src/lib/utils 13
 in2 src/lib/core/filesystem 8 modules: src/routes(8) src/lib/plugins/calendar(5) src/lib/core/frontmatter(2) src/lib/core/vault(2) src/lib/features/backlinks(2) +3 modules
 out2 src/lib/core/filesystem 1 modules: src/lib/core/settings(2)
 ## entry files
-entry src/lib/core/filesystem/fs.logic.ts ext-in41 src/lib/app/editor-host.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/app/lifecycle/watcher-handler.service.ts src/lib/core/editor/editor.service.ts src/lib/core/layout/layout.logic.ts more importers 36 not shown: src/lib/features/rail-shell(6) src/lib/features/type-definitions(5) src/lib/features/collection(4) +16 modules: q importers src/lib/core/filesystem/fs.logic.ts
+entry src/lib/core/filesystem/fs.logic.ts ext-in42 src/lib/app/editor-host.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/app/lifecycle/watcher-handler.service.ts src/lib/core/editor/editor.service.ts src/lib/core/layout/layout.logic.ts more importers 37 not shown: src/lib/features/rail-shell(6) src/lib/features/type-definitions(5) src/lib/features/auto-organize(4) +16 modules: q importers src/lib/core/filesystem/fs.logic.ts
 entry src/lib/core/filesystem/fs.service.ts ext-in24 src/lib/app/commands.ts src/lib/app/deep-link-actions.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/app/tauri-listeners.service.ts src/lib/core/note-creator/note-creator.service.ts more importers 19 not shown: src/lib/features/rail-shell(3) src/lib/features/todoist-sync(2) src/lib/core/trash(1) +13 modules: q importers src/lib/core/filesystem/fs.service.ts
-entry src/lib/core/filesystem/fs.store.svelte.ts ext-in21 src/lib/app/AppShell.svelte src/lib/app/commands.ts src/lib/app/editor-host.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/app/tauri-listeners.service.ts more importers 16 not shown: src/lib/features/rail-shell(3) src/lib/core/settings(2) src/lib/features/note-list(2) +7 modules: q importers src/lib/core/filesystem/fs.store.svelte.ts
+entry src/lib/core/filesystem/fs.store.svelte.ts ext-in22 src/lib/app/AppShell.svelte src/lib/app/commands.ts src/lib/app/editor-host.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/app/tauri-listeners.service.ts more importers 17 not shown: src/lib/features/rail-shell(3) src/lib/core/settings(2) src/lib/features/note-list(2) +8 modules: q importers src/lib/core/filesystem/fs.store.svelte.ts
 entry src/lib/core/filesystem/wikilink-resolution.logic.ts ext-in14 src/lib/app/editor-host.ts src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts src/lib/core/markdown-editor/extensions/wikilink/completion.ts src/lib/features/collection/collection.logic.ts src/lib/features/note-list/NoteRow.svelte more importers 9 not shown: src/lib/features/properties(2) src/lib/plugins/kanban(2) src/lib/plugins/queryjs(2) +3 modules: q importers src/lib/core/filesystem/wikilink-resolution.logic.ts
 entry src/lib/core/filesystem/note-change.service.ts ext-in12 src/lib/app/boot.ts src/lib/app/lifecycle/index-updater.service.ts src/lib/app/lifecycle/watcher-handler.service.ts src/lib/core/editor/editor.hooks.ts src/lib/core/note-creator/note-creator.service.ts more importers 7 not shown: src/lib/core/trash(1) src/lib/features/collection(1) src/lib/features/file-icons(1) +4 modules: q importers src/lib/core/filesystem/note-change.service.ts
 entry src/lib/core/filesystem/file-entries.logic.ts ext-in11 src/lib/app/editor-host.ts src/lib/core/markdown-editor/editor-host.ts src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts src/lib/features/canvas/CanvasFilePicker.svelte src/lib/features/properties/PropertiesView.svelte more importers 6 not shown: src/lib/plugins/kanban(2) src/lib/features/properties(1) src/lib/features/quick-switcher(1) +2 modules: q importers src/lib/core/filesystem/file-entries.logic.ts
@@ -59,9 +59,9 @@ entry src/lib/core/filesystem/task-write.service.ts ext-in2 src/lib/features/tas
 file src/lib/core/filesystem/delete-note.service.ts service L28 module src/lib/core/filesystem in2 t1
 file src/lib/core/filesystem/file-entries.logic.ts logic L105 module src/lib/core/filesystem in12 t3
 file src/lib/core/filesystem/folder-notes.logic.ts logic L65 module src/lib/core/filesystem in3 t1
-file src/lib/core/filesystem/fs.logic.ts logic L642 module src/lib/core/filesystem in46 t15
+file src/lib/core/filesystem/fs.logic.ts logic L642 module src/lib/core/filesystem in47 t15
 file src/lib/core/filesystem/fs.service.ts service L376 module src/lib/core/filesystem in27 t45
-file src/lib/core/filesystem/fs.store.svelte.ts store L48 module src/lib/core/filesystem in25 t61
+file src/lib/core/filesystem/fs.store.svelte.ts store L48 module src/lib/core/filesystem in26 t62
 file src/lib/core/filesystem/fs.types.ts types L16 module src/lib/core/filesystem in13 t0
 file src/lib/core/filesystem/fs.watcher.ts other L304 module src/lib/core/filesystem in2 t5
 file src/lib/core/filesystem/link-updater.logic.ts logic L119 module src/lib/core/filesystem in1 t1
@@ -100,6 +100,7 @@ sym src/lib/core/filesystem/fs.logic.ts:182 fn isValidFileName(name: string): bo
 sym src/lib/core/filesystem/fs.logic.ts:244 fn generateUniqueName(name: string, isDirectory: boolean, existingSiblingNames: string[]): string L30 | Generates a unique file/folder name by appending an incrementing number.
 sym src/lib/core/filesystem/fs.logic.ts:276 fn getRelativePath(vaultPath: string, filePath: string): string L3 | Strips the vault root prefix from an absolute path to produce a vault-relative path
 sym src/lib/core/filesystem/fs.logic.ts:284 fn validateDragDrop(sourcePath: string, targetDirPath: string): string | null L11 | Validates whether a drag-and-drop move operation is allowed.
+sym src/lib/core/filesystem/fs.logic.ts:297 fn collectAllDirPaths(nodes: FileTreeNode[]): Set<string> L14 | Recursively collects the paths of every directory in the tree into a flat Set
 sym src/lib/core/filesystem/fs.logic.ts:376 fn collectFilePathsUnder(nodes: FileTreeNode[], dirPath: string): string[] L16 | Collects the absolute path of every FILE stored under `dirPath`, recursively.
 sym src/lib/core/filesystem/fs.logic.ts:408 fn applyFolderOrder(nodes: FileTreeNode[], orderMap: FolderOrderMap, vaultPath: string, currentPath: string, contentOrder?: Map<string, nu… L13 | Recursively reorders directory nodes according to folder-order.json and _order frontmatter values.
 sym src/lib/core/filesystem/fs.logic.ts:521 fn naturalCompare(a: string, b: string): number L28 | Case-insensitive natural name order, a port of the Rust `natural_cmp` (`src-tauri/src/commands/vault.rs`) that orders `scan_vault` output: runs of ASCII digits…

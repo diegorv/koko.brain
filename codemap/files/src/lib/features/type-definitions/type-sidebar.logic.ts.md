@@ -34,7 +34,7 @@ imp src/lib/features/type-definitions/type-definitions.store.svelte.ts:4 -> src/
 imp src/lib/plugins/calendar/day-lens.logic.ts:4 -> src/lib/features/type-definitions/type-sidebar.logic.ts excludeSystemFolder,isListableNote
 imp src/lib/plugins/queryjs/kb-api.ts:15 -> src/lib/features/type-definitions/type-sidebar.logic.ts excludeSystemFolder,isListableNote
 ## reach
-in2 src/lib/features/type-definitions/type-sidebar.logic.ts 41 files in 16 modules: src/lib/features/event-calendar(12) src/lib/features/rail-shell(8) src/lib/app(5) src/lib/plugins/calendar(2) src/lib/plugins/mods(2) +11 modules: q impact src/lib/features/type-definitions/type-sidebar.logic.ts --depth 2
+in2 src/lib/features/type-definitions/type-sidebar.logic.ts 42 files in 16 modules: src/lib/features/event-calendar(12) src/lib/features/rail-shell(8) src/lib/app(5) src/lib/features/auto-organize(2) src/lib/plugins/calendar(2) +11 modules: q impact src/lib/features/type-definitions/type-sidebar.logic.ts --depth 2
 out2 src/lib/features/type-definitions/type-sidebar.logic.ts 5 files in 5 modules: src/lib/contracts(1) src/lib/core/frontmatter(1) src/lib/core/settings(1) src/lib/features/file-icons(1) src/lib/utils(1)
 ## tests
 test src/tests/lib/features/type-definitions/type-sidebar.logic.test.ts imports src/lib/features/type-definitions/type-sidebar.logic.ts mirror

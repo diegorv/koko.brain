@@ -25,7 +25,7 @@ imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:31 -> src/lib/feat
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:45 -> src/lib/features/auto-organize/auto-organize.store.svelte.ts autoOrganizeStore
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:46 -> src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte default
 ## imported-by
-imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:11 -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte default
+imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:15 -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte default
 ## reach
 in2 src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte 36 files in 9 modules: src/lib/components(19) src/lib/features/collection(6) src/lib/core/settings(3) src/lib/core/frontmatter(2) src/lib/utils(2) +4 modules
@@ -33,7 +33,7 @@ out2 src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte 36 files in 9 mod
 test src/tests/lib/features/auto-organize/AutoOrganizeRuleRow.test.ts imports src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte mirror
 ## symbols
 sym src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:1 component AutoOrganizeRuleRow props:rule,isFirst,isLast,onupdate,onremove,onmoveup,onmovedown L549
-by src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:default <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:176 in (markup) mount
+by src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:default <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:210 in (markup) mount
 ## locals
 local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:143 fn toGroups(filter: FilterItem): FilterGroup[] L3
 local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:147 fn handleFiltersChange(next: FilterGroup[]) L8
@@ -74,7 +74,7 @@ mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:487 Switch -> sr
 mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:512 Input -> src/lib/components/ui/input/input.svelte
 mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:540 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 ## mounted-at
-mount src/lib/features/auto-organize/AutoOrganizeSection.svelte:176 AutoOrganizeRuleRow -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte
+mount src/lib/features/auto-organize/AutoOrganizeSection.svelte:210 AutoOrganizeRuleRow -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte
 ## calls
 call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:80 in groups -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:toGroups call
 call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:82 in filterDraft=$derived -> src/lib/features/collection/toolbar/filter.logic.ts:filterGroupsToFilter call

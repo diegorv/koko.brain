@@ -19,7 +19,7 @@ imp src/lib/features/rail-shell/rail-shell.types.ts:4 -> src/lib/core/filesystem
 imp src/lib/features/type-definitions/type-sidebar.logic.ts:4 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode
 imp src/lib/plugins/templates/templates.logic.ts:1 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode
 ## reach
-in2 src/lib/core/filesystem/fs.types.ts 96 files in 31 modules: src/lib/features/rail-shell(18) src/lib/app(10) src/lib/core/settings(7) src/lib/features/type-definitions(6) src/lib/core/markdown-editor(5) +26 modules: q impact src/lib/core/filesystem/fs.types.ts --depth 2
+in2 src/lib/core/filesystem/fs.types.ts 97 files in 31 modules: src/lib/features/rail-shell(18) src/lib/app(10) src/lib/core/settings(7) src/lib/features/type-definitions(6) src/lib/core/markdown-editor(5) +26 modules: q impact src/lib/core/filesystem/fs.types.ts --depth 2
 out2 src/lib/core/filesystem/fs.types.ts 52 files in 1 modules: src/lib/contracts(52)
 ## tests
 test src/tests/fixtures/tauri-api.fixture.ts imports-type src/lib/core/filesystem/fs.types.ts
@@ -40,6 +40,7 @@ test src/tests/lib/core/settings/OneOnOneSection.test.ts imports-type src/lib/co
 test src/tests/lib/core/settings/PeriodicNotesSection.test.ts imports-type src/lib/core/filesystem/fs.types.ts
 test src/tests/lib/core/settings/settings.logic.test.ts imports-type src/lib/core/filesystem/fs.types.ts
 test src/tests/lib/core/trash/trash.service.test.ts imports-type src/lib/core/filesystem/fs.types.ts
+test src/tests/lib/features/auto-organize/AutoOrganizeSection.test.ts imports-type src/lib/core/filesystem/fs.types.ts
 test src/tests/lib/features/properties/RelationshipSearch.test.ts imports-type src/lib/core/filesystem/fs.types.ts
 test src/tests/lib/features/rail-shell/FilesNavigator.menu.test.ts imports-type src/lib/core/filesystem/fs.types.ts
 test src/tests/lib/features/rail-shell/FilesNavigator.new-view.test.ts imports-type src/lib/core/filesystem/fs.types.ts

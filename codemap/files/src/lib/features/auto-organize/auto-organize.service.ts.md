@@ -28,7 +28,7 @@ imp src/lib/features/auto-organize/auto-organize.service.ts:47 -> src/lib/utils/
 imp src/lib/features/auto-organize/auto-organize.service.ts:48 -> src/lib/utils/path.ts vaultRelativeKey
 ## imported-by
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:77 -> src/lib/features/auto-organize/auto-organize.service.ts loadAutoOrganizeConfig,toggleAutoOrganizeHook,resetAutoOrganize
-imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:13 -> src/lib/features/auto-organize/auto-organize.service.ts saveAutoOrganizeConfig,toggleAutoOrganizeHook
+imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:17 -> src/lib/features/auto-organize/auto-organize.service.ts saveAutoOrganizeConfig,toggleAutoOrganizeHook
 ## reach
 in2 src/lib/features/auto-organize/auto-organize.service.ts 2 files in 2 modules: src/lib/app(1) src/routes(1)
 out2 src/lib/features/auto-organize/auto-organize.service.ts 35 files in 12 modules: src/lib/features/collection(6) src/lib/core/filesystem(5) src/lib/features/file-icons(5) src/lib/utils(5) src/lib/core/settings(4) +7 modules
@@ -41,11 +41,11 @@ test src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts mocks src/lib/fea
 sym src/lib/features/auto-organize/auto-organize.service.ts:113 fn loadAutoOrganizeConfig(vaultPath: string): Promise<void> L24 | Loads auto-organize config from .kokobrain/auto-organize-rules.json.
 by src/lib/features/auto-organize/auto-organize.service.ts:loadAutoOrganizeConfig <- src/lib/app/lifecycle/app-lifecycle.service.ts:313 in initializeVault call
 sym src/lib/features/auto-organize/auto-organize.service.ts:182 fn saveAutoOrganizeConfig(vaultPath: string): Promise<void> L19 | Saves current auto-organize config to disk.
-by src/lib/features/auto-organize/auto-organize.service.ts:saveAutoOrganizeConfig <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:35 in saveConfig call
+by src/lib/features/auto-organize/auto-organize.service.ts:saveAutoOrganizeConfig <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:54 in saveConfig call
 sym src/lib/features/auto-organize/auto-organize.service.ts:206 fn registerAutoOrganizeHook(): () => void L38 | Registers the after-save observer that triggers debounced rule evaluation.
 sym src/lib/features/auto-organize/auto-organize.service.ts:250 fn toggleAutoOrganizeHook(enabled: boolean): (() => void) | null L13 | Dynamically enables or disables the auto-organize after-save hook.
 by src/lib/features/auto-organize/auto-organize.service.ts:toggleAutoOrganizeHook <- src/lib/app/lifecycle/app-lifecycle.service.ts:454 in initializeVault call
-by src/lib/features/auto-organize/auto-organize.service.ts:toggleAutoOrganizeHook <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:118 in (markup) markup
+by src/lib/features/auto-organize/auto-organize.service.ts:toggleAutoOrganizeHook <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:144 in (markup) markup
 sym src/lib/features/auto-organize/auto-organize.service.ts:755 fn resetAutoOrganize(): void L23 | Resets all auto-organize state (called during vault teardown)
 by src/lib/features/auto-organize/auto-organize.service.ts:resetAutoOrganize <- src/lib/app/lifecycle/app-lifecycle.service.ts:678 in teardownVault call
 ## locals

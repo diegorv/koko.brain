@@ -1,7 +1,7 @@
 # file card src/lib/features/auto-organize/auto-organize.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/auto-organize/auto-organize.logic.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls
-file src/lib/features/auto-organize/auto-organize.logic.ts logic L971 module src/lib/features/auto-organize in4 t5
+file src/lib/features/auto-organize/auto-organize.logic.ts logic L994 module src/lib/features/auto-organize in4 t5
 ## imports
 imp src/lib/features/auto-organize/auto-organize.logic.ts:1 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeRule,type:RuleCreateNote,type:RuleProperty,type:RuleRename,type:RuleRunAction,type:RuleValue
 imp src/lib/features/auto-organize/auto-organize.logic.ts:2 -> src/lib/core/frontmatter/properties.types.ts type:Property,type:PropertyType
@@ -18,7 +18,7 @@ imp src/lib/features/auto-organize/auto-organize.logic.ts:22 -> src/lib/utils/fr
 ## imported-by
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:21 -> src/lib/features/auto-organize/auto-organize.logic.ts computeRuleValue,exprProblem,isBooleanOnlyKey,isRefusedKey,parseRuleItems,ruleRecordStats,ruleValueEditor
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:31 -> src/lib/features/auto-organize/auto-organize.logic.ts BLANK_VALUE_ERROR,countMatchingNotes,countNotesToCreate,hasBlankValue,isRefusedKey,isValidCreatePath,isValidTemplatePath,renameProblem,sanitizeCreateNote,sanitizeRename,sanitizeRuleProperties,sanitizeRunAction
-imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:14 -> src/lib/features/auto-organize/auto-organize.logic.ts generateRuleId
+imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:18 -> src/lib/features/auto-organize/auto-organize.logic.ts generateRuleId,isDuplicateExcluded,isExcludedFolderMissing
 imp src/lib/features/auto-organize/auto-organize.service.ts:17 -> src/lib/features/auto-organize/auto-organize.logic.ts applyPropertyWrites,createTargetProblem,findMatchingRules,findMoveRule,isAlreadyNamed,isInExcludedFolder,isAlreadyInDestination,isRefusedKey,normalizeVaultRelativePath,numberedName,ownedProperties,propertiesToWrite,propertyWriteSkipReason,renameProblem,renameTarget,resolveComputedProperties,resolveDestination,ruleRecordStats,sanitizeCreateNote,sanitizeRename,sanitizeRuleProperties,sanitizeRunAction,type:OwnedProperty
 ## reach
 in2 src/lib/features/auto-organize/auto-organize.logic.ts 2 files in 1 modules: src/lib/app(2)
@@ -109,13 +109,17 @@ sym src/lib/features/auto-organize/auto-organize.logic.ts:851 fn propertyWriteSk
 by src/lib/features/auto-organize/auto-organize.logic.ts:propertyWriteSkipReason <- src/lib/features/auto-organize/auto-organize.service.ts:426 in runRuleAction call +3
 sym src/lib/features/auto-organize/auto-organize.logic.ts:875 fn isInExcludedFolder(filePath: string, vaultPath: string, excludedFolders: string[]): boolean L23 | Checks if a file path is inside any excluded folder.
 by src/lib/features/auto-organize/auto-organize.logic.ts:isInExcludedFolder <- src/lib/features/auto-organize/auto-organize.service.ts:220 in registerAutoOrganizeHook call
-sym src/lib/features/auto-organize/auto-organize.logic.ts:903 fn isAlreadyInDestination(filePath: string, vaultPath: string, destination: string): boolean L13 | Checks if a file is already in the rule's destination folder.
+sym src/lib/features/auto-organize/auto-organize.logic.ts:904 fn isDuplicateExcluded(list: string[], folder: string): boolean L5 | Whether `folder`, trimmed, is already in the excluded `list`.
+by src/lib/features/auto-organize/auto-organize.logic.ts:isDuplicateExcluded <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:114 in addExcludedFolder call
+sym src/lib/features/auto-organize/auto-organize.logic.ts:916 fn isExcludedFolderMissing(folder: string, vaultFolders: string[]): boolean L5 | Whether an excluded `folder` names no folder of `vaultFolders` (vault-relative), compared case-insensitively as `isInExcludedFolder` matches.
+by src/lib/features/auto-organize/auto-organize.logic.ts:isExcludedFolderMissing <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:263 in (markup) markup
+sym src/lib/features/auto-organize/auto-organize.logic.ts:926 fn isAlreadyInDestination(filePath: string, vaultPath: string, destination: string): boolean L13 | Checks if a file is already in the rule's destination folder.
 by src/lib/features/auto-organize/auto-organize.logic.ts:isAlreadyInDestination <- src/lib/features/auto-organize/auto-organize.service.ts:325 in evaluateAndMove call +1
-sym src/lib/features/auto-organize/auto-organize.logic.ts:921 fn validateExpression(expression: string): string | null L9 | Validates a rule's expression by attempting to parse it.
-sym src/lib/features/auto-organize/auto-organize.logic.ts:936 fn resolveDestination(template: string, record: PropertyIndexRecord, vaultPath: string): string L29 | Resolves template variables in a destination string.
+sym src/lib/features/auto-organize/auto-organize.logic.ts:944 fn validateExpression(expression: string): string | null L9 | Validates a rule's expression by attempting to parse it.
+sym src/lib/features/auto-organize/auto-organize.logic.ts:959 fn resolveDestination(template: string, record: PropertyIndexRecord, vaultPath: string): string L29 | Resolves template variables in a destination string.
 by src/lib/features/auto-organize/auto-organize.logic.ts:resolveDestination <- src/lib/features/auto-organize/auto-organize.service.ts:324 in evaluateAndMove call +2
-sym src/lib/features/auto-organize/auto-organize.logic.ts:969 fn generateRuleId(): string L3 | Generates a unique rule ID based on timestamp + random suffix.
-by src/lib/features/auto-organize/auto-organize.logic.ts:generateRuleId <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:51 in addRule call
+sym src/lib/features/auto-organize/auto-organize.logic.ts:992 fn generateRuleId(): string L3 | Generates a unique rule ID based on timestamp + random suffix.
+by src/lib/features/auto-organize/auto-organize.logic.ts:generateRuleId <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:72 in addRule call
 ## locals
 local src/lib/features/auto-organize/auto-organize.logic.ts:74 fn ruleMatches(expression: FilterItem, ctx: EvalContext): boolean L8
 local src/lib/features/auto-organize/auto-organize.logic.ts:231 fn isTextOrTextList(value: unknown): value is string | string[] L3
@@ -213,4 +217,4 @@ call src/lib/features/auto-organize/auto-organize.logic.ts:863 in propertyWriteS
 call src/lib/features/auto-organize/auto-organize.logic.ts:865 in propertyWriteSkipReason -> src/lib/core/frontmatter/properties.logic.ts:extractRawFrontmatter call
 call src/lib/features/auto-organize/auto-organize.logic.ts:866 in propertyWriteSkipReason -> src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties call
 call src/lib/features/auto-organize/auto-organize.logic.ts:867 in propertyWriteSkipReason -> src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing call
-call src/lib/features/auto-organize/auto-organize.logic.ts:924 in validateExpression -> src/lib/features/collection/expression/parser.ts:parse call
+call src/lib/features/auto-organize/auto-organize.logic.ts:947 in validateExpression -> src/lib/features/collection/expression/parser.ts:parse call
