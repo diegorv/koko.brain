@@ -18,7 +18,7 @@ imp src/lib/features/event-calendar/event-calendar-event.logic.ts:19 -> src/lib/
 imp src/lib/features/event-calendar/event-calendar-form.logic.ts:15 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventDraft,type:EventNote,type:EventPatch,type:EventState
 imp src/lib/features/event-calendar/event-calendar-history.logic.ts:13 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventState,type:HistoryOp
 imp src/lib/features/event-calendar/event-calendar-keys.logic.ts:8 -> src/lib/features/event-calendar/event-calendar.types.ts type:CalendarViewMode
-imp src/lib/features/event-calendar/event-calendar-layout.logic.ts:8 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventNote,type:PositionedEvent
+imp src/lib/features/event-calendar/event-calendar-layout.logic.ts:9 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventNote,type:PositionedEvent
 imp src/lib/features/event-calendar/event-calendar-view.logic.ts:38 -> src/lib/features/event-calendar/event-calendar.types.ts type:CalendarViewMode,type:EventNote
 imp src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:12 -> src/lib/features/event-calendar/event-calendar.types.ts type:CalendarViewMode,type:DialogState,type:EventDialogPayload,type:FocusRequest,type:PopoverRect,type:PopoverTarget
 imp src/lib/features/event-calendar/event-calendar.service.ts:43 -> src/lib/features/event-calendar/event-calendar.types.ts type:CalendarViewMode,type:EventDraft,type:EventNote,type:EventPatch,type:EventState,type:HistoryOp,type:PendingWrite
@@ -62,7 +62,7 @@ by src/lib/features/event-calendar/event-calendar.types.ts:EventNote <- src/lib/
 by src/lib/features/event-calendar/event-calendar.types.ts:EventNote <- src/lib/features/event-calendar/event-calendar-drag.logic.ts:14 in (module) import
 by src/lib/features/event-calendar/event-calendar.types.ts:EventNote <- src/lib/features/event-calendar/event-calendar-event.logic.ts:24 in (module) import
 by src/lib/features/event-calendar/event-calendar.types.ts:EventNote <- src/lib/features/event-calendar/event-calendar-form.logic.ts:15 in (module) import
-by src/lib/features/event-calendar/event-calendar.types.ts:EventNote <- src/lib/features/event-calendar/event-calendar-layout.logic.ts:8 in (module) import
+by src/lib/features/event-calendar/event-calendar.types.ts:EventNote <- src/lib/features/event-calendar/event-calendar-layout.logic.ts:9 in (module) import
 by src/lib/features/event-calendar/event-calendar.types.ts:EventNote <- src/lib/features/event-calendar/event-calendar-view.logic.ts:38 in (module) import
 more by 2 not shown: src/lib/features/event-calendar(2): q importers src/lib/features/event-calendar/event-calendar.types.ts:EventNote
 sym src/lib/features/event-calendar/event-calendar.types.ts:62 interface EventFields L14 | The scheduling fields an event note stores in its frontmatter.
@@ -103,7 +103,7 @@ sym src/lib/features/event-calendar/event-calendar.types.ts:243 interface DayDra
 by src/lib/features/event-calendar/event-calendar.types.ts:DayDragState <- src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:5 in (module) import
 by src/lib/features/event-calendar/event-calendar.types.ts:DayDragState <- src/lib/features/event-calendar/event-calendar-drag.logic.ts:14 in (module) import
 sym src/lib/features/event-calendar/event-calendar.types.ts:255 interface PositionedEvent L8 | A timed event placed in its day column by the overlap layout.
-by src/lib/features/event-calendar/event-calendar.types.ts:PositionedEvent <- src/lib/features/event-calendar/event-calendar-layout.logic.ts:8 in (module) import
+by src/lib/features/event-calendar/event-calendar.types.ts:PositionedEvent <- src/lib/features/event-calendar/event-calendar-layout.logic.ts:9 in (module) import
 sym src/lib/features/event-calendar/event-calendar.types.ts:265 interface PopoverRect L10 | Viewport rect the popover anchors to: plain numbers, so the store does no DOM work.
 by src/lib/features/event-calendar/event-calendar.types.ts:PopoverRect <- src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:17 in (module) import
 sym src/lib/features/event-calendar/event-calendar.types.ts:277 interface PopoverTarget L6 | The event the details popover shows and where it is anchored.

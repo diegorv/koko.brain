@@ -49,7 +49,7 @@ imp src/lib/features/event-calendar/ShowInCalendarButton.svelte:5 -> src/lib/cor
 imp src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:1 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 more imported-by 45 not shown: src/lib/features/rail-shell(9) src/lib/features/search(5) src/lib/features/todoist-sync(5) src/lib/features/tasks(4) src/lib/features/note-action-bar(2) src/lib/features/tags(2) src/lib/plugins/calendar(2) src/lib/plugins/mods(2) +12 modules: q importers src/lib/core/settings/settings.store.svelte.ts
 ## reach
-in2 src/lib/core/settings/settings.store.svelte.ts 68 files in 35 modules: src/lib/features/event-calendar(9) src/lib/app(7) src/lib/core/filesystem(5) src/lib/core/vault(3) src/lib/features/properties(3) +30 modules: q impact src/lib/core/settings/settings.store.svelte.ts --depth 2
+in2 src/lib/core/settings/settings.store.svelte.ts 69 files in 35 modules: src/lib/features/event-calendar(10) src/lib/app(7) src/lib/core/filesystem(5) src/lib/core/vault(3) src/lib/features/properties(3) +30 modules: q impact src/lib/core/settings/settings.store.svelte.ts --depth 2
 out2 src/lib/core/settings/settings.store.svelte.ts 4 files in 2 modules: src/lib/core/settings(3) src/lib/utils(1)
 ## tests
 test src/tests/lib/core/settings/settings.store.reactivity.client.test.ts imports src/lib/core/settings/settings.store.svelte.ts mirror

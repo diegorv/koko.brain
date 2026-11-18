@@ -12,7 +12,7 @@ imp src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:1 -> src/l
 imp src/lib/features/event-calendar/event-calendar.service.ts:36 -> src/lib/features/event-calendar/event-calendar-drag.logic.ts type:EventTiming
 ## reach
 in2 src/lib/features/event-calendar/event-calendar-drag.logic.ts 11 files in 4 modules: src/lib/features/event-calendar(5) src/lib/app(4) src/lib/features/rail-shell(1) src/lib/plugins/calendar(1)
-out2 src/lib/features/event-calendar/event-calendar-drag.logic.ts 1 files in 1 modules: src/lib/core/settings(1)
+out2 src/lib/features/event-calendar/event-calendar-drag.logic.ts 2 files in 2 modules: src/lib/core/settings(1) src/lib/features/event-calendar(1)
 ## tests
 test src/tests/lib/features/event-calendar/event-calendar-drag.logic.test.ts imports src/lib/features/event-calendar/event-calendar-drag.logic.ts mirror
 ## symbols
@@ -26,21 +26,21 @@ by src/lib/features/event-calendar/event-calendar-drag.logic.ts:EventTiming <- s
 sym src/lib/features/event-calendar/event-calendar-drag.logic.ts:44 type DragResult L25 | What a finished gesture does.
 sym src/lib/features/event-calendar/event-calendar-drag.logic.ts:71 interface CreateGhost L8 | Range the create ghost draws while a create drag is in progress.
 sym src/lib/features/event-calendar/event-calendar-drag.logic.ts:86 fn slotFromPoint(rect: GridRect, clientX: number, clientY: number, dayCount: number): Slot L7 | Maps a pointer position to a slot.
-by src/lib/features/event-calendar/event-calendar-drag.logic.ts:slotFromPoint <- src/lib/features/event-calendar/EventTimeGrid.svelte:105 in slotAt call
+by src/lib/features/event-calendar/event-calendar-drag.logic.ts:slotFromPoint <- src/lib/features/event-calendar/EventTimeGrid.svelte:118 in slotAt call
 sym src/lib/features/event-calendar/event-calendar-drag.logic.ts:100 fn beginCreate(slot: Slot, defaultDurationMinutes: number): DragState L16 | Starts a create gesture on empty grid space.
-by src/lib/features/event-calendar/event-calendar-drag.logic.ts:beginCreate <- src/lib/features/event-calendar/EventTimeGrid.svelte:134 in handlePointerDown call
+by src/lib/features/event-calendar/event-calendar-drag.logic.ts:beginCreate <- src/lib/features/event-calendar/EventTimeGrid.svelte:147 in handlePointerDown call
 sym src/lib/features/event-calendar/event-calendar-drag.logic.ts:134 fn beginMove(event: EventNote, slot: Slot): DragState L3 | Starts a move gesture on the body of `event`, pressed at `slot`.
-by src/lib/features/event-calendar/event-calendar-drag.logic.ts:beginMove <- src/lib/features/event-calendar/EventTimeGrid.svelte:132 in handlePointerDown call
+by src/lib/features/event-calendar/event-calendar-drag.logic.ts:beginMove <- src/lib/features/event-calendar/EventTimeGrid.svelte:145 in handlePointerDown call
 sym src/lib/features/event-calendar/event-calendar-drag.logic.ts:139 fn beginResize(event: EventNote, slot: Slot): DragState L3 | Starts a resize gesture on the bottom handle of `event`, pressed at `slot`.
-by src/lib/features/event-calendar/event-calendar-drag.logic.ts:beginResize <- src/lib/features/event-calendar/EventTimeGrid.svelte:132 in handlePointerDown call
+by src/lib/features/event-calendar/event-calendar-drag.logic.ts:beginResize <- src/lib/features/event-calendar/EventTimeGrid.svelte:145 in handlePointerDown call
 sym src/lib/features/event-calendar/event-calendar-drag.logic.ts:154 fn updateDrag(drag: DragState, slot: Slot, distancePx: number): DragState L20 | Advances a drag to the pointer at `slot`.
-by src/lib/features/event-calendar/event-calendar-drag.logic.ts:updateDrag <- src/lib/features/event-calendar/EventTimeGrid.svelte:147 in dragAt call
+by src/lib/features/event-calendar/event-calendar-drag.logic.ts:updateDrag <- src/lib/features/event-calendar/EventTimeGrid.svelte:160 in dragAt call
 sym src/lib/features/event-calendar/event-calendar-drag.logic.ts:191 fn resolveDrag(drag: DragState, events: EventNote[], days: string[]): DragResult L19 | Decides what a finished gesture does.
-by src/lib/features/event-calendar/event-calendar-drag.logic.ts:resolveDrag <- src/lib/features/event-calendar/EventTimeGrid.svelte:169 in handlePointerUp call
+by src/lib/features/event-calendar/event-calendar-drag.logic.ts:resolveDrag <- src/lib/features/event-calendar/EventTimeGrid.svelte:182 in handlePointerUp call
 sym src/lib/features/event-calendar/event-calendar-drag.logic.ts:212 fn createGhost(drag: DragState): CreateGhost | null L4 | Range of the create ghost for a create drag; `null` for a move or resize.
-by src/lib/features/event-calendar/event-calendar-drag.logic.ts:createGhost <- src/lib/features/event-calendar/EventTimeGrid.svelte:90 in ghost=$derived call
+by src/lib/features/event-calendar/event-calendar-drag.logic.ts:createGhost <- src/lib/features/event-calendar/EventTimeGrid.svelte:92 in ghost=$derived call
 sym src/lib/features/event-calendar/event-calendar-drag.logic.ts:230 fn previewDayEvents<T extends EventNote>(drag: DragState | null, dragged: T | null, dayIndex: number, dayKey: string, dayEvents: T[]): T[]… L15 | Events of one visible day column as a move or resize drag shows them, or `null` when the drag leaves that column alone, so the caller re-lays out only the sour…
-by src/lib/features/event-calendar/event-calendar-drag.logic.ts:previewDayEvents <- src/lib/features/event-calendar/EventTimeGrid.svelte:86 in columns=$derived call
+by src/lib/features/event-calendar/event-calendar-drag.logic.ts:previewDayEvents <- src/lib/features/event-calendar/EventTimeGrid.svelte:88 in columns=$derived call
 sym src/lib/features/event-calendar/event-calendar-drag.logic.ts:247 type CellRect L1 | The part of a cell area's bounding rect the day-cell math reads.
 sym src/lib/features/event-calendar/event-calendar-drag.logic.ts:250 type DayDragResult L13 | Where a day drag drops.
 sym src/lib/features/event-calendar/event-calendar-drag.logic.ts:270 fn cellFromPoint(rect: CellRect, clientX: number, clientY: number, cols: number, rows: number): number L6 | Maps a pointer position to a day cell of a `cols` x `rows` area laid out row by row (the month grid, or the one-row all-day lane).
