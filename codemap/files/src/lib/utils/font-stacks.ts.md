@@ -18,7 +18,7 @@ test src/tests/lib/core/markdown-editor/setup/editor-theme.test.ts imports src/l
 test src/tests/lib/plugins/queryjs/kb-ui.test.ts imports src/lib/utils/font-stacks.ts
 ## symbols
 sym src/lib/utils/font-stacks.ts:7 const MONO_FONT_STACK L1 | Monospace stack for inline code, code blocks and code-like labels.
-by src/lib/utils/font-stacks.ts:MONO_FONT_STACK <- src/lib/core/markdown-editor/extensions/live-preview/styles.ts:297 in livePreviewStyles ref +5
+by src/lib/utils/font-stacks.ts:MONO_FONT_STACK <- src/lib/core/markdown-editor/extensions/live-preview/styles.ts:300 in livePreviewStyles ref +5
 by src/lib/utils/font-stacks.ts:MONO_FONT_STACK <- src/lib/core/markdown-editor/highlight-styles.ts:35 in markdownHighlight ref
 sym src/lib/utils/font-stacks.ts:13 const APP_SANS_FONT_STACK L1 | App sans stack.
 by src/lib/utils/font-stacks.ts:APP_SANS_FONT_STACK <- src/lib/plugins/queryjs/kb-ui.ts:757 in KBUI.heatmapCalendar ref +1

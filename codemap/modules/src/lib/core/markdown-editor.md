@@ -121,7 +121,7 @@ file src/lib/core/markdown-editor/extensions/live-preview/parsers/wikilink-embed
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/audio-plugin.ts other L56 module src/lib/core/markdown-editor in1 t2
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/block-comment-field.ts other L56 module src/lib/core/markdown-editor in1 t2
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/block-math-field.ts other L46 module src/lib/core/markdown-editor in1 t2
-file src/lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.ts other L271 module src/lib/core/markdown-editor in1 t3
+file src/lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.ts other L272 module src/lib/core/markdown-editor in1 t3
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/code-block-field.ts other L112 module src/lib/core/markdown-editor in1 t4
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/collection-block-field.ts other L51 module src/lib/core/markdown-editor in1 t3
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/footnote-plugin.ts other L100 module src/lib/core/markdown-editor in1 t2
@@ -134,7 +134,7 @@ file src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/table-field.ts other L69 module src/lib/core/markdown-editor in1 t4
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/video-plugin.ts other L56 module src/lib/core/markdown-editor in1 t2
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.ts other L98 module src/lib/core/markdown-editor in1 t2
-file src/lib/core/markdown-editor/extensions/live-preview/styles.ts other L1031 module src/lib/core/markdown-editor in16 t6
+file src/lib/core/markdown-editor/extensions/live-preview/styles.ts other L1054 module src/lib/core/markdown-editor in16 t6
 file src/lib/core/markdown-editor/extensions/live-preview/widgets.ts other L1145 module src/lib/core/markdown-editor in8 t15
 file src/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.ts other L190 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/extensions/live-preview/widgets/math-widget.ts other L77 module src/lib/core/markdown-editor in3 t1
