@@ -15,15 +15,15 @@ Not in this ticket: the one-table layout of the section (P125, M, revisit after 
 
 **Blocked by:** 22
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run (no E2E selector changes).
 
-- [ ] Failing test first, `src/tests/lib/core/settings/PeriodicNotesSection.test.ts` (created by ticket 22; extend it): with system time 2026-11-18, folder `Daily`, format `YYYY-MM-DD` the section shows "Today: Daily/2026-11-18.md"; editing the format updates it; the line equals `buildPeriodicNotePath('', folder, format, dayjs())` without the leading slash; an empty format shows a timestamp name.
-- [ ] A template path absent from a loaded tree shows "File not found"; present, empty, dot-prefixed, no vault or an empty tree shows nothing. Real `fsStore` and `vaultStore`, no mock.
-- [ ] Same checks for the 1:1 Template path in `src/tests/lib/core/settings/OneOnOneSection.test.ts`.
-- [ ] `settingsStore.periodicNotes` and `oneOnOne` are identical before and after rendering; `settings-copy.test.ts` and `layer-rules.test.ts` stay green.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/core/settings/PeriodicNotesSection.test.ts` (created by ticket 22; extend it): with system time 2026-11-18, folder `Daily`, format `YYYY-MM-DD` the section shows "Today: Daily/2026-11-18.md"; editing the format updates it; the line equals `buildPeriodicNotePath('', folder, format, dayjs())` without the leading slash; an empty format shows a timestamp name.
+- [x] A template path absent from a loaded tree shows "File not found"; present, empty, dot-prefixed, no vault or an empty tree shows nothing. Real `fsStore` and `vaultStore`, no mock.
+- [x] Same checks for the 1:1 Template path in `src/tests/lib/core/settings/OneOnOneSection.test.ts`.
+- [x] `settingsStore.periodicNotes` and `oneOnOne` are identical before and after rendering; `settings-copy.test.ts` and `layer-rules.test.ts` stay green.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -54,3 +54,4 @@ Ticket 22 (see above). Tension recorded, not a blocker: stacking ten rows makes 
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping.
+- 2026-11-18, deliver (issue/36-periodic-notes-11-live-path-examples): live "Today:" path examples under each Periodic Notes format and a "File not found" mark for missing Periodic Notes and 1:1 template paths. Review fixes: isTemplateMissing JSDoc names false marks, PeriodType imported from settings.types, aria-describedby links for the example and mark. Tests: pnpm check clean; full suite at c12f1fe83 exit=0, 661 files, 17680 passed, 56 skipped, 1 todo. Reviews: round 1 APPROVED (review.md), fix round ran, round 2 APPROVED (review-2.md).

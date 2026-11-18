@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { Input } from '#lib/components/ui/input/index.js';
+	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { isTemplateMissing } from '../settings.logic';
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 
@@ -14,6 +17,8 @@
 		if (raw.trim() === '' || !Number.isFinite(days)) return;
 		settingsStore.updateOneOnOne({ dueAfterDays: Math.max(0, Math.floor(days)) });
 	}
+
+	const templateMissing = $derived(isTemplateMissing(fsStore.fileTree, vaultStore.path, settingsStore.oneOnOne.templatePath));
 </script>
 
 <div class="flex flex-col gap-2">
@@ -78,13 +83,18 @@
 	<SettingItem
 		label="Template path"
 		description="Path to the template file relative to vault root"
+		layout="stacked"
 	>
 		<Input
 			value={settingsStore.oneOnOne.templatePath ?? ''}
+			aria-describedby={templateMissing ? 'one-on-one-template-missing' : undefined}
 			oninput={(e) => {
 				settingsStore.updateOneOnOne({ templatePath: inputValue(e) || undefined });
 			}}
 		/>
+		{#if templateMissing}
+			<p id="one-on-one-template-missing" class="mt-1 text-meta text-muted-foreground" data-template-missing>File not found</p>
+		{/if}
 	</SettingItem>
 
 	<h3 class="section-label mt-6 mb-2">Reminders</h3>
