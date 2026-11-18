@@ -33,12 +33,12 @@ test.describe('Collection block', () => {
 
 		const block = page.locator('.cm-lp-collection-block');
 		await expect(block.locator('.cm-lp-collection-header')).toHaveText('Active (1)');
-		await expect.poll(() => blockRows(page)).toEqual(['Roadmap.md | active']);
+		await expect.poll(() => blockRows(page)).toEqual(['Roadmap | active']);
 	});
 
 	test('updates its rows after another note starts matching the query', async ({ vaultPage: page }) => {
 		await openFile(page, 'Active.md');
-		await expect.poll(() => blockRows(page)).toEqual(['Roadmap.md | active']);
+		await expect.poll(() => blockRows(page)).toEqual(['Roadmap | active']);
 
 		// An external edit of Projects/2026-Q2.md, delivered the way the Rust watcher reports it.
 		const q2 = TEST_FILES[Q2_PATH].replace('status: in-progress', 'status: active');
@@ -46,16 +46,16 @@ test.describe('Collection block', () => {
 		await page.evaluate((paths) => window.__e2e.events.emit('vault-files-changed', { paths }), [Q2_PATH]);
 
 		await expect(page.locator('.cm-lp-collection-header')).toHaveText('Active (2)');
-		await expect.poll(async () => (await blockRows(page)).sort()).toEqual(['2026-Q2.md | active', 'Roadmap.md | active']);
+		await expect.poll(async () => (await blockRows(page)).sort()).toEqual(['2026-Q2 | active', 'Roadmap | active']);
 	});
 
 	test('clicking a row opens its note and the block stays rendered', async ({ vaultPage: page }) => {
 		await openFile(page, 'Active.md');
-		await expect.poll(() => blockRows(page)).toEqual(['Roadmap.md | active']);
+		await expect.poll(() => blockRows(page)).toEqual(['Roadmap | active']);
 
 		// The row stops mousedown, so CodeMirror does not move the cursor onto
 		// the fence and reveal the block's YAML before the click lands.
-		await page.locator('.cm-lp-collection-block tbody tr', { hasText: 'Roadmap.md' }).click();
+		await page.locator('.cm-lp-collection-block tbody tr', { hasText: 'Roadmap' }).click();
 
 		await expectTabActive(page, 'Roadmap');
 		await expect(page.locator('.cm-content')).toContainText('The current high-level plan.');
@@ -63,7 +63,7 @@ test.describe('Collection block', () => {
 		await page.locator('.editor-tabs-bar [role="tab"]', { hasText: 'Active' }).click();
 		await expectTabActive(page, 'Active');
 		await expect(page.locator('.cm-lp-collection-block .cm-lp-collection-header')).toHaveText('Active (1)');
-		await expect.poll(() => blockRows(page)).toEqual(['Roadmap.md | active']);
+		await expect.poll(() => blockRows(page)).toEqual(['Roadmap | active']);
 		await expect(page.locator('.cm-content')).not.toContainText('filters:');
 	});
 });

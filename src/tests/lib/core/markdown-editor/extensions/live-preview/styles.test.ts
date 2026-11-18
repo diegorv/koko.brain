@@ -135,6 +135,7 @@ describe('livePreviewStyles scale with the editor font', () => {
 		['.cm-lp-embed-content', '1em'],
 		['.cm-lp-collection-block', '0.85em'],
 		['.cm-lp-collection-header', '0.9em'],
+		['.cm-lp-collection-views-hint', '0.9em'],
 		['.cm-lp-collection-table', '0.9em'],
 		['.cm-lp-collection-error', '0.9em'],
 		['.cm-lp-collection-loading', '0.9em'],
@@ -288,5 +289,45 @@ describe('livePreviewStyles queryjs tables and buttons', () => {
 
 	it('keeps date and number cells on one line', () => {
 		expect(exactRule('.cm-lp-qjs-nowrap')).toContain('white-space: nowrap;');
+	});
+
+	it('stops the editor line wrapping from splitting words inside the scroll div', () => {
+		const rule = exactRule('.cm-lp-table-scroll');
+		expect(rule).toContain('overflow-wrap: normal;');
+		expect(rule).toContain('word-break: normal;');
+		expect(exactRule('.cm-lp-table-scroll th')).toContain('white-space: nowrap;');
+	});
+});
+
+describe('livePreviewStyles collection block table', () => {
+	it('ends a long text cell in an ellipsis inside a bounded span', () => {
+		const rule = exactRule('.cm-lp-collection-text');
+		expect(rule).toContain('display: block;');
+		expect(rule).toContain('max-width: 20em;');
+		expect(rule).toContain('overflow: hidden;');
+		expect(rule).toContain('text-overflow: ellipsis;');
+		expect(rule).toContain('white-space: nowrap;');
+	});
+
+	it('mutes the other-views hint', () => {
+		const rule = exactRule('.cm-lp-collection-views-hint');
+		expect(rule).toContain('color: var(--lp-collection-null);');
+		expect(rule).toContain('font-weight: 400;');
+	});
+
+	it('adds no rule keyed on .cm-lp-collection-table, which the month grid and linear calendar share', () => {
+		const selectors = themeRules()
+			.map((r) => r.slice(0, r.indexOf('{')).trim())
+			.filter((s) => s.includes('.cm-lp-collection-table'))
+			// Drop the theme's scope class from each comma part.
+			.map((s) => s.split(/,\s*/).map((part) => part.replace(/^\S+ /, '')).join(', '));
+		expect(selectors).toEqual([
+			'.cm-lp-collection-table',
+			'.cm-lp-collection-table th, .cm-lp-collection-table td',
+			'.cm-lp-collection-table th',
+			'.cm-lp-collection-table tr',
+			'.cm-lp-collection-table tr:hover',
+			'.cm-lp-collection-table tr:nth-child(even)',
+		]);
 	});
 });
