@@ -2,12 +2,12 @@
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/plugins/kanban/kanban.types.ts ' codemap/files
 file src/lib/plugins/kanban/kanban.types.ts types L106 module src/lib/plugins/kanban in7 t0
 ## imported-by
-imp src/lib/plugins/kanban/KanbanCard.svelte:10 -> src/lib/plugins/kanban/kanban.types.ts type:KanbanItem
+imp src/lib/plugins/kanban/KanbanCard.svelte:11 -> src/lib/plugins/kanban/kanban.types.ts type:KanbanItem
 imp src/lib/plugins/kanban/KanbanLane.svelte:12 -> src/lib/plugins/kanban/kanban.types.ts type:KanbanLane,type:KanbanItem
 imp src/lib/plugins/kanban/KanbanListView.svelte:3 -> src/lib/plugins/kanban/kanban.types.ts type:KanbanBoard,type:KanbanItem
 imp src/lib/plugins/kanban/KanbanTableView.svelte:3 -> src/lib/plugins/kanban/kanban.types.ts type:KanbanBoard
 imp src/lib/plugins/kanban/KanbanView.svelte:52 -> src/lib/plugins/kanban/kanban.types.ts type:KanbanBoard,type:KanbanSortMode,type:KanbanViewMode
-imp src/lib/plugins/kanban/KanbanView.svelte:187 -> src/lib/plugins/kanban/kanban.types.ts type:KanbanLane
+imp src/lib/plugins/kanban/KanbanView.svelte:199 -> src/lib/plugins/kanban/kanban.types.ts type:KanbanLane
 imp src/lib/plugins/kanban/kanban.logic.ts:2 -> src/lib/plugins/kanban/kanban.types.ts type:KanbanArchiveLayout,type:KanbanBoard,type:KanbanItem,type:KanbanLane,type:KanbanSettings,type:KanbanSettingsBlock,type:KanbanSortMode,type:KanbanViewMode
 imp src/lib/plugins/kanban/kanban.store.svelte.ts:1 -> src/lib/plugins/kanban/kanban.types.ts type:KanbanBoard,type:KanbanItem,type:KanbanLane,type:KanbanSettings
 ## reach
@@ -19,7 +19,7 @@ test src/tests/lib/plugins/kanban/kanban.logic.test.ts imports-type src/lib/plug
 test src/tests/lib/plugins/kanban/kanban.store.test.ts imports-type src/lib/plugins/kanban/kanban.types.ts
 ## symbols
 sym src/lib/plugins/kanban/kanban.types.ts:2 interface KanbanItem L15 | A single card on the Kanban board
-by src/lib/plugins/kanban/kanban.types.ts:KanbanItem <- src/lib/plugins/kanban/KanbanCard.svelte:10 in (script) import
+by src/lib/plugins/kanban/kanban.types.ts:KanbanItem <- src/lib/plugins/kanban/KanbanCard.svelte:11 in (script) import
 by src/lib/plugins/kanban/kanban.types.ts:KanbanItem <- src/lib/plugins/kanban/KanbanLane.svelte:12 in (script) import
 by src/lib/plugins/kanban/kanban.types.ts:KanbanItem <- src/lib/plugins/kanban/KanbanListView.svelte:3 in (script) import
 by src/lib/plugins/kanban/kanban.types.ts:KanbanItem <- src/lib/plugins/kanban/kanban.logic.ts:5 in (module) import

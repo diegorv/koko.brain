@@ -16,20 +16,20 @@ out2 src/lib/plugins/kanban 3 modules: src/lib/contracts(4) src/lib/core/setting
 entry src/lib/plugins/kanban/kanban.service.ts ext-in3 src/lib/app/boot.ts src/lib/app/commands.ts src/lib/app/lifecycle/app-lifecycle.service.ts
 entry src/lib/plugins/kanban/KanbanView.svelte ext-in1 src/lib/app/EditorView.svelte
 ## files
-file src/lib/plugins/kanban/KanbanCard.svelte component L344 module src/lib/plugins/kanban in1 t0
+file src/lib/plugins/kanban/KanbanCard.svelte component L364 module src/lib/plugins/kanban in1 t0
 file src/lib/plugins/kanban/KanbanCardText.svelte component L49 module src/lib/plugins/kanban in3 t0
 file src/lib/plugins/kanban/KanbanDatePicker.svelte component L146 module src/lib/plugins/kanban in1 t0
-file src/lib/plugins/kanban/KanbanLane.svelte component L444 module src/lib/plugins/kanban in1 t0
+file src/lib/plugins/kanban/KanbanLane.svelte component L451 module src/lib/plugins/kanban in1 t0
 file src/lib/plugins/kanban/KanbanListView.svelte component L61 module src/lib/plugins/kanban in1 t0
 file src/lib/plugins/kanban/KanbanTableView.svelte component L93 module src/lib/plugins/kanban in1 t0
-file src/lib/plugins/kanban/KanbanView.svelte component L716 module src/lib/plugins/kanban in1 t4
+file src/lib/plugins/kanban/KanbanView.svelte component L739 module src/lib/plugins/kanban in1 t4
 file src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte component L93 module src/lib/plugins/kanban in2 t1
 file src/lib/plugins/kanban/kanban.logic.ts logic L969 module src/lib/plugins/kanban in7 t7
 file src/lib/plugins/kanban/kanban.service.ts service L90 module src/lib/plugins/kanban in4 t7
 file src/lib/plugins/kanban/kanban.store.svelte.ts store L47 module src/lib/plugins/kanban in2 t6
 file src/lib/plugins/kanban/kanban.types.ts types L106 module src/lib/plugins/kanban in7 t0
 ## public
-sym src/lib/plugins/kanban/KanbanView.svelte:1 component KanbanView props:markdownContent,onContentChange,onOpenWikilink L716
+sym src/lib/plugins/kanban/KanbanView.svelte:1 component KanbanView props:markdownContent,onContentChange,onOpenWikilink L739
 sym src/lib/plugins/kanban/kanban.service.ts:18 fn createKanbanFile(parentPath: string): Promise<string> L3 | Creates a new `.kanban` file with an empty board (To Do, In Progress, Done).
 sym src/lib/plugins/kanban/kanban.service.ts:27 fn registerKanbanFolderCreator(): () => void L9 | Adds "New kanban board" to the Files navigator's folder menu: the rail shell may not import plugins (ADR 0003).
 sym src/lib/plugins/kanban/kanban.service.ts:38 fn resetKanban(): void L4 | Resets all kanban state (called during vault teardown)

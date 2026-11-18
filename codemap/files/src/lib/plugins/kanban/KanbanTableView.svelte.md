@@ -14,11 +14,11 @@ in2 src/lib/plugins/kanban/KanbanTableView.svelte 1 files in 1 modules: src/lib/
 out2 src/lib/plugins/kanban/KanbanTableView.svelte 1 files in 1 modules: src/lib/utils(1)
 ## symbols
 sym src/lib/plugins/kanban/KanbanTableView.svelte:1 component KanbanTableView props:board,onToggleItem,onWikilinkClick L93
-by src/lib/plugins/kanban/KanbanTableView.svelte:default <- src/lib/plugins/kanban/KanbanView.svelte:603 in (markup) mount
+by src/lib/plugins/kanban/KanbanTableView.svelte:default <- src/lib/plugins/kanban/KanbanView.svelte:624 in (markup) mount
 ## mounts
 mount src/lib/plugins/kanban/KanbanTableView.svelte:59 KanbanCardText -> src/lib/plugins/kanban/KanbanCardText.svelte
 ## mounted-at
-mount src/lib/plugins/kanban/KanbanView.svelte:603 KanbanTableView -> src/lib/plugins/kanban/KanbanTableView.svelte
+mount src/lib/plugins/kanban/KanbanView.svelte:624 KanbanTableView -> src/lib/plugins/kanban/KanbanTableView.svelte
 ## calls
 call src/lib/plugins/kanban/KanbanTableView.svelte:36 in (markup) -> src/lib/plugins/kanban/kanban.logic.ts:extractCardDate markup
 call src/lib/plugins/kanban/KanbanTableView.svelte:37 in (markup) -> src/lib/plugins/kanban/kanban.logic.ts:extractCardColor markup
