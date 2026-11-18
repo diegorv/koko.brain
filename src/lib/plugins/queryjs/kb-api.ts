@@ -341,7 +341,11 @@ export class KBAPI implements KBApiV1 {
 		}
 		table.appendChild(tbody);
 
-		this.container.appendChild(table);
+		// Wide tables scroll sideways inside this div; the `<table>` is still what is returned.
+		const scroll = document.createElement('div');
+		scroll.className = 'cm-lp-table-scroll';
+		scroll.appendChild(table);
+		this.container.appendChild(scroll);
 		return table;
 	}
 
@@ -485,7 +489,7 @@ export class KBAPI implements KBApiV1 {
 		return set;
 	}
 
-	/** Renders a value into an element — KBLink as clickable <a>, HTMLElement appended directly, dates as strings */
+	/** Renders a value into an element — KBLink as clickable <a>, HTMLElement appended directly, dates as strings; dates and numbers get `cm-lp-qjs-nowrap` */
 	private renderValue(el: HTMLElement, value: unknown): void {
 		if (value instanceof HTMLElement) {
 			el.appendChild(value);
@@ -514,8 +518,13 @@ export class KBAPI implements KBApiV1 {
 			el.appendChild(a);
 		} else if (value instanceof KBDateTime) {
 			el.textContent = value.toISODate();
+			el.classList.add('cm-lp-qjs-nowrap');
 		} else if (value instanceof Date) {
 			el.textContent = value.toISOString().split('T')[0];
+			el.classList.add('cm-lp-qjs-nowrap');
+		} else if (typeof value === 'number') {
+			el.textContent = String(value);
+			el.classList.add('cm-lp-qjs-nowrap');
 		} else if (Array.isArray(value)) {
 			el.textContent = value.map(String).join(', ');
 		} else {

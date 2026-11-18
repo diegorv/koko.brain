@@ -724,6 +724,45 @@ describe('KBAPI', () => {
 			expect(tds.length).toBe(4);
 		});
 
+		it('table sits alone in a scroll div inside the container', () => {
+			const kb = createAPI();
+			const table = kb.table(['A'], [['row']]);
+			const scroll = table.parentElement!;
+			expect(scroll.className).toBe('cm-lp-table-scroll');
+			expect(scroll.children.length).toBe(1);
+			expect(scroll.parentElement).toBe(kb.container);
+			expect(kb.container.firstElementChild).toBe(scroll);
+		});
+
+		it('table moved by a script leaves an empty scroll div and nothing throws', () => {
+			const kb = createAPI();
+			const elsewhere = document.createElement('div');
+			const table = kb.table(['A'], [['row']]);
+			expect(() => elsewhere.appendChild(table)).not.toThrow();
+			expect(elsewhere.firstElementChild).toBe(table);
+			const scroll = kb.container.firstElementChild as HTMLElement;
+			expect(scroll.className).toBe('cm-lp-table-scroll');
+			expect(scroll.childNodes.length).toBe(0);
+		});
+
+		it('ui.table without paging also returns a table inside the scroll div', () => {
+			const kb = createAPI();
+			const table = kb.ui.table(['A'], [['row']]);
+			expect(table.tagName).toBe('TABLE');
+			expect(table.parentElement!.className).toBe('cm-lp-table-scroll');
+			expect(table.parentElement!.parentElement).toBe(kb.container);
+		});
+
+		it('date and number cells do not wrap; string cells keep wrapping', () => {
+			const kb = createAPI();
+			const table = kb.table(['DateTime', 'Date', 'Number', 'Text'], [
+				[new KBDateTime('2026-11-18'), new Date('2026-11-18T12:00:00Z'), 1234.5, 'two words'],
+			]);
+			const tds = [...table.querySelectorAll('td')];
+			expect(tds.map((td) => td.textContent)).toEqual(['2026-11-18', '2026-11-18', '1234.5', 'two words']);
+			expect(tds.map((td) => td.classList.contains('cm-lp-qjs-nowrap'))).toEqual([true, true, true, false]);
+		});
+
 		it('taskList creates checkbox list', () => {
 			const kb = createAPI();
 			const ul = kb.taskList([

@@ -404,9 +404,10 @@ export class KBUI implements KBUIV1 {
 	 *
 	 * Pagination state is local DOM state — the user can flip pages without
 	 * re-running the script. The returned element is the *wrapper* (a `<div>`
-	 * containing the `<table>` + nav controls); when pagination is off, the
+	 * containing the scroll div + nav controls); when pagination is off, the
 	 * `<table>` is returned directly to keep the no-paging contract identical
-	 * to the legacy single-table return.
+	 * to the legacy single-table return. Either way the `<table>` sits inside a
+	 * `cm-lp-table-scroll` div, so it is not a direct child of the container.
 	 */
 	table<R extends unknown[]>(
 		headers: string[],
@@ -490,11 +491,17 @@ export class KBUI implements KBUIV1 {
 			table.appendChild(tfoot);
 		}
 
+		// Wide tables scroll sideways inside this div instead of overflowing the note.
+		const scroll = document.createElement('div');
+		scroll.className = 'cm-lp-table-scroll';
+		scroll.appendChild(table);
+
 		// Pagination — render only when there's at least 2 pages worth of rows.
 		if (paginated) {
 			const wrapper = document.createElement('div');
 			wrapper.className = 'cm-lp-qjs-table-wrapper';
-			wrapper.appendChild(table);
+			// The nav stays outside the scroll div so it does not scroll away with the table.
+			wrapper.appendChild(scroll);
 
 			const totalPages = Math.ceil(arr.length / pageSize);
 			let page = 1;
@@ -512,6 +519,10 @@ export class KBUI implements KBUIV1 {
 			next.textContent = 'Next';
 			const indicator = document.createElement('span');
 			indicator.className = 'cm-lp-qjs-table-nav-indicator';
+			// CodeMirror's mousedown would move the cursor into the block, reveal its
+			// source and destroy the widget before the click fires (live-preview rule 11).
+			prev.addEventListener('mousedown', (e) => e.stopPropagation());
+			next.addEventListener('mousedown', (e) => e.stopPropagation());
 
 			const refresh = () => {
 				const start = (page - 1) * pageSize;
@@ -549,7 +560,7 @@ export class KBUI implements KBUIV1 {
 			return wrapper;
 		}
 
-		this.container.appendChild(table);
+		this.container.appendChild(scroll);
 		return table;
 	}
 

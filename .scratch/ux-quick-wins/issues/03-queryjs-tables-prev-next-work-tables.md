@@ -16,17 +16,17 @@ Not in this ticket: ellipsis on QueryJS cells (arbitrary script output, truncati
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes.
 
-- [ ] Failing test first: port "pager Next survives its click and turns the page" from `.scratch/archived/live-preview-audit/repro/interactions/widget-click.test.ts:105-115` into a new test under `src/tests/lib/plugins/queryjs/` (real CodeMirror, set up like `src/tests/lib/features/collection/collection-block-click.test.ts`: `mountMarkdownView` plus `livePreviewExtensions`): the widget stays drawn, the indicator reads `Page 2 of 3`, the cursor does not move. Same for Prev. It fails today.
-- [ ] `src/tests/lib/plugins/queryjs/kb-ui.test.ts:753` (`expect(result).toBe(container.firstElementChild)`, "returns the table element") fails once the container's first child is the scroll div. It is changed on purpose to `expect(result.parentElement).toBe(container.firstElementChild)` plus a check that the parent has `cm-lp-table-scroll`; the `result.tagName === 'TABLE'` line stays. `:619` (`container.firstElementChild` read as the table for `th` lookups) is adjusted the same way.
-- [ ] `kb.ui.table` and `kb.table` still return a `TABLE` (`kb-api.test.ts:719` unchanged) whose parent is the scroll div inside the container; a paginated `kb.ui.table` returns the wrapper as the container's first child, with the nav outside the scroll div (the `nth-child` nav selectors at `kb-ui.test.ts:791-801` stay green).
-- [ ] A `KBDateTime`, a `Date` and a number cell carry the nowrap class; a string cell does not (`kb-api.test.ts`).
-- [ ] Both buttons have a `:focus-visible` rule using `--ring`; the radius ladder is unchanged (`styles.test.ts`); `kb-api-contract` and `queryjs-block-widget` tests pass.
-- [ ] A test pins the compatibility note: a script that moves the returned table leaves an empty scroll div in `kb.container` and nothing throws.
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first: port "pager Next survives its click and turns the page" from `.scratch/archived/live-preview-audit/repro/interactions/widget-click.test.ts:105-115` into a new test under `src/tests/lib/plugins/queryjs/` (real CodeMirror, set up like `src/tests/lib/features/collection/collection-block-click.test.ts`: `mountMarkdownView` plus `livePreviewExtensions`): the widget stays drawn, the indicator reads `Page 2 of 3`, the cursor does not move. Same for Prev. It fails today.
+- [x] `src/tests/lib/plugins/queryjs/kb-ui.test.ts:753` (`expect(result).toBe(container.firstElementChild)`, "returns the table element") fails once the container's first child is the scroll div. It is changed on purpose to `expect(result.parentElement).toBe(container.firstElementChild)` plus a check that the parent has `cm-lp-table-scroll`; the `result.tagName === 'TABLE'` line stays. `:619` (`container.firstElementChild` read as the table for `th` lookups) is adjusted the same way.
+- [x] `kb.ui.table` and `kb.table` still return a `TABLE` (`kb-api.test.ts:719` unchanged) whose parent is the scroll div inside the container; a paginated `kb.ui.table` returns the wrapper as the container's first child, with the nav outside the scroll div (the `nth-child` nav selectors at `kb-ui.test.ts:791-801` stay green).
+- [x] A `KBDateTime`, a `Date` and a number cell carry the nowrap class; a string cell does not (`kb-api.test.ts`).
+- [x] Both buttons have a `:focus-visible` rule using `--ring`; the radius ladder is unchanged (`styles.test.ts`); `kb-api-contract` and `queryjs-block-widget` tests pass.
+- [x] A test pins the compatibility note: a script that moves the returned table leaves an empty scroll div in `kb.container` and nothing throws.
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Original proposal
 
@@ -53,3 +53,4 @@ Ticket 08 (next in the `styles.ts` chain, widget rules elsewhere in the file), 1
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): none. The script compatibility note in What to build item 5 is the coverage check's finding, not an owner question.
+- 2026-11-18, delivered from branch issue/03-queryjs-tables-prev-next-work-tables: the QueryJS table pager keeps its widget through a mouse click (Prev and Next turn pages, cursor stays), result tables sit in a `cm-lp-table-scroll` div with dates and numbers on one line, and both pager buttons get a `--ring` focus-visible rule. Full suite 654 files, 17383 passed, 56 skipped, 1 todo (exit 0). Review round 1: APPROVED (one nit, no change needed, see review.md Resolution).
