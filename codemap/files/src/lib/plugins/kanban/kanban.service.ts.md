@@ -39,7 +39,7 @@ by src/lib/plugins/kanban/kanban.service.ts:resetKanban <- src/lib/app/lifecycle
 sym src/lib/plugins/kanban/kanban.service.ts:49 fn clearLinkedContentCache(): void L3 | Clears the linked content cache so card previews re-read from disk.
 by src/lib/plugins/kanban/kanban.service.ts:clearLinkedContentCache <- src/lib/app/boot.ts:41 in registerAppPorts ref
 sym src/lib/plugins/kanban/kanban.service.ts:58 fn loadLinkedFileContent(cardText: string): Promise<string> L33 | Loads the markdown content (without frontmatter) from the first wikilinked file in a card.
-by src/lib/plugins/kanban/kanban.service.ts:loadLinkedFileContent <- src/lib/plugins/kanban/KanbanCard.svelte:149 in $effect@144 call
+by src/lib/plugins/kanban/kanban.service.ts:loadLinkedFileContent <- src/lib/plugins/kanban/KanbanCard.svelte:182 in $effect@177 call
 ## calls
 call src/lib/plugins/kanban/kanban.service.ts:19 in createKanbanFile -> src/lib/core/filesystem/fs.service.ts:createFile call
 call src/lib/plugins/kanban/kanban.service.ts:19 in createKanbanFile -> src/lib/plugins/kanban/kanban.logic.ts:createEmptyKanbanBoard call

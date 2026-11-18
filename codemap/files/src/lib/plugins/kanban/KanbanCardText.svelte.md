@@ -12,10 +12,10 @@ in2 src/lib/plugins/kanban/KanbanCardText.svelte 2 files in 1 modules: src/lib/p
 out2 src/lib/plugins/kanban/KanbanCardText.svelte 2 files in 2 modules: src/lib/plugins/kanban(1) src/lib/utils(1)
 ## symbols
 sym src/lib/plugins/kanban/KanbanCardText.svelte:1 component KanbanCardText props:text,tagColors=,onWikilinkClick,onTagClick L47
-by src/lib/plugins/kanban/KanbanCardText.svelte:default <- src/lib/plugins/kanban/KanbanCard.svelte:209 in (markup) mount
+by src/lib/plugins/kanban/KanbanCardText.svelte:default <- src/lib/plugins/kanban/KanbanCard.svelte:243 in (markup) mount
 by src/lib/plugins/kanban/KanbanCardText.svelte:default <- src/lib/plugins/kanban/KanbanListView.svelte:45 in (markup) mount
 ## mounted-at
-mount src/lib/plugins/kanban/KanbanCard.svelte:209 KanbanCardText -> src/lib/plugins/kanban/KanbanCardText.svelte
+mount src/lib/plugins/kanban/KanbanCard.svelte:243 KanbanCardText -> src/lib/plugins/kanban/KanbanCardText.svelte
 mount src/lib/plugins/kanban/KanbanListView.svelte:45 KanbanCardText -> src/lib/plugins/kanban/KanbanCardText.svelte
 ## calls
 call src/lib/plugins/kanban/KanbanCardText.svelte:15 in segments=$derived -> src/lib/plugins/kanban/kanban.logic.ts:parseCardSegments call
