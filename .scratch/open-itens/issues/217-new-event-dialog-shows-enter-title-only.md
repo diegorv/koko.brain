@@ -19,7 +19,7 @@ The date and time messages are not gated: their fields start filled and valid, s
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -41,3 +41,4 @@ The date and time messages are not gated: their fields start filled and valid, s
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/11-event-title-error-after-touch.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-18, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/ux-quick-wins/issues/24-calendar-events-say-you-can-do.md`. The criterion that `event-calendar-form.logic.test.ts` stays untouched is not carried; ticket 24 does not list that file.

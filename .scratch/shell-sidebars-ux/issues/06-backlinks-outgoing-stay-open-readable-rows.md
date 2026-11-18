@@ -12,6 +12,9 @@
 6. **Calendar action.** `ShowInCalendarButton` stops being `absolute right-1 top-0.5` (`LinkItem.svelte:34`), so it takes space only when it renders (no 28 px gutter on every row). It must stay a sibling of the entry `<button>`, never inside it: `ShowInCalendarButton.svelte:65` is itself a `<button>` and the entry button wraps the title row (`LinkItem.svelte:16-31`). Make the outer `div` (`:15`) a flex row holding the entry button (`flex-1 min-w-0`) and the calendar button side by side.
 7. **Help.** `help/documentation/07-sidebar-panels.md:74,92` (stays open), `:76-78` (Relationships can appear without mentions and can list a note also under linked mentions), `25-types-and-relationships.md:248` ("underscores rendered as spaces", drop "leading"); the `+layout.svelte:91-104` comment.
 
+
+Also remove the unused `Separator` imports at `BacklinksPanel.svelte:6` and `OutgoingLinksPanel.svelte:6` (review P174, part; found by `.scratch/ux-quick-wins/research/breakdown.md`).
+
 Not in this ticket: a snippet window around the link (the snippet is the leading 280 bytes, `SNIPPET_MAX_LEN` at `entry.rs:24`, and the index keeps no body; a window needs a Rust read command and a ts-rs DTO); a count badge on collapsed headers (dropped by the review, it would restore the eager fetch removed in `77c8cbcda`); the outgoing rows (ticket 07); a shared link-row component.
 
 **Blocked by:** 05

@@ -6,7 +6,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -28,3 +28,5 @@
 **Second opinion (audit 2026-11-05, round 2):** upheld (ux, medium). FileNode.svelte:40-44 reads the whole file and :82-83 renders it with renderCanvasMarkdown, which is only marked.parse plus sanitize (canvas-markdown.logic.ts:14-18) with no frontmatter handling. kanban.service.ts:82 strips frontmatter with stripFrontmatter from embed-resolver.logic.ts:54. The named test file canvas-markdown.logic.test.ts exists. Corrections to apply while implementing: The criterion 'a file with only frontmatter shows the empty state' also needs the {:else if fileContent} branch (FileNode.svelte:82) to test the stripped body instead of the raw content. Say so in the fix direction, or that criterion is easy to miss.
 
 ## Comments
+
+- 2026-11-18, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/ux-quick-wins/issues/04-canvas-file-link-cards-plain-click.md`. All four criteria are carried.

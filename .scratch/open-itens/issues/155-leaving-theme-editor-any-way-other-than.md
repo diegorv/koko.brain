@@ -6,7 +6,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -26,3 +26,4 @@
 **Second opinion (audit 2026-11-05, round 2):** upheld (ux, low). ThemeEditor.svelte:67-69 calls applyTheme for the draft on every change, and on import (:121). theme.service.ts:42-46 also flips html.dark, color-scheme and appliedThemeStore. Neither ThemeEditor nor AppearanceSection has an onDestroy or teardown (only $effect.pre). applyActiveTheme is called only from the AppearanceSection handlers and from settings.service.ts:242 at vault load. SettingsPanel's Escape (:101-105), X and the {#if isOpen} at :110 destroy the editor. Theme editing is occasional, so likelihood is low.
 
 ## Comments
+- 2026-11-18, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/ux-quick-wins/issues/35-appearance-settings-theme-rows-ignore-keys.md`. The separate Import, Edit-on-a-user-theme and no-color-change criteria are not listed in ticket 35; its `onDestroy` re-apply covers them by construction.

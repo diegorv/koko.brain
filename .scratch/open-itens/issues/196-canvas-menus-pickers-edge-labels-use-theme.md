@@ -19,7 +19,7 @@ Then widen the guard test to the whole folder.
 
 **Blocked by:** 195
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -39,3 +39,4 @@ Then widen the guard test to the whole folder.
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/44-canvas-overlay-theme-tokens.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-18, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/ux-quick-wins/issues/06-canvas-surfaces-overlays-draw-theme-tokens.md`. All three criteria are carried.
