@@ -33,7 +33,7 @@ by src/lib/utils/date.ts:formatNow <- src/lib/features/tasks/TasksView.svelte:17
 by src/lib/utils/date.ts:formatNow <- src/lib/features/tasks/tasks.store.svelte.ts:89 in visibleRows=$derived call +1
 by src/lib/utils/date.ts:formatNow <- src/lib/plugins/kanban/KanbanCard.svelte:152 in dateProximity=$derived call
 by src/lib/utils/date.ts:formatNow <- src/lib/plugins/kanban/KanbanListView.svelte:30 in (markup) markup
-by src/lib/utils/date.ts:formatNow <- src/lib/plugins/kanban/KanbanTableView.svelte:37 in (markup) markup
+by src/lib/utils/date.ts:formatNow <- src/lib/plugins/kanban/KanbanTableView.svelte:40 in (markup) markup
 by src/lib/utils/date.ts:formatNow <- src/lib/utils/template.ts:115 in evaluateDateNow call
 sym src/lib/utils/date.ts:26 fn formatNowOnDate(contextDate: dayjs.Dayjs, outputFormat: string, offsetDays: number = 0): string L14 | Like `formatNow`, but anchored to a specific calendar date instead of today.
 by src/lib/utils/date.ts:formatNowOnDate <- src/lib/utils/template.ts:114 in evaluateDateNow call
