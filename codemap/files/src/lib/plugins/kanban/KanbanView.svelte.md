@@ -1,7 +1,7 @@
 # file card src/lib/plugins/kanban/KanbanView.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/plugins/kanban/KanbanView.svelte ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, mounts, mounted-at, calls, effects
-file src/lib/plugins/kanban/KanbanView.svelte component L712 module src/lib/plugins/kanban in1 t4
+file src/lib/plugins/kanban/KanbanView.svelte component L713 module src/lib/plugins/kanban in1 t4
 ## imports
 imp src/lib/plugins/kanban/KanbanView.svelte:15 -> src/lib/components/ui/select/index.ts *
 imp src/lib/plugins/kanban/KanbanView.svelte:16 -> src/lib/core/editor/editor.store.svelte.ts editorStore
@@ -23,7 +23,7 @@ test src/tests/lib/plugins/kanban/kanban-multiline-card.test.ts harness src/lib/
 test src/tests/lib/plugins/kanban/kanban-unmodeled-content.test.ts harness src/lib/plugins/kanban/KanbanView.svelte via src/tests/fixtures/KanbanViewHarness.svelte
 test src/tests/lib/plugins/kanban/kanban-unmodeled-lines.test.ts harness src/lib/plugins/kanban/KanbanView.svelte via src/tests/fixtures/KanbanViewHarness.svelte
 ## symbols
-sym src/lib/plugins/kanban/KanbanView.svelte:1 component KanbanView props:markdownContent,onContentChange,onOpenWikilink L712
+sym src/lib/plugins/kanban/KanbanView.svelte:1 component KanbanView props:markdownContent,onContentChange,onOpenWikilink L713
 by src/lib/plugins/kanban/KanbanView.svelte:default <- src/lib/app/EditorView.svelte:81 in (markup) mount
 ## locals
 local src/lib/plugins/kanban/KanbanView.svelte:84 fn applyChange(newBoard: KanbanBoard) L12
@@ -151,35 +151,35 @@ call src/lib/plugins/kanban/KanbanView.svelte:606 in (markup) -> src/lib/plugins
 call src/lib/plugins/kanban/KanbanView.svelte:616 in (markup) -> src/lib/plugins/kanban/kanban.logic.ts:isLaneCollapsed markup
 call src/lib/plugins/kanban/KanbanView.svelte:618 in (markup) -> src/lib/plugins/kanban/kanban.logic.ts:getLaneMaxItems markup
 call src/lib/plugins/kanban/KanbanView.svelte:619 in (markup) -> src/lib/plugins/kanban/kanban.logic.ts:isLaneAtLimit markup
-call src/lib/plugins/kanban/KanbanView.svelte:620 in (markup) -> src/lib/plugins/kanban/kanban.logic.ts:isLaneAutoComplete markup
-call src/lib/plugins/kanban/KanbanView.svelte:627 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleTagClick markup
-call src/lib/plugins/kanban/KanbanView.svelte:628 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleAddItem markup
-call src/lib/plugins/kanban/KanbanView.svelte:630 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleUpdateItem markup
-call src/lib/plugins/kanban/KanbanView.svelte:631 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleDeleteItem markup
-call src/lib/plugins/kanban/KanbanView.svelte:632 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleArchiveItem markup
-call src/lib/plugins/kanban/KanbanView.svelte:633 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleArchiveCompleted markup
-call src/lib/plugins/kanban/KanbanView.svelte:634 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleRenameLane markup
-call src/lib/plugins/kanban/KanbanView.svelte:635 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleDeleteLane markup
-call src/lib/plugins/kanban/KanbanView.svelte:636 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleToggleCollapse markup
-call src/lib/plugins/kanban/KanbanView.svelte:637 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleToggleAutoComplete markup
-call src/lib/plugins/kanban/KanbanView.svelte:638 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleSetMaxItems markup
-call src/lib/plugins/kanban/KanbanView.svelte:639 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleSetTagColor markup
-call src/lib/plugins/kanban/KanbanView.svelte:640 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleRemoveTagColor markup
-call src/lib/plugins/kanban/KanbanView.svelte:641 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleLaneWidthChange markup
-call src/lib/plugins/kanban/KanbanView.svelte:642 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleStartEditItem markup
-call src/lib/plugins/kanban/KanbanView.svelte:643 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleStopEditItem markup
-call src/lib/plugins/kanban/KanbanView.svelte:644 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleStartEditLane markup
-call src/lib/plugins/kanban/KanbanView.svelte:645 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleStopEditLane markup
-call src/lib/plugins/kanban/KanbanView.svelte:646 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleItemDragStart markup
-call src/lib/plugins/kanban/KanbanView.svelte:647 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleItemDragEnd markup
-call src/lib/plugins/kanban/KanbanView.svelte:648 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleItemDragOver markup
-call src/lib/plugins/kanban/KanbanView.svelte:649 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleItemDrop markup
-call src/lib/plugins/kanban/KanbanView.svelte:650 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleLaneDragStart markup
-call src/lib/plugins/kanban/KanbanView.svelte:651 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleLaneDragEnd markup
-call src/lib/plugins/kanban/KanbanView.svelte:659 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleAddLane markup
-call src/lib/plugins/kanban/KanbanView.svelte:669 in (markup) -> src/lib/plugins/kanban/kanban.logic.ts:DEFAULT_LANE_WIDTH markup
-call src/lib/plugins/kanban/KanbanView.svelte:690 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleRestoreItem markup
-call src/lib/plugins/kanban/KanbanView.svelte:698 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleDeleteArchivedItem markup
+call src/lib/plugins/kanban/KanbanView.svelte:621 in (markup) -> src/lib/plugins/kanban/kanban.logic.ts:isLaneAutoComplete markup
+call src/lib/plugins/kanban/KanbanView.svelte:628 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleTagClick markup
+call src/lib/plugins/kanban/KanbanView.svelte:629 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleAddItem markup
+call src/lib/plugins/kanban/KanbanView.svelte:631 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleUpdateItem markup
+call src/lib/plugins/kanban/KanbanView.svelte:632 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleDeleteItem markup
+call src/lib/plugins/kanban/KanbanView.svelte:633 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleArchiveItem markup
+call src/lib/plugins/kanban/KanbanView.svelte:634 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleArchiveCompleted markup
+call src/lib/plugins/kanban/KanbanView.svelte:635 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleRenameLane markup
+call src/lib/plugins/kanban/KanbanView.svelte:636 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleDeleteLane markup
+call src/lib/plugins/kanban/KanbanView.svelte:637 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleToggleCollapse markup
+call src/lib/plugins/kanban/KanbanView.svelte:638 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleToggleAutoComplete markup
+call src/lib/plugins/kanban/KanbanView.svelte:639 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleSetMaxItems markup
+call src/lib/plugins/kanban/KanbanView.svelte:640 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleSetTagColor markup
+call src/lib/plugins/kanban/KanbanView.svelte:641 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleRemoveTagColor markup
+call src/lib/plugins/kanban/KanbanView.svelte:642 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleLaneWidthChange markup
+call src/lib/plugins/kanban/KanbanView.svelte:643 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleStartEditItem markup
+call src/lib/plugins/kanban/KanbanView.svelte:644 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleStopEditItem markup
+call src/lib/plugins/kanban/KanbanView.svelte:645 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleStartEditLane markup
+call src/lib/plugins/kanban/KanbanView.svelte:646 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleStopEditLane markup
+call src/lib/plugins/kanban/KanbanView.svelte:647 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleItemDragStart markup
+call src/lib/plugins/kanban/KanbanView.svelte:648 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleItemDragEnd markup
+call src/lib/plugins/kanban/KanbanView.svelte:649 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleItemDragOver markup
+call src/lib/plugins/kanban/KanbanView.svelte:650 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleItemDrop markup
+call src/lib/plugins/kanban/KanbanView.svelte:651 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleLaneDragStart markup
+call src/lib/plugins/kanban/KanbanView.svelte:652 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleLaneDragEnd markup
+call src/lib/plugins/kanban/KanbanView.svelte:660 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleAddLane markup
+call src/lib/plugins/kanban/KanbanView.svelte:670 in (markup) -> src/lib/plugins/kanban/kanban.logic.ts:DEFAULT_LANE_WIDTH markup
+call src/lib/plugins/kanban/KanbanView.svelte:691 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleRestoreItem markup
+call src/lib/plugins/kanban/KanbanView.svelte:699 in (markup) -> src/lib/plugins/kanban/KanbanView.svelte:handleDeleteArchivedItem markup
 ## effects
 fx src/lib/plugins/kanban/KanbanView.svelte:74 svelte.$effect in (script)
 fx src/lib/plugins/kanban/KanbanView.svelte:256 svelte.$effect in (script)

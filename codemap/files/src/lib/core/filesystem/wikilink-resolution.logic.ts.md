@@ -40,7 +40,7 @@ by src/lib/core/filesystem/wikilink-resolution.logic.ts:getNoteName <- src/lib/p
 sym src/lib/core/filesystem/wikilink-resolution.logic.ts:15 fn isLinkTargetFile(filePath: string): boolean L4 | Whether a wikilink can resolve to `filePath`: false for a `.view` (any casing), true for every other file.
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile <- src/lib/app/editor-host.ts:80 in treeLinkIndex call +1
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile <- src/lib/features/properties/RelationshipSearch.svelte:24 in allFiles=$derived call
-by src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile <- src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:28 in files=$derived call
+by src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile <- src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:30 in files=$derived call
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile <- src/lib/plugins/queryjs/queryjs.logic.ts:75 in resolveInlinks call
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile <- src/lib/plugins/quick-capture/composer-editor-host.service.ts:43 in createComposerEditorHost call
 sym src/lib/core/filesystem/wikilink-resolution.logic.ts:64 fn resolveWikilink(target: string, allFilePaths: string[], vaultRoot?: string | null): string | null L33 | Resolves a wikilink target to a file path; null when nothing matches.

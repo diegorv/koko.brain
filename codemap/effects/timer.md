@@ -34,7 +34,7 @@ fx src/lib/features/collection/toolbar/PropertiesPanel.svelte:69 timer.requestAn
 fx src/lib/features/note-list/NoteRowMenu.svelte:120 timer.requestAnimationFrame in $effect@109
 fx src/lib/features/rail-shell/FilesNavigator.svelte:195 timer.requestAnimationFrame in focusRenameInput
 fx src/lib/plugins/kanban/KanbanCard.svelte:107 timer.requestAnimationFrame in handleWikilinkSelect
-fx src/lib/plugins/kanban/KanbanLane.svelte:134 timer.requestAnimationFrame in handleAddWikilinkSelect
+fx src/lib/plugins/kanban/KanbanLane.svelte:137 timer.requestAnimationFrame in handleAddWikilinkSelect
 fx src/lib/plugins/queryjs/queryjs-block-widget.ts:58 timer.requestAnimationFrame in markAutoRunAfterRenderPass
 fx src/lib/utils/log.service.ts:198 timer.requestAnimationFrame in logClickToPaint
 fx src/lib/features/event-calendar/event-calendar.service.ts:313 timer.setInterval delay=CLOCK_INTERVAL_MS in acquireCalendarClock

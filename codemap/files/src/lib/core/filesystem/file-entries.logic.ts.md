@@ -42,7 +42,7 @@ by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/feat
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/properties/RelationshipSearch.svelte:24 in allFiles=$derived call
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/quick-switcher/QuickSwitcher.svelte:32 in allFiles=$derived call
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/rail-shell/RailNoteList.svelte:581 in allPaths=$derived call
-by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:28 in files=$derived call
+by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:30 in files=$derived call
 more by 1 not shown: src/lib/plugins/kanban(1): q importers src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree
 sym src/lib/core/filesystem/file-entries.logic.ts:30 const MAX_RESULTS L1 | Maximum number of results rendered by the quick switcher.
 sym src/lib/core/filesystem/file-entries.logic.ts:38 fn entryFolder(vaultPath: string, path: string): string L5 | The folder holding a file, relative to the vault.
