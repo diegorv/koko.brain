@@ -616,7 +616,8 @@ describe('KBUI', () => {
 				align: ['left', 'center', 'right'],
 			});
 
-			const table = container.firstElementChild as HTMLElement;
+			const table = container.firstElementChild!.firstElementChild as HTMLElement;
+			expect(table.tagName).toBe('TABLE');
 			const ths = table.querySelectorAll('th');
 			expect(ths[0].style.textAlign).toBe('');
 			expect(ths[1].style.textAlign).toBe('center');
@@ -750,8 +751,28 @@ describe('KBUI', () => {
 
 		it('returns the table element', () => {
 			const result = ui.table(['A'], [['row']]);
-			expect(result).toBe(container.firstElementChild);
+			expect(result.parentElement).toBe(container.firstElementChild);
+			expect(result.parentElement!.classList.contains('cm-lp-table-scroll')).toBe(true);
 			expect(result.tagName).toBe('TABLE');
+		});
+
+		it('holds the table alone in a scroll div', () => {
+			ui.table(['A'], [['row']]);
+			expect(container.children.length).toBe(1);
+			const scroll = container.firstElementChild as HTMLElement;
+			expect(scroll.className).toBe('cm-lp-table-scroll');
+			expect(scroll.children.length).toBe(1);
+			expect(scroll.firstElementChild!.tagName).toBe('TABLE');
+		});
+
+		it('leaves an empty scroll div when a script moves the returned table', () => {
+			const elsewhere = document.createElement('div');
+			const result = ui.table(['A'], [['row']]);
+			expect(() => elsewhere.appendChild(result)).not.toThrow();
+			expect(elsewhere.firstElementChild).toBe(result);
+			const scroll = container.firstElementChild as HTMLElement;
+			expect(scroll.className).toBe('cm-lp-table-scroll');
+			expect(scroll.childNodes.length).toBe(0);
 		});
 
 		describe('pagination', () => {
@@ -811,6 +832,26 @@ describe('KBUI', () => {
 				const result = ui.table(headers, rows, { pageSize: 5 });
 				expect(result.classList.contains('cm-lp-qjs-table-wrapper')).toBe(true);
 				expect(result.querySelector('.cm-lp-qjs-table')).not.toBeNull();
+			});
+
+			it('scrolls the table but keeps the nav outside the scroll div', () => {
+				const result = ui.table(headers, rows, { pageSize: 5 });
+				expect(container.firstElementChild).toBe(result);
+				const [scroll, nav] = [...result.children] as HTMLElement[];
+				expect(result.children.length).toBe(2);
+				expect(scroll.className).toBe('cm-lp-table-scroll');
+				expect(scroll.children.length).toBe(1);
+				expect(scroll.firstElementChild!.className).toBe('cm-lp-qjs-table');
+				expect(nav.className).toBe('cm-lp-qjs-table-nav');
+				expect(scroll.querySelector('.cm-lp-qjs-table-nav')).toBeNull();
+			});
+
+			it('keeps paging the table inside the scroll div', () => {
+				const result = ui.table(headers, rows, { pageSize: 5 });
+				result.querySelector<HTMLButtonElement>('.cm-lp-qjs-table-nav-btn:nth-child(3)')!.click();
+				const scroll = result.firstElementChild as HTMLElement;
+				expect(scroll.querySelectorAll('tbody').length).toBe(1);
+				expect(scroll.querySelector('tbody td')!.textContent).toBe('6');
 			});
 		});
 	});

@@ -216,3 +216,22 @@ describe('livePreviewStyles meta-bind colors', () => {
 		expect(image).not.toContain('%23');
 	});
 });
+
+describe('livePreviewStyles queryjs tables and buttons', () => {
+	it.each(['.cm-lp-qjs-run:focus-visible', '.cm-lp-qjs-table-nav-btn:focus-visible'])(
+		'%s shows the same ring as a keyboard-focused meta-bind button',
+		(selector) => {
+			const ringOf = (s: string) => exactRule(s)?.match(/box-shadow: ([^;]+);/)?.[1];
+			expect(ringOf(selector)).toContain('var(--ring)');
+			expect(ringOf(selector)).toBe(ringOf('.cm-lp-meta-bind-btn:focus-visible'));
+		},
+	);
+
+	it('scrolls a wide table sideways inside its scroll div', () => {
+		expect(exactRule('.cm-lp-table-scroll')).toContain('overflow-x: auto;');
+	});
+
+	it('keeps date and number cells on one line', () => {
+		expect(exactRule('.cm-lp-qjs-nowrap')).toContain('white-space: nowrap;');
+	});
+});

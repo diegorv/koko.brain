@@ -15,7 +15,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -38,3 +38,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/12-word-count-and-graph-stats-counts.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-18, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/ux-quick-wins/issues/41-word-count-graph-stats-read-correctly.md`. All five criteria are carried.

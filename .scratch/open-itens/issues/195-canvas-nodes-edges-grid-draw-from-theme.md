@@ -15,7 +15,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -37,3 +37,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/43-canvas-surface-theme-tokens.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-18, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/ux-quick-wins/issues/06-canvas-surfaces-overlays-draw-theme-tokens.md`. The criterion that `e2e/specs/canvas-view.spec.ts` stays untouched is not carried; the other three are.

@@ -929,6 +929,11 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-qjs-run:hover': {
 		background: 'var(--lp-meta-bind-btn-primary-hover, var(--accent))',
 	},
+	// Same ring as `.cm-lp-meta-bind-btn:focus-visible`; the UA outline would draw a second one.
+	'.cm-lp-qjs-run:focus-visible': {
+		outline: 'none',
+		boxShadow: '0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent)',
+	},
 	// Run again sits inside the 0.95em error wrapper: divide it back out to match the first-run button.
 	'.cm-lp-qjs-error .cm-lp-qjs-run': {
 		fontSize: 'calc(0.8em / 0.95)',
@@ -951,10 +956,18 @@ export const livePreviewStyles = EditorView.baseTheme({
 		margin: '0',
 		paddingLeft: '20px',
 	},
+	// Holds a QueryJS result table so a wide one scrolls inside the note instead of overflowing it.
+	'.cm-lp-table-scroll': {
+		overflowX: 'auto',
+	},
 	'.cm-lp-qjs-table': {
 		width: '100%',
 		borderCollapse: 'collapse',
 		fontSize: '0.95em',
+	},
+	// Date and number values from `renderValue`: never split mid-value across lines.
+	'.cm-lp-qjs-nowrap': {
+		whiteSpace: 'nowrap',
 	},
 	'.cm-lp-qjs-table th, .cm-lp-qjs-table td': {
 		border: '1px solid var(--lp-collection-border)',
@@ -993,6 +1006,10 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-qjs-table-nav-btn:hover:not(:disabled)': {
 		background: 'var(--lp-collection-table-hover)',
+	},
+	'.cm-lp-qjs-table-nav-btn:focus-visible': {
+		outline: 'none',
+		boxShadow: '0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent)',
 	},
 	'.cm-lp-qjs-table-nav-btn:disabled': {
 		opacity: '0.4',

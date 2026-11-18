@@ -6,7 +6,7 @@
 
 **Blocked by:** 048
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **First wave:** yes, added by the owner on 2026-11-06 after the challenge review (`raw/first-wave-challenge.json`).
 
@@ -29,3 +29,4 @@
 ## Comments
 
 - 2026-11-06: added to the first wave by the owner after the challenge review.
+- 2026-11-18, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/ux-quick-wins/issues/01-renaming-kanban-lane-keeps-settings-new.md`. All five criteria are carried.

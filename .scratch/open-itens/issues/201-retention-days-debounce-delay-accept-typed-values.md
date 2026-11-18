@@ -17,7 +17,7 @@ Raw-on-input (the EditorSection style) is not used here on purpose: EditorSectio
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -38,3 +38,4 @@ Raw-on-input (the EditorSection style) is not used here on purpose: EditorSectio
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/02-settings-number-fields-clamp-on-change.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-18, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/ux-quick-wins/issues/21-settings-number-fields-write-only-valid.md`. The criterion that no other number field changes is not carried: ticket 21 also covers the EditorSection fields, and the debounce field now lives in `AutoOrganizeSection.svelte`.

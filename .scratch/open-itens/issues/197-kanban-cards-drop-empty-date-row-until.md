@@ -14,7 +14,7 @@
 
 **Blocked by:** 151
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -33,3 +33,4 @@
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/63-kanban-card-quiet.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
+- 2026-11-18, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/ux-quick-wins/issues/10-kanban-cards-no-empty-date-row.md`. Both carried; the hide-on-focus-within criterion is revised in ticket 10 (no date row element, a "Set date" trigger held open while its picker is open).
