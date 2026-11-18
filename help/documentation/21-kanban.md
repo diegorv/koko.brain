@@ -70,10 +70,10 @@ You can:
 - **Add a card** — type in the **Add a card...** input pinned to the bottom of a lane and press `Enter` (or click the **+** button). The input is always visible, even when the lane scrolls. An empty lane says "No cards. Drag one here or add a card."
 - **Edit a card** — double-click the card text to edit inline. The editor grows with the text. `Enter` saves and `Escape` cancels; either one returns focus to the board, so the arrow keys keep working.
 - **Check/uncheck a card** — click the checkbox on the card.
-- **Move a card** — drag it to a different lane or position within the same lane.
+- **Move a card** — drag it to a different lane or position within the same lane. Or right-click the card, choose **Move to** and pick a lane: the card goes to the end of that lane. Move to works in every sort and filter state; drag works only in manual order with no filter (see [Sorting Cards](#sorting-cards)). Moving a card into a lane with auto-complete checks it.
 - **Delete a card** — right-click the card and choose Delete.
 - **Archive a card** — right-click the card and choose Archive. The card moves to the Archive section.
-- **Right-click a card** — opens a context menu with Edit, Archive, Card color (submenu with color swatches), Tag color (only on a card with tags) and Delete.
+- **Right-click a card** — opens a context menu with Edit, Archive, Move to (submenu listing the other lanes; disabled on a board with one lane), Card color (submenu with color swatches), Tag color (only on a card with tags) and Delete.
 
 ### Wikilink Autocomplete
 
@@ -189,6 +189,8 @@ Via the board toolbar, choose a sort mode per lane:
 | **Text A→Z / Z→A** | Alphabetical by card text |
 | **Date (oldest first / newest first)** | Sorts by the `{YYYY-MM-DD}` token |
 | **Unchecked first** | Incomplete cards float to the top |
+
+Card drag works only in manual order with no filter, since the shown order is then the stored one. While the board is sorted or filtered, a **Manual order paused** chip shows next to the sort control; to move a card to another lane meanwhile, right-click it and choose **Move to**.
 
 ## Board Settings Block
 

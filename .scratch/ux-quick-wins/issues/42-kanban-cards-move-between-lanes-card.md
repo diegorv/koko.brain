@@ -17,17 +17,17 @@ Not in this ticket: keeping card drag on while sorted or filtered, and a lane in
 
 **Blocked by:** 10, 11, 12
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus the `chrome-state-styles`, `menu-item-anatomy` and `chrome-type-scale` source-scan tests (they run in vitest).
 
-- [ ] Failing test first, `src/tests/lib/plugins/kanban/KanbanView.test.ts` (harness `src/tests/fixtures/KanbanViewHarness.svelte`, real store and logic, only `kanban.service.js` mocked): "Move to" > "Done" on a To Do card puts it last in Done in `api.getMarkdown()`, and it is gone from To Do. Fails today (no such item).
-- [ ] Moving into an auto-complete lane checks the card. With a filter hiding cards in the target lane, the moved card lands after the hidden ones in the persisted markdown (assert the full lane order).
-- [ ] The current lane is not listed; with a single lane the submenu trigger is disabled.
-- [ ] The chip shows with a sort other than manual and with a filter, and not in manual order with no filter; it names the card menu.
-- [ ] The card-menu pin at `KanbanView.test.ts:246-254` gains "Move to" on purpose (and keeps whatever ticket 05 added); the lane-menu pin below it is unchanged.
-- [ ] Drag still works in manual order with no filter, and `disableDrag` is still set while sorted or filtered (existing drag tests pass unchanged).
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass. Not checked in WKWebView: submenu placement near the board edge.
+- [x] Failing test first, `src/tests/lib/plugins/kanban/KanbanView.test.ts` (harness `src/tests/fixtures/KanbanViewHarness.svelte`, real store and logic, only `kanban.service.js` mocked): "Move to" > "Done" on a To Do card puts it last in Done in `api.getMarkdown()`, and it is gone from To Do. Fails today (no such item).
+- [x] Moving into an auto-complete lane checks the card. With a filter hiding cards in the target lane, the moved card lands after the hidden ones in the persisted markdown (assert the full lane order).
+- [x] The current lane is not listed; with a single lane the submenu trigger is disabled.
+- [x] The chip shows with a sort other than manual and with a filter, and not in manual order with no filter; it names the card menu.
+- [x] The card-menu pin at `KanbanView.test.ts:246-254` gains "Move to" on purpose (and keeps whatever ticket 05 added); the lane-menu pin below it is unchanged.
+- [x] Drag still works in manual order with no filter, and `disableDrag` is still set while sorted or filtered (existing drag tests pass unchanged).
+- [x] Frontend gate: pnpm check and pnpm vitest run pass. Not checked in WKWebView: submenu placement near the board edge.
 
 ## Original proposal
 
@@ -63,3 +63,4 @@ Tickets 01, 02, 05, 10, 11 and 12 all edit `KanbanView.svelte` and `KanbanView.t
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping, and for this ticket "tickets at the end, run only when named". Defaults (not individually answered): 42.1 (written here, not in the old ticket): Move to does not enforce the lane card limit, matching drag. Default: yes, because the limit only styles the lane today.
+- 2026-11-18, deliver (branch issue/42-kanban-cards-move-between-lanes-card): card menu gains "Move to" (other lanes, auto-complete lanes check the card, lands after hidden cards); "Manual order paused" chip on the board names the card menu. Review round 1 APPROVED with 3 findings: 1 deferred to Issue 50 (keyboard opening of the card menu), 2 no change (chip stays board-view only), 3 fixed (chip title copy, 33a72a151). Round 2 APPROVED, no findings. Full suite at 33a72a151: 661 files, 17703 passed, 56 skipped, 1 todo, exit=0; pnpm check 0 errors.

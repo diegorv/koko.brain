@@ -1,6 +1,6 @@
 # file card src/lib/plugins/mods/ModsStatusList.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/plugins/mods/ModsStatusList.svelte ' codemap/files
-file src/lib/plugins/mods/ModsStatusList.svelte component L168 module src/lib/plugins/mods in1 t1
+file src/lib/plugins/mods/ModsStatusList.svelte component L176 module src/lib/plugins/mods in1 t1
 ## imports
 imp src/lib/plugins/mods/ModsStatusList.svelte:5 -> src/lib/components/ui/input/index.ts Input
 imp src/lib/plugins/mods/ModsStatusList.svelte:6 -> src/lib/components/ui/switch/index.ts Switch
@@ -18,16 +18,16 @@ out2 src/lib/plugins/mods/ModsStatusList.svelte 30 files in 12 modules: src/lib/
 ## tests
 test src/tests/lib/plugins/mods/ModsStatusList.test.ts imports src/lib/plugins/mods/ModsStatusList.svelte mirror
 ## symbols
-sym src/lib/plugins/mods/ModsStatusList.svelte:1 component ModsStatusList L168
+sym src/lib/plugins/mods/ModsStatusList.svelte:1 component ModsStatusList L176
 by src/lib/plugins/mods/ModsStatusList.svelte:default <- src/lib/app/LabsSection.svelte:60 in (markup) mount
 ## locals
 local src/lib/plugins/mods/ModsStatusList.svelte:25 fn setModEnabled(entry: ModStatusEntry, enabled: boolean) L17
 local src/lib/plugins/mods/ModsStatusList.svelte:69 fn settingValue(field: ModSettingField, values: Record<string, unknown>): boolean | string L5
 local src/lib/plugins/mods/ModsStatusList.svelte:76 fn commitSetting(entry: ModStatusEntry, field: ModSettingField, value: boolean | string) L8
 ## mounts
-mount src/lib/plugins/mods/ModsStatusList.svelte:104 Switch -> src/lib/components/ui/switch/switch.svelte
-mount src/lib/plugins/mods/ModsStatusList.svelte:147 Switch -> src/lib/components/ui/switch/switch.svelte
-mount src/lib/plugins/mods/ModsStatusList.svelte:152 Input -> src/lib/components/ui/input/input.svelte
+mount src/lib/plugins/mods/ModsStatusList.svelte:109 Switch -> src/lib/components/ui/switch/switch.svelte
+mount src/lib/plugins/mods/ModsStatusList.svelte:155 Switch -> src/lib/components/ui/switch/switch.svelte
+mount src/lib/plugins/mods/ModsStatusList.svelte:160 Input -> src/lib/components/ui/input/input.svelte
 ## mounted-at
 mount src/lib/app/LabsSection.svelte:60 ModsStatusList -> src/lib/plugins/mods/ModsStatusList.svelte
 ## calls
@@ -39,8 +39,8 @@ call src/lib/plugins/mods/ModsStatusList.svelte:60 in $effect@51 -> src/lib/plug
 call src/lib/plugins/mods/ModsStatusList.svelte:79 in commitSetting -> src/lib/plugins/mods/ModsStatusList.svelte:settingValue call
 call src/lib/plugins/mods/ModsStatusList.svelte:82 in commitSetting -> src/lib/plugins/mods/mods-host.service.ts:saveModSetting call
 call src/lib/plugins/mods/ModsStatusList.svelte:92 in (markup) -> src/lib/plugins/mods/mods.store.svelte.ts:modsStore.callbackErrorFor markup
-call src/lib/plugins/mods/ModsStatusList.svelte:107 in (markup) -> src/lib/plugins/mods/ModsStatusList.svelte:setModEnabled markup
-call src/lib/plugins/mods/ModsStatusList.svelte:143 in (markup) -> src/lib/plugins/mods/ModsStatusList.svelte:settingValue markup
-call src/lib/plugins/mods/ModsStatusList.svelte:149 in (markup) -> src/lib/plugins/mods/ModsStatusList.svelte:commitSetting markup +1
+call src/lib/plugins/mods/ModsStatusList.svelte:112 in (markup) -> src/lib/plugins/mods/ModsStatusList.svelte:setModEnabled markup
+call src/lib/plugins/mods/ModsStatusList.svelte:151 in (markup) -> src/lib/plugins/mods/ModsStatusList.svelte:settingValue markup
+call src/lib/plugins/mods/ModsStatusList.svelte:157 in (markup) -> src/lib/plugins/mods/ModsStatusList.svelte:commitSetting markup +1
 ## effects
 fx src/lib/plugins/mods/ModsStatusList.svelte:51 svelte.$effect in (script)

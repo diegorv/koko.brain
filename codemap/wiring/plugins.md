@@ -4,11 +4,11 @@ reg src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore.place sin
 reg src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore.place read-by src/lib/plugins/mods/mod-commands.store.svelte.ts:21 modCommandsStore.list
 reg src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore.place fired-by src/lib/app/commands.ts:453 in getBuiltInCommands
 reg src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore.place registered-at src/lib/plugins/mods/mods-host.service.ts:220 in createModContext args=actionKey(actionId) -> src/lib/plugins/mods/mods-host.service.ts:createModContext
-reg src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore.place invoked-at src/lib/plugins/mods/mods-host.service.ts:830 in loadMod
+reg src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore.place invoked-at src/lib/plugins/mods/mods-host.service.ts:836 in loadMod
 reg src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore.register sink src/lib/plugins/mods/mod-commands.store.svelte.ts:26 | stores placements assign, commands assign | doc Registers an action, replacing its id; cleanup removes only this registration.
 reg src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore.register read-by src/lib/plugins/mods/mod-commands.store.svelte.ts:21 modCommandsStore.list
 reg src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore.register read-by src/lib/plugins/mods/mod-commands.store.svelte.ts:37 modCommandsStore.place
 reg src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore.register fired-by src/lib/app/commands.ts:453 in getBuiltInCommands
 reg src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore.register fired-by src/lib/plugins/mods/mods-host.service.ts:220 in createModContext
 reg src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore.register registered-at src/lib/plugins/mods/mods-host.service.ts:550 in createModContext args={ id: actionKey(entry.id), label: `${manifest.name}: ${entry.title}`, run: () =… -> src/lib/plugins/mods/mods-host.service.ts:createModContext
-reg src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore.register invoked-at src/lib/plugins/mods/mods-host.service.ts:830 in loadMod
+reg src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore.register invoked-at src/lib/plugins/mods/mods-host.service.ts:836 in loadMod

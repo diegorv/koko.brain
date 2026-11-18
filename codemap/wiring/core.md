@@ -20,7 +20,7 @@ reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver invoked-at src/lib/
 reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver invoked-at src/lib/app/lifecycle/app-lifecycle.service.ts:450 in initializeVault
 reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver invoked-at src/lib/app/lifecycle/app-lifecycle.service.ts:554 in initializeVault
 reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver invoked-at src/lib/features/auto-organize/auto-organize.service.ts:253 in toggleAutoOrganizeHook
-reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver invoked-at src/lib/plugins/mods/mods-host.service.ts:830 in loadMod
+reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver invoked-at src/lib/plugins/mods/mods-host.service.ts:836 in loadMod
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver sink src/lib/core/editor/editor.hooks.ts:104 | stores noteCreatedObservers push | doc Adds a note-created observer.
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver read-by src/lib/core/editor/editor.hooks.ts:119 notifyNoteCreated
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/app/commands.ts:160 in getBuiltInCommands
@@ -30,7 +30,7 @@ reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/rail-shell/FilesNavigator.svelte:170 in handleNewFile <- src/lib/features/rail-shell/FilesNavigator.svelte:128 in createItems=$derived
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/rail-shell/new-note.service.ts:41 in createNoteHere
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver registered-at src/lib/plugins/mods/mods-host.service.ts:681 in createModContext args=(filePath) => { const path = vaultRelativeKey(vaultPath, filePath); if (path ==… -> src/lib/plugins/mods/mods-host.service.ts:createModContext
-reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver invoked-at src/lib/plugins/mods/mods-host.service.ts:830 in loadMod
+reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver invoked-at src/lib/plugins/mods/mods-host.service.ts:836 in loadMod
 reg src/lib/core/editor/editor.service.ts:registerPendingEditFlusher sink src/lib/core/editor/editor.service.ts:62 | stores pendingEditFlushers set | doc Registers `flush` to run when `closeTab` closes the tab of `path`, before it saves, so an edit a view still holds in a debounce reaches the file.
 reg src/lib/core/editor/editor.service.ts:registerPendingEditFlusher read-by src/lib/core/editor/editor.service.ts:82 flushPendingEdits
 reg src/lib/core/editor/editor.service.ts:registerPendingEditFlusher fired-by src/lib/core/editor/editor.service.ts:371 in closeTab
@@ -45,7 +45,7 @@ reg src/lib/core/filesystem/fs.watcher.ts:onFileChange sink src/lib/core/filesys
 reg src/lib/core/filesystem/fs.watcher.ts:onFileChange read-by src/lib/core/filesystem/fs.watcher.ts:75 notifyListeners
 reg src/lib/core/filesystem/fs.watcher.ts:onFileChange fired-by src/lib/core/filesystem/fs.watcher.ts:177 in handleChangedPaths <- src/lib/core/filesystem/fs.watcher.ts:277 in startWatching
 reg src/lib/core/filesystem/fs.watcher.ts:onFileChange registered-at src/lib/app/lifecycle/app-lifecycle.service.ts:519 in initializeVault args=(paths) => { debug('LIFECYCLE', `file change listener fired at ${Date.now()}, p… -> src/lib/app/lifecycle/app-lifecycle.service.ts:initializeVault
-reg src/lib/core/filesystem/fs.watcher.ts:onFileChange registered-at src/lib/plugins/mods/mods-host.service.ts:1077 in startModsHost args=(paths) => onModFilesChanged(vaultPath, paths, startGeneration) -> src/lib/plugins/mods/mods-host.service.ts:startModsHost
+reg src/lib/core/filesystem/fs.watcher.ts:onFileChange registered-at src/lib/plugins/mods/mods-host.service.ts:1085 in startModsHost args=(paths) => onModFilesChanged(vaultPath, paths, startGeneration) -> src/lib/plugins/mods/mods-host.service.ts:startModsHost
 reg src/lib/core/filesystem/fs.watcher.ts:onFileChange invoked-at src/lib/app/LabsSection.svelte:30 in setModsEnabled
 reg src/lib/core/filesystem/fs.watcher.ts:onFileChange invoked-at src/lib/app/lifecycle/app-lifecycle.service.ts:550 in initializeVault
 reg src/lib/core/filesystem/fs.watcher.ts:onFileChange invoked-at src/routes/(app)/+layout.svelte:86 in $effect@80
@@ -86,7 +86,7 @@ reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer in
 reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer invoked-at src/lib/app/lifecycle/app-lifecycle.service.ts:267 in initializeVault
 reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer invoked-at src/lib/app/lifecycle/app-lifecycle.service.ts:268 in initializeVault
 reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer invoked-at src/lib/app/lifecycle/app-lifecycle.service.ts:269 in initializeVault
-reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer invoked-at src/lib/plugins/mods/mods-host.service.ts:830 in loadMod
+reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer invoked-at src/lib/plugins/mods/mods-host.service.ts:836 in loadMod
 reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer invoked-at src/routes/(app)/+layout.svelte:29 in (script)
 reg src/lib/core/markdown-editor/editor-host.ts:editorHost facet src/lib/core/markdown-editor/editor-host.ts:104 | doc The editor's host.
 reg src/lib/core/markdown-editor/editor-host.ts:editorHost registered-at src/lib/core/markdown-editor/setup/editor-extensions.ts:129 in createExtensions args=opts.host -> src/lib/core/markdown-editor/setup/editor-extensions.ts:createExtensions
@@ -132,7 +132,7 @@ reg src/lib/core/rule-actions/rule-actions.store.svelte.ts:ruleActionsStore.regi
 reg src/lib/core/rule-actions/rule-actions.store.svelte.ts:ruleActionsStore.register fired-by src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:126 in actionInput=$derived
 reg src/lib/core/rule-actions/rule-actions.store.svelte.ts:ruleActionsStore.register fired-by src/lib/features/auto-organize/auto-organize.service.ts:435 in runRuleAction <- src/lib/features/auto-organize/auto-organize.service.ts:380 in evaluateAndMove <- src/lib/features/auto-organize/auto-organize.service.ts:235 in registerAutoOrganizeHook
 reg src/lib/core/rule-actions/rule-actions.store.svelte.ts:ruleActionsStore.register registered-at src/lib/plugins/mods/mods-host.service.ts:563 in createModContext args={ id: actionKey(entry.id), label: `${manifest.name}: ${entry.title}`, input: en… -> src/lib/plugins/mods/mods-host.service.ts:createModContext
-reg src/lib/core/rule-actions/rule-actions.store.svelte.ts:ruleActionsStore.register invoked-at src/lib/plugins/mods/mods-host.service.ts:830 in loadMod
+reg src/lib/core/rule-actions/rule-actions.store.svelte.ts:ruleActionsStore.register invoked-at src/lib/plugins/mods/mods-host.service.ts:836 in loadMod
 reg src/lib/core/vault/write-barrier.service.ts:registerWriteBarrier sink src/lib/core/vault/write-barrier.service.ts:23 | stores barriers push | doc Registers a source of in-flight writes for `drainPendingWrites` to wait on.
 reg src/lib/core/vault/write-barrier.service.ts:registerWriteBarrier read-by src/lib/core/vault/write-barrier.service.ts:37 drainPendingWrites
 reg src/lib/core/vault/write-barrier.service.ts:registerWriteBarrier fired-by src/lib/core/vault/exit.service.ts:17 in prepareForExit

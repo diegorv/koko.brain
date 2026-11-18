@@ -55,9 +55,9 @@ fx src/lib/plugins/mods/mod-vault.service.ts:118 tauri-fs.exists in createModVau
 fx src/lib/plugins/mods/mod-vault.service.ts:131 tauri-fs.exists in createModVault
 fx src/lib/plugins/mods/mod-vault.service.ts:154 tauri-fs.exists in createModVault
 fx src/lib/plugins/mods/mod-vault.service.ts:298 tauri-fs.exists in createModWorkspace
-fx src/lib/plugins/mods/mods-host.service.ts:917 tauri-fs.exists in reloadFolder
-fx src/lib/plugins/mods/mods-host.service.ts:1039 tauri-fs.exists in rediscoverMods
-fx src/lib/plugins/mods/mods-host.service.ts:1080 tauri-fs.exists in startModsHost
+fx src/lib/plugins/mods/mods-host.service.ts:925 tauri-fs.exists in reloadFolder
+fx src/lib/plugins/mods/mods-host.service.ts:1047 tauri-fs.exists in rediscoverMods
+fx src/lib/plugins/mods/mods-host.service.ts:1088 tauri-fs.exists in startModsHost
 fx src/lib/plugins/one-on-one/one-on-one.service.ts:32 tauri-fs.exists in loadPeopleFromFolder
 fx src/lib/plugins/templates/templates.service.ts:27 tauri-fs.exists in loadTemplates
 fx src/lib/plugins/templates/templates.service.ts:101 tauri-fs.exists in ensureTemplatesFolder
@@ -74,8 +74,8 @@ fx src/lib/features/file-history/file-history.service.ts:163 tauri-fs.readDir in
 fx src/lib/features/type-definitions/type-definitions.service.ts:69 tauri-fs.readDir in resolveTypedNoteTarget
 fx src/lib/features/type-definitions/type-definitions.service.ts:178 tauri-fs.readDir in createTypeDefinition
 fx src/lib/plugins/mods/mod-vault.service.ts:123 tauri-fs.readDir in createModVault
-fx src/lib/plugins/mods/mods-host.service.ts:1040 tauri-fs.readDir in rediscoverMods
-fx src/lib/plugins/mods/mods-host.service.ts:1081 tauri-fs.readDir in startModsHost
+fx src/lib/plugins/mods/mods-host.service.ts:1048 tauri-fs.readDir in rediscoverMods
+fx src/lib/plugins/mods/mods-host.service.ts:1089 tauri-fs.readDir in startModsHost
 fx src/lib/plugins/one-on-one/one-on-one.service.ts:34 tauri-fs.readDir in loadPeopleFromFolder
 fx src/lib/plugins/templates/templates.service.ts:33 tauri-fs.readDir in loadTemplates
 fx src/lib/features/canvas/canvas-image.service.ts:34 tauri-fs.readFile in resolveImageSrc
@@ -106,8 +106,8 @@ fx src/lib/features/type-definitions/type-definitions.service.ts:384 tauri-fs.re
 fx src/lib/features/type-definitions/view-parse-cache.ts:46 tauri-fs.readTextFile in refreshViewDefinition
 fx src/lib/plugins/kanban/kanban.service.ts:81 tauri-fs.readTextFile in loadLinkedFileContent
 fx src/lib/plugins/mods/mod-vault.service.ts:114 tauri-fs.readTextFile in createModVault
-fx src/lib/plugins/mods/mods-host.service.ts:793 tauri-fs.readTextFile in loadMod
-fx src/lib/plugins/mods/mods-host.service.ts:803 tauri-fs.readTextFile in loadMod
-fx src/lib/plugins/mods/mods-host.service.ts:866 tauri-fs.readTextFile in listDisabledMod
+fx src/lib/plugins/mods/mods-host.service.ts:799 tauri-fs.readTextFile in loadMod
+fx src/lib/plugins/mods/mods-host.service.ts:809 tauri-fs.readTextFile in loadMod
+fx src/lib/plugins/mods/mods-host.service.ts:873 tauri-fs.readTextFile in listDisabledMod
 fx src/lib/plugins/queryjs/queryjs.service.ts:5 tauri-fs.readTextFile in loadExternalScript
 fx src/lib/plugins/mods/mod-vault.service.ts:107 tauri-fs.stat in createModVault

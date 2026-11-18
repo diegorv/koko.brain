@@ -32,9 +32,9 @@ entry src/lib/plugins/mods/mods-enabled.store.svelte.ts ext-in1 src/lib/app/Labs
 entry src/lib/plugins/mods/mods-runs.store.svelte.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 entry src/lib/plugins/mods/mods.logic.ts ext-in1 src/lib/app/lifecycle/watcher-handler.service.ts
 ## files
-file src/lib/plugins/mods/ModActionPicker.svelte component L194 module src/lib/plugins/mods in1 t2
+file src/lib/plugins/mods/ModActionPicker.svelte component L202 module src/lib/plugins/mods in1 t2
 file src/lib/plugins/mods/ModDialogHost.svelte component L210 module src/lib/plugins/mods in1 t2
-file src/lib/plugins/mods/ModsStatusList.svelte component L168 module src/lib/plugins/mods in1 t1
+file src/lib/plugins/mods/ModsStatusList.svelte component L176 module src/lib/plugins/mods in1 t1
 file src/lib/plugins/mods/contract/mod-api.v1.ts other L2 module src/lib/plugins/mods in5 t0
 file src/lib/plugins/mods/mod-app.service.ts service L94 module src/lib/plugins/mods in1 t1
 file src/lib/plugins/mods/mod-commands.store.svelte.ts store L52 module src/lib/plugins/mods in3 t7
@@ -46,18 +46,18 @@ file src/lib/plugins/mods/mod-vault.service.ts service L308 module src/lib/plugi
 file src/lib/plugins/mods/mod-watch.svelte.ts other L38 module src/lib/plugins/mods in1 t0
 file src/lib/plugins/mods/mods-enabled.logic.ts logic L63 module src/lib/plugins/mods in1 t1
 file src/lib/plugins/mods/mods-enabled.store.svelte.ts store L88 module src/lib/plugins/mods in3 t13
-file src/lib/plugins/mods/mods-host.service.ts service L1157 module src/lib/plugins/mods in3 t18
+file src/lib/plugins/mods/mods-host.service.ts service L1166 module src/lib/plugins/mods in3 t18
 file src/lib/plugins/mods/mods-runs.store.svelte.ts store L124 module src/lib/plugins/mods in3 t9
 file src/lib/plugins/mods/mods.logic.ts logic L324 module src/lib/plugins/mods in8 t3
-file src/lib/plugins/mods/mods.store.svelte.ts store L95 module src/lib/plugins/mods in2 t10
+file src/lib/plugins/mods/mods.store.svelte.ts store L97 module src/lib/plugins/mods in2 t10
 ## public
-sym src/lib/plugins/mods/ModActionPicker.svelte:1 component ModActionPicker L194
+sym src/lib/plugins/mods/ModActionPicker.svelte:1 component ModActionPicker L202
 sym src/lib/plugins/mods/ModDialogHost.svelte:1 component ModDialogHost L210
-sym src/lib/plugins/mods/ModsStatusList.svelte:1 component ModsStatusList L168
+sym src/lib/plugins/mods/ModsStatusList.svelte:1 component ModsStatusList L176
 sym src/lib/plugins/mods/mod-commands.store.svelte.ts:19 store modCommandsStore L34 | Live mod action registry, independent of the command palette UI.
 sym src/lib/plugins/mods/mods-enabled.store.svelte.ts:46 store modsEnabledStore L43 | Reactive store for the per-vault "Vault mods" flag
-sym src/lib/plugins/mods/mods-host.service.ts:1072 fn startModsHost(vaultPath: string): Promise<void> L26 | Loads every mod in `<vaultPath>/_system/mods/` when mods are on for that vault, after stopping any mods already loaded.
-sym src/lib/plugins/mods/mods-host.service.ts:1142 fn stopModsHost(): void L16 | Unloads every mod, including one whose `onload` is still running, which aborts every run; closes the picker and its run view, empties the status list, detaches…
+sym src/lib/plugins/mods/mods-host.service.ts:1080 fn startModsHost(vaultPath: string): Promise<void> L26 | Loads every mod in `<vaultPath>/_system/mods/` when mods are on for that vault, after stopping any mods already loaded.
+sym src/lib/plugins/mods/mods-host.service.ts:1151 fn stopModsHost(): void L16 | Unloads every mod, including one whose `onload` is still running, which aborts every run; closes the picker and its run view, empties the status list, detaches…
 sym src/lib/plugins/mods/mods-runs.store.svelte.ts:59 store modsRunsStore L66 | Reactive store for mod action runs, one per action key: the run view and the busy rail buttons read it
 sym src/lib/plugins/mods/mods.logic.ts:58 fn isModCodePath(path: string, vaultPath: string | null): boolean L4 | Whether an absolute watcher path is mod code: a file under the vault's mods folder that is not a note (`.md`, `.markdown`) or a view (`.view`).
 ## stores
@@ -66,7 +66,7 @@ store src/lib/plugins/mods/mod-dialogs.store.svelte.ts:73 modDialogsStore esc:0
 store src/lib/plugins/mods/mod-picker.store.svelte.ts:31 modPickerStore esc:0
 store src/lib/plugins/mods/mods-enabled.store.svelte.ts:46 modsEnabledStore esc:0
 store src/lib/plugins/mods/mods-runs.store.svelte.ts:59 modsRunsStore esc:0
-store src/lib/plugins/mods/mods.store.svelte.ts:52 modsStore esc:0
+store src/lib/plugins/mods/mods.store.svelte.ts:54 modsStore esc:0
 ## effects
 fx-count dom.abort 4
 fx-count storage.getItem 2

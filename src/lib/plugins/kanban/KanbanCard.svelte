@@ -7,6 +7,7 @@
 	import Archive from '@lucide/svelte/icons/archive';
 	import Palette from '@lucide/svelte/icons/palette';
 	import Tag from '@lucide/svelte/icons/tag';
+	import ArrowRightLeft from '@lucide/svelte/icons/arrow-right-left';
 	import type { KanbanItem } from './kanban.types';
 	import { extractCardDate, setCardDate, removeCardDate, cardProximity, PROXIMITY_CLASSES, extractCardWikilinks, extractCardColor, setCardColor, removeCardColor, stripCardMetadata, extractCardTags } from './kanban.logic';
 	import { loadLinkedFileContent } from './kanban.service';
@@ -30,6 +31,10 @@
 		onUpdate: (text: string) => void;
 		onDelete: () => void;
 		onArchive: () => void;
+		/** The lanes "Move to" lists: every lane but the card's own */
+		moveTargets?: { id: string; title: string }[];
+		/** Called with the target lane id when a "Move to" entry is chosen */
+		onMove?: (toLaneId: string) => void;
 		onStartEdit: () => void;
 		onStopEdit: () => void;
 		onWikilinkClick?: (target: string, heading?: string) => void;
@@ -52,6 +57,8 @@
 		onUpdate,
 		onDelete,
 		onArchive,
+		moveTargets = [],
+		onMove,
 		onWikilinkClick,
 		isFocused = false,
 		isDragging = false,
@@ -279,6 +286,19 @@
 			<Archive class="size-4" />
 			Archive
 		</ContextMenu.Item>
+		<ContextMenu.Sub>
+			<ContextMenu.SubTrigger disabled={moveTargets.length === 0}>
+				<ArrowRightLeft class="size-4" />
+				Move to
+			</ContextMenu.SubTrigger>
+			<ContextMenu.SubContent>
+				{#each moveTargets as lane (lane.id)}
+					<ContextMenu.Item onclick={() => onMove?.(lane.id)}>
+						{lane.title}
+					</ContextMenu.Item>
+				{/each}
+			</ContextMenu.SubContent>
+		</ContextMenu.Sub>
 		<ContextMenu.Sub>
 			<ContextMenu.SubTrigger>
 				<Palette class="size-4" />
