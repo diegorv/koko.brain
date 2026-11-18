@@ -16,18 +16,18 @@ Not in this ticket: collapsible rule cards and "Add action" (P70 rest), the Inse
 
 **Blocked by:** 15, 31
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh auto-organize-flows.spec.ts (it finds the rule switch by `getByRole('switch').nth(1)`).
 
-- [ ] Failing test first, `src/tests/lib/features/auto-organize/AutoOrganizeRuleRow.test.ts` (real stores): a rule with two set-property rows where row 0 shows a refused expression; remove row 0; the remaining row shows no error, and changing its mode saves its own expression (assert `autoOrganizeStore.rules[0].properties`), never row 0's refused text.
-- [ ] A refused expression stays visible after a key change on the same row (no remount); `JSON.stringify(autoOrganizeStore.rules)` has no Row id field.
-- [ ] Failing test first, `auto-organize.logic.test.ts`: `unknownTemplateVariables('{folder}/{yaer}')` is `['yaer']`; `'{folder}/_archive/{year}'`, `'plain'` and `''` give `[]`; `'{constructor}'` gives `['constructor']`; every `TEMPLATE_VARIABLES` name resolves through the real `resolveDestination` to something other than the literal `{name}`.
-- [ ] Typing `{folder}/{yaer}` into Move to folder shows the warning naming `{yaer}` and the saved `destination` is exactly that text; a valid template shows the variables line and no warning.
-- [ ] The named controls are found by role and name; a disabled rule has `[data-rule-off]` and `border-dashed`, an enabled one neither, and the pill follows a prop change.
-- [ ] `AutoOrganizeSection.test.ts`: "Add rule" leaves `document.activeElement` on the new "Rule name" input; "Add property", "Add note property" and "Add expression" focus the new row's first input; mounting existing rows moves no focus.
-- [ ] Edits to `AutoOrganizeRuleRow.test.ts` stay additive (shell-sidebars-ux 16 adds one assertion there).
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass; `bash scripts/e2e.sh auto-organize-flows.spec.ts` passes.
+- [x] Failing test first, `src/tests/lib/features/auto-organize/AutoOrganizeRuleRow.test.ts` (real stores): a rule with two set-property rows where row 0 shows a refused expression; remove row 0; the remaining row shows no error, and changing its mode saves its own expression (assert `autoOrganizeStore.rules[0].properties`), never row 0's refused text.
+- [x] A refused expression stays visible after a key change on the same row (no remount); `JSON.stringify(autoOrganizeStore.rules)` has no Row id field.
+- [x] Failing test first, `auto-organize.logic.test.ts`: `unknownTemplateVariables('{folder}/{yaer}')` is `['yaer']`; `'{folder}/_archive/{year}'`, `'plain'` and `''` give `[]`; `'{constructor}'` gives `['constructor']`; every `TEMPLATE_VARIABLES` name resolves through the real `resolveDestination` to something other than the literal `{name}`.
+- [x] Typing `{folder}/{yaer}` into Move to folder shows the warning naming `{yaer}` and the saved `destination` is exactly that text; a valid template shows the variables line and no warning.
+- [x] The named controls are found by role and name; a disabled rule has `[data-rule-off]` and `border-dashed`, an enabled one neither, and the pill follows a prop change.
+- [x] `AutoOrganizeSection.test.ts`: "Add rule" leaves `document.activeElement` on the new "Rule name" input; "Add property", "Add note property" and "Add expression" focus the new row's first input; mounting existing rows moves no focus.
+- [x] Edits to `AutoOrganizeRuleRow.test.ts` stay additive (shell-sidebars-ux 16 adds one assertion there).
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass; `bash scripts/e2e.sh auto-organize-flows.spec.ts` passes.
 
 ## Original proposal
 
@@ -65,3 +65,4 @@ Ticket 33 edits `AutoOrganizeRuleRow.svelte` and `AutoOrganizeRuleProperty.svelt
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping.
+- 2026-11-18, delivered from branch issue/32-auto-organize-rule-row-stable-property: property rows keyed by a stable per-row id (a refused expression stays on its own row); TEMPLATE_VARIABLES and unknownTemplateVariables, with a variables line and unknown-variable warnings under Move to folder, Create note path and Rename; named controls and an Off pill plus dashed border for a disabled rule; focus moves to the rule or row just added. Tests: full vitest suite 662 files, 17782 passed, 56 skipped (32-deliver.log). Review round 1: APPROVED with four nits; 2 and 4 need no change, 1 (Create note path wording) and 3 (warning reads the saved path) left for a follow-up.

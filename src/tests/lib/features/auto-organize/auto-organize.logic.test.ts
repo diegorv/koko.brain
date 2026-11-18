@@ -8,6 +8,8 @@ import {
 	validateExpression,
 	generateRuleId,
 	resolveDestination,
+	TEMPLATE_VARIABLES,
+	unknownTemplateVariables,
 	findMatchingRules,
 	findMoveRule,
 	sanitizeRuleProperties,
@@ -460,6 +462,35 @@ describe('resolveDestination', () => {
 		const record = makeRecord({ folder: '/Users/me/vault/work', basename: 'My-Note' });
 		record.properties.set('_type', 'task');
 		expect(resolveDestination('{folder}/_archive/{type}/{basename}', record, vaultPath)).toBe('work/_archive/task/My-Note');
+	});
+});
+
+describe('unknownTemplateVariables', () => {
+	it('names a variable that is not one of the template variables', () => {
+		expect(unknownTemplateVariables('{folder}/{yaer}')).toEqual(['yaer']);
+	});
+
+	it('names each unknown variable once', () => {
+		expect(unknownTemplateVariables('{yaer}/{mnth}/{yaer}')).toEqual(['yaer', 'mnth']);
+	});
+
+	it('finds nothing in a valid template, plain text or an empty string', () => {
+		expect(unknownTemplateVariables('{folder}/_archive/{year}')).toEqual([]);
+		expect(unknownTemplateVariables('plain')).toEqual([]);
+		expect(unknownTemplateVariables('')).toEqual([]);
+	});
+
+	it('treats an Object prototype key as unknown', () => {
+		expect(unknownTemplateVariables('{constructor}')).toEqual(['constructor']);
+	});
+
+	it('lists only names that resolveDestination replaces', () => {
+		const record = makeRecord({ folder: '/Users/me/vault/work/squad', basename: 'Note' });
+		record.properties.set('_type', 'project');
+		record.properties.set('status', 'done');
+		for (const name of TEMPLATE_VARIABLES) {
+			expect(resolveDestination(`{${name}}`, record, '/Users/me/vault')).not.toBe(`{${name}}`);
+		}
 	});
 });
 

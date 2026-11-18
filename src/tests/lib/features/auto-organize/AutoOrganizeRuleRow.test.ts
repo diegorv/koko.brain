@@ -13,6 +13,7 @@ import { ruleActionsStore } from '#lib/core/rule-actions/rule-actions.store.svel
 import { loadAutoOrganizeConfig } from '#lib/features/auto-organize/auto-organize.service.js';
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import Harness from '../../../fixtures/AutoOrganizeRuleRowHarness.svelte';
+import StoreHarness from '../../../fixtures/AutoOrganizeStoreRuleRowHarness.svelte';
 
 vi.mock('@tauri-apps/plugin-fs', async (importOriginal) => ({
 	...(await importOriginal<typeof import('@tauri-apps/plugin-fs')>()),
@@ -1212,6 +1213,209 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			await render({ ...BLANK, properties: [{ key: '', value: '', mode: 'always' }] });
 
 			expect(hint()).not.toBeNull();
+		});
+	});
+
+	/** Mounts the rows of `autoOrganizeStore`, holding `rule`, their updates written back through the store. */
+	async function renderStored(rule: AutoOrganizeRule) {
+		autoOrganizeStore.setConfig({ rules: [rule], excludedFolders: [] });
+		const target = document.body.appendChild(document.createElement('div'));
+		component = mount(StoreHarness, { target });
+		await settle();
+	}
+
+	describe('stable property rows', () => {
+		const REFUSED = 'now() changes on every save, so it works only with "if missing"';
+		const exprError = () => document.querySelector('[data-expr-error]')?.textContent?.trim() ?? null;
+
+		afterEach(() => {
+			autoOrganizeStore.reset();
+		});
+
+		it('keeps a refused expression on its own row when the row above it is removed', async () => {
+			await renderStored({ ...BLANK, properties: [
+				{ key: 'a', expr: 'file.basename', mode: 'always' },
+				{ key: 'b', expr: 'file.path', mode: 'always' },
+			] });
+			commit(field(propertyRows()[0], 'Property expression'), 'now()');
+			await settle();
+			expect(exprError()).toBe(REFUSED);
+
+			button('Delete row').click();
+			await settle();
+			expect(propertyRows()).toHaveLength(1);
+			expect(exprError()).toBeNull();
+			expect(field(propertyRows()[0], 'Property expression').value).toBe('file.path');
+
+			await choose(propertyRows()[0], 'Property mode', 'if missing');
+			expect(autoOrganizeStore.rules[0].properties).toEqual([{ key: 'b', expr: 'file.path', mode: 'if-missing' }]);
+		});
+
+		it('keeps a refused expression after a key change on the same row, and writes no row id', async () => {
+			await renderStored({ ...BLANK, properties: [{ key: 'updated', expr: 'file.basename', mode: 'always' }] });
+			commit(field(propertyRows()[0], 'Property expression'), 'now()');
+			await settle();
+
+			commit(field(propertyRows()[0], 'Property key'), 'stamp');
+			await settle();
+
+			expect(field(propertyRows()[0], 'Property expression').value).toBe('now()');
+			expect(exprError()).toBe(REFUSED);
+			expect(JSON.stringify(autoOrganizeStore.rules)).toBe(
+				JSON.stringify([{ ...BLANK, properties: [{ key: 'stamp', expr: 'file.basename', mode: 'always' }] }]),
+			);
+		});
+
+		it('keeps a refused expression of a created note property on its own row when the row above it is removed', async () => {
+			await renderStored({ ...BLANK, createNote: { path: 'a.md', properties: [
+				{ key: 'a', expr: 'file.basename', mode: 'always' },
+				{ key: 'b', expr: 'file.path', mode: 'always' },
+			] } });
+			commit(field(propertyRows()[0], 'Property expression'), 'now()');
+			await settle();
+
+			button('Delete row').click();
+			await settle();
+			expect(exprError()).toBeNull();
+
+			await choose(propertyRows()[0], 'Property mode', 'if missing');
+			expect(autoOrganizeStore.rules[0].createNote?.properties).toEqual([{ key: 'b', expr: 'file.path', mode: 'if-missing' }]);
+		});
+
+		it('gives every row a fresh state when a reload changes how many the rule has', async () => {
+			const rule: AutoOrganizeRule = { ...BLANK, properties: [
+				{ key: 'a', expr: 'file.basename', mode: 'always' },
+				{ key: 'b', expr: 'file.path', mode: 'always' },
+			] };
+			await renderStored(rule);
+			commit(field(propertyRows()[0], 'Property expression'), 'now()');
+			await settle();
+			expect(exprError()).toBe(REFUSED);
+
+			autoOrganizeStore.setConfig({ rules: [{ ...rule, properties: [{ key: 'x', expr: 'file.name', mode: 'always' }] }], excludedFolders: [] });
+			await settle();
+			expect(exprError()).toBeNull();
+			expect(field(propertyRows()[0], 'Property expression').value).toBe('file.name');
+
+			button('Add property').click();
+			await settle();
+			expect(propertyRows().map((row) => field(row, 'Property key').value)).toEqual(['x', '']);
+			expect(autoOrganizeStore.rules[0].properties).toHaveLength(2);
+		});
+	});
+
+	describe('template variables', () => {
+		const VARIABLES = 'Variables: {folder} {parent} {basename} {type} {status} {year} {month}';
+		const variablesLine = () => document.querySelector('[data-template-variables]')?.textContent?.trim() ?? null;
+		const warnings = () => [...document.querySelectorAll('[data-template-warning]')].map((el) => el.textContent?.trim());
+		const input = (label: string) => document.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!;
+
+		afterEach(() => {
+			autoOrganizeStore.reset();
+		});
+
+		it('warns about an unknown variable in Move to folder and saves the text as typed', async () => {
+			await renderStored(BLANK);
+
+			type(input('Move to folder'), '{folder}/{yaer}');
+			await settle();
+
+			expect(warnings()).toEqual(['{yaer} is not a variable, so a folder named {yaer} would be created']);
+			expect(variablesLine()).toBeNull();
+			expect(autoOrganizeStore.rules[0].destination).toBe('{folder}/{yaer}');
+		});
+
+		it('lists the variables under a valid Move to folder template, with no warning', async () => {
+			await renderStored(BLANK);
+
+			type(input('Move to folder'), '{folder}/_archive/{year}');
+			await settle();
+
+			expect(variablesLine()).toBe(VARIABLES);
+			expect(warnings()).toEqual([]);
+		});
+
+		it('lists the variables under an empty Move to folder', async () => {
+			await renderStored(BLANK);
+
+			expect(variablesLine()).toBe(VARIABLES);
+		});
+
+		it('warns once per unknown variable', async () => {
+			await renderStored({ ...BLANK, destination: '{yaer}/{mnth}/{yaer}' });
+
+			expect(warnings()).toEqual([
+				'{yaer} is not a variable, so a folder named {yaer} would be created',
+				'{mnth} is not a variable, so a folder named {mnth} would be created',
+			]);
+		});
+
+		it('warns about an unknown variable in the create note path, with no variables line there', async () => {
+			await renderStored({ ...BLANK, destination: 'Archive' });
+
+			commit(input('Create note path'), '{folder}/{yaer}/x.md');
+			await settle();
+
+			expect(autoOrganizeStore.rules[0].createNote?.path).toBe('{folder}/{yaer}/x.md');
+			expect(warnings()).toEqual(['{yaer} is not a variable, so a folder named {yaer} would be created']);
+			expect(document.querySelectorAll('[data-template-variables]')).toHaveLength(1);
+		});
+
+		it('warns about an unknown variable in a rename name, and not in a rename expression', async () => {
+			await renderStored({ ...BLANK, destination: 'Archive' });
+
+			commit(input('Rename to'), '{yaer} Meeting');
+			await settle();
+			expect(autoOrganizeStore.rules[0].rename).toEqual({ name: '{yaer} Meeting' });
+			expect(warnings()).toEqual(['{yaer} is not a variable, so the new name would contain {yaer}']);
+
+			await choose(document.body, 'Rename source', 'Expression');
+			expect(warnings()).toEqual([]);
+		});
+	});
+
+	describe('header', () => {
+		/** The element with `role` (its tag or explicit role) whose accessible name is `name`. */
+		function byRole(role: 'textbox' | 'switch' | 'button', name: string): HTMLElement | null {
+			const selector = { textbox: 'input:not([type])', switch: '[role="switch"]', button: 'button' }[role];
+			return [...document.querySelectorAll<HTMLElement>(selector)].find((el) => el.getAttribute('aria-label') === name) ?? null;
+		}
+		const card = () => document.querySelector<HTMLElement>('[data-rule-card]')!;
+
+		it('names the header controls, the folder field and the icon button', async () => {
+			await render({ ...BLANK, enabled: true });
+
+			for (const name of ['Rule name', 'Move to folder']) expect(byRole('textbox', name), name).not.toBeNull();
+			expect(byRole('switch', 'Enable rule')).not.toBeNull();
+			for (const name of ['Move rule up', 'Move rule down', 'Delete rule', 'Set file icon']) {
+				expect(byRole('button', name), name).not.toBeNull();
+			}
+		});
+
+		it('names the icon button after the icon it shows', async () => {
+			await render({ ...BLANK, icon: { iconPack: 'lucide', iconName: 'star' } });
+
+			expect(byRole('button', 'Icon: lucide:star')).not.toBeNull();
+		});
+
+		it('marks a disabled rule Off with a dashed border, and an enabled one with neither', async () => {
+			await render({ ...BLANK, enabled: false });
+			expect(document.querySelector('[data-rule-off]')?.textContent?.trim()).toBe('Off');
+			expect(card().classList.contains('border-dashed')).toBe(true);
+			expect(card().classList.contains('focus-within:border-ring')).toBe(true);
+
+			(component as unknown as { replace: (next: AutoOrganizeRule) => void }).replace({ ...BLANK, enabled: true });
+			await settle();
+			expect(document.querySelector('[data-rule-off]')).toBeNull();
+			expect(card().classList.contains('border-dashed')).toBe(false);
+			expect(card().classList.contains('focus-within:border-ring')).toBe(true);
+		});
+
+		it('keeps the inputs of a disabled rule enabled', async () => {
+			await render({ ...BLANK, enabled: false });
+
+			expect((byRole('textbox', 'Rule name') as HTMLInputElement).disabled).toBe(false);
+			expect((byRole('textbox', 'Move to folder') as HTMLInputElement).disabled).toBe(false);
 		});
 	});
 });

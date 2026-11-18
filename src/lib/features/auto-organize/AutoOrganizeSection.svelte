@@ -38,6 +38,9 @@
 		return [...collectAllDirPaths(fsStore.fileTree)].map((p) => getRelativePath(vaultPath, p));
 	});
 
+	/** The rule "Add rule" added last, whose row focuses its name when it mounts */
+	let newRuleId = $state<string | null>(null);
+
 	/** Debounce timer for config saves triggered by text input */
 	let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -76,6 +79,7 @@
 			// A rule runs on every save, so it stays off until the user finishes it.
 			enabled: false,
 		};
+		newRuleId = rule.id;
 		autoOrganizeStore.addRule(rule);
 		saveConfig();
 	}
@@ -211,6 +215,7 @@
 					{rule}
 					isFirst={i === 0}
 					isLast={i === autoOrganizeStore.rules.length - 1}
+					focusName={rule.id === newRuleId}
 					onupdate={updateRule}
 					onremove={removeRule}
 					onmoveup={moveRuleUp}

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
-import { mount, unmount, flushSync } from 'svelte';
+import { mount, unmount, flushSync, tick } from 'svelte';
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
@@ -23,6 +23,7 @@ import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { getTypeMetadataFallback } from '#lib/features/type-definitions/type-definitions.logic.js';
+import type { AutoOrganizeRule } from '#lib/features/auto-organize/auto-organize.types.js';
 
 describe('AutoOrganizeSection', () => {
 	let component: Record<string, unknown> | null = null;
@@ -285,6 +286,77 @@ describe('AutoOrganizeSection', () => {
 
 			addFolder('Archive');
 			expect(text()).not.toContain('No excluded folders');
+		});
+	});
+
+	describe('focus', () => {
+		const RULE: AutoOrganizeRule = { id: 'r1', name: 'Archive', expression: '', destination: 'Archive', enabled: true };
+
+		async function settle() {
+			for (let i = 0; i < 3; i++) {
+				await tick();
+				flushSync();
+			}
+		}
+
+		/** The inputs named `name`, in document order. */
+		const named = (name: string) => [...document.querySelectorAll<HTMLInputElement>(`input[aria-label="${name}"]`)];
+
+		it('moves no focus when the section mounts its rules', async () => {
+			autoOrganizeStore.setConfig({ rules: [RULE, { ...RULE, id: 'r2', properties: [{ key: 'a', value: '1', mode: 'always' }] }], excludedFolders: [] });
+			render();
+			await settle();
+
+			expect(named('Rule name')).toHaveLength(2);
+			expect(document.activeElement).toBe(document.body);
+		});
+
+		it('focuses the name of the rule "Add rule" adds', async () => {
+			autoOrganizeStore.setConfig({ rules: [RULE], excludedFolders: [] });
+			render();
+
+			button('Add rule').click();
+			await settle();
+
+			const names = named('Rule name');
+			expect(names).toHaveLength(2);
+			expect(document.activeElement).toBe(names[1]);
+		});
+
+		it('focuses the key of the row "Add property" adds', async () => {
+			autoOrganizeStore.setConfig({ rules: [{ ...RULE, properties: [{ key: 'a', value: '1', mode: 'always' }] }], excludedFolders: [] });
+			render();
+
+			button('Add property').click();
+			await settle();
+
+			const keys = named('Property key');
+			expect(keys).toHaveLength(2);
+			expect(document.activeElement).toBe(keys[1]);
+		});
+
+		it('focuses the key of the row "Add note property" adds', async () => {
+			autoOrganizeStore.setConfig({ rules: [{ ...RULE, createNote: { path: 'a.md' } }], excludedFolders: [] });
+			render();
+
+			button('Add note property').click();
+			await settle();
+
+			const keys = named('Property key');
+			expect(keys).toHaveLength(1);
+			expect(document.activeElement).toBe(keys[0]);
+		});
+
+		it('focuses the input of the row "Add expression" adds', async () => {
+			autoOrganizeStore.setConfig({ rules: [{ ...RULE, expression: 'file.hasTag("a")' }], excludedFolders: [] });
+			render();
+
+			button('Add expression').click();
+			await settle();
+
+			const inputs = [...document.querySelectorAll<HTMLInputElement>('[data-rule-filter] input[placeholder="Expression..."]')];
+			expect(inputs).toHaveLength(2);
+			expect(document.activeElement).toBe(inputs[1]);
 		});
 	});
 });
