@@ -5,7 +5,8 @@ fx src/lib/contracts/ipc.ts:26 tauri-api-core.invoke in call
 fx src/lib/core/settings/sections/UpdateSection.svelte:203 tauri-api-core.invoke in checkForUpdates
 fx src/lib/contracts/ipc.ts:88 tauri-api-event.listen in on
 fx src/lib/utils/log.service.ts:46 tauri-api-path.appLogDir in getLogDir
-fx src/lib/core/zoom/zoom.service.ts:29 tauri-api-webviewWindow.getCurrentWebviewWindow in applyZoom
+fx src/lib/core/zoom/zoom.service.ts:52 tauri-api-webviewWindow.getCurrentWebviewWindow in restoreZoom
+fx src/lib/core/zoom/zoom.service.ts:60 tauri-api-webviewWindow.getCurrentWebviewWindow in applyZoom
 fx src/lib/app/tauri-listeners.service.ts:51 tauri-api-window.getCurrentWindow in registerCloseHandler
 fx src/lib/app/tauri-listeners.service.ts:54 tauri-api-window.getCurrentWindow in registerCloseHandler
 fx src/lib/app/tauri-listeners.service.ts:330 tauri-api-window.getCurrentWindow in registerFocusListener

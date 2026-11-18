@@ -13,7 +13,7 @@ imp src/lib/features/backlinks/backlinks.service.ts:7 -> src/lib/features/backli
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:16 -> src/lib/features/backlinks/backlinks.service.ts buildIndex,resetBacklinks
 imp src/lib/app/lifecycle/watcher-handler.service.ts:2 -> src/lib/features/backlinks/backlinks.service.ts rebuildIndex
 imp src/lib/features/backlinks/BacklinksPanel.svelte:12 -> src/lib/features/backlinks/backlinks.service.ts fetchBacklinksV2,fetchRelationshipBacklinks
-imp src/routes/(app)/+layout.svelte:16 -> src/lib/features/backlinks/backlinks.service.ts fetchBacklinksV2
+imp src/routes/(app)/+layout.svelte:17 -> src/lib/features/backlinks/backlinks.service.ts fetchBacklinksV2
 ## reach
 in2 src/lib/features/backlinks/backlinks.service.ts 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/backlinks/backlinks.service.ts 10 files in 7 modules: src/lib/contracts(2) src/lib/core/editor(2) src/lib/core/settings(2) src/lib/core/vault(1) src/lib/features/backlinks(1) +2 modules
@@ -30,7 +30,7 @@ sym src/lib/features/backlinks/backlinks.service.ts:112 fn rebuildIndex() L6
 by src/lib/features/backlinks/backlinks.service.ts:rebuildIndex <- src/lib/app/lifecycle/watcher-handler.service.ts:76 in rebuildAllIndexes call
 sym src/lib/features/backlinks/backlinks.service.ts:170 const fetchBacklinksV2 = dedupeInflight(…) L1
 by src/lib/features/backlinks/backlinks.service.ts:fetchBacklinksV2 <- src/lib/features/backlinks/BacklinksPanel.svelte:29 in fetchData call
-by src/lib/features/backlinks/backlinks.service.ts:fetchBacklinksV2 <- src/routes/(app)/+layout.svelte:129 in $effect@105 call
+by src/lib/features/backlinks/backlinks.service.ts:fetchBacklinksV2 <- src/routes/(app)/+layout.svelte:134 in $effect@110 call
 sym src/lib/features/backlinks/backlinks.service.ts:186 const fetchRelationshipBacklinks = dedupeInflight(…) L1
 by src/lib/features/backlinks/backlinks.service.ts:fetchRelationshipBacklinks <- src/lib/features/backlinks/BacklinksPanel.svelte:30 in fetchData call
 sym src/lib/features/backlinks/backlinks.service.ts:228 const computeUnlinkedMentionsForFile = dedupeInflight(…) L4

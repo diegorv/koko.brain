@@ -40,7 +40,7 @@ imp src/lib/app/AppShell.svelte:54 -> src/lib/core/editor/editor.store.svelte.ts
 imp src/lib/app/AppShell.svelte:55 -> src/lib/core/layout/layout.service.ts toggleRightSidebar
 imp src/lib/app/AppShell.svelte:56 -> src/lib/core/layout/layout.logic.ts hidesRightSidebar,isRightSidebarShown
 ## imported-by
-imp src/routes/(app)/+layout.svelte:24 -> src/lib/app/AppShell.svelte default
+imp src/routes/(app)/+layout.svelte:25 -> src/lib/app/AppShell.svelte default
 ## reach
 in2 src/lib/app/AppShell.svelte 0 files in 0 modules: -
 out2 src/lib/app/AppShell.svelte 127 files in 32 modules: src/lib/features/rail-shell(19) src/lib/components(11) src/lib/features/collection(10) src/lib/features/file-icons(8) src/lib/core/filesystem(7) +27 modules
@@ -49,7 +49,7 @@ test src/tests/lib/app/AppShell.test.ts imports src/lib/app/AppShell.svelte mirr
 test src/tests/lib/app/meta-bind-open-view.test.ts imports src/lib/app/AppShell.svelte
 ## symbols
 sym src/lib/app/AppShell.svelte:1 component AppShell props:children L316
-by src/lib/app/AppShell.svelte:default <- src/routes/(app)/+layout.svelte:185 in (markup) mount
+by src/lib/app/AppShell.svelte:default <- src/routes/(app)/+layout.svelte:190 in (markup) mount
 ## locals
 local src/lib/app/AppShell.svelte:92 fn handleRightSidebarResize(size: number) L3
 local src/lib/app/AppShell.svelte:96 fn handleNoteListResize(size: number) L3
@@ -74,7 +74,7 @@ mount src/lib/app/AppShell.svelte:310 TodoistSyncStatus -> src/lib/features/todo
 mount src/lib/app/AppShell.svelte:311 SaveStatus -> src/lib/core/status-bar/SaveStatus.svelte
 mount src/lib/app/AppShell.svelte:312 WordCount -> src/lib/plugins/word-count/WordCount.svelte
 ## mounted-at
-mount src/routes/(app)/+layout.svelte:185 AppShell -> src/lib/app/AppShell.svelte
+mount src/routes/(app)/+layout.svelte:190 AppShell -> src/lib/app/AppShell.svelte
 ## calls
 call src/lib/app/AppShell.svelte:61 in rightSidebarShown=$derived -> src/lib/core/layout/layout.logic.ts:isRightSidebarShown call
 call src/lib/app/AppShell.svelte:69 in $effect@66 -> src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder call

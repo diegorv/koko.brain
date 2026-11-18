@@ -23,7 +23,7 @@ module src/lib/core/settings core files 38 in-modules 29 out-modules 6 pub 53/17
 module src/lib/core/status-bar core files 2 in-modules 1 out-modules 1 pub 2/2 ipc 0/0 card ~0.4k
 module src/lib/core/trash core files 4 in-modules 4 out-modules 3 pub 9/17 ipc 0/0 card ~1.3k
 module src/lib/core/vault core files 7 in-modules 34 out-modules 5 pub 9/17 ipc 1/0 card ~2.2k
-module src/lib/core/zoom core files 1 in-modules 1 out-modules 0 pub 3/3 ipc 0/0 card ~0.4k
+module src/lib/core/zoom core files 3 in-modules 2 out-modules 1 pub 5/7 ipc 0/0 card ~0.7k
 module src/lib/features/auto-organize features files 8 in-modules 1 out-modules 12 pub 4/61 ipc 0/0 card ~1.2k
 module src/lib/features/backlinks features files 6 in-modules 2 out-modules 8 pub 6/13 ipc 4/0 card ~1.1k
 module src/lib/features/canvas features files 19 in-modules 2 out-modules 4 pub 2/62 ipc 0/0 card ~1.2k
@@ -58,14 +58,14 @@ module src/lib/plugins/table-of-contents plugins files 5 in-modules 1 out-module
 module src/lib/plugins/templates plugins files 4 in-modules 1 out-modules 7 pub 4/11 ipc 1/0 card ~0.8k
 module src/lib/plugins/word-count plugins files 2 in-modules 1 out-modules 1 pub 1/4 ipc 0/0 card ~0.4k
 module src/lib/types types files 1 in-modules 17 out-modules 1 pub 8/17 ipc 0/0 card ~1k
-module src/lib/utils utils files 31 in-modules 42 out-modules 2 pub 89/109 ipc 3/0 card ~9.8k
+module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 89/109 ipc 3/0 card ~9.8k
 module src/lib/utils.ts lib-root files 1 in-modules 1 out-modules 1 pub 4/4 ipc 0/0 card ~0.4k
-module src/routes routes files 5 in-modules 0 out-modules 13 pub 0/5 ipc 2/0 card ~0.6k
+module src/routes routes files 5 in-modules 0 out-modules 14 pub 0/5 ipc 2/0 card ~0.6k
 ## layers (distinct file pairs)
 layer app -> app 11
 layer app -> components 5
 layer app -> contracts 7
-layer app -> core 109
+layer app -> core 110
 layer app -> features 122
 layer app -> plugins 44
 layer app -> utils 17
@@ -74,9 +74,9 @@ layer components -> lib-root 55
 layer contracts -> contracts 85
 layer core -> components 34
 layer core -> contracts 15
-layer core -> core 472
+layer core -> core 475
 layer core -> types 5
-layer core -> utils 69
+layer core -> utils 70
 layer features -> components 101
 layer features -> contracts 43
 layer features -> core 341
@@ -94,7 +94,7 @@ layer plugins -> utils 43
 layer routes -> app 7
 layer routes -> components 1
 layer routes -> contracts 2
-layer routes -> core 9
+layer routes -> core 10
 layer routes -> features 6
 layer routes -> plugins 3
 layer routes -> utils 2

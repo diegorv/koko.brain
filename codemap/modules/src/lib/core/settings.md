@@ -38,7 +38,7 @@ dep src/lib/core/settings -> src/lib/core/markdown-editor 1
 dep src/lib/core/settings -> src/lib/core/trash 4
 dep src/lib/core/settings -> src/lib/core/vault 2
 dep src/lib/core/settings -> src/lib/utils 16
-in2 src/lib/core/settings 11 modules: src/lib/core/filesystem(5) src/lib/core/editor(2) src/lib/features/backlinks(2) src/lib/features/collection(2) src/lib/features/note-list(2) +6 modules
+in2 src/lib/core/settings 12 modules: src/lib/core/filesystem(5) src/lib/core/editor(2) src/lib/features/backlinks(2) src/lib/features/collection(2) src/lib/features/note-list(2) +7 modules
 out2 src/lib/core/settings 2 modules: src/lib/core/filesystem(4) src/lib/core/editor(2)
 ## entry files
 entry src/lib/core/settings/settings.store.svelte.ts ext-in69 src/lib/app/AppShell.svelte src/lib/app/EditorView.svelte src/lib/app/boot.ts src/lib/app/commands.ts src/lib/app/deep-link-actions.ts more importers 64 not shown: src/lib/features/event-calendar(10) src/lib/features/rail-shell(9) src/lib/features/search(5) +22 modules: q importers src/lib/core/settings/settings.store.svelte.ts

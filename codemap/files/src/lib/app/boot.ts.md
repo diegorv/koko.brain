@@ -23,7 +23,7 @@ imp src/lib/app/boot.ts:18 -> src/lib/plugins/queryjs/queryjs-ports.ts registerQ
 imp src/lib/app/boot.ts:19 -> src/lib/utils/log.service.ts appendLog
 imp src/lib/app/boot.ts:20 -> src/lib/app/deep-link-actions.ts registerDeepLinkActions
 ## imported-by
-imp src/routes/(app)/+layout.svelte:14 -> src/lib/app/boot.ts registerAppPorts
+imp src/routes/(app)/+layout.svelte:15 -> src/lib/app/boot.ts registerAppPorts
 ## reach
 in2 src/lib/app/boot.ts 0 files in 0 modules: -
 out2 src/lib/app/boot.ts 67 files in 22 modules: src/lib/features/event-calendar(9) src/lib/core/filesystem(7) src/lib/core/editor(5) src/lib/features/collection(5) src/lib/utils(5) +17 modules
@@ -45,7 +45,7 @@ test src/tests/lib/features/event-calendar/event-calendar.service.test.ts import
 test src/tests/lib/features/file-icons/icon-resolver.test.ts imports src/lib/app/boot.ts
 ## symbols
 sym src/lib/app/boot.ts:34 fn registerAppPorts(): void L50 | Wires the features and plugins that core reaches through ports for the whole app lifetime.
-by src/lib/app/boot.ts:registerAppPorts <- src/routes/(app)/+layout.svelte:28 in (script) call
+by src/lib/app/boot.ts:registerAppPorts <- src/routes/(app)/+layout.svelte:29 in (script) call
 sym src/lib/app/boot.ts:89 fn unregisterAppPorts(): void L4 | Removes every registration `registerAppPorts` made, so a later call registers them again exactly once.
 ## calls
 call src/lib/app/boot.ts:38 in registerAppPorts -> src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling call

@@ -1,7 +1,7 @@
 # module card src/lib/utils
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/utils ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src/lib/utils utils files 31 in-modules 42 out-modules 2 pub 89/109 ipc 3/0 card ~9.8k
+module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 89/109 ipc 3/0 card ~9.8k
 ## neighbors
 dep src/lib/app -> src/lib/utils 17
 dep src/lib/core/editor -> src/lib/utils 7
@@ -12,6 +12,7 @@ dep src/lib/core/note-creator -> src/lib/utils 3
 dep src/lib/core/settings -> src/lib/utils 16
 dep src/lib/core/trash -> src/lib/utils 1
 dep src/lib/core/vault -> src/lib/utils 4
+dep src/lib/core/zoom -> src/lib/utils 1
 dep src/lib/features/auto-organize -> src/lib/utils 6
 dep src/lib/features/backlinks -> src/lib/utils 2
 dep src/lib/features/canvas -> src/lib/utils 2
@@ -50,7 +51,7 @@ dep src/lib/utils -> src/lib/core/settings 3
 in2 src/lib/utils 5 modules: src/lib/components(55) src/lib/core/layout(2) src/lib/core/status-bar(1) src/lib/plugins/table-of-contents(1) src/lib/plugins/word-count(1)
 out2 src/lib/utils 0 modules: -
 ## entry files
-entry src/lib/utils/debug.ts ext-in73 src/lib/app/LabsSection.svelte src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/app/global-keybindings.ts src/lib/app/lifecycle/app-lifecycle.service.ts more importers 68 not shown: src/lib/features/todoist-sync(7) src/lib/core/settings(6) src/lib/core/filesystem(5) +30 modules: q importers src/lib/utils/debug.ts
+entry src/lib/utils/debug.ts ext-in74 src/lib/app/LabsSection.svelte src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/app/global-keybindings.ts src/lib/app/lifecycle/app-lifecycle.service.ts more importers 69 not shown: src/lib/features/todoist-sync(7) src/lib/core/settings(6) src/lib/core/filesystem(5) +31 modules: q importers src/lib/utils/debug.ts
 entry src/lib/utils/path.ts ext-in28 src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/core/editor/editor.logic.ts src/lib/core/filesystem/delete-note.service.ts src/lib/core/filesystem/file-entries.logic.ts more importers 23 not shown: src/lib/core/filesystem(4) src/lib/features/search(3) src/lib/features/tasks(3) +9 modules: q importers src/lib/utils/path.ts
 entry src/lib/utils/date.ts ext-in15 src/lib/core/markdown-editor/extensions/date-shortcut/completion.logic.ts src/lib/features/collection/calendar.logic.ts src/lib/features/file-history/file-history.logic.ts src/lib/features/tasks/TaskLists.svelte src/lib/features/tasks/TasksView.svelte more importers 10 not shown: src/lib/features/tasks(4) src/lib/plugins/kanban(3) src/lib/plugins/calendar(1) +2 modules: q importers src/lib/utils/date.ts
 entry src/lib/utils/log.service.ts ext-in13 src/lib/app/AppShell.svelte src/lib/app/boot.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/core/editor/editor.service.ts src/lib/core/note-creator/note-creator.service.ts more importers 8 not shown: src/lib/features/rail-shell(2) src/lib/plugins/queryjs(2) src/lib/core/settings(1) +3 modules: q importers src/lib/utils/log.service.ts
@@ -88,7 +89,7 @@ file src/lib/utils/color-presets.ts other L30 module src/lib/utils in6 t1
 file src/lib/utils/color.ts other L159 module src/lib/utils in7 t6
 file src/lib/utils/date.ts other L170 module src/lib/utils in16 t3
 file src/lib/utils/debounce.ts other L55 module src/lib/utils in4 t4
-file src/lib/utils/debug.ts other L166 module src/lib/utils in73 t53
+file src/lib/utils/debug.ts other L166 module src/lib/utils in74 t53
 file src/lib/utils/font-stacks.ts other L56 module src/lib/utils in5 t5 | Font stacks shared by every place that sets a `font-family` from TypeScript, so code and app text render in one face per role on every machine.
 file src/lib/utils/frontmatter-aliases.ts other L31 module src/lib/utils in5 t6
 file src/lib/utils/fuzzy-match.ts other L59 module src/lib/utils in7 t2

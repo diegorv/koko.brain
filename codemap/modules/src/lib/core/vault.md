@@ -55,7 +55,7 @@ file src/lib/core/vault/vault-entries.logic.ts logic L32 module src/lib/core/vau
 file src/lib/core/vault/vault-entries.service.ts service L84 module src/lib/core/vault in8 t21
 file src/lib/core/vault/vault.logic.ts logic L32 module src/lib/core/vault in1 t1
 file src/lib/core/vault/vault.service.ts service L53 module src/lib/core/vault in2 t6
-file src/lib/core/vault/vault.store.svelte.ts store L159 module src/lib/core/vault in84 t152
+file src/lib/core/vault/vault.store.svelte.ts store L159 module src/lib/core/vault in84 t153
 file src/lib/core/vault/write-barrier.service.ts service L41 module src/lib/core/vault in3 t3
 ## public
 sym src/lib/core/vault/exit.service.ts:15 fn prepareForExit(): Promise<boolean> L9 | Puts every pending write on disk before the app goes away: the window close, Quit (Cmd+Q, app menu) and Restart to update all run it first.

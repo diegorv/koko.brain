@@ -21,9 +21,9 @@ imp src/lib/plugins/periodic-notes/periodic-notes.service.ts:7 -> src/lib/utils/
 imp src/lib/plugins/queryjs/kb-api.ts:14 -> src/lib/utils/log.service.ts appendLog
 imp src/lib/plugins/queryjs/queryjs-block-widget.ts:8 -> src/lib/utils/log.service.ts appendLog
 imp src/lib/utils/debug.ts:6 -> src/lib/utils/log.service.ts appendLog
-imp src/routes/(app)/+layout.svelte:22 -> src/lib/utils/log.service.ts appendLog
+imp src/routes/(app)/+layout.svelte:23 -> src/lib/utils/log.service.ts appendLog
 ## reach
-in2 src/lib/utils/log.service.ts 97 files in 38 modules: src/lib/app(11) src/lib/features/todoist-sync(7) src/lib/core/filesystem(6) src/lib/features/event-calendar(6) src/lib/core/settings(5) +33 modules: q impact src/lib/utils/log.service.ts --depth 2
+in2 src/lib/utils/log.service.ts 98 files in 39 modules: src/lib/app(11) src/lib/features/todoist-sync(7) src/lib/core/filesystem(6) src/lib/features/event-calendar(6) src/lib/core/settings(5) +34 modules: q impact src/lib/utils/log.service.ts --depth 2
 out2 src/lib/utils/log.service.ts 2 files in 1 modules: src/lib/contracts(2)
 ## tests
 test src/tests/lib/utils/log.service.stall-probe.test.ts imports src/lib/utils/log.service.ts mirror

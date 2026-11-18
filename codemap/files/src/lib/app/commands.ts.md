@@ -45,7 +45,7 @@ imp src/lib/app/commands.ts:53 -> src/lib/features/properties/lifecycle.service.
 imp src/lib/app/commands.ts:54 -> src/lib/app/global-keybindings.ts shortcutFor
 imp src/lib/app/commands.ts:55 -> src/lib/app/rail-navigation.ts openRailView,selectRailItem
 ## imported-by
-imp src/lib/app/AppOverlays.svelte:13 -> src/lib/app/commands.ts getBuiltInCommands
+imp src/lib/app/AppOverlays.svelte:14 -> src/lib/app/commands.ts getBuiltInCommands
 ## reach
 in2 src/lib/app/commands.ts 1 files in 1 modules: src/routes(1)
 out2 src/lib/app/commands.ts 105 files in 33 modules: src/lib/core/markdown-editor(14) src/lib/features/event-calendar(10) src/lib/utils(10) src/lib/core/filesystem(7) src/lib/features/tasks(7) +28 modules
@@ -57,7 +57,7 @@ test src/tests/lib/app/global-keybindings.test.ts imports src/lib/app/commands.t
 test src/tests/lib/features/command-palette/CommandPalette.test.ts imports src/lib/app/commands.ts
 ## symbols
 sym src/lib/app/commands.ts:119 fn getBuiltInCommands(): AppCommand[] L339 | The command palette's built-in commands.
-by src/lib/app/commands.ts:getBuiltInCommands <- src/lib/app/AppOverlays.svelte:19 in (markup) markup
+by src/lib/app/commands.ts:getBuiltInCommands <- src/lib/app/AppOverlays.svelte:20 in (markup) markup
 ## locals
 local src/lib/app/commands.ts:63 fn railGoToCommands(): AppCommand[] L11
 local src/lib/app/commands.ts:80 fn tasksStatusFilterCommand(): AppCommand L13

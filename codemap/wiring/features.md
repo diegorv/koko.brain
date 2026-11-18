@@ -7,7 +7,7 @@ reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort fire
 reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort fired-by src/lib/features/collection/collection-block-widget.ts:120 in CollectionBlockWidget.toDOM
 reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort fired-by src/lib/plugins/mods/mod-query.service.ts:50 in createModQuery
 reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort registered-at src/lib/app/boot.ts:61 in registerAppPorts args={ blockRows: (records, view, definition) => blockRowSet(records, view, definiti… -> src/lib/app/boot.ts:registerAppPorts
-reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort invoked-at src/routes/(app)/+layout.svelte:28 in (script)
+reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort invoked-at src/routes/(app)/+layout.svelte:29 in (script)
 reg src/lib/features/deep-link/deep-link.service.ts:registerDeepLinkAction sink src/lib/features/deep-link/deep-link.service.ts:56 | stores actionHandlers set | doc Registers the handler of a deep-link action that needs code outside this feature (`daily`, `capture`); `src/lib/app/` wires them in.
 reg src/lib/features/deep-link/deep-link.service.ts:registerDeepLinkAction read-by src/lib/features/deep-link/deep-link.service.ts:69 runRegisteredAction
 reg src/lib/features/deep-link/deep-link.service.ts:registerDeepLinkAction fired-by src/lib/features/deep-link/deep-link.service.ts:207 in executeAction
@@ -34,7 +34,7 @@ reg src/lib/features/file-icons/icon-resolver.ts:registerTypeIconLookup fired-by
 reg src/lib/features/file-icons/icon-resolver.ts:registerTypeIconLookup fired-by src/lib/features/properties/PropertiesView.svelte:173 in (markup)
 reg src/lib/features/file-icons/icon-resolver.ts:registerTypeIconLookup fired-by src/lib/features/file-icons/icon-resolver.ts:70 in resolveIconForPath
 reg src/lib/features/file-icons/icon-resolver.ts:registerTypeIconLookup registered-at src/lib/app/boot.ts:55 in registerAppPorts args={ typeOf: (path) => typeDefinitionsStore.getEntryByPath(path)?.isA, definitionP… -> src/lib/app/boot.ts:registerAppPorts
-reg src/lib/features/file-icons/icon-resolver.ts:registerTypeIconLookup invoked-at src/routes/(app)/+layout.svelte:28 in (script)
+reg src/lib/features/file-icons/icon-resolver.ts:registerTypeIconLookup invoked-at src/routes/(app)/+layout.svelte:29 in (script)
 reg src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:noteActionBarActionsStore.register sink src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:23 | stores actions assign | doc Registers `action`.
 reg src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:noteActionBarActionsStore.register read-by src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:15 noteActionBarActionsStore.actions
 reg src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:noteActionBarActionsStore.register fired-by src/lib/features/note-action-bar/NoteActionBar.svelte:67 in hubButton=$derived

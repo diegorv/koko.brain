@@ -11,7 +11,7 @@ imp src/lib/features/search/SearchStatus.svelte:2 -> src/lib/features/search/sea
 imp src/lib/features/search/SemanticIndexStatus.svelte:11 -> src/lib/features/search/search.store.svelte.ts searchStore
 imp src/lib/features/search/open-search.service.ts:3 -> src/lib/features/search/search.store.svelte.ts searchStore
 imp src/lib/features/search/search.service.ts:4 -> src/lib/features/search/search.store.svelte.ts searchStore
-imp src/routes/(app)/+layout.svelte:7 -> src/lib/features/search/search.store.svelte.ts searchStore
+imp src/routes/(app)/+layout.svelte:8 -> src/lib/features/search/search.store.svelte.ts searchStore
 ## reach
 in2 src/lib/features/search/search.store.svelte.ts 8 files in 3 modules: src/lib/app(6) src/lib/features/deep-link(1) src/lib/features/tags(1)
 out2 src/lib/features/search/search.store.svelte.ts 1 files in 1 modules: src/lib/contracts(1)
@@ -38,10 +38,10 @@ by src/lib/features/search/search.store.svelte.ts:searchStore <- src/lib/feature
 by src/lib/features/search/search.store.svelte.ts:searchStore <- src/lib/features/search/SemanticIndexStatus.svelte:36 in $effect@29 member
 by src/lib/features/search/search.store.svelte.ts:searchStore <- src/lib/features/search/open-search.service.ts:12 in openSearch mcall +1
 by src/lib/features/search/search.store.svelte.ts:searchStore <- src/lib/features/search/search.service.ts:85 in flushSemanticProgress mcall +56
-by src/lib/features/search/search.store.svelte.ts:searchStore <- src/routes/(app)/+layout.svelte:171 in $effect@170 member +2
+by src/lib/features/search/search.store.svelte.ts:searchStore <- src/routes/(app)/+layout.svelte:176 in $effect@175 member +2
 ## store
 store src/lib/features/search/search.store.svelte.ts:41 searchStore esc:0
-mem src/lib/features/search/search.store.svelte.ts:42 get searchStore.query r:src/lib/features/search/SearchPanel.svelte:51,src/lib/features/search/SearchPanel.svelte:185,src/lib/features/search/SearchPanel.svelte:188,src/lib/features/search/SearchPanel.svelte:331,src/lib/features/search/search.service.ts:145,src/routes/(app)/+layout.svelte:171 w-via:setQuery,reset
+mem src/lib/features/search/search.store.svelte.ts:42 get searchStore.query r:src/lib/features/search/SearchPanel.svelte:51,src/lib/features/search/SearchPanel.svelte:185,src/lib/features/search/SearchPanel.svelte:188,src/lib/features/search/SearchPanel.svelte:331,src/lib/features/search/search.service.ts:145,src/routes/(app)/+layout.svelte:176 w-via:setQuery,reset
 mem src/lib/features/search/search.store.svelte.ts:43 get searchStore.results r:src/lib/features/search/SearchPanel.svelte:74,src/lib/features/search/SearchPanel.svelte:171,src/lib/features/search/SearchPanel.svelte:179,src/lib/features/search/SearchPanel.svelte:304 w-via:setResults,reset
 mem src/lib/features/search/search.store.svelte.ts:44 get searchStore.isSearching r:src/lib/features/search/SearchPanel.svelte:190,src/lib/features/search/SearchPanel.svelte:202,src/lib/features/search/SearchPanel.svelte:216 w-via:setSearching,reset
 mem src/lib/features/search/search.store.svelte.ts:46 get searchStore.searchError r:src/lib/features/search/SearchPanel.svelte:190 w-via:setSearchError,reset | Message of the last failed search, or null when the last search did not fail

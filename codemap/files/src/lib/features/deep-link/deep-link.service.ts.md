@@ -24,7 +24,7 @@ imp src/lib/features/deep-link/deep-link.service.ts:18 -> src/lib/utils/debug.ts
 imp src/lib/app/deep-link-actions.ts:17 -> src/lib/features/deep-link/deep-link.service.ts registerDeepLinkAction,resolveContent,saveOpenNoteBeforeWrite
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:76 -> src/lib/features/deep-link/deep-link.service.ts executePendingAction,resetDeepLink
 imp src/lib/plugins/quick-capture/quick-capture.service.ts:5 -> src/lib/features/deep-link/deep-link.service.ts executeAction
-imp src/routes/(app)/+layout.svelte:12 -> src/lib/features/deep-link/deep-link.service.ts registerDeepLinkListener
+imp src/routes/(app)/+layout.svelte:13 -> src/lib/features/deep-link/deep-link.service.ts registerDeepLinkListener
 ## reach
 in2 src/lib/features/deep-link/deep-link.service.ts 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/deep-link/deep-link.service.ts 27 files in 11 modules: src/lib/utils(5) src/lib/core/filesystem(4) src/lib/core/settings(4) src/lib/core/editor(3) src/lib/core/vault(3) +6 modules
@@ -43,7 +43,7 @@ sym src/lib/features/deep-link/deep-link.service.ts:42 type DeepLinkActionHandle
 sym src/lib/features/deep-link/deep-link.service.ts:56 fn registerDeepLinkAction<T extends RegisteredDeepLinkActionType>(type: T, handler: DeepLinkActionHandler<T>): () => void L11 | Registers the handler of a deep-link action that needs code outside this feature (`daily`, `capture`); `src/lib/app/` wires them in.
 by src/lib/features/deep-link/deep-link.service.ts:registerDeepLinkAction <- src/lib/app/deep-link-actions.ts:234 in registerDeepLinkActions call +1
 sym src/lib/features/deep-link/deep-link.service.ts:85 fn registerDeepLinkListener(): () => void L31 | Registers a listener for deep-link URL events from the Tauri deep-link plugin.
-by src/lib/features/deep-link/deep-link.service.ts:registerDeepLinkListener <- src/routes/(app)/+layout.svelte:59 in $effect@58 call
+by src/lib/features/deep-link/deep-link.service.ts:registerDeepLinkListener <- src/routes/(app)/+layout.svelte:64 in $effect@63 call
 sym src/lib/features/deep-link/deep-link.service.ts:121 fn handleDeepLinkUrl(url: string): Promise<void> L12 | Handles a single deep-link URL string.
 sym src/lib/features/deep-link/deep-link.service.ts:140 fn resolveVaultPath(vaultName: string): string | null L7 | Resolves a vault name to a path from the recent vaults list.
 sym src/lib/features/deep-link/deep-link.service.ts:153 fn resolveAndDispatch(action: DeepLinkAction): Promise<void> L22 | Resolves the vault from a deep-link action and dispatches it.

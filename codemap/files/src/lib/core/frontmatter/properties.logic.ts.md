@@ -32,7 +32,7 @@ imp src/lib/features/type-definitions/type-definitions.logic.ts:3 -> src/lib/cor
 imp src/lib/features/type-definitions/type-definitions.store.svelte.ts:2 -> src/lib/core/frontmatter/properties.logic.ts normalizeTypeCasing
 imp src/lib/plugins/one-on-one/one-on-one.service.ts:8 -> src/lib/core/frontmatter/properties.logic.ts ensureFrontmatterLink
 imp src/lib/plugins/quick-capture/note-composer.logic.ts:2 -> src/lib/core/frontmatter/properties.logic.ts yamlScalar
-imp src/routes/(app)/+layout.svelte:13 -> src/lib/core/frontmatter/properties.logic.ts configurePropertiesDiagnostics
+imp src/routes/(app)/+layout.svelte:14 -> src/lib/core/frontmatter/properties.logic.ts configurePropertiesDiagnostics
 ## reach
 in2 src/lib/core/frontmatter/properties.logic.ts 68 files in 19 modules: src/lib/features/event-calendar(13) src/lib/app(9) src/lib/core/markdown-editor(7) src/lib/features/collection(6) src/lib/features/rail-shell(5) +14 modules: q impact src/lib/core/frontmatter/properties.logic.ts --depth 2
 out2 src/lib/core/frontmatter/properties.logic.ts 0 files in 0 modules: -
@@ -66,7 +66,7 @@ test src/tests/lib/plugins/quick-capture/note-composer.logic.test.ts imports src
 ## symbols
 sym src/lib/core/frontmatter/properties.logic.ts:20 interface PropertiesDiagnostics L4 | Where this module's diagnostics go; set by the app shell.
 sym src/lib/core/frontmatter/properties.logic.ts:35 fn configurePropertiesDiagnostics(sink: PropertiesDiagnostics): void L3 | Sets the diagnostics sink.
-by src/lib/core/frontmatter/properties.logic.ts:configurePropertiesDiagnostics <- src/routes/(app)/+layout.svelte:31 in (script) call
+by src/lib/core/frontmatter/properties.logic.ts:configurePropertiesDiagnostics <- src/routes/(app)/+layout.svelte:32 in (script) call
 sym src/lib/core/frontmatter/properties.logic.ts:46 fn extractRawFrontmatter(content: string): string | null L4 | Extracts the raw YAML string from frontmatter delimiters.
 by src/lib/core/frontmatter/properties.logic.ts:extractRawFrontmatter <- src/lib/features/auto-organize/auto-organize.logic.ts:865 in propertyWriteSkipReason call
 by src/lib/core/frontmatter/properties.logic.ts:extractRawFrontmatter <- src/lib/features/file-icons/file-icons.logic.ts:84 in parseFrontmatterIconFields call

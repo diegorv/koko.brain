@@ -26,7 +26,7 @@ imp src/lib/features/type-definitions/type-definitions.service.ts:9 -> src/lib/c
 imp src/lib/plugins/graph-view/graph-view.service.ts:3 -> src/lib/core/editor/editor.logic.ts findTabIndex,GRAPH_VIRTUAL_PATH,isMarkdownNoteTab
 imp src/lib/plugins/mods/mod-vault.service.ts:5 -> src/lib/core/editor/editor.logic.ts isTabDirty
 imp src/lib/plugins/word-count/WordCount.svelte:4 -> src/lib/core/editor/editor.logic.ts isVirtualTab
-imp src/routes/(app)/+layout.svelte:20 -> src/lib/core/editor/editor.logic.ts isVirtualTab
+imp src/routes/(app)/+layout.svelte:21 -> src/lib/core/editor/editor.logic.ts isVirtualTab
 ## reach
 in2 src/lib/core/editor/editor.logic.ts 79 files in 33 modules: src/lib/features/event-calendar(10) src/lib/app(9) src/lib/features/rail-shell(8) src/lib/features/todoist-sync(4) src/lib/features/backlinks(3) +28 modules: q impact src/lib/core/editor/editor.logic.ts --depth 2
 out2 src/lib/core/editor/editor.logic.ts 0 files in 0 modules: -
@@ -71,7 +71,7 @@ by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/markdown-edi
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/status-bar/SaveStatus.svelte:9 in status=$derived call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/features/search/SemanticIndexStatus.svelte:31 in $effect@29 call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/plugins/word-count/WordCount.svelte:13 in isMarkdown=$derived call
-by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/routes/(app)/+layout.svelte:113 in $effect@105 call +1
+by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/routes/(app)/+layout.svelte:118 in $effect@110 call +1
 sym src/lib/core/editor/editor.logic.ts:28 fn isMarkdownNoteTab(tab: Pick<EditorTab, 'path' | 'fileType'>): boolean L5 | Returns true for a tab showing a markdown note file: not virtual, rendered as markdown (no special `fileType`), and named `*.md`, which leaves out other text f…
 by src/lib/core/editor/editor.logic.ts:isMarkdownNoteTab <- src/lib/app/EditorView.svelte:45 in isMarkdownNote=$derived call
 by src/lib/core/editor/editor.logic.ts:isMarkdownNoteTab <- src/lib/core/markdown-editor/EditorTabs.svelte:232 in (markup) markup
