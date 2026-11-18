@@ -49,7 +49,7 @@ sym src/lib/features/collection/yaml-parser.ts:131 fn viewIndexByName(views: unk
 by src/lib/features/collection/yaml-parser.ts:viewIndexByName <- src/lib/features/type-definitions/type-sidebar.logic.ts:453 in railViewNameNote call
 sym src/lib/features/collection/yaml-parser.ts:142 fn railViewIndex(definition: Pick<CollectionDefinition, 'views' | 'railView'>): number L3 | Index of the view the rail runs (its note list, navigator count, Sort and Filter toolbar, and Edit view): the first view whose `name` equals `railView` exactly…
 by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/rail-shell/RailNoteList.svelte:281 in loadView call
-by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/rail-shell/lens.logic.ts:805 in queryViewLens call
+by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/rail-shell/lens.logic.ts:807 in queryViewLens call
 by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/type-definitions/ViewDialog.svelte:96 in load call
 by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/type-definitions/type-note-list.logic.ts:169 in toolbarKeyBase call +1
 sym src/lib/features/collection/yaml-parser.ts:147 interface CollectionYamlUpdates L22 | Fields that can be updated in a `.view` YAML file

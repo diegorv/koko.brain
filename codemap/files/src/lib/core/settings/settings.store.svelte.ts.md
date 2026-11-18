@@ -1,7 +1,7 @@
 # file card src/lib/core/settings/settings.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/settings/settings.store.svelte.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, store
-file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in84 t128
+file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in84 t129
 ## imports
 imp src/lib/core/settings/settings.store.svelte.ts:1 -> src/lib/core/settings/settings.types.ts type:AppSettings,type:PeriodicNotesUpdate,type:QuickCaptureUpdate,type:OneOnOneSettings,type:LayoutSettings,type:FolderNotesSettings,type:EditorSettings,type:TemplatesSettings,type:HistorySettings,type:SearchSettings,type:TodoistSettings,type:SentrySettings,type:AutoOrganizeSettings,type:TagColorSettings,type:QueryjsSettings,type:UpdateSettings,type:EventCalendarSettings
 imp src/lib/core/settings/settings.store.svelte.ts:2 -> src/lib/core/settings/theme.types.ts type:AppearanceSettings
@@ -92,7 +92,7 @@ test src/tests/lib/core/settings/HeadingTypographyEditor.test.ts imports src/lib
 test src/tests/lib/core/settings/OneOnOneSection.test.ts imports src/lib/core/settings/settings.store.svelte.ts
 test src/tests/lib/core/settings/TroubleshootingSection.test.ts imports src/lib/core/settings/settings.store.svelte.ts
 test src/tests/lib/core/settings/UpdateSection.channel.test.ts imports src/lib/core/settings/settings.store.svelte.ts
-more tests 88 not shown: src/tests/lib/features/rail-shell(15) src/tests/lib/features/event-calendar(12) src/tests/lib/core/settings(10) src/tests/lib/features/tasks(6) src/tests/lib/features/todoist-sync(5) src/tests/lib/features/search(4) src/tests/lib/plugins/mods(4) src/tests/lib/features/deep-link(3) +18 modules: q tests src/lib/core/settings/settings.store.svelte.ts
+more tests 89 not shown: src/tests/lib/features/rail-shell(16) src/tests/lib/features/event-calendar(12) src/tests/lib/core/settings(10) src/tests/lib/features/tasks(6) src/tests/lib/features/todoist-sync(5) src/tests/lib/features/search(4) src/tests/lib/plugins/mods(4) src/tests/lib/features/deep-link(3) +18 modules: q tests src/lib/core/settings/settings.store.svelte.ts
 ## symbols
 sym src/lib/core/settings/settings.store.svelte.ts:6 const DEFAULT_SETTINGS: AppSettings L157 | Fallback values used when no settings file exists or when it fails to parse
 by src/lib/core/settings/settings.store.svelte.ts:DEFAULT_SETTINGS <- src/lib/core/settings/settings.service.ts:95 in parseSettings member +40
@@ -117,11 +117,11 @@ mem src/lib/core/settings/settings.store.svelte.ts:171 get settingsStore.oneOnOn
 more r 12 not shown: src/lib/core/settings(7) src/lib/plugins/one-on-one(4) src/lib/plugins/templates(1): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.oneOnOne
 mem src/lib/core/settings/settings.store.svelte.ts:172 get settingsStore.layout r:50 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 more r 50 not shown: src/lib/features/rail-shell(22) src/lib/app(20) src/lib/core/layout(3) src/lib/plugins/calendar(3) src/lib/features/type-definitions(2): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.layout
-mem src/lib/core/settings/settings.store.svelte.ts:173 get settingsStore.folderNotes r:src/lib/core/settings/sections/FilesSection.svelte:40,src/lib/features/rail-shell/FilesNavigator.svelte:274 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
+mem src/lib/core/settings/settings.store.svelte.ts:173 get settingsStore.folderNotes r:src/lib/core/settings/sections/FilesSection.svelte:40,src/lib/features/rail-shell/FilesNavigator.svelte:295 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 mem src/lib/core/settings/settings.store.svelte.ts:174 get settingsStore.editor r:21 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 more r 21 not shown: src/lib/core/markdown-editor(11) src/lib/core/settings(8) src/lib/features/note-action-bar(2): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.editor
-mem src/lib/core/settings/settings.store.svelte.ts:175 get settingsStore.templates r:30 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
-more r 30 not shown: src/lib/features/auto-organize(7) src/lib/app(4) src/lib/features/tasks(4) src/lib/features/event-calendar(3) src/lib/features/rail-shell(3) src/lib/core/settings(2) src/lib/features/todoist-sync(2) src/lib/plugins/templates(2) +3 modules: q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.templates
+mem src/lib/core/settings/settings.store.svelte.ts:175 get settingsStore.templates r:31 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
+more r 31 not shown: src/lib/features/auto-organize(7) src/lib/app(4) src/lib/features/rail-shell(4) src/lib/features/tasks(4) src/lib/features/event-calendar(3) src/lib/core/settings(2) src/lib/features/todoist-sync(2) src/lib/plugins/templates(2) +3 modules: q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.templates
 mem src/lib/core/settings/settings.store.svelte.ts:176 get settingsStore.appearance r:13 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 more r 13 not shown: src/lib/core/settings(13): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.appearance
 mem src/lib/core/settings/settings.store.svelte.ts:177 get settingsStore.history r:7 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22

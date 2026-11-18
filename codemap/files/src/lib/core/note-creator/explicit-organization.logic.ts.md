@@ -32,7 +32,7 @@ by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganiz
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/deep-link/deep-link.service.ts:334 in executeNewAction call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/note-action-bar/note-action-bar.service.ts:79 in createLinkedNote call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/quick-switcher/QuickSwitcher.svelte:103 in createAndOpenNote call
-by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/rail-shell/FilesNavigator.svelte:94 in fileCreators=$derived call
+by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/rail-shell/FilesNavigator.svelte:115 in fileCreators=$derived call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/rail-shell/new-note.service.ts:37 in createNoteHere call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/type-definitions/type-definitions.service.ts:148 in createTypedNote call
 more by 1 not shown: src/lib/plugins/one-on-one(1): q importers src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization

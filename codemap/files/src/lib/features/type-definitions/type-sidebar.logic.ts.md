@@ -63,23 +63,23 @@ sym src/lib/features/type-definitions/type-sidebar.logic.ts:65 fn excludeSystemF
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/app/AppShell.svelte:69 in $effect@66 call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/event-calendar/event-calendar-event.logic.ts:246 in eventsFromEntries call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/rail-shell/Rail.svelte:62 in inboxCount=$derived call
-by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/rail-shell/lens.logic.ts:327 in listEntries call +4
+by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/rail-shell/lens.logic.ts:329 in listEntries call +4
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/plugins/calendar/day-lens.logic.ts:48 in noteDateCounts call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/plugins/queryjs/kb-api.ts:473 in KBAPI.ensureCache call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:85 fn isListableNote(entry: NoteEntryV2): boolean L3 | True when an entry may be listed as a note: not a `.view` file and not a type definition (`_type: Type`).
-by src/lib/features/type-definitions/type-sidebar.logic.ts:isListableNote <- src/lib/features/rail-shell/lens.logic.ts:312 in BUILT_IN_LENSES call +4
+by src/lib/features/type-definitions/type-sidebar.logic.ts:isListableNote <- src/lib/features/rail-shell/lens.logic.ts:314 in BUILT_IN_LENSES call +4
 by src/lib/features/type-definitions/type-sidebar.logic.ts:isListableNote <- src/lib/features/type-definitions/inbox-workflow.logic.ts:11 in isInboxEntry call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:isListableNote <- src/lib/plugins/calendar/day-lens.logic.ts:41 in resolveDayLens call +1
 by src/lib/features/type-definitions/type-sidebar.logic.ts:isListableNote <- src/lib/plugins/queryjs/kb-api.ts:476 in KBAPI.ensureCache call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:95 fn getNotesForSelection(entries: NoteEntryV2[], selection: TypeSidebarSelection, archived: ArchivedFilter = 'active'): TypeSidebarNote[] L26 | Returns the notes matching the current sidebar selection, most-recently-modified first, with `_order` pins on top.
-by src/lib/features/type-definitions/type-sidebar.logic.ts:getNotesForSelection <- src/lib/features/rail-shell/lens.logic.ts:371 in resolveTypeLens call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:getNotesForSelection <- src/lib/features/rail-shell/lens.logic.ts:373 in resolveTypeLens call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:128 fn getNotesForViewPaths(entries: NoteEntryV2[], matchingPaths: ReadonlySet<string>, sort: string | null = 'modified', includeArchived = false)… L20 | Converts the entries matching a set of paths into sidebar notes, archived ones left out unless `includeArchived`.
-by src/lib/features/type-definitions/type-sidebar.logic.ts:getNotesForViewPaths <- src/lib/features/rail-shell/lens.logic.ts:729 in viewRowSet call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:getNotesForViewPaths <- src/lib/features/rail-shell/lens.logic.ts:731 in viewRowSet call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:180 fn buildTypeSections(entries: NoteEntryV2[], typeMetadataMap: Map<string, TypeMetadata>, filter: SidebarFilter): { sections: TypeSection[];… L44 | Builds type-grouped sections from vault entries.
-by src/lib/features/type-definitions/type-sidebar.logic.ts:buildTypeSections <- src/lib/features/rail-shell/lens.logic.ts:497 in typeNavigatorRows call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:buildTypeSections <- src/lib/features/rail-shell/lens.logic.ts:499 in typeNavigatorRows call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:260 fn formatNoteDate(epochSeconds: number): string L7 | Formats an epoch-seconds timestamp as a short date.
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:269 fn formatRelativeTime(epochSeconds: number, nowMs?: number): string L12 | Formats an epoch-seconds timestamp as relative time (e.g. "9m ago").
-by src/lib/features/type-definitions/type-sidebar.logic.ts:formatRelativeTime <- src/lib/features/rail-shell/lens.logic.ts:259 in noteSubtitle call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:formatRelativeTime <- src/lib/features/rail-shell/lens.logic.ts:261 in noteSubtitle call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:283 fn formatPropertyValue(value: unknown): string L7 | Formats a frontmatter value for display.
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:291 interface PropertyPill L4
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:297 fn splitPropertyIntoPills(value: unknown): PropertyPill[] L22 | Splits a property value into pills, extracting wikilinks as separate entries.
@@ -89,7 +89,7 @@ sym src/lib/features/type-definitions/type-sidebar.logic.ts:321 interface ViewFi
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:329 fn collectViewFiles(tree: FileTreeNode[]): ViewFileEntry[] L6 | Collects .view files from the file tree, sorted by name in natural order ("Week 2" before "Week 10").
 by src/lib/features/type-definitions/type-sidebar.logic.ts:collectViewFiles <- src/lib/app/AppShell.svelte:123 in viewFilesKey=$derived call +1
 by src/lib/features/type-definitions/type-sidebar.logic.ts:collectViewFiles <- src/lib/app/commands.ts:101 in openViewCommands call
-by src/lib/features/type-definitions/type-sidebar.logic.ts:collectViewFiles <- src/lib/features/rail-shell/lens.logic.ts:658 in viewNavigatorRows call +1
+by src/lib/features/type-definitions/type-sidebar.logic.ts:collectViewFiles <- src/lib/features/rail-shell/lens.logic.ts:660 in viewNavigatorRows call +1
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:350 fn getViewLabel(entry: NoteEntryV2 | undefined, fallbackName: string): string L4 | Extracts _sidebar_label from a view entry's frontmatter.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewLabel <- src/lib/app/commands.ts:106 in openViewCommands call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewLabel <- src/lib/features/rail-shell/lens.logic.ts:226 in pinnedRailItems call +3
@@ -100,11 +100,11 @@ by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewOpensInEditor 
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewOpensInEditor <- src/lib/app/editor-host.ts:187 in appEditorHost.openView call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewOpensInEditor <- src/lib/features/rail-shell/lens.logic.ts:229 in pinnedRailItems call +1
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:381 fn getViewGroup(entry: NoteEntryV2 | undefined): string | null L5 | The subheading the view is listed under in Views: its trimmed `_group`.
-by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewGroup <- src/lib/features/rail-shell/lens.logic.ts:669 in viewNavigatorRows call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewGroup <- src/lib/features/rail-shell/lens.logic.ts:671 in viewNavigatorRows call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:391 fn getViewVisible(entry: NoteEntryV2 | undefined): boolean L3 | Whether Views lists the view.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewVisible <- src/lib/app/commands.ts:101 in openViewCommands call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewVisible <- src/lib/features/note-list/NoteRowMenu.svelte:90 in isHiddenView call
-by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewVisible <- src/lib/features/rail-shell/lens.logic.ts:660 in viewNavigatorRows call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewVisible <- src/lib/features/rail-shell/lens.logic.ts:662 in viewNavigatorRows call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:396 interface ReservedKeyRule L10 | A reserved frontmatter key and the value shape its reader uses; any other value is ignored.
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:408 const VIEW_SORTS: readonly string[] L1 | The `_sort` values a view's list orders by (`sortNotes`); any other value is ignored.
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:411 fn isViewSort(value: unknown): value is string L3 | True for a `_sort` value a view's list orders by.
@@ -112,19 +112,19 @@ sym src/lib/features/type-definitions/type-sidebar.logic.ts:421 const RESERVED_K
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:450 fn railViewNameNote(definition: Pick<CollectionDefinition, 'views' | 'railView' | 'railViewIgnored'>): string | null L5 | The note for a parsed `.view` whose `_rail_view` picks no view: a name none of its views has, or a value that is not text (which the entry can miss, as Rust pr…
 by src/lib/features/type-definitions/type-sidebar.logic.ts:railViewNameNote <- src/lib/features/rail-shell/view-lens.service.ts:34 in countViewNotes call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:457 fn ignoredKeyNotes(frontmatter: Record<string, unknown>): string[] L7 | One note per reserved key the frontmatter sets to a value its reader ignores, e.g. `_order: "1"`.
-by src/lib/features/type-definitions/type-sidebar.logic.ts:ignoredKeyNotes <- src/lib/features/rail-shell/lens.logic.ts:508 in typeNavigatorRows call +1
+by src/lib/features/type-definitions/type-sidebar.logic.ts:ignoredKeyNotes <- src/lib/features/rail-shell/lens.logic.ts:510 in typeNavigatorRows call +1
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:466 fn getViewOrder(entry: NoteEntryV2 | undefined): number L4 | Extracts _order from a view entry's frontmatter.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewOrder <- src/lib/features/rail-shell/lens.logic.ts:230 in pinnedRailItems call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:475 fn getViewSort(entry: NoteEntryV2 | undefined): string L4 | Extracts _sort from a view entry's frontmatter.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewSort <- src/lib/features/rail-shell/RailNoteList.svelte:569 in sortMenuConfig=$derived call
-by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewSort <- src/lib/features/rail-shell/lens.logic.ts:727 in viewRowSet call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewSort <- src/lib/features/rail-shell/lens.logic.ts:729 in viewRowSet call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:484 fn effectiveViewSortLabel(entry: NoteEntryV2 | undefined): string L4 | The Sort panel's text for a view list that no sort of the view's own orders: its `_sort`, or the default when it has none or one that is ignored.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:effectiveViewSortLabel <- src/lib/app/boot.ts:80 in registerAppPorts call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:effectiveViewSortLabel <- src/lib/features/rail-shell/RailNoteList.svelte:824 in (markup) markup
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:490 fn getViewListProperties(entry: NoteEntryV2 | undefined): string[] L5 | Extracts _list_properties_display from a view entry's frontmatter.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewListProperties <- src/lib/features/rail-shell/RailNoteList.svelte:394 in savedProperties=$derived call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:502 fn sortViewFiles(views: ViewFileEntry[], entriesByPath: Map<string, NoteEntryV2>): ViewFileEntry[] L12 | Sorts view files by _order from the entries index, then by the label the row shows (`getViewLabel`) in natural order, then by path.
-by src/lib/features/type-definitions/type-sidebar.logic.ts:sortViewFiles <- src/lib/features/rail-shell/lens.logic.ts:658 in viewNavigatorRows call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:sortViewFiles <- src/lib/features/rail-shell/lens.logic.ts:660 in viewNavigatorRows call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:533 fn updateViewIconYaml(yamlString: string, icon?: string, color?: string, titleColor?: string): string L24 | Updates _icon, _color, and _title_color in a .view YAML string, dropping their aliases, so an absent value removes the key in either spelling.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:updateViewIconYaml <- src/lib/features/type-definitions/type-definitions.service.ts:450 in updateViewIcon call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:566 fn updateViewColorsYaml(yamlString: string, color?: string, titleColor?: string): string L18 | Updates the colors in a .view YAML string, leaving the icon keys as they are: the picker saves colors alone also when `extractViewIcon` rejected the `_icon` va…

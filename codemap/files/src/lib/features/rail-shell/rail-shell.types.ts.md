@@ -9,7 +9,7 @@ imp src/lib/features/rail-shell/rail-shell.types.ts:5 -> src/lib/features/note-l
 imp src/lib/features/rail-shell/rail-shell.types.ts:6 -> src/lib/features/type-definitions/type-definitions.logic.ts type:TypeMetadata
 imp src/lib/features/rail-shell/rail-shell.types.ts:220 -> src/lib/utils/menu-action.types.ts type:MenuActionTarget,type:MenuActionItem
 ## imported-by
-imp src/lib/features/rail-shell/FilesNavigator.svelte:60 -> src/lib/features/rail-shell/rail-shell.types.ts type:Lens,type:RailFolderCreator
+imp src/lib/features/rail-shell/FilesNavigator.svelte:69 -> src/lib/features/rail-shell/rail-shell.types.ts type:Lens,type:RailFolderCreator
 imp src/lib/features/rail-shell/Rail.svelte:43 -> src/lib/features/rail-shell/rail-shell.types.ts type:RailAction,type:RailPin
 imp src/lib/features/rail-shell/RailNoteList.svelte:104 -> src/lib/features/rail-shell/rail-shell.types.ts type:Lens,type:LensContext,type:LensNote,type:NewNoteRule,type:RailHeaderAction,type:RailTodaySection,type:ResolvedLens
 imp src/lib/features/rail-shell/TypesNavigator.svelte:54 -> src/lib/features/rail-shell/rail-shell.types.ts type:Lens,type:LensContext,type:TypeNavigatorRow
@@ -45,7 +45,7 @@ test src/tests/lib/features/rail-shell/view-lens.service.test.ts imports-type sr
 test src/tests/lib/plugins/calendar/day-lens.logic.test.ts imports-type src/lib/features/rail-shell/rail-shell.types.ts
 ## symbols
 sym src/lib/features/rail-shell/rail-shell.types.ts:12 interface Lens L6 | What the user picked on the left: a rail item, a navigator entry or a note's neighbourhood.
-by src/lib/features/rail-shell/rail-shell.types.ts:Lens <- src/lib/features/rail-shell/FilesNavigator.svelte:60 in (script) import
+by src/lib/features/rail-shell/rail-shell.types.ts:Lens <- src/lib/features/rail-shell/FilesNavigator.svelte:69 in (script) import
 by src/lib/features/rail-shell/rail-shell.types.ts:Lens <- src/lib/features/rail-shell/RailNoteList.svelte:105 in (script) import
 by src/lib/features/rail-shell/rail-shell.types.ts:Lens <- src/lib/features/rail-shell/TypesNavigator.svelte:54 in (script) import
 by src/lib/features/rail-shell/rail-shell.types.ts:Lens <- src/lib/features/rail-shell/lens.logic.ts:47 in (module) import
@@ -115,5 +115,5 @@ by src/lib/features/rail-shell/rail-shell.types.ts:RailAction <- src/lib/feature
 sym src/lib/features/rail-shell/rail-shell.types.ts:220 reexport RailMenuItem = src/lib/utils/menu-action.types.ts:MenuActionItem L1
 sym src/lib/features/rail-shell/rail-shell.types.ts:220 reexport RailMenuTarget = src/lib/utils/menu-action.types.ts:MenuActionTarget L1
 sym src/lib/features/rail-shell/rail-shell.types.ts:223 interface RailFolderCreator L12 | A "New <thing>" item a plugin adds to the Files navigator's folder menu (e.g. New kanban board).
-by src/lib/features/rail-shell/rail-shell.types.ts:RailFolderCreator <- src/lib/features/rail-shell/FilesNavigator.svelte:60 in (script) import
+by src/lib/features/rail-shell/rail-shell.types.ts:RailFolderCreator <- src/lib/features/rail-shell/FilesNavigator.svelte:69 in (script) import
 by src/lib/features/rail-shell/rail-shell.types.ts:RailFolderCreator <- src/lib/features/rail-shell/rail-registry.store.svelte.ts:1 in (module) import

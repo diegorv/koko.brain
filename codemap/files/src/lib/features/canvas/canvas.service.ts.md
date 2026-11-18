@@ -18,7 +18,7 @@ test src/tests/lib/features/command-palette/CommandPalette.test.ts mocks src/lib
 ## symbols
 sym src/lib/features/canvas/canvas.service.ts:8 fn createCanvasFile(parentPath: string): Promise<string> L3 | Creates a new .canvas file with an empty canvas structure.
 by src/lib/features/canvas/canvas.service.ts:createCanvasFile <- src/lib/app/commands.ts:179 in getBuiltInCommands call
-by src/lib/features/canvas/canvas.service.ts:createCanvasFile <- src/lib/features/rail-shell/FilesNavigator.svelte:96 in fileCreators=$derived ref
+by src/lib/features/canvas/canvas.service.ts:createCanvasFile <- src/lib/features/rail-shell/FilesNavigator.svelte:117 in fileCreators=$derived ref
 ## calls
 call src/lib/features/canvas/canvas.service.ts:9 in createCanvasFile -> src/lib/core/filesystem/fs.service.ts:createFile call
 call src/lib/features/canvas/canvas.service.ts:9 in createCanvasFile -> src/lib/features/canvas/canvas.logic.ts:createEmptyCanvas call

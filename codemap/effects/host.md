@@ -22,7 +22,7 @@ fx src/lib/core/settings/sections/UpdateSection.svelte:238 tauri-dialog.ask in c
 fx src/lib/core/vault/exit.service.ts:35 tauri-dialog.ask in confirmDiscardFailedSaves
 fx src/lib/features/file-history/FileHistoryDialog.svelte:44 tauri-dialog.ask in handleRestore
 fx src/lib/features/note-list/NoteRowMenu.svelte:163 tauri-dialog.ask in handleDelete
-fx src/lib/features/rail-shell/FilesNavigator.svelte:227 tauri-dialog.ask in handleDelete
+fx src/lib/features/rail-shell/FilesNavigator.svelte:248 tauri-dialog.ask in handleDelete
 fx src/lib/features/todoist-sync/sync-now.service.ts:1170 tauri-dialog.ask in confirmOverCap
 fx src/lib/features/todoist-sync/sync-now.service.ts:1184 tauri-dialog.ask in confirmLineBrake
 fx src/lib/features/todoist-sync/sync-now.service.ts:1192 tauri-dialog.ask in confirmDetaches

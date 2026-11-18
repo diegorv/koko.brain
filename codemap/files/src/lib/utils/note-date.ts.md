@@ -17,6 +17,6 @@ by src/lib/utils/note-date.ts:parseDateKey <- src/lib/features/rail-shell/lens.l
 by src/lib/utils/note-date.ts:parseDateKey <- src/lib/plugins/calendar/day-lens.logic.ts:20 in parseRailDay call
 by src/lib/utils/note-date.ts:parseDateKey <- src/lib/plugins/one-on-one/one-on-one.logic.ts:212 in buildMyPeople call
 sym src/lib/utils/note-date.ts:51 fn noteDateKey({ date, created, diskCreatedAt }: NoteDateSources): string | null L7 | The day a note belongs to (the PRD's "note date"): frontmatter `date`, else frontmatter `created`, else the disk creation time.
-by src/lib/utils/note-date.ts:noteDateKey <- src/lib/features/rail-shell/lens.logic.ts:264 in entryNoteDate call
+by src/lib/utils/note-date.ts:noteDateKey <- src/lib/features/rail-shell/lens.logic.ts:266 in entryNoteDate call
 ## calls
 call src/lib/utils/note-date.ts:53 in noteDateKey -> src/lib/utils/note-date.ts:parseDateKey call +1

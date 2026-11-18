@@ -55,7 +55,7 @@ by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/file-icons/file-icons.service.ts:18 in (module) mcall +23
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/file-icons/icon-resolver.ts:65 in resolveIconForPath member +3
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/note-list/NoteRowMenu.svelte:55 in iconPickerRef=$derived mcall
-by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/rail-shell/FilesNavigator.svelte:122 in iconPickerRef=$derived mcall
+by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/rail-shell/FilesNavigator.svelte:143 in iconPickerRef=$derived mcall
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/rail-shell/Rail.svelte:200 in actionIcon member
 more by 1 not shown: src/lib/features/rail-shell(1): q importers src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore
 ## store

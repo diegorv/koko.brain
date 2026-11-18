@@ -17,7 +17,7 @@ test src/tests/lib/features/type-definitions/inbox-workflow.logic.test.ts import
 test src/tests/lib/features/properties/lifecycle.logic.test.ts imports src/lib/features/type-definitions/inbox-workflow.logic.ts
 ## symbols
 sym src/lib/features/type-definitions/inbox-workflow.logic.ts:10 fn isInboxEntry(entry: NoteEntryV2): boolean L3 | Whether an entry belongs to the lifecycle inbox: not organized, not archived, and a listable note (`isListableNote`: not a Type Definition, not a `.view`).
-by src/lib/features/type-definitions/inbox-workflow.logic.ts:isInboxEntry <- src/lib/features/rail-shell/lens.logic.ts:291 in toLensNote call +1
+by src/lib/features/type-definitions/inbox-workflow.logic.ts:isInboxEntry <- src/lib/features/rail-shell/lens.logic.ts:293 in toLensNote call +1
 by src/lib/features/type-definitions/inbox-workflow.logic.ts:isInboxEntry <- src/lib/features/tasks/task-query.logic.ts:291 in buildTaskRows call
 sym src/lib/features/type-definitions/inbox-workflow.logic.ts:18 fn getInboxCount(entries: NoteEntryV2[]): number L7 | Returns the inbox count: entries that are not organized, not archived, and listable notes (not a Type Definition, not a `.view`).
 by src/lib/features/type-definitions/inbox-workflow.logic.ts:getInboxCount <- src/lib/features/dock-badge/dock-badge.logic.ts:16 in dockBadgeCount call

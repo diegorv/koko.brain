@@ -30,12 +30,12 @@ by src/lib/features/type-definitions/type-note-list.logic.ts:buildRenameFileName
 sym src/lib/features/type-definitions/type-note-list.logic.ts:40 interface ToolbarSeed L6 | Seed shape produced from a successfully-parsed .view definition.
 sym src/lib/features/type-definitions/type-note-list.logic.ts:53 fn seedToolbarStateFromDefinition(definition: CollectionDefinition, activeView: CollectionViewDef | undefined): ToolbarSeed L11 | Returns the local toolbar state seeded from the parsed view definition and `activeView` (the rail passes the view it runs, `railViewIndex`).
 by src/lib/features/type-definitions/type-note-list.logic.ts:seedToolbarStateFromDefinition <- src/lib/features/rail-shell/RailNoteList.svelte:281 in loadView call
-by src/lib/features/type-definitions/type-note-list.logic.ts:seedToolbarStateFromDefinition <- src/lib/features/rail-shell/lens.logic.ts:806 in queryViewLens call
+by src/lib/features/type-definitions/type-note-list.logic.ts:seedToolbarStateFromDefinition <- src/lib/features/rail-shell/lens.logic.ts:808 in queryViewLens call
 sym src/lib/features/type-definitions/type-note-list.logic.ts:66 interface OverriddenQuery L4 | Bundle returned by buildOverriddenQuery, ready to feed into executeQuery.
 sym src/lib/features/type-definitions/type-note-list.logic.ts:81 fn buildOverriddenQuery(definition: CollectionDefinition, activeView: CollectionViewDef | undefined, localGlobalFilters: FilterGroup[], localV… L17 | Produces a `{ definition, view }` pair where the YAML-sourced filters / sort are replaced by the local toolbar state.
-by src/lib/features/type-definitions/type-note-list.logic.ts:buildOverriddenQuery <- src/lib/features/rail-shell/lens.logic.ts:807 in queryViewLens call
+by src/lib/features/type-definitions/type-note-list.logic.ts:buildOverriddenQuery <- src/lib/features/rail-shell/lens.logic.ts:809 in queryViewLens call
 sym src/lib/features/type-definitions/type-note-list.logic.ts:105 fn resolveViewListSort(view: CollectionViewDef, frontmatterSort: string): string | null L3 | Picks the order of a view's note list.
-by src/lib/features/type-definitions/type-note-list.logic.ts:resolveViewListSort <- src/lib/features/rail-shell/lens.logic.ts:727 in viewRowSet call
+by src/lib/features/type-definitions/type-note-list.logic.ts:resolveViewListSort <- src/lib/features/rail-shell/lens.logic.ts:729 in viewRowSet call
 sym src/lib/features/type-definitions/type-note-list.logic.ts:114 fn combineAvailableProperties(propertyIndex: Map<string, PropertyIndexRecord>, viewFormulas: Record<string, string>): string[] L8 | Returns the property names offered in the filter / sort dropdowns.
 by src/lib/features/type-definitions/type-note-list.logic.ts:combineAvailableProperties <- src/lib/features/rail-shell/RailNoteList.svelte:191 in availableProperties=$derived call
 sym src/lib/features/type-definitions/type-note-list.logic.ts:124 fn countActiveFilters(globalFilters: FilterGroup[], viewFilters: FilterGroup[]): number L6 | Total count of filter rows across global and view-scoped groups.

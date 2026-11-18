@@ -36,7 +36,7 @@ test src/tests/lib/plugins/queryjs/kb-api.view-page.test.ts imports src/lib/feat
 sym src/lib/features/collection/toolbar/filter.logic.ts:22 fn parseExpressionToRow(expr: string): FilterRow L10 | Tries to parse a simple expression into a visual FilterRow.
 by src/lib/features/collection/toolbar/filter.logic.ts:parseExpressionToRow <- src/lib/features/auto-organize/auto-organize.logic.ts:41 in filterProblem call
 sym src/lib/features/collection/toolbar/filter.logic.ts:38 fn filterRowToExpression(row: FilterRow): string L51 | Converts a FilterRow back into an expression string for YAML serialization.
-by src/lib/features/collection/toolbar/filter.logic.ts:filterRowToExpression <- src/lib/features/rail-shell/lens.logic.ts:868 in describeViewFilters ref
+by src/lib/features/collection/toolbar/filter.logic.ts:filterRowToExpression <- src/lib/features/rail-shell/lens.logic.ts:870 in describeViewFilters ref
 sym src/lib/features/collection/toolbar/filter.logic.ts:94 fn parseFilterToGroups(filter: CollectionFilter | string | undefined): FilterGroup[] L47 | Converts a CollectionFilter or string (from YAML) into FilterGroup[] for the visual UI.
 by src/lib/features/collection/toolbar/filter.logic.ts:parseFilterToGroups <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:144 in toGroups call
 by src/lib/features/collection/toolbar/filter.logic.ts:parseFilterToGroups <- src/lib/features/collection/CollectionView.svelte:161 in seedFromDefinition call +1

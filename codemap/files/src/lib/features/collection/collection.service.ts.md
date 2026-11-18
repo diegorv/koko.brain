@@ -46,7 +46,7 @@ test src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts mocks src/lib/fea
 test src/tests/lib/app/lifecycle/watcher-handler.service.test.ts mocks src/lib/features/collection/collection.service.ts
 ## symbols
 sym src/lib/features/collection/collection.service.ts:30 fn createCollectionFile(parentPath: string): Promise<string> L6 | Creates the `Untitled.view` of New table in `parentPath` (`Untitled 1.view` when taken) with `NEW_TABLE_TEMPLATE`.
-by src/lib/features/collection/collection.service.ts:createCollectionFile <- src/lib/features/rail-shell/FilesNavigator.svelte:97 in fileCreators=$derived ref
+by src/lib/features/collection/collection.service.ts:createCollectionFile <- src/lib/features/rail-shell/FilesNavigator.svelte:118 in fileCreators=$derived ref
 sym src/lib/features/collection/collection.service.ts:90 fn buildPropertyIndex(): Promise<void> L22 | Builds the property index from the Rust `VaultIndex`.
 by src/lib/features/collection/collection.service.ts:buildPropertyIndex <- src/lib/app/lifecycle/app-lifecycle.service.ts:434 in initializeVault call
 by src/lib/features/collection/collection.service.ts:buildPropertyIndex <- src/lib/app/lifecycle/watcher-handler.service.ts:77 in rebuildAllIndexes call

@@ -52,20 +52,20 @@ sym src/lib/features/file-icons/file-icons.service.ts:47 fn loadRecentIcons(vaul
 by src/lib/features/file-icons/file-icons.service.ts:loadRecentIcons <- src/lib/app/lifecycle/app-lifecycle.service.ts:311 in initializeVault call
 sym src/lib/features/file-icons/file-icons.service.ts:77 fn trackRecentIcon(vaultPath: string, iconPack: IconPackId, iconName: string): Promise<void> L5 | Tracks an icon as recently used and persists to disk
 by src/lib/features/file-icons/file-icons.service.ts:trackRecentIcon <- src/lib/features/note-list/NoteRowMenu.svelte:180 in handleIconSelect call
-by src/lib/features/file-icons/file-icons.service.ts:trackRecentIcon <- src/lib/features/rail-shell/FilesNavigator.svelte:253 in handleIconSelect call
+by src/lib/features/file-icons/file-icons.service.ts:trackRecentIcon <- src/lib/features/rail-shell/FilesNavigator.svelte:274 in handleIconSelect call
 by src/lib/features/file-icons/file-icons.service.ts:trackRecentIcon <- src/lib/features/rail-shell/TypesNavigator.svelte:168 in handleIconSelect call
 sym src/lib/features/file-icons/file-icons.service.ts:118 fn setIconForPath(vaultPath: string, path: string, iconPack: IconPackId, iconName: string, color?: string, textColor?: string, isDirecto… L28 | Sets a custom icon for a file/folder path. - .md files: writes to frontmatter (_icon, _color, _title_color). - Directories (isDirectory=true): writes to folder…
 by src/lib/features/file-icons/file-icons.service.ts:setIconForPath <- src/lib/features/auto-organize/auto-organize.service.ts:679 in applyLegacyIcon call
 by src/lib/features/file-icons/file-icons.service.ts:setIconForPath <- src/lib/features/note-list/NoteRowMenu.svelte:179 in handleIconSelect call
-by src/lib/features/file-icons/file-icons.service.ts:setIconForPath <- src/lib/features/rail-shell/FilesNavigator.svelte:252 in handleIconSelect call
+by src/lib/features/file-icons/file-icons.service.ts:setIconForPath <- src/lib/features/rail-shell/FilesNavigator.svelte:273 in handleIconSelect call
 by src/lib/features/file-icons/file-icons.service.ts:setIconForPath <- src/lib/features/rail-shell/TypesNavigator.svelte:166 in handleIconSelect call
 sym src/lib/features/file-icons/file-icons.service.ts:153 fn setIconColors(path: string, color?: string, textColor?: string, isDirectory = false): Promise<void> L14 | Saves the colors of a file/folder that has no icon, leaving any `_icon` key alone.
 by src/lib/features/file-icons/file-icons.service.ts:setIconColors <- src/lib/features/note-list/NoteRowMenu.svelte:185 in handleIconColors call
-by src/lib/features/file-icons/file-icons.service.ts:setIconColors <- src/lib/features/rail-shell/FilesNavigator.svelte:258 in handleIconColors call
+by src/lib/features/file-icons/file-icons.service.ts:setIconColors <- src/lib/features/rail-shell/FilesNavigator.svelte:279 in handleIconColors call
 by src/lib/features/file-icons/file-icons.service.ts:setIconColors <- src/lib/features/rail-shell/TypesNavigator.svelte:176 in handleIconColors call
 sym src/lib/features/file-icons/file-icons.service.ts:174 fn removeIconForPath(vaultPath: string, path: string, isDirectory = false): Promise<void> L20 | Removes a custom icon from a file/folder path. - .md files: removes _icon, _color, _title_color from frontmatter. - Directories (isDirectory=true): removes ico…
 by src/lib/features/file-icons/file-icons.service.ts:removeIconForPath <- src/lib/features/note-list/NoteRowMenu.svelte:190 in handleIconRemove call
-by src/lib/features/file-icons/file-icons.service.ts:removeIconForPath <- src/lib/features/rail-shell/FilesNavigator.svelte:263 in handleIconRemove call
+by src/lib/features/file-icons/file-icons.service.ts:removeIconForPath <- src/lib/features/rail-shell/FilesNavigator.svelte:284 in handleIconRemove call
 by src/lib/features/file-icons/file-icons.service.ts:removeIconForPath <- src/lib/features/rail-shell/TypesNavigator.svelte:185 in handleIconRemove call
 sym src/lib/features/file-icons/file-icons.service.ts:201 fn buildFrontmatterIconIndex(): Promise<void> L32 | Scans all vault notes for the frontmatter icon and colors and populates `fileIconsStore.frontmatterIcons`.
 by src/lib/features/file-icons/file-icons.service.ts:buildFrontmatterIconIndex <- src/lib/app/lifecycle/app-lifecycle.service.ts:435 in initializeVault call

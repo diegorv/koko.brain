@@ -47,7 +47,7 @@ mount src/lib/features/properties/PropertiesView.svelte:193 IconRenderer -> src/
 mount src/lib/features/properties/PropertiesView.svelte:266 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/properties/RelationshipSearch.svelte:74 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/quick-switcher/QuickSwitcher.svelte:137 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/rail-shell/FilesNavigator.svelte:536 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/rail-shell/FilesNavigator.svelte:560 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/rail-shell/Rail.svelte:341 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/rail-shell/Rail.svelte:348 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/rail-shell/TypesNavigator.svelte:290 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte

@@ -12,6 +12,6 @@ out2 src/lib/utils/capture-path.ts 0 files in 0 modules: -
 test src/tests/lib/utils/capture-path.test.ts imports src/lib/utils/capture-path.ts mirror
 ## symbols
 sym src/lib/utils/capture-path.ts:9 fn buildCaptureFolder(vaultPath: string, baseFolder: string, folderFormat: string, date: dayjs.Dayjs): string L6 | The folder a quick note (Cmd+N) lands in: vaultPath / baseFolder / folderFormat(date).
-by src/lib/utils/capture-path.ts:buildCaptureFolder <- src/lib/features/rail-shell/lens.logic.ts:622 in newNoteRule call
+by src/lib/utils/capture-path.ts:buildCaptureFolder <- src/lib/features/rail-shell/lens.logic.ts:624 in newNoteRule call
 by src/lib/utils/capture-path.ts:buildCaptureFolder <- src/lib/plugins/calendar/day-lens.logic.ts:61 in dayNewNoteRule call
 by src/lib/utils/capture-path.ts:buildCaptureFolder <- src/lib/plugins/quick-capture/note-composer.logic.ts:19 in buildCapturePath call

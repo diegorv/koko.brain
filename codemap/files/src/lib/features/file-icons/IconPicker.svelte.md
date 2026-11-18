@@ -27,7 +27,7 @@ sym src/lib/features/file-icons/IconPicker.svelte:1 component IconPicker props:o
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:367 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:540 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/note-list/NoteRowMenu.svelte:291 in (markup) mount
-by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/FilesNavigator.svelte:465 in (markup) mount
+by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/FilesNavigator.svelte:486 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/TypesNavigator.svelte:500 in (markup) mount
 ## locals
 local src/lib/features/file-icons/IconPicker.svelte:84 fn loadIcons() L19
@@ -44,7 +44,7 @@ mount src/lib/features/file-icons/IconPicker.svelte:239 IconRenderer -> src/lib/
 mount src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:367 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:540 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/note-list/NoteRowMenu.svelte:291 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
-mount src/lib/features/rail-shell/FilesNavigator.svelte:465 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
+mount src/lib/features/rail-shell/FilesNavigator.svelte:486 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/rail-shell/TypesNavigator.svelte:500 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 ## calls
 call src/lib/features/file-icons/IconPicker.svelte:50 in packs -> src/lib/features/file-icons/file-icons.icon-data.ts:getAllIconPacks call
