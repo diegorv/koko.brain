@@ -71,7 +71,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 34 | [The rule filter reads "When" with one "Add condition"](issues/34-rule-filter-reads-one-add-condition.md) | 15, 33 | todo | | |
 | 35 | [Appearance settings: theme rows ignore keys from their buttons, one catalog error with its reason, Install and apply, a theme editor that confirms discards and restores the theme on close](issues/35-appearance-settings-theme-rows-ignore-keys.md) | none | todo | | |
 | 36 | [Periodic Notes and 1:1: live path examples and missing-template marks](issues/36-periodic-notes-11-live-path-examples.md) | 22 | done | issue/36-periodic-notes-11-live-path-examples (632893c70) | 2026-11-18 |
-| 37 | [Mods: each mod says what it does; the run view shows status and progress clearly](issues/37-mods-each-mod-run-view-shows.md) | none | in-progress | | |
+| 37 | [Mods: each mod says what it does; the run view shows status and progress clearly](issues/37-mods-each-mod-run-view-shows.md) | none | done | issue/37-mods-each-mod-run-view-shows (a52bc3d78) | 2026-11-18 |
 | 38 | [Settings: text you can select, the Todoist root row fits, the update button says it downloads](issues/38-settings-text-you-can-select-todoist.md) | none | todo | | |
 | 39 | [Readable text on coloured fills and faded text in the note list and search](issues/39-readable-chips-faded-text.md) | 12 | todo | | |
 | 40 | [Default theme: a darker tab strip with a visible tab hover, bold and italic off the link blue](issues/40-default-theme-darker-tab-strip-visible.md) | 20, 39 | todo | | |
@@ -133,3 +133,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 19:15 — 36 — start — launched by /relay-lite:run — 3ae4a44cd
 - 2026-11-18 19:27 — 36 — deliver — merged after review 1 APPROVED with findings, fix round (isTemplateMissing JSDoc limits, shared PeriodType, aria-describedby on format and template inputs), re-review 2 APPROVED (claude); full vitest suite passed (17680 tests) — 632893c70
 - 2026-11-18 19:27 — 37 — start — launched by /relay-lite:run — 8f1ccf14a
+- 2026-11-18 19:38 — 37 — deliver — merged after review 1 APPROVED with three nits (help edits kept, role=log box follow-up, load time tooltip per owner default), no deliver code changes (claude); full vitest suite passed (17690 tests) — a52bc3d78
