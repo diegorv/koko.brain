@@ -10,7 +10,7 @@ in2 src/lib/core/markdown-editor/extensions/callout/callout.ts 1 files in 1 modu
 out2 src/lib/core/markdown-editor/extensions/callout/callout.ts 0 files in 0 modules: -
 ## symbols
 sym src/lib/core/markdown-editor/extensions/callout/callout.ts:53 fn calloutDecoration(): Extension L3
-by src/lib/core/markdown-editor/extensions/callout/callout.ts:calloutDecoration <- src/lib/core/markdown-editor/setup/editor-extensions.ts:104 in sourceModeExtensions call
+by src/lib/core/markdown-editor/extensions/callout/callout.ts:calloutDecoration <- src/lib/core/markdown-editor/setup/editor-extensions.ts:107 in sourceModeExtensions call
 ## locals
 local src/lib/core/markdown-editor/extensions/callout/callout.ts:12 fn getCalloutDecoration(color: string): Decoration L8
 local src/lib/core/markdown-editor/extensions/callout/callout.ts:21 fn buildDecorations(view: EditorView): DecorationSet L16

@@ -4,7 +4,7 @@ file src/lib/utils/keybindings.ts other L81 module src/lib/utils in5 t5
 ## imported-by
 imp src/lib/app/global-keybindings.ts:1 -> src/lib/utils/keybindings.ts registerKeybinding,type:KeyBinding,type:KeyCombo
 imp src/lib/core/markdown-editor/MarkdownEditor.svelte:33 -> src/lib/utils/keybindings.ts formatShortcut
-imp src/lib/core/markdown-editor/setup/editor-extensions.ts:26 -> src/lib/utils/keybindings.ts toCodeMirrorKey
+imp src/lib/core/markdown-editor/setup/editor-extensions.ts:27 -> src/lib/utils/keybindings.ts toCodeMirrorKey
 imp src/lib/features/command-palette/CommandPalette.svelte:4 -> src/lib/utils/keybindings.ts formatShortcut
 imp src/lib/features/note-list/NoteRowMenu.svelte:28 -> src/lib/utils/keybindings.ts formatShortcut
 ## reach
@@ -22,7 +22,7 @@ by src/lib/utils/keybindings.ts:KeyBinding <- src/lib/app/global-keybindings.ts:
 sym src/lib/utils/keybindings.ts:13 type KeyCombo L1 | The key and modifiers of a binding, without its handler.
 by src/lib/utils/keybindings.ts:KeyCombo <- src/lib/app/global-keybindings.ts:1 in (module) import
 sym src/lib/utils/keybindings.ts:19 fn toCodeMirrorKey(combo: KeyCombo & { key: string }): string L9 | Writes a combo as a CodeMirror keymap key (`Mod-Shift-l`).
-by src/lib/utils/keybindings.ts:toCodeMirrorKey <- src/lib/core/markdown-editor/setup/editor-extensions.ts:152 in createExtensions call
+by src/lib/utils/keybindings.ts:toCodeMirrorKey <- src/lib/core/markdown-editor/setup/editor-extensions.ts:156 in createExtensions call
 sym src/lib/utils/keybindings.ts:40 fn formatShortcut(combo: KeyCombo): string L15 | Writes a combo as the macOS hint shown next to a command or menu item (`⌘⇧L`): modifiers in the order Ctrl, Cmd, Shift, Option, then the key.
 by src/lib/utils/keybindings.ts:formatShortcut <- src/lib/core/markdown-editor/MarkdownEditor.svelte:755 in (markup) markup
 by src/lib/utils/keybindings.ts:formatShortcut <- src/lib/features/command-palette/CommandPalette.svelte:62 in (markup) markup

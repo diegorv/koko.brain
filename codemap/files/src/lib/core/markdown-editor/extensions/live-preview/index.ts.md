@@ -5,7 +5,7 @@ file src/lib/core/markdown-editor/extensions/live-preview/index.ts other L1 modu
 imp src/lib/core/markdown-editor/extensions/live-preview/index.ts:1 -> src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts livePreview,livePreviewCompartment,livePreviewExtensions,forceDecorationRebuild
 ## imported-by
 imp src/lib/core/markdown-editor/MarkdownEditor.svelte:29 -> src/lib/core/markdown-editor/extensions/live-preview/index.ts forceDecorationRebuild
-imp src/lib/core/markdown-editor/setup/editor-extensions.ts:24 -> src/lib/core/markdown-editor/extensions/live-preview/index.ts livePreview,livePreviewCompartment,livePreviewExtensions
+imp src/lib/core/markdown-editor/setup/editor-extensions.ts:25 -> src/lib/core/markdown-editor/extensions/live-preview/index.ts livePreview,livePreviewCompartment,livePreviewExtensions
 ## reach
 in2 src/lib/core/markdown-editor/extensions/live-preview/index.ts 3 files in 2 modules: src/lib/app(2) src/lib/core/markdown-editor(1)
 out2 src/lib/core/markdown-editor/extensions/live-preview/index.ts 26 files in 1 modules: src/lib/core/markdown-editor(26)

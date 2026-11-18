@@ -14,7 +14,7 @@ imp src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:
 imp src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:5 -> src/lib/core/markdown-editor/editor-host.ts editorHost
 imp src/lib/core/markdown-editor/extensions/tag/completion.ts:2 -> src/lib/core/markdown-editor/editor-host.ts editorHost,type:VaultTag
 imp src/lib/core/markdown-editor/extensions/wikilink/completion.ts:5 -> src/lib/core/markdown-editor/editor-host.ts editorHost,type:EditorHost
-imp src/lib/core/markdown-editor/setup/editor-extensions.ts:27 -> src/lib/core/markdown-editor/editor-host.ts editorHost,type:EditorHost
+imp src/lib/core/markdown-editor/setup/editor-extensions.ts:28 -> src/lib/core/markdown-editor/editor-host.ts editorHost,type:EditorHost
 imp src/lib/plugins/quick-capture/composer-editor-host.service.ts:4 -> src/lib/core/markdown-editor/editor-host.ts NOOP_HOST,type:EditorHost,type:LinkCandidates,type:VaultTag
 imp src/lib/plugins/quick-capture/composer-editor.ts:5 -> src/lib/core/markdown-editor/editor-host.ts editorHost,type:EditorHost
 ## reach
@@ -55,7 +55,7 @@ by src/lib/core/markdown-editor/editor-host.ts:EditorHost <- src/lib/core/markdo
 by src/lib/core/markdown-editor/editor-host.ts:EditorHost <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:22 in (module) import
 by src/lib/core/markdown-editor/editor-host.ts:EditorHost <- src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:4 in (module) import
 by src/lib/core/markdown-editor/editor-host.ts:EditorHost <- src/lib/core/markdown-editor/extensions/wikilink/completion.ts:5 in (module) import
-by src/lib/core/markdown-editor/editor-host.ts:EditorHost <- src/lib/core/markdown-editor/setup/editor-extensions.ts:27 in (module) import
+by src/lib/core/markdown-editor/editor-host.ts:EditorHost <- src/lib/core/markdown-editor/setup/editor-extensions.ts:28 in (module) import
 by src/lib/core/markdown-editor/editor-host.ts:EditorHost <- src/lib/plugins/quick-capture/composer-editor-host.service.ts:4 in (module) import
 by src/lib/core/markdown-editor/editor-host.ts:EditorHost <- src/lib/plugins/quick-capture/composer-editor.ts:5 in (module) import
 sym src/lib/core/markdown-editor/editor-host.ts:79 interface BlockLinkActions L6 | Copy Block Link and Copy block embed for the block at the cursor; the app supplies them.
@@ -70,5 +70,5 @@ by src/lib/core/markdown-editor/editor-host.ts:editorHost <- src/lib/core/markdo
 by src/lib/core/markdown-editor/editor-host.ts:editorHost <- src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:62 in followWikilinkInfo ref
 by src/lib/core/markdown-editor/editor-host.ts:editorHost <- src/lib/core/markdown-editor/extensions/tag/completion.ts:26 in tagCompletionSource ref
 by src/lib/core/markdown-editor/editor-host.ts:editorHost <- src/lib/core/markdown-editor/extensions/wikilink/completion.ts:68 in buildFileCompletions ref +2
-by src/lib/core/markdown-editor/editor-host.ts:editorHost <- src/lib/core/markdown-editor/setup/editor-extensions.ts:129 in createExtensions mcall
+by src/lib/core/markdown-editor/editor-host.ts:editorHost <- src/lib/core/markdown-editor/setup/editor-extensions.ts:133 in createExtensions mcall
 by src/lib/core/markdown-editor/editor-host.ts:editorHost <- src/lib/plugins/quick-capture/composer-editor.ts:108 in createComposerEditor mcall

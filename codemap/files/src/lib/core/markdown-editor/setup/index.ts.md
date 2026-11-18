@@ -8,7 +8,7 @@ imp src/lib/core/markdown-editor/setup/index.ts:2 -> src/lib/core/markdown-edito
 imp src/lib/core/markdown-editor/MarkdownEditor.svelte:46 -> src/lib/core/markdown-editor/setup/index.ts buildEditorTheme,createExtensions,editorModeEffects
 ## reach
 in2 src/lib/core/markdown-editor/setup/index.ts 1 files in 1 modules: src/lib/app(1)
-out2 src/lib/core/markdown-editor/setup/index.ts 12 files in 2 modules: src/lib/core/markdown-editor(10) src/lib/utils(2)
+out2 src/lib/core/markdown-editor/setup/index.ts 13 files in 2 modules: src/lib/core/markdown-editor(11) src/lib/utils(2)
 ## symbols
 sym src/lib/core/markdown-editor/setup/index.ts:1 reexport buildEditorTheme = src/lib/core/markdown-editor/setup/editor-theme.ts:buildEditorTheme L1
 sym src/lib/core/markdown-editor/setup/index.ts:2 reexport CreateExtensionsOptions = src/lib/core/markdown-editor/setup/editor-extensions.ts:CreateExtensionsOptions L1

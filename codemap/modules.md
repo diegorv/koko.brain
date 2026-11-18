@@ -16,7 +16,7 @@ module src/lib/core/editor core files 6 in-modules 38 out-modules 3 pub 46/55 ip
 module src/lib/core/filesystem core files 14 in-modules 30 out-modules 7 pub 61/91 ipc 14/0 card ~7.2k
 module src/lib/core/frontmatter core files 4 in-modules 16 out-modules 3 pub 28/40 ipc 0/0 card ~3.5k
 module src/lib/core/layout core files 3 in-modules 6 out-modules 4 pub 8/10 ipc 0/0 card ~1.1k
-module src/lib/core/markdown-editor core files 109 in-modules 11 out-modules 9 pub 35/357 ipc 0/0 card ~9k
+module src/lib/core/markdown-editor core files 111 in-modules 11 out-modules 9 pub 35/362 ipc 0/0 card ~9.1k
 module src/lib/core/note-creator core files 2 in-modules 12 out-modules 5 pub 4/6 ipc 2/0 card ~1.4k
 module src/lib/core/rule-actions core files 1 in-modules 2 out-modules 0 pub 1/3 ipc 0/0 card ~0.5k
 module src/lib/core/settings core files 38 in-modules 29 out-modules 7 pub 53/176 ipc 3/0 card ~6.7k
@@ -74,7 +74,7 @@ layer components -> lib-root 55
 layer contracts -> contracts 85
 layer core -> components 34
 layer core -> contracts 15
-layer core -> core 484
+layer core -> core 488
 layer core -> types 5
 layer core -> utils 71
 layer features -> components 104

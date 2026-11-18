@@ -29,7 +29,7 @@ imp src/lib/core/markdown-editor/MarkdownEditor.svelte:49 -> src/lib/core/markdo
 imp src/lib/app/EditorView.svelte:12 -> src/lib/core/markdown-editor/MarkdownEditor.svelte default
 ## reach
 in2 src/lib/core/markdown-editor/MarkdownEditor.svelte 1 files in 1 modules: src/lib/app(1)
-out2 src/lib/core/markdown-editor/MarkdownEditor.svelte 50 files in 8 modules: src/lib/components(16) src/lib/core/markdown-editor(13) src/lib/core/settings(7) src/lib/utils(6) src/lib/core/filesystem(3) +3 modules
+out2 src/lib/core/markdown-editor/MarkdownEditor.svelte 51 files in 8 modules: src/lib/components(16) src/lib/core/markdown-editor(14) src/lib/core/settings(7) src/lib/utils(6) src/lib/core/filesystem(3) +3 modules
 ## tests
 test src/tests/lib/core/markdown-editor/MarkdownEditor.test.ts imports src/lib/core/markdown-editor/MarkdownEditor.svelte mirror
 test src/tests/lib/core/markdown-editor/undo-history-across-notes.test.ts imports src/lib/core/markdown-editor/MarkdownEditor.svelte

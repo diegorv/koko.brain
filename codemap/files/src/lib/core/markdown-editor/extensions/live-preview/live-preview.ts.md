@@ -55,11 +55,11 @@ test src/tests/lib/plugins/queryjs/queryjs-table-pager-click.test.ts imports src
 ## symbols
 sym src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:35 reexport forceDecorationRebuild = src/lib/core/markdown-editor/extensions/live-preview/core/effects.ts:forceDecorationRebuild L1
 sym src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:38 const livePreviewCompartment L1
-by src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:livePreviewCompartment <- src/lib/core/markdown-editor/setup/editor-extensions.ts:121 in editorModeEffects mcall
+by src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:livePreviewCompartment <- src/lib/core/markdown-editor/setup/editor-extensions.ts:125 in editorModeEffects mcall
 sym src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:79 fn livePreviewExtensions(disabledDecorators: Record<string, boolean>): Extension[] L29 | Returns the live-preview extension array.
-by src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:livePreviewExtensions <- src/lib/core/markdown-editor/setup/editor-extensions.ts:121 in editorModeEffects call
+by src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:livePreviewExtensions <- src/lib/core/markdown-editor/setup/editor-extensions.ts:125 in editorModeEffects call
 sym src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:109 fn livePreview(enabled: boolean, disabledDecorators: Record<string, boolean>): Extension L3
-by src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:livePreview <- src/lib/core/markdown-editor/setup/editor-extensions.ts:146 in createExtensions call
+by src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:livePreview <- src/lib/core/markdown-editor/setup/editor-extensions.ts:150 in createExtensions call
 ## calls
 call src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:95 in livePreviewExtensions -> src/lib/core/markdown-editor/extensions/live-preview/inline/inline-extensions.ts:inlineExtensions call
 call src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:110 in livePreview -> src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:livePreviewExtensions call

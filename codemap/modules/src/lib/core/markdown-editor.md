@@ -1,7 +1,7 @@
 # module card src/lib/core/markdown-editor
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/core/markdown-editor ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src/lib/core/markdown-editor core files 109 in-modules 11 out-modules 9 pub 35/357 ipc 0/0 card ~9k
+module src/lib/core/markdown-editor core files 111 in-modules 11 out-modules 9 pub 35/362 ipc 0/0 card ~9.1k
 ## neighbors
 dep src/lib/app -> src/lib/core/markdown-editor 10
 dep src/lib/core/editor -> src/lib/core/markdown-editor 1
@@ -71,7 +71,7 @@ file src/lib/core/markdown-editor/extensions/live-preview/core/expanded-ranges.t
 file src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts other L43 module src/lib/core/markdown-editor in7 t12
 file src/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.ts other L32 module src/lib/core/markdown-editor in2 t1
 file src/lib/core/markdown-editor/extensions/live-preview/core/frontmatter-slice.ts other L19 module src/lib/core/markdown-editor in3 t1
-file src/lib/core/markdown-editor/extensions/live-preview/core/get-all-lines.ts other L10 module src/lib/core/markdown-editor in4 t1
+file src/lib/core/markdown-editor/extensions/live-preview/core/get-all-lines.ts other L10 module src/lib/core/markdown-editor in5 t1
 file src/lib/core/markdown-editor/extensions/live-preview/core/hide-lines.ts other L20 module src/lib/core/markdown-editor in11 t1
 file src/lib/core/markdown-editor/extensions/live-preview/core/is-inside-block-context.ts other L21 module src/lib/core/markdown-editor in6 t1
 file src/lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting.ts other L56 module src/lib/core/markdown-editor in4 t8
@@ -107,7 +107,7 @@ file src/lib/core/markdown-editor/extensions/live-preview/parsers/collection-blo
 file src/lib/core/markdown-editor/extensions/live-preview/parsers/comment.ts other L72 module src/lib/core/markdown-editor in2 t11
 file src/lib/core/markdown-editor/extensions/live-preview/parsers/fenced-code-block.ts other L199 module src/lib/core/markdown-editor in6 t2
 file src/lib/core/markdown-editor/extensions/live-preview/parsers/footnote.ts other L109 module src/lib/core/markdown-editor in1 t13
-file src/lib/core/markdown-editor/extensions/live-preview/parsers/frontmatter.ts other L32 module src/lib/core/markdown-editor in2 t2
+file src/lib/core/markdown-editor/extensions/live-preview/parsers/frontmatter.ts other L32 module src/lib/core/markdown-editor in3 t2
 file src/lib/core/markdown-editor/extensions/live-preview/parsers/inline-markdown.ts other L100 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/extensions/live-preview/parsers/link.ts other L111 module src/lib/core/markdown-editor in2 t2
 file src/lib/core/markdown-editor/extensions/live-preview/parsers/math.ts other L66 module src/lib/core/markdown-editor in1 t2
@@ -141,6 +141,8 @@ file src/lib/core/markdown-editor/extensions/live-preview/widgets/math-widget.ts
 file src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts other L139 module src/lib/core/markdown-editor in2 t2
 file src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts other L143 module src/lib/core/markdown-editor in1 t4
 file src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts other L66 module src/lib/core/markdown-editor in4 t3
+file src/lib/core/markdown-editor/extensions/source-frontmatter/index.ts other L1 module src/lib/core/markdown-editor in1 t0
+file src/lib/core/markdown-editor/extensions/source-frontmatter/source-frontmatter.ts other L67 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/extensions/tag/completion.logic.ts logic L102 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/extensions/tag/completion.ts other L41 module src/lib/core/markdown-editor in2 t3
 file src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts logic L114 module src/lib/core/markdown-editor in2 t1
@@ -150,7 +152,7 @@ file src/lib/core/markdown-editor/extensions/wikilink/decoration.ts other L92 mo
 file src/lib/core/markdown-editor/extensions/wikilink/index.ts other L5 module src/lib/core/markdown-editor in2 t0
 file src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts logic L54 module src/lib/core/markdown-editor in5 t1
 file src/lib/core/markdown-editor/highlight-styles.ts other L134 module src/lib/core/markdown-editor in2 t10
-file src/lib/core/markdown-editor/setup/editor-extensions.ts other L195 module src/lib/core/markdown-editor in3 t3
+file src/lib/core/markdown-editor/setup/editor-extensions.ts other L199 module src/lib/core/markdown-editor in3 t3
 file src/lib/core/markdown-editor/setup/editor-theme.ts other L93 module src/lib/core/markdown-editor in3 t1
 file src/lib/core/markdown-editor/setup/index.ts other L2 module src/lib/core/markdown-editor in1 t0
 file src/lib/core/markdown-editor/tab-view-state.ts other L111 module src/lib/core/markdown-editor in3 t2 | Per-tab view state (scroll position, cursor) preserved across tab switches AND across MarkdownEditor component remounts (e.g. when switching to a non-markdown …
@@ -186,7 +188,7 @@ sym src/lib/core/markdown-editor/extensions/wikilink/completion.ts:43 fn wikilin
 sym src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts:6 const HEADING_RE L1 | Regex matching any ATX heading: `# Title`, `## Title`, etc. Tolerates a trailing carriage return so headings are still matched when callers split CRLF (Windows…
 sym src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts:21 fn findHeadingPosition(content: string, headingName: string): number | null L14 | Finds the document position of a heading by name.
 sym src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts:41 fn findBlockIdPosition(content: string, blockId: string): number | null L14 | Finds the document position of a block identified by `^block-id`.
-sym src/lib/core/markdown-editor/setup/editor-extensions.ts:37 const COPY_BLOCK_LINK_SHORTCUT L1 | Copy Block Link (Cmd+Shift+L).
+sym src/lib/core/markdown-editor/setup/editor-extensions.ts:38 const COPY_BLOCK_LINK_SHORTCUT L1 | Copy Block Link (Cmd+Shift+L).
 sym src/lib/core/markdown-editor/setup/editor-theme.ts:12 fn buildEditorTheme(fontFamily: string, fontSize: number, lineHeight: number, contentWidth: number, paragraphSpacing: number, dark: boolea… L82 | Builds a CodeMirror theme from the current editor settings.
 sym src/lib/core/markdown-editor/tab-view-state.ts:81 fn deleteTabViewState(path: string): void L4 | Removes saved view and editor state for a tab (e.g. when the tab is closed)
 sym src/lib/core/markdown-editor/tab-view-state.ts:87 fn renameTabViewState(oldPath: string, newPath: string): void L8 | Moves a tab's saved view and editor state to its new path after a rename or move
