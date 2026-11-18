@@ -5,13 +5,13 @@ file src/lib/features/collection/CollectionCalendarView.svelte component L172 mo
 imp src/lib/features/collection/CollectionCalendarView.svelte:2 -> src/lib/features/collection/collection.types.ts type:QueryResult,type:PropertyIndexRecord
 imp src/lib/features/collection/CollectionCalendarView.svelte:3 -> src/lib/features/collection/calendar.logic.ts getCalendarGrid,groupRecordsByDate,navigateMonth,formatMonthYear,getWeekDayLabels,formatDateKey
 ## imported-by
-imp src/lib/features/collection/CollectionView.svelte:24 -> src/lib/features/collection/CollectionCalendarView.svelte default
+imp src/lib/features/collection/CollectionView.svelte:25 -> src/lib/features/collection/CollectionCalendarView.svelte default
 ## reach
 in2 src/lib/features/collection/CollectionCalendarView.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/collection/CollectionCalendarView.svelte 3 files in 2 modules: src/lib/features/collection(2) src/lib/utils(1)
 ## symbols
 sym src/lib/features/collection/CollectionCalendarView.svelte:1 component CollectionCalendarView props:result,dateProperty,endDateProperty,weekStartDay=,onClickRecord L172
-by src/lib/features/collection/CollectionCalendarView.svelte:default <- src/lib/features/collection/CollectionView.svelte:697 in (markup) mount
+by src/lib/features/collection/CollectionCalendarView.svelte:default <- src/lib/features/collection/CollectionView.svelte:725 in (markup) mount
 ## locals
 local src/lib/features/collection/CollectionCalendarView.svelte:47 fn goToPrevYear() L1
 local src/lib/features/collection/CollectionCalendarView.svelte:48 fn goToNextYear() L1
@@ -20,7 +20,7 @@ local src/lib/features/collection/CollectionCalendarView.svelte:56 fn goToNextMo
 local src/lib/features/collection/CollectionCalendarView.svelte:62 fn goToToday() L5
 local src/lib/features/collection/CollectionCalendarView.svelte:68 fn getEventsForDay(date: Date) L3
 ## mounted-at
-mount src/lib/features/collection/CollectionView.svelte:697 CollectionCalendarView -> src/lib/features/collection/CollectionCalendarView.svelte
+mount src/lib/features/collection/CollectionView.svelte:725 CollectionCalendarView -> src/lib/features/collection/CollectionCalendarView.svelte
 ## calls
 call src/lib/features/collection/CollectionCalendarView.svelte:42 in grid=$derived -> src/lib/features/collection/calendar.logic.ts:getCalendarGrid call
 call src/lib/features/collection/CollectionCalendarView.svelte:43 in dayLabels=$derived -> src/lib/features/collection/calendar.logic.ts:getWeekDayLabels call

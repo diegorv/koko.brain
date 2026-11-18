@@ -2,9 +2,9 @@
 cols: reg <id> sink <loc> | stores <binding> <mutation> | doc <text> · reg <id> facet <loc> · reg <id> read-by <loc> <name> · reg <id> fired-by <loc> in <fn> <- <loc> in <fn> · reg <id> registered-at <loc> in <fn> args=<text> -> <callbacks> · reg <id> invoked-at <loc> in <fn> · grep: grep -rF -- 'reg <id> ' codemap/wiring
 reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort sink src/lib/features/collection/view-row-set.port.ts:55 | stores viewRowSetPort assign | doc Installs the port a `.view` in the collection editor uses.
 reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort read-by src/lib/features/collection/view-row-set.port.ts:63 getViewRowSetPort
-reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort fired-by src/lib/features/collection/CollectionView.svelte:256 in queryResult=$derived
-reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort fired-by src/lib/features/collection/CollectionView.svelte:280 in sortEmptyText=$derived
-reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort fired-by src/lib/features/collection/collection-block-widget.ts:122 in CollectionBlockWidget.toDOM
+reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort fired-by src/lib/features/collection/CollectionView.svelte:259 in queryResult=$derived
+reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort fired-by src/lib/features/collection/CollectionView.svelte:296 in sortEmptyText=$derived
+reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort fired-by src/lib/features/collection/collection-block-widget.ts:126 in CollectionBlockWidget.toDOM
 reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort fired-by src/lib/plugins/mods/mod-query.service.ts:50 in createModQuery
 reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort registered-at src/lib/app/boot.ts:61 in registerAppPorts args={ blockRows: (records, view, definition) => blockRowSet(records, view, definiti… -> src/lib/app/boot.ts:registerAppPorts
 reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort invoked-at src/routes/(app)/+layout.svelte:29 in (script)

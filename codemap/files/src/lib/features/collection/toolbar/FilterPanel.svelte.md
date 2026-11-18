@@ -13,7 +13,7 @@ imp src/lib/features/collection/toolbar/FilterPanel.svelte:21 -> src/lib/feature
 imp src/lib/features/collection/toolbar/FilterPanel.svelte:22 -> src/lib/features/collection/toolbar/FilterRow.svelte default
 ## imported-by
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:23 -> src/lib/features/collection/toolbar/FilterPanel.svelte default
-imp src/lib/features/collection/CollectionView.svelte:26 -> src/lib/features/collection/toolbar/FilterPanel.svelte default
+imp src/lib/features/collection/CollectionView.svelte:27 -> src/lib/features/collection/toolbar/FilterPanel.svelte default
 imp src/lib/features/rail-shell/RailNoteList.svelte:29 -> src/lib/features/collection/toolbar/FilterPanel.svelte default
 imp src/lib/features/type-definitions/ViewDialog.svelte:8 -> src/lib/features/collection/toolbar/FilterPanel.svelte default
 ## reach
@@ -24,7 +24,7 @@ test src/tests/lib/features/collection/toolbar/FilterPanel.svelte.test.ts import
 ## symbols
 sym src/lib/features/collection/toolbar/FilterPanel.svelte:1 component FilterPanel props:globalFilters,viewFilters,availableProperties,propertyIndex,onGlobalFiltersChange,onViewFiltersChange,showGlobal= L223
 by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:332 in (markup) mount
-by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/collection/CollectionView.svelte:654 in (markup) mount
+by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/collection/CollectionView.svelte:680 in (markup) mount
 by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:841 in (markup) mount
 by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/type-definitions/ViewDialog.svelte:202 in (markup) mount
 ## locals
@@ -54,7 +54,7 @@ mount src/lib/features/collection/toolbar/FilterPanel.svelte:200 FilterRow -> sr
 mount src/lib/features/collection/toolbar/FilterPanel.svelte:211 Button -> src/lib/components/ui/button/button.svelte
 ## mounted-at
 mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:332 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
-mount src/lib/features/collection/CollectionView.svelte:654 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
+mount src/lib/features/collection/CollectionView.svelte:680 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
 mount src/lib/features/rail-shell/RailNoteList.svelte:841 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
 mount src/lib/features/type-definitions/ViewDialog.svelte:202 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
 ## calls

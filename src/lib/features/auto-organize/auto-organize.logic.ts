@@ -897,6 +897,29 @@ export function isInExcludedFolder(
 }
 
 /**
+ * Whether `folder`, trimmed, is already in the excluded `list`. Case-insensitive,
+ * as `isInExcludedFolder` matches, so `archive` adds nothing next to `Archive`.
+ * A blank folder is never a duplicate.
+ */
+export function isDuplicateExcluded(list: string[], folder: string): boolean {
+	const wanted = folder.trim().toLowerCase();
+	if (!wanted) return false;
+	return list.some((excluded) => excluded.trim().toLowerCase() === wanted);
+}
+
+/**
+ * Whether an excluded `folder` names no folder of `vaultFolders` (vault-relative),
+ * compared case-insensitively as `isInExcludedFolder` matches. False while
+ * `vaultFolders` is empty (no tree loaded yet) and for a folder with a
+ * dot-prefixed segment at any level, which the vault scan hides from the tree.
+ */
+export function isExcludedFolderMissing(folder: string, vaultFolders: string[]): boolean {
+	if (vaultFolders.length === 0 || folder.split('/').some((s) => s.startsWith('.'))) return false;
+	const wanted = folder.toLowerCase();
+	return !vaultFolders.some((f) => f.toLowerCase() === wanted);
+}
+
+/**
  * Checks if a file is already in the rule's destination folder.
  * Prevents unnecessary moves.
  */

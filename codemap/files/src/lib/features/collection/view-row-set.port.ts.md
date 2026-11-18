@@ -5,7 +5,7 @@ file src/lib/features/collection/view-row-set.port.ts other L65 module src/lib/f
 imp src/lib/features/collection/view-row-set.port.ts:1 -> src/lib/features/collection/collection.types.ts type:CollectionDefinition,type:CollectionViewDef,type:PropertyIndexRecord
 ## imported-by
 imp src/lib/app/boot.ts:9 -> src/lib/features/collection/view-row-set.port.ts registerViewRowSetPort
-imp src/lib/features/collection/CollectionView.svelte:14 -> src/lib/features/collection/view-row-set.port.ts getViewRowSetPort
+imp src/lib/features/collection/CollectionView.svelte:15 -> src/lib/features/collection/view-row-set.port.ts getViewRowSetPort
 imp src/lib/features/collection/collection-block-widget.ts:5 -> src/lib/features/collection/view-row-set.port.ts getViewRowSetPort
 imp src/lib/plugins/mods/mod-query.service.ts:4 -> src/lib/features/collection/view-row-set.port.ts getViewRowSetPort
 ## reach
@@ -19,6 +19,6 @@ sym src/lib/features/collection/view-row-set.port.ts:13 interface ViewRowSetPort
 sym src/lib/features/collection/view-row-set.port.ts:55 fn registerViewRowSetPort(port: ViewRowSetPort): () => void L6 | Installs the port a `.view` in the collection editor uses.
 by src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort <- src/lib/app/boot.ts:61 in registerAppPorts call
 sym src/lib/features/collection/view-row-set.port.ts:63 fn getViewRowSetPort(): ViewRowSetPort | null L3 | The installed port, or null when none is registered (the editor then runs the plain query).
-by src/lib/features/collection/view-row-set.port.ts:getViewRowSetPort <- src/lib/features/collection/CollectionView.svelte:256 in queryResult=$derived call +1
-by src/lib/features/collection/view-row-set.port.ts:getViewRowSetPort <- src/lib/features/collection/collection-block-widget.ts:122 in CollectionBlockWidget.toDOM call
+by src/lib/features/collection/view-row-set.port.ts:getViewRowSetPort <- src/lib/features/collection/CollectionView.svelte:259 in queryResult=$derived call +1
+by src/lib/features/collection/view-row-set.port.ts:getViewRowSetPort <- src/lib/features/collection/collection-block-widget.ts:126 in CollectionBlockWidget.toDOM call
 by src/lib/features/collection/view-row-set.port.ts:getViewRowSetPort <- src/lib/plugins/mods/mod-query.service.ts:50 in createModQuery call

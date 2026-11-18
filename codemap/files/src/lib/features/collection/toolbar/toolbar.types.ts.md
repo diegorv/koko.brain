@@ -6,7 +6,7 @@ imp src/lib/features/collection/toolbar/toolbar.types.ts:1 -> src/lib/features/c
 ## imported-by
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:25 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterGroup
 imp src/lib/features/auto-organize/auto-organize.logic.ts:21 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterRow
-imp src/lib/features/collection/CollectionView.svelte:20 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterGroup,type:FormulaEntry
+imp src/lib/features/collection/CollectionView.svelte:21 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterGroup,type:FormulaEntry
 imp src/lib/features/collection/toolbar/FilterPanel.svelte:18 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterConjunction,type:FilterGroup,type:FilterRow
 imp src/lib/features/collection/toolbar/FilterPanel.svelte:19 -> src/lib/features/collection/toolbar/toolbar.types.ts CONJUNCTION_LABELS
 imp src/lib/features/collection/toolbar/FilterRow.svelte:13 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterRow,type:FilterOperator
@@ -51,7 +51,7 @@ by src/lib/features/collection/toolbar/toolbar.types.ts:FilterRow <- src/lib/fea
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterRow <- src/lib/features/collection/toolbar/filter.logic.ts:6 in (module) import
 sym src/lib/features/collection/toolbar/toolbar.types.ts:87 interface FilterGroup L6 | A group of filters with a conjunction
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:25 in (script) import
-by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/collection/CollectionView.svelte:20 in (script) import
+by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/collection/CollectionView.svelte:21 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/collection/toolbar/FilterPanel.svelte:18 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/collection/toolbar/filter.logic.ts:6 in (module) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/rail-shell/RailNoteList.svelte:33 in (script) import
@@ -59,7 +59,7 @@ by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/f
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/type-definitions/ViewDialog.svelte:15 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/type-definitions/type-note-list.logic.ts:2 in (module) import
 sym src/lib/features/collection/toolbar/toolbar.types.ts:95 interface FormulaEntry L12 | A formula entry for the visual formula management UI
-by src/lib/features/collection/toolbar/toolbar.types.ts:FormulaEntry <- src/lib/features/collection/CollectionView.svelte:20 in (script) import
+by src/lib/features/collection/toolbar/toolbar.types.ts:FormulaEntry <- src/lib/features/collection/CollectionView.svelte:21 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FormulaEntry <- src/lib/features/collection/toolbar/FormulaRow.svelte:6 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FormulaEntry <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:3 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FormulaEntry <- src/lib/features/collection/toolbar/formula.logic.ts:1 in (module) import

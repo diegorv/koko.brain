@@ -69,8 +69,8 @@ by src/lib/features/collection/collection.logic.ts:buildNoteRecord <- src/lib/fe
 sym src/lib/features/collection/collection.logic.ts:117 type QueryRowSet L5 | Picks the rows a query shows from the records it matched (filtered, formulas computed, the view's own sort applied, `limit` not yet applied), in display order.
 by src/lib/features/collection/collection.logic.ts:QueryRowSet <- src/lib/features/collection/collection-block-widget.ts:4 in (module) import
 sym src/lib/features/collection/collection.logic.ts:133 fn executeQuery(definition: CollectionDefinition, view: CollectionViewDef, index: Map<string, PropertyIndexRecord>, vaultPath: string … L91 | Executes a query against the property index using a collection definition and view.
-by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/collection/CollectionView.svelte:269 in queryResult=$derived call
-by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/collection/collection-block-widget.ts:126 in CollectionBlockWidget.toDOM call
+by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/collection/CollectionView.svelte:272 in queryResult=$derived call
+by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/collection/collection-block-widget.ts:130 in CollectionBlockWidget.toDOM call
 by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/rail-shell/lens.logic.ts:811 in queryViewLens call
 by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/plugins/mods/mod-query.service.ts:45 in createModQuery call +1
 sym src/lib/features/collection/collection.logic.ts:271 fn filterCitesArchived(filter: FilterItem | undefined): boolean L15 | Whether a filter cites the archived flag, which hands the archived rows of a `.view` to the filter instead of the default exclusion.
@@ -83,7 +83,7 @@ by src/lib/features/collection/collection.logic.ts:columnLabel <- src/lib/featur
 by src/lib/features/collection/collection.logic.ts:columnLabel <- src/lib/features/collection/toolbar/SortPanel.svelte:49 in getDisplayName call
 sym src/lib/features/collection/collection.logic.ts:443 fn formatColumnCell(key: string, value: unknown): string L7 | Formats a table cell's text.
 by src/lib/features/collection/collection.logic.ts:formatColumnCell <- src/lib/features/collection/CollectionTableView.svelte:87 in (markup) markup
-by src/lib/features/collection/collection.logic.ts:formatColumnCell <- src/lib/features/collection/collection-block-widget.ts:489 in buildCollectionTable call +2
+by src/lib/features/collection/collection.logic.ts:formatColumnCell <- src/lib/features/collection/collection-block-widget.ts:513 in buildCollectionTable call +2
 sym src/lib/features/collection/collection.logic.ts:452 fn getPropertyValue(record: PropertyIndexRecord, column: string): unknown L19 | Retrieves a property value from a PropertyIndexRecord by column name
 by src/lib/features/collection/collection.logic.ts:getPropertyValue <- src/lib/features/collection/CollectionTableView.svelte:70 in (markup) markup
 by src/lib/features/collection/collection.logic.ts:getPropertyValue <- src/lib/features/collection/calendar.logic.ts:69 in extractDateFromRecord call

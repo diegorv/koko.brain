@@ -40,7 +40,7 @@ imp src/lib/core/zoom/ZoomChip.svelte:5 -> src/lib/utils/debug.ts error
 imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:16 -> src/lib/utils/debug.ts error
 imp src/lib/features/auto-organize/auto-organize.service.ts:47 -> src/lib/utils/debug.ts debug,error
 imp src/lib/features/backlinks/backlinks.service.ts:2 -> src/lib/utils/debug.ts debug,error,perfStart,perfEnd
-imp src/lib/features/collection/CollectionView.svelte:18 -> src/lib/utils/debug.ts error
+imp src/lib/features/collection/CollectionView.svelte:19 -> src/lib/utils/debug.ts error
 imp src/lib/features/collection/collection.service.ts:5 -> src/lib/utils/debug.ts debug,error,timeAsync
 imp src/lib/features/copy-block-link/copy-block-link.service.ts:4 -> src/lib/utils/debug.ts error
 imp src/lib/features/deep-link/deep-link.service.ts:18 -> src/lib/utils/debug.ts debug,error

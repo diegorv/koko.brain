@@ -40,8 +40,8 @@ test src/tests/lib/features/type-definitions/view-parse-cache.test.ts mocks src/
 ## symbols
 sym src/lib/features/collection/yaml-parser.ts:5 type ParseResult L3 | Result of parsing a `.view` or ` ```collection ` block YAML string
 sym src/lib/features/collection/yaml-parser.ts:13 fn parseCollectionYaml(yamlString: string): ParseResult L111 | Parses a YAML string into a CollectionDefinition.
-by src/lib/features/collection/yaml-parser.ts:parseCollectionYaml <- src/lib/features/collection/CollectionView.svelte:126 in parseResult=$derived call +2
-by src/lib/features/collection/yaml-parser.ts:parseCollectionYaml <- src/lib/features/collection/collection-block-widget.ts:95 in CollectionBlockWidget.toDOM call
+by src/lib/features/collection/yaml-parser.ts:parseCollectionYaml <- src/lib/features/collection/CollectionView.svelte:129 in parseResult=$derived call +2
+by src/lib/features/collection/yaml-parser.ts:parseCollectionYaml <- src/lib/features/collection/collection-block-widget.ts:99 in CollectionBlockWidget.toDOM call
 by src/lib/features/collection/yaml-parser.ts:parseCollectionYaml <- src/lib/features/collection/key-edit.logic.ts:79 in applyEditorKeyEdit call +2
 by src/lib/features/collection/yaml-parser.ts:parseCollectionYaml <- src/lib/features/type-definitions/type-note-list.logic.ts:197 in applyToolbarEdit call
 by src/lib/features/collection/yaml-parser.ts:parseCollectionYaml <- src/lib/features/type-definitions/view-parse-cache.ts:47 in refreshViewDefinition call +1
@@ -69,13 +69,13 @@ sym src/lib/features/collection/yaml-parser.ts:336 type ViewType L1 | Supported 
 by src/lib/features/collection/yaml-parser.ts:ViewType <- src/lib/features/collection/CollectionView.svelte:3 in (script) import
 by src/lib/features/collection/yaml-parser.ts:ViewType <- src/lib/features/collection/collection.types.ts:1 in (module) import
 sym src/lib/features/collection/yaml-parser.ts:344 fn addView(yamlString: string, name: string, type: ViewType = 'table'): string L13 | Appends a new view at the end of the `views:` array with the given type and name.
-by src/lib/features/collection/yaml-parser.ts:addView <- src/lib/features/collection/CollectionView.svelte:431 in handleAddView call
+by src/lib/features/collection/yaml-parser.ts:addView <- src/lib/features/collection/CollectionView.svelte:447 in handleAddView call
 sym src/lib/features/collection/yaml-parser.ts:364 fn removeView(yamlString: string, index: number): string L16 | Removes the view at the given index from the `views:` array.
-by src/lib/features/collection/yaml-parser.ts:removeView <- src/lib/features/collection/CollectionView.svelte:450 in handleDeleteView call
+by src/lib/features/collection/yaml-parser.ts:removeView <- src/lib/features/collection/CollectionView.svelte:466 in handleDeleteView call
 sym src/lib/features/collection/yaml-parser.ts:388 fn renameView(yamlString: string, index: number, newName: string): string L20 | Renames the view at the given index.
-by src/lib/features/collection/yaml-parser.ts:renameView <- src/lib/features/collection/CollectionView.svelte:478 in commitTabRename call
+by src/lib/features/collection/yaml-parser.ts:renameView <- src/lib/features/collection/CollectionView.svelte:494 in commitTabRename call
 sym src/lib/features/collection/yaml-parser.ts:416 fn setViewType(yamlString: string, index: number, type: ViewType): string L15 | Changes the type of the view at the given index.
-by src/lib/features/collection/yaml-parser.ts:setViewType <- src/lib/features/collection/CollectionView.svelte:456 in handleSetViewType call
+by src/lib/features/collection/yaml-parser.ts:setViewType <- src/lib/features/collection/CollectionView.svelte:472 in handleSetViewType call
 ## locals
 local src/lib/features/collection/yaml-parser.ts:126 fn readRailView(value: unknown): string | undefined L3
 ## calls

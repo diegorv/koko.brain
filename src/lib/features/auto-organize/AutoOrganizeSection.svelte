@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -7,17 +8,35 @@
 	import XIcon from '@lucide/svelte/icons/x';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+	import { collectAllDirPaths, getRelativePath } from '#lib/core/filesystem/fs.logic.js';
 	import SettingItem from '#lib/core/settings/sections/SettingItem.svelte';
+	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import AutoOrganizeRuleRow from './AutoOrganizeRuleRow.svelte';
 	import { autoOrganizeStore } from './auto-organize.store.svelte';
 	import { saveAutoOrganizeConfig, toggleAutoOrganizeHook } from './auto-organize.service';
-	import { generateRuleId } from './auto-organize.logic';
+	import { generateRuleId, isDuplicateExcluded, isExcludedFolderMissing } from './auto-organize.logic';
 	import type { AutoOrganizeRule } from './auto-organize.types';
 	import { error } from '#lib/utils/debug.js';
 	import { clamp } from '#lib/utils/clamp.js';
 
 	/** Folder input for adding excluded folders */
 	let newExcludedFolder = $state('');
+
+	/** Live notice under the folder input, set when the typed folder is already excluded */
+	let excludedNotice = $state('');
+
+	/** Types whose `archiveTo` sets an archive folder; their rules only run while Auto Organize is on */
+	let archiveTypeCount = $derived(
+		[...typeDefinitionsStore.typeMetadataMap.values()].filter((t) => t.archiveTo).length,
+	);
+
+	/** Vault-relative paths of every folder in the loaded tree, in tree order; empty without a vault */
+	let vaultFolders = $derived.by(() => {
+		const vaultPath = vaultStore.path;
+		if (!vaultPath) return [];
+		return [...collectAllDirPaths(fsStore.fileTree)].map((p) => getRelativePath(vaultPath, p));
+	});
 
 	/** Debounce timer for config saves triggered by text input */
 	let saveTimer: ReturnType<typeof setTimeout> | undefined;
@@ -32,9 +51,11 @@
 
 	function saveConfig() {
 		if (vaultStore.path) {
-			saveAutoOrganizeConfig(vaultStore.path).catch((err) =>
-				error('AUTO-ORGANIZE', 'Failed to save config:', err),
-			);
+			saveAutoOrganizeConfig(vaultStore.path).catch((err) => {
+				error('AUTO-ORGANIZE', 'Failed to save config:', err);
+				// A fixed id replaces the toast instead of stacking one per failed save.
+				toast.error('Could not save auto-organize rules', { id: 'auto-organize-save' });
+			});
 		}
 	}
 
@@ -90,9 +111,13 @@
 	function addExcludedFolder() {
 		const folder = newExcludedFolder.trim();
 		if (!folder) return;
-		if (autoOrganizeStore.excludedFolders.includes(folder)) return;
+		if (isDuplicateExcluded(autoOrganizeStore.excludedFolders, folder)) {
+			excludedNotice = 'Already excluded';
+			return;
+		}
 		autoOrganizeStore.setExcludedFolders([...autoOrganizeStore.excludedFolders, folder]);
 		newExcludedFolder = '';
+		excludedNotice = '';
 		saveConfig();
 	}
 
@@ -109,9 +134,10 @@
 
 	<SettingItem
 		label="Enable Auto Organize"
-		description="Automatically move notes to folders based on rules when saved"
+		description="After a save, applies the rules below and the archive rules of your types: notes are moved, renamed or updated automatically."
 	>
 		<Switch
+			aria-label="Enable Auto Organize"
 			checked={settingsStore.autoOrganize.enabled}
 			onCheckedChange={(enabled) => {
 				settingsStore.updateAutoOrganize({ enabled });
@@ -120,12 +146,19 @@
 		/>
 	</SettingItem>
 
+	{#if !settingsStore.autoOrganize.enabled && archiveTypeCount > 0}
+		<p class="px-4 text-meta text-muted-foreground">
+			{archiveTypeCount} of your types set an archive folder. While Auto Organize is off, Archive marks a note as archived but does not move it.
+		</p>
+	{/if}
+
 	<SettingItem
 		label="Debounce delay"
 		description="Seconds to wait after save before evaluating rules (0.5–30)"
 	>
 		<Input
 			type="number"
+			aria-label="Debounce delay"
 			class="w-24"
 			min={0.5}
 			max={30}
@@ -162,8 +195,9 @@
 	</div>
 
 	<p class="text-meta text-muted-foreground">
-		Rules are evaluated top-to-bottom. The first matching rule determines the destination folder.
-		Expressions use the same syntax as Collection filters (e.g. <code class="rounded-xs bg-muted px-1">file.hasTag('archive')</code>).
+		Rules run top to bottom after a save. The first matching rule wins for rename, move to folder and run mod action.
+		Set properties and create note apply from every matching rule. Your types' archive rules run last.
+		Conditions use the same syntax as Collection filters (e.g. <code class="rounded-xs bg-muted px-1">file.hasTag('archive')</code>).
 	</p>
 
 	{#if autoOrganizeStore.rules.length === 0}
@@ -190,14 +224,17 @@
 	<div class="mt-6">
 		<h3 class="section-label mb-2">Excluded folders</h3>
 		<p class="mb-3 text-meta text-muted-foreground">
-			Notes inside these folders will never be automatically moved.
+			Rules never run on notes inside these folders.
 		</p>
 
 		<div class="flex gap-2 mb-2">
 			<Input
 				class="flex-1"
-				placeholder="_templates"
+				aria-label="Folder to exclude"
+				placeholder="e.g. _templates"
+				list="auto-organize-excluded-folders"
 				bind:value={newExcludedFolder}
+				oninput={() => (excludedNotice = '')}
 				onkeydown={(e) => {
 					if (e.key === 'Enter') addExcludedFolder();
 				}}
@@ -211,14 +248,24 @@
 				Add
 			</Button>
 		</div>
+		<datalist id="auto-organize-excluded-folders">
+			{#each vaultFolders as folder (folder)}
+				<option value={folder}></option>
+			{/each}
+		</datalist>
+		<p class="text-meta text-muted-foreground" aria-live="polite">{excludedNotice}</p>
 
 		{#if autoOrganizeStore.excludedFolders.length > 0}
 			<div class="flex flex-wrap gap-1.5">
 				{#each autoOrganizeStore.excludedFolders as folder}
-					<span class="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-label">
+					<span class="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-label" data-excluded-folder>
 						{folder}
+						{#if isExcludedFolderMissing(folder, vaultFolders)}
+							<span class="text-muted-foreground">missing</span>
+						{/if}
 						<button
 							class="text-muted-foreground hover:text-foreground transition-colors"
+							aria-label="Remove {folder} from excluded folders"
 							onclick={() => removeExcludedFolder(folder)}
 						>
 							<XIcon class="size-3" />
@@ -226,6 +273,8 @@
 					</span>
 				{/each}
 			</div>
+		{:else}
+			<p class="text-meta text-muted-foreground">No excluded folders</p>
 		{/if}
 	</div>
 </div>

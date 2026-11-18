@@ -12,7 +12,7 @@ imp src/lib/features/collection/toolbar/filter.logic.ts:6 -> src/lib/features/co
 ## imported-by
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:17 -> src/lib/features/collection/toolbar/filter.logic.ts createEmptyExpressionRow,filterGroupsToFilter,getAllKnownProperties,parseFilterToGroups
 imp src/lib/features/auto-organize/auto-organize.logic.ts:20 -> src/lib/features/collection/toolbar/filter.logic.ts isFilterObject,isUnaryOperator,parseExpressionToRow
-imp src/lib/features/collection/CollectionView.svelte:21 -> src/lib/features/collection/toolbar/filter.logic.ts parseFilterToGroups,filterGroupsToFilter,getAllKnownProperties
+imp src/lib/features/collection/CollectionView.svelte:22 -> src/lib/features/collection/toolbar/filter.logic.ts parseFilterToGroups,filterGroupsToFilter,getAllKnownProperties
 imp src/lib/features/collection/toolbar/FilterPanel.svelte:20 -> src/lib/features/collection/toolbar/filter.logic.ts createEmptyFilterRow,inferPropertyType
 imp src/lib/features/collection/toolbar/FilterRow.svelte:15 -> src/lib/features/collection/toolbar/filter.logic.ts getOperatorsForType,inferPropertyType,isUnaryOperator
 imp src/lib/features/collection/toolbar/SortPanel.svelte:15 -> src/lib/features/collection/toolbar/filter.logic.ts inferPropertyType
@@ -39,12 +39,12 @@ sym src/lib/features/collection/toolbar/filter.logic.ts:38 fn filterRowToExpress
 by src/lib/features/collection/toolbar/filter.logic.ts:filterRowToExpression <- src/lib/features/rail-shell/lens.logic.ts:870 in describeViewFilters ref
 sym src/lib/features/collection/toolbar/filter.logic.ts:94 fn parseFilterToGroups(filter: CollectionFilter | string | undefined): FilterGroup[] L47 | Converts a CollectionFilter or string (from YAML) into FilterGroup[] for the visual UI.
 by src/lib/features/collection/toolbar/filter.logic.ts:parseFilterToGroups <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:144 in toGroups call
-by src/lib/features/collection/toolbar/filter.logic.ts:parseFilterToGroups <- src/lib/features/collection/CollectionView.svelte:161 in seedFromDefinition call +1
+by src/lib/features/collection/toolbar/filter.logic.ts:parseFilterToGroups <- src/lib/features/collection/CollectionView.svelte:164 in seedFromDefinition call +1
 by src/lib/features/collection/toolbar/filter.logic.ts:parseFilterToGroups <- src/lib/features/type-definitions/ViewDialog.svelte:96 in load call +1
 by src/lib/features/collection/toolbar/filter.logic.ts:parseFilterToGroups <- src/lib/features/type-definitions/type-note-list.logic.ts:58 in seedToolbarStateFromDefinition call +2
 sym src/lib/features/collection/toolbar/filter.logic.ts:146 fn filterGroupsToFilter(groups: FilterGroup[]): CollectionFilter | string | undefined L32 | Converts FilterGroup[] (from the UI) back into a CollectionFilter or string or undefined.
 by src/lib/features/collection/toolbar/filter.logic.ts:filterGroupsToFilter <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:82 in filterDraft=$derived call
-by src/lib/features/collection/toolbar/filter.logic.ts:filterGroupsToFilter <- src/lib/features/collection/CollectionView.svelte:259 in queryResult=$derived call +3
+by src/lib/features/collection/toolbar/filter.logic.ts:filterGroupsToFilter <- src/lib/features/collection/CollectionView.svelte:262 in queryResult=$derived call +3
 by src/lib/features/collection/toolbar/filter.logic.ts:filterGroupsToFilter <- src/lib/features/type-definitions/ViewDialog.svelte:129 in submit call +2
 by src/lib/features/collection/toolbar/filter.logic.ts:filterGroupsToFilter <- src/lib/features/type-definitions/type-note-list.logic.ts:90 in buildOverriddenQuery call +4
 sym src/lib/features/collection/toolbar/filter.logic.ts:182 fn getOperatorsForType(type: PropertyType): FilterOperator[] L14 | Returns the valid filter operators for a given property type.
@@ -55,7 +55,7 @@ by src/lib/features/collection/toolbar/filter.logic.ts:isUnaryOperator <- src/li
 by src/lib/features/collection/toolbar/filter.logic.ts:isUnaryOperator <- src/lib/features/type-definitions/ViewDialog.svelte:62 in blankValue=$derived call
 sym src/lib/features/collection/toolbar/filter.logic.ts:223 fn getAllKnownProperties(index: Map<string, PropertyIndexRecord>): string[] L16 | Collects all known note property names from the index plus standard file.* properties.
 by src/lib/features/collection/toolbar/filter.logic.ts:getAllKnownProperties <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:85 in availableProperties=$derived call +1
-by src/lib/features/collection/toolbar/filter.logic.ts:getAllKnownProperties <- src/lib/features/collection/CollectionView.svelte:216 in availableProperties=$derived call
+by src/lib/features/collection/toolbar/filter.logic.ts:getAllKnownProperties <- src/lib/features/collection/CollectionView.svelte:219 in availableProperties=$derived call
 by src/lib/features/collection/toolbar/filter.logic.ts:getAllKnownProperties <- src/lib/features/type-definitions/ViewDialog.svelte:58 in availableProperties=$derived call
 by src/lib/features/collection/toolbar/filter.logic.ts:getAllKnownProperties <- src/lib/features/type-definitions/type-note-list.logic.ts:118 in combineAvailableProperties call
 sym src/lib/features/collection/toolbar/filter.logic.ts:244 fn inferPropertyType(property: string, index: Map<string, PropertyIndexRecord>): PropertyType L34 | Infers the PropertyType of a property by sampling the notes' values from the index.

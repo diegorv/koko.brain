@@ -8,7 +8,7 @@ imp src/lib/features/collection/CollectionTableView.svelte:4 -> src/lib/features
 imp src/lib/features/collection/CollectionTableView.svelte:5 -> src/lib/features/collection/expression/expression.types.ts isDisplayValue
 imp src/lib/features/collection/CollectionTableView.svelte:6 -> src/lib/utils/sanitize.ts sanitizeHtml
 ## imported-by
-imp src/lib/features/collection/CollectionView.svelte:23 -> src/lib/features/collection/CollectionTableView.svelte default
+imp src/lib/features/collection/CollectionView.svelte:24 -> src/lib/features/collection/CollectionTableView.svelte default
 ## reach
 in2 src/lib/features/collection/CollectionTableView.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/collection/CollectionTableView.svelte 8 files in 4 modules: src/lib/features/collection(3) src/lib/core/filesystem(2) src/lib/core/frontmatter(2) src/lib/utils(1)
@@ -16,12 +16,12 @@ out2 src/lib/features/collection/CollectionTableView.svelte 8 files in 4 modules
 test src/tests/lib/features/collection/CollectionTableView.svelte.test.ts imports src/lib/features/collection/CollectionTableView.svelte mirror
 ## symbols
 sym src/lib/features/collection/CollectionTableView.svelte:1 component CollectionTableView props:result,currentSort=,onClickRow,onToggleSort L108
-by src/lib/features/collection/CollectionTableView.svelte:default <- src/lib/features/collection/CollectionView.svelte:726 in (markup) mount
+by src/lib/features/collection/CollectionTableView.svelte:default <- src/lib/features/collection/CollectionView.svelte:756 in (markup) mount
 ## locals
 local src/lib/features/collection/CollectionTableView.svelte:28 fn getSortIndicator(state: SortState | null): string L4
 local src/lib/features/collection/CollectionTableView.svelte:34 fn getAriaSort(state: SortState | null): 'ascending' | 'descending' | undefined L4
 ## mounted-at
-mount src/lib/features/collection/CollectionView.svelte:726 CollectionTableView -> src/lib/features/collection/CollectionTableView.svelte
+mount src/lib/features/collection/CollectionView.svelte:756 CollectionTableView -> src/lib/features/collection/CollectionTableView.svelte
 ## calls
 call src/lib/features/collection/CollectionTableView.svelte:51 in (markup) -> src/lib/features/collection/toolbar/sort.logic.ts:sortState markup
 call src/lib/features/collection/CollectionTableView.svelte:55 in (markup) -> src/lib/features/collection/CollectionTableView.svelte:getAriaSort markup

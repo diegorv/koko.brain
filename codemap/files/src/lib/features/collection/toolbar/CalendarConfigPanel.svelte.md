@@ -4,13 +4,13 @@ file src/lib/features/collection/toolbar/CalendarConfigPanel.svelte component L1
 ## imports
 imp src/lib/features/collection/toolbar/CalendarConfigPanel.svelte:2 -> src/lib/components/ui/dropdown-menu/index.ts DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem
 ## imported-by
-imp src/lib/features/collection/CollectionView.svelte:32 -> src/lib/features/collection/toolbar/CalendarConfigPanel.svelte default
+imp src/lib/features/collection/CollectionView.svelte:33 -> src/lib/features/collection/toolbar/CalendarConfigPanel.svelte default
 ## reach
 in2 src/lib/features/collection/toolbar/CalendarConfigPanel.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/collection/toolbar/CalendarConfigPanel.svelte 17 files in 1 modules: src/lib/components(17)
 ## symbols
 sym src/lib/features/collection/toolbar/CalendarConfigPanel.svelte:1 component CalendarConfigPanel props:dateProperty,endDateProperty,weekStartDay,colorProperty,availableProperties,onDatePropertyChange,onEndDatePropertyChange,onWeekStartDayChange,onColorPropertyChange L144
-by src/lib/features/collection/toolbar/CalendarConfigPanel.svelte:default <- src/lib/features/collection/CollectionView.svelte:604 in (markup) mount
+by src/lib/features/collection/toolbar/CalendarConfigPanel.svelte:default <- src/lib/features/collection/CollectionView.svelte:630 in (markup) mount
 ## mounts
 mount src/lib/features/collection/toolbar/CalendarConfigPanel.svelte:50 DropdownMenu -> src/lib/components/ui/dropdown-menu/dropdown-menu.svelte
 mount src/lib/features/collection/toolbar/CalendarConfigPanel.svelte:51 DropdownMenuTrigger -> src/lib/components/ui/dropdown-menu/dropdown-menu-trigger.svelte
@@ -31,4 +31,4 @@ mount src/lib/features/collection/toolbar/CalendarConfigPanel.svelte:131 Dropdow
 mount src/lib/features/collection/toolbar/CalendarConfigPanel.svelte:132 DropdownMenuItem -> src/lib/components/ui/dropdown-menu/dropdown-menu-item.svelte
 mount src/lib/features/collection/toolbar/CalendarConfigPanel.svelte:136 DropdownMenuItem -> src/lib/components/ui/dropdown-menu/dropdown-menu-item.svelte
 ## mounted-at
-mount src/lib/features/collection/CollectionView.svelte:604 CalendarConfigPanel -> src/lib/features/collection/toolbar/CalendarConfigPanel.svelte
+mount src/lib/features/collection/CollectionView.svelte:630 CalendarConfigPanel -> src/lib/features/collection/toolbar/CalendarConfigPanel.svelte
