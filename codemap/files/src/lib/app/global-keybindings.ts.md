@@ -22,17 +22,17 @@ imp src/lib/app/global-keybindings.ts:28 -> src/lib/features/properties/lifecycl
 imp src/lib/app/global-keybindings.ts:29 -> src/lib/utils/debug.ts error
 ## imported-by
 imp src/lib/app/commands.ts:54 -> src/lib/app/global-keybindings.ts shortcutFor
-imp src/routes/(app)/+layout.svelte:9 -> src/lib/app/global-keybindings.ts registerGlobalKeybindings
+imp src/routes/(app)/+layout.svelte:10 -> src/lib/app/global-keybindings.ts registerGlobalKeybindings
 ## reach
 in2 src/lib/app/global-keybindings.ts 1 files in 1 modules: src/lib/app(1)
-out2 src/lib/app/global-keybindings.ts 60 files in 23 modules: src/lib/features/event-calendar(9) src/lib/features/tasks(8) src/lib/core/filesystem(4) src/lib/core/editor(3) src/lib/core/frontmatter(3) +18 modules
+out2 src/lib/app/global-keybindings.ts 61 files in 24 modules: src/lib/features/event-calendar(9) src/lib/features/tasks(8) src/lib/core/filesystem(4) src/lib/core/editor(3) src/lib/core/frontmatter(3) +19 modules
 ## tests
 test src/tests/lib/app/global-keybindings.test.ts imports src/lib/app/global-keybindings.ts mirror
 ## symbols
 sym src/lib/app/global-keybindings.ts:211 fn shortcutFor(command: string): KeyCombo L6 | Returns the key combo bound to a palette command, for its shortcut label.
-by src/lib/app/global-keybindings.ts:shortcutFor <- src/lib/app/commands.ts:125 in getBuiltInCommands call +18
+by src/lib/app/global-keybindings.ts:shortcutFor <- src/lib/app/commands.ts:127 in getBuiltInCommands call +18
 sym src/lib/app/global-keybindings.ts:222 fn registerGlobalKeybindings(): () => void L8 | Registers all app-wide keyboard shortcuts.
-by src/lib/app/global-keybindings.ts:registerGlobalKeybindings <- src/routes/(app)/+layout.svelte:42 in $effect@41 call
+by src/lib/app/global-keybindings.ts:registerGlobalKeybindings <- src/routes/(app)/+layout.svelte:47 in $effect@46 call
 ## locals
 local src/lib/app/global-keybindings.ts:40 fn registerSlashSearchKeybinding(): () => void L11
 ## calls

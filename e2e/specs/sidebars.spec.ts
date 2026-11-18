@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, TEST_FILES, TEST_VAULT_PATH } from '../fixtures/test-vault';
-import { expectTabActive, pressShortcut } from '../fixtures/helpers';
+import { expectTabActive, openFile, pressShortcut } from '../fixtures/helpers';
 
 /** Reads one persisted layout flag from settings.json on the mock FS. */
 function readPersistedLayout(page: Page, key: 'rightSidebarVisible' | 'railPanelsVisible') {
@@ -70,6 +70,36 @@ test.describe('Right sidebar panels', () => {
 		await page.locator('button[title="Hide right sidebar"]').click();
 		await expect(sidebar).toHaveCount(0);
 		await expect.poll(() => readPersistedLayout(page, 'rightSidebarVisible')).toBe(false);
+	});
+
+	test('the hidden sidebar toggle covers no tab and not the tab list button', async ({ vaultPage: page }) => {
+		for (const name of ['Welcome.md', 'Inbox.md', 'Roadmap.md', '2026-Q2.md', '2025-Q4.md', '2026-05-01.md']) {
+			await openFile(page, name);
+		}
+		// The E2E vault starts with the sidebar shown, where the toggle sits over the sidebar, not the strip.
+		await page.locator('button[title="Hide right sidebar"]').click();
+		await expect(page.locator('[data-right-sidebar]')).toHaveCount(0);
+		const toggle = page.locator('button[title="Show right sidebar"]');
+		await expect(toggle).toBeVisible();
+		await page.setViewportSize({ width: 640, height: 800 });
+
+		const strip = page.locator('.editor-tabs-bar');
+		const listButton = page.getByRole('button', { name: 'List all tabs' });
+		// Without overflow the last tab would never reach the strip's right end.
+		expect(await strip.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+
+		for (const end of ['start', 'end'] as const) {
+			await strip.evaluate((el, end) => {
+				el.scrollLeft = end === 'start' ? 0 : el.scrollWidth;
+			}, end);
+			const toggleLeft = (await toggle.boundingBox())!.x;
+			const stripBox = (await strip.boundingBox())!;
+			const listBox = (await listButton.boundingBox())!;
+			const lastTab = (await page.locator('.editor-tabs-bar [role="tab"]').last().boundingBox())!;
+			expect(stripBox.x + stripBox.width).toBeLessThanOrEqual(toggleLeft);
+			expect(listBox.x + listBox.width).toBeLessThanOrEqual(toggleLeft);
+			if (end === 'end') expect(lastTab.x + lastTab.width).toBeLessThanOrEqual(toggleLeft);
+		}
 	});
 
 	test('the rail has no left sidebar toggle; Cmd+1 hides the panels beside it and persists', async ({ vaultPage: page }) => {

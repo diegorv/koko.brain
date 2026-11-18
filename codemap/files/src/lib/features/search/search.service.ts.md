@@ -17,9 +17,9 @@ imp src/lib/features/search/search.service.ts:23 -> src/lib/utils/debug.ts debug
 imp src/lib/features/search/search.service.ts:24 -> src/lib/features/search/search.types.ts type:SemanticProgress
 ## imported-by
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:26 -> src/lib/features/search/search.service.ts resetSearch,buildSearchIndex,registerSearchIndexHook,initSemanticSearch,buildSemanticIndex,startSemanticProgressListener,stopSemanticProgressListener
-imp src/lib/features/search/SearchPanel.svelte:11 -> src/lib/features/search/search.service.ts performSearch
+imp src/lib/features/search/SearchPanel.svelte:12 -> src/lib/features/search/search.service.ts performSearch
 imp src/lib/features/search/SearchSection.svelte:10 -> src/lib/features/search/search.service.ts initSemanticSearch,buildSemanticIndex,startSemanticProgressListener,stopSemanticProgressListener
-imp src/routes/(app)/+layout.svelte:8 -> src/lib/features/search/search.service.ts performSearch
+imp src/routes/(app)/+layout.svelte:9 -> src/lib/features/search/search.service.ts performSearch
 ## reach
 in2 src/lib/features/search/search.service.ts 2 files in 1 modules: src/lib/app(2)
 out2 src/lib/features/search/search.service.ts 11 files in 5 modules: src/lib/utils(4) src/lib/contracts(2) src/lib/core/filesystem(2) src/lib/core/settings(2) src/lib/core/vault(1)
@@ -36,8 +36,8 @@ sym src/lib/features/search/search.service.ts:120 fn stopSemanticProgressListene
 by src/lib/features/search/search.service.ts:stopSemanticProgressListener <- src/lib/app/lifecycle/app-lifecycle.service.ts:480 in initializeVault call +2
 by src/lib/features/search/search.service.ts:stopSemanticProgressListener <- src/lib/features/search/SearchSection.svelte:93 in handleToggle call
 sym src/lib/features/search/search.service.ts:143 fn performSearch(): Promise<void> L198 | Performs search based on current mode (text/semantic/hybrid).
-by src/lib/features/search/search.service.ts:performSearch <- src/lib/features/search/SearchPanel.svelte:210 in (markup) markup
-by src/lib/features/search/search.service.ts:performSearch <- src/routes/(app)/+layout.svelte:176 in $effect@170 call
+by src/lib/features/search/search.service.ts:performSearch <- src/lib/features/search/SearchPanel.svelte:286 in (markup) markup
+by src/lib/features/search/search.service.ts:performSearch <- src/routes/(app)/+layout.svelte:181 in $effect@175 call
 sym src/lib/features/search/search.service.ts:343 fn buildSearchIndex(): Promise<void> L17 | Builds the FTS5 search index.
 by src/lib/features/search/search.service.ts:buildSearchIndex <- src/lib/app/lifecycle/app-lifecycle.service.ts:445 in initializeVault call
 sym src/lib/features/search/search.service.ts:365 fn registerSearchIndexHook(): () => void L30 | Registers AfterSaveObserver for incremental FTS5 + semantic index updates.

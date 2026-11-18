@@ -32,7 +32,7 @@ fx src/lib/features/canvas/TextNode.svelte:31 timer.requestAnimationFrame in sta
 fx src/lib/features/collection/CollectionView.svelte:465 timer.requestAnimationFrame in startTabRename
 fx src/lib/features/collection/toolbar/PropertiesPanel.svelte:68 timer.requestAnimationFrame in handleAddFormula
 fx src/lib/features/note-list/NoteRowMenu.svelte:120 timer.requestAnimationFrame in $effect@109
-fx src/lib/features/rail-shell/FilesNavigator.svelte:154 timer.requestAnimationFrame in focusRenameInput
+fx src/lib/features/rail-shell/FilesNavigator.svelte:195 timer.requestAnimationFrame in focusRenameInput
 fx src/lib/plugins/kanban/KanbanCard.svelte:83 timer.requestAnimationFrame in handleWikilinkSelect
 fx src/lib/plugins/kanban/KanbanLane.svelte:131 timer.requestAnimationFrame in handleAddWikilinkSelect
 fx src/lib/plugins/queryjs/queryjs-block-widget.ts:58 timer.requestAnimationFrame in markAutoRunAfterRenderPass
@@ -50,6 +50,7 @@ fx src/lib/core/markdown-editor/extensions/live-preview/core/scroll-debounce-plu
 fx src/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.ts:97 timer.setTimeout delay=1500 in CodeBlockWidget.toDOM
 fx src/lib/core/settings/settings-persistence.svelte.ts:72 timer.setTimeout delay=PERSIST_DEBOUNCE_MS in $effect@66
 fx src/lib/core/settings/theme-catalog.service.ts:26 timer.setTimeout delay=THEME_CATALOG_TIMEOUT_MS in fetchThemeCatalog
+fx src/lib/core/zoom/zoom.service.ts:66 timer.setTimeout delay=CHIP_HIDE_MS in applyZoom
 fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:94 timer.setTimeout delay=COUNT_DELAY_MS in $effect@92
 fx src/lib/features/auto-organize/AutoOrganizeSection.svelte:44 timer.setTimeout delay=500 in saveConfigDebounced
 fx src/lib/features/auto-organize/auto-organize.service.ts:229 timer.setTimeout delay=settingsStore.autoOrganize.de… in registerAutoOrganizeHook
@@ -57,7 +58,7 @@ fx src/lib/features/canvas/CanvasInner.svelte:238 timer.setTimeout delay=300 in 
 fx src/lib/features/event-calendar/EventCalendarView.svelte:195 timer.setTimeout delay=PULSE_MS in pulse
 fx src/lib/features/properties/PropertiesView.svelte:110 timer.setTimeout delay=300 in $effect@105
 fx src/lib/features/rail-shell/RailListSearch.svelte:67 timer.setTimeout delay=DEBOUNCE_MS in handleInput
-fx src/lib/features/search/SearchPanel.svelte:127 timer.setTimeout delay=SLOW_SEARCH_MS in $effect@125
+fx src/lib/features/search/SearchPanel.svelte:203 timer.setTimeout delay=SLOW_SEARCH_MS in $effect@201
 fx src/lib/features/search/search.service.ts:114 timer.setTimeout delay=PROGRESS_THROTTLE_MS in startSemanticProgressListener
 fx src/lib/features/tags/tags.service.ts:121 timer.setTimeout delay=0 in flushScheduledTagIndexRebuild
 fx src/lib/features/todoist-sync/sync-scheduler.service.ts:95 timer.setTimeout delay=SAVE_DELAY_MS in startAutoSync
@@ -72,8 +73,8 @@ fx src/lib/utils/debounce.ts:38 timer.setTimeout delay=delay in debounce
 fx src/lib/utils/debounce.ts:40 timer.setTimeout delay=options.maxWait in debounce
 fx src/lib/utils/log.service.ts:87 timer.setTimeout delay=LOG_FLUSH_MS in appendLog
 fx src/lib/utils/log.service.ts:195 timer.setTimeout delay=0 in logClickToPaint
-fx src/routes/(app)/+layout.svelte:110 timer.setTimeout delay=150 in $effect@105
-fx src/routes/(app)/+layout.svelte:159 timer.setTimeout delay=1000 in $effect@147
-fx src/routes/(app)/+layout.svelte:175 timer.setTimeout delay=200 in $effect@170
+fx src/routes/(app)/+layout.svelte:115 timer.setTimeout delay=150 in $effect@110
+fx src/routes/(app)/+layout.svelte:164 timer.setTimeout delay=1000 in $effect@152
+fx src/routes/(app)/+layout.svelte:180 timer.setTimeout delay=200 in $effect@175
 fx src/routes/composer/+page.svelte:79 timer.setTimeout delay=RESULT_TIMEOUT_MS in waitForResult
 fx src/routes/composer/+page.svelte:144 timer.setTimeout delay=SAVE_FLASH_MS in handleSave

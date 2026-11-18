@@ -62,6 +62,7 @@ The project needed a taxonomy that answers:
 Use **four layers under `src/lib/`, each with enforceable import rules**:
 
 - **`src/lib/components/ui/`** — shadcn-svelte generated primitives, customized via Tailwind (see ADR-0002).
+- **`src/lib/components/`** outside `ui/`: hand-written shared primitives (such as `EmptyState.svelte`), with the same import rule as `components/ui/` (nothing from `core/`, `features/` or `plugins/`). Not in `components/ui/`, which is shadcn only (ADR-0002), and not feature-local, so two features can share one without a feature-to-feature import cycle.
 - **`src/lib/core/`** — essential subsystems; removing any folder breaks the app. Currently: `app-lifecycle`, `editor`, `file-explorer`, `filesystem`, `keybindings`, `layout`, `markdown-editor`, `note-creator`, `settings`, `status-bar`, `trash`, `vault`, `zoom`.
 - **`src/lib/features/`** — always-loaded, self-contained features. Currently 18 features including `backlinks`, `search`, `tags`, `tasks`, `canvas`, `properties`, `command-palette`, `quick-switcher`.
 - **`src/lib/plugins/`** — optional modules; app works without any of them. Currently 10 plugins including `calendar`, `queryjs`, `graph-view`, `encrypted-notes`, `templates`.

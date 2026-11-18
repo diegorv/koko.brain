@@ -2,7 +2,7 @@
 
 Visualize the connections between your notes as an interactive knowledge graph.
 
-**Shortcut:** `Cmd+G` or Command Palette → **"Toggle Graph View"**
+**Shortcut:** `Cmd+G`, **Graph** on the rail (see [The Rail](01-getting-started.md#the-rail)), or Command Palette → **"Toggle Graph View"**
 
 ---
 

@@ -20,7 +20,7 @@ test.use({ clockTime: '2026-11-10T10:00:00+01:00', timezoneId: 'Europe/Berlin' }
  * that tab cannot take the selection from the Calendar later.
  */
 async function seedEvents(page: Page): Promise<void> {
-	await expect(page.locator('[role="tab"]', { hasText: '2026-11-10.md' })).toBeVisible({ timeout: 10_000 });
+	await expect(page.locator('[role="tab"]', { hasText: '2026-11-10' })).toBeVisible({ timeout: 10_000 });
 	await page.evaluate(({ files }) => {
 		const e2e = window.__e2e;
 		e2e.fs.populate(files);

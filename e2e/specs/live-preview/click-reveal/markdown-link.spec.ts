@@ -38,7 +38,7 @@ test.describe('Live Preview - click reveal: markdown link', () => {
 
 		expect(await activeLineText(page), `click hit ${click.hit}`).toBe(LINK_LINE);
 		expect(await isRevealed(page, RAW_LINK)).toBe(true);
-		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('test.md');
+		await expect(page.locator('[role="tab"][aria-selected="true"]')).toHaveText('test');
 	});
 
 	test('Cmd/Ctrl+click on the rendered link text opens its URL, keeps it rendered and leaves the cursor where it was', async ({ lpPage: page }) => {

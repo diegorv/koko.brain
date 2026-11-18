@@ -14,7 +14,7 @@ imp src/lib/features/tasks/task-query.logic.ts:10 -> src/lib/features/tasks/task
 imp src/lib/features/tasks/task-views.logic.ts:24 -> src/lib/features/tasks/tasks.logic.ts parseSectionTags
 imp src/lib/features/tasks/tasks.service.ts:15 -> src/lib/features/tasks/tasks.logic.ts taskDisplayText
 ## reach
-in2 src/lib/features/tasks/tasks.logic.ts 7 files in 2 modules: src/lib/app(4) src/lib/features/tasks(3)
+in2 src/lib/features/tasks/tasks.logic.ts 8 files in 2 modules: src/lib/app(5) src/lib/features/tasks(3)
 out2 src/lib/features/tasks/tasks.logic.ts 1 files in 1 modules: src/lib/contracts(1)
 ## tests
 test src/tests/lib/features/tasks/tasks.logic.test.ts imports src/lib/features/tasks/tasks.logic.ts mirror

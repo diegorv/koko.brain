@@ -18,12 +18,12 @@ test src/tests/lib/features/event-calendar/ShowInCalendarButton.test.ts imports 
 ## symbols
 sym src/lib/features/event-calendar/ShowInCalendarButton.svelte:1 component ShowInCalendarButton props:path,class= L75
 by src/lib/features/event-calendar/ShowInCalendarButton.svelte:default <- src/lib/features/backlinks/LinkItem.svelte:34 in (markup) mount
-by src/lib/features/event-calendar/ShowInCalendarButton.svelte:default <- src/lib/features/search/SearchResult.svelte:177 in (markup) mount
+by src/lib/features/event-calendar/ShowInCalendarButton.svelte:default <- src/lib/features/search/SearchResult.svelte:181 in (markup) mount
 ## locals
 local src/lib/features/event-calendar/ShowInCalendarButton.svelte:51 fn handleClick() L11
 ## mounted-at
 mount src/lib/features/backlinks/LinkItem.svelte:34 ShowInCalendarButton -> src/lib/features/event-calendar/ShowInCalendarButton.svelte
-mount src/lib/features/search/SearchResult.svelte:177 ShowInCalendarButton -> src/lib/features/event-calendar/ShowInCalendarButton.svelte
+mount src/lib/features/search/SearchResult.svelte:181 ShowInCalendarButton -> src/lib/features/event-calendar/ShowInCalendarButton.svelte
 ## calls
 call src/lib/features/event-calendar/ShowInCalendarButton.svelte:39 in $effect@25 -> src/lib/features/event-calendar/event-calendar.service.ts:findCalendarEvent call
 call src/lib/features/event-calendar/ShowInCalendarButton.svelte:44 in $effect@25 -> src/lib/utils/debug.ts:error call

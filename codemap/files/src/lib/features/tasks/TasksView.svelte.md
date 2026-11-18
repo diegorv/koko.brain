@@ -34,7 +34,7 @@ imp src/lib/features/tasks/TasksView.svelte:85 -> src/lib/features/tasks/tasks.t
 imp src/lib/app/EditorView.svelte:16 -> src/lib/features/tasks/TasksView.svelte default
 ## reach
 in2 src/lib/features/tasks/TasksView.svelte 1 files in 1 modules: src/lib/app(1)
-out2 src/lib/features/tasks/TasksView.svelte 78 files in 13 modules: src/lib/components(48) src/lib/utils(8) src/lib/core/editor(4) src/lib/core/settings(4) src/lib/features/file-icons(3) +8 modules
+out2 src/lib/features/tasks/TasksView.svelte 79 files in 13 modules: src/lib/components(48) src/lib/utils(9) src/lib/core/editor(4) src/lib/core/settings(4) src/lib/features/file-icons(3) +8 modules
 ## tests
 test src/tests/lib/features/tasks/TasksView.sources.test.ts imports src/lib/features/tasks/TasksView.svelte mirror
 test src/tests/fixtures/tasks.fixture.ts imports src/lib/features/tasks/TasksView.svelte
@@ -115,7 +115,7 @@ call src/lib/features/tasks/TasksView.svelte:307 in rowsByKey=$derived -> src/li
 call src/lib/features/tasks/TasksView.svelte:312 in currentKey=$derived -> src/lib/features/tasks/tasks-keys.logic.ts:taskRowKey call
 call src/lib/features/tasks/TasksView.svelte:324 in shownGroups=$derived -> src/lib/features/tasks/task-query.logic.ts:collapseKey call
 call src/lib/features/tasks/TasksView.svelte:331 in rendered=$derived -> src/lib/features/tasks/tasks-keys.logic.ts:taskRowKey call
-call src/lib/features/tasks/TasksView.svelte:333 in tabStopKey=$derived -> src/lib/features/tasks/tasks-keys.logic.ts:tabStopRow call
+call src/lib/features/tasks/TasksView.svelte:333 in tabStopKey=$derived -> src/lib/utils/roving-list.ts:tabStopRow call
 call src/lib/features/tasks/TasksView.svelte:348 in groupActions -> src/lib/features/tasks/task-query.logic.ts:hideNote call
 call src/lib/features/tasks/TasksView.svelte:348 in groupActions -> src/lib/features/tasks/tasks.store.svelte.ts:tasksStore.setExclude mcall +2
 call src/lib/features/tasks/TasksView.svelte:354 in groupActions -> src/lib/features/tasks/task-query.logic.ts:onlyThisType call
@@ -129,17 +129,17 @@ call src/lib/features/tasks/TasksView.svelte:394 in handleListKeydown -> src/lib
 call src/lib/features/tasks/TasksView.svelte:413 in handleListKeydown -> src/lib/features/tasks/TasksView.svelte:handleToggle call
 call src/lib/features/tasks/TasksView.svelte:414 in handleListKeydown -> src/lib/core/editor/open-note-at.service.ts:openNoteAt call
 call src/lib/features/tasks/TasksView.svelte:423 in handleListFocusin -> src/lib/features/tasks/tasks.store.svelte.ts:tasksStore.setCurrentRow mcall
-call src/lib/features/tasks/TasksView.svelte:458 in $effect@448 -> src/lib/features/tasks/tasks-keys.logic.ts:nextCurrentRow call +1
+call src/lib/features/tasks/TasksView.svelte:458 in $effect@448 -> src/lib/utils/roving-list.ts:nextCurrentRow call +1
 call src/lib/features/tasks/TasksView.svelte:464 in $effect@448 -> src/lib/features/tasks/tasks.store.svelte.ts:tasksStore.setCurrentRow mcall +1
 call src/lib/features/tasks/TasksView.svelte:465 in $effect@448 -> src/lib/features/tasks/TasksView.svelte:focusIsFree call +1
 call src/lib/features/tasks/TasksView.svelte:465 in $effect@448 -> src/lib/features/tasks/TasksView.svelte:rowElement call +2
-call src/lib/features/tasks/TasksView.svelte:477 in $effect@448 -> src/lib/features/tasks/tasks-keys.logic.ts:tabStopRow call
+call src/lib/features/tasks/TasksView.svelte:477 in $effect@448 -> src/lib/utils/roving-list.ts:tabStopRow call
 call src/lib/features/tasks/TasksView.svelte:491 in $effect@487 -> src/lib/features/tasks/TasksView.svelte:focusIsFree call
 call src/lib/features/tasks/TasksView.svelte:492 in $effect@487 -> src/lib/features/tasks/TasksView.svelte:rowElement call
 call src/lib/features/tasks/TasksView.svelte:502 in handleRowMenuOpen -> src/lib/features/tasks/tasks.store.svelte.ts:tasksStore.setCurrentRow mcall
 call src/lib/features/tasks/TasksView.svelte:507 in handleRowContextMenu -> src/lib/features/tasks/TasksView.svelte:handleRowMenuOpen call
 call src/lib/features/tasks/TasksView.svelte:537 in handleRowMenuCloseFocus -> src/lib/features/tasks/TasksView.svelte:rowElement call +1
-call src/lib/features/tasks/TasksView.svelte:537 in handleRowMenuCloseFocus -> src/lib/features/tasks/tasks-keys.logic.ts:tabStopRow call
+call src/lib/features/tasks/TasksView.svelte:537 in handleRowMenuCloseFocus -> src/lib/utils/roving-list.ts:tabStopRow call
 call src/lib/features/tasks/TasksView.svelte:542 in pickRowStatus -> src/lib/features/tasks/tasks.service.ts:setTaskStatusFromMenu call
 call src/lib/features/tasks/TasksView.svelte:555 in setRowDue -> src/lib/features/tasks/tasks.service.ts:updateTaskFromMenu call
 call src/lib/features/tasks/TasksView.svelte:555 in setRowDue -> src/lib/utils/task-tokens.ts:setDueToken call

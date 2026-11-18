@@ -3,7 +3,7 @@ import type { RailAction, RailFolderCreator, RailLensProvider, RailMenuItem, Rai
 /**
  * The rail shell's registration point. `features/` may not import `plugins/`
  * (ADR 0003), so plugin-owned parts (the Calendar navigator, the Day lens,
- * Today's My people, New Kanban Board) register here at vault open and unregister at teardown.
+ * Today's My people, New kanban board) register here at vault open and unregister at teardown.
  *
  * The lists are `$state.raw`: entries are only ever replaced, and each unregister finds its
  * entry by identity. A deep `$state` proxy would hand back proxied entries, so `!== entry`

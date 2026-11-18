@@ -4,7 +4,7 @@ file src/lib/utils/text-roles.ts other L6 module src/lib/utils in1 t1
 ## imported-by
 imp src/lib/utils.ts:4 -> src/lib/utils/text-roles.ts TEXT_ROLES
 ## reach
-in2 src/lib/utils/text-roles.ts 54 files in 1 modules: src/lib/components(54)
+in2 src/lib/utils/text-roles.ts 55 files in 1 modules: src/lib/components(55)
 out2 src/lib/utils/text-roles.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/utils/text-roles.test.ts imports src/lib/utils/text-roles.ts mirror

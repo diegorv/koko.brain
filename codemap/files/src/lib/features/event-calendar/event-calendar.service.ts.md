@@ -44,7 +44,7 @@ imp src/lib/features/event-calendar/EventPopover.svelte:11 -> src/lib/features/e
 imp src/lib/features/event-calendar/EventTimeGrid.svelte:20 -> src/lib/features/event-calendar/event-calendar.service.ts moveEvent,resizeEvent,toastEventError
 imp src/lib/features/event-calendar/ShowInCalendarButton.svelte:8 -> src/lib/features/event-calendar/event-calendar.service.ts findCalendarEvent,openEventInCalendar
 imp src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:2 -> src/lib/features/event-calendar/event-calendar.service.ts moveEventToDay,toastEventError
-imp src/lib/features/rail-shell/RailNoteList.svelte:52 -> src/lib/features/event-calendar/event-calendar.service.ts acquireCalendarClock
+imp src/lib/features/rail-shell/RailNoteList.svelte:61 -> src/lib/features/event-calendar/event-calendar.service.ts acquireCalendarClock
 imp src/lib/plugins/calendar/CalendarNavigator.svelte:10 -> src/lib/features/event-calendar/event-calendar.service.ts acquireCalendarClock,openEventCalendarTab
 ## reach
 in2 src/lib/features/event-calendar/event-calendar.service.ts 9 files in 6 modules: src/lib/app(3) src/lib/features/event-calendar(2) src/lib/features/backlinks(1) src/lib/features/search(1) src/lib/plugins/calendar(1) +1 modules: q impact src/lib/features/event-calendar/event-calendar.service.ts --depth 2
@@ -77,22 +77,22 @@ by src/lib/features/event-calendar/event-calendar.service.ts:loadEvents <- src/l
 sym src/lib/features/event-calendar/event-calendar.service.ts:114 fn loadCalendarTasks(): Promise<void> L13 | Reads the Rust task index (`get_all_tasks_v2`, every task of the vault) and stores its dated tasks in `eventCalendarStore.tasks`.
 by src/lib/features/event-calendar/event-calendar.service.ts:loadCalendarTasks <- src/lib/features/event-calendar/EventCalendarView.svelte:211 in $effect@205 call
 sym src/lib/features/event-calendar/event-calendar.service.ts:135 fn openEventCalendarTab(options: { date?: string; view?: CalendarViewMode } = {}): void L19 | Opens or focuses the Calendar tab, creating it when absent.
-by src/lib/features/event-calendar/event-calendar.service.ts:openEventCalendarTab <- src/lib/app/commands.ts:249 in getBuiltInCommands call
+by src/lib/features/event-calendar/event-calendar.service.ts:openEventCalendarTab <- src/lib/app/commands.ts:251 in getBuiltInCommands call
 by src/lib/features/event-calendar/event-calendar.service.ts:openEventCalendarTab <- src/lib/plugins/calendar/CalendarNavigator.svelte:77 in openCalendarTab call
 sym src/lib/features/event-calendar/event-calendar.service.ts:156 fn closeEventCalendarTab(): void L6 | Closes the Calendar tab if it exists.
 sym src/lib/features/event-calendar/event-calendar.service.ts:164 fn toggleEventCalendarTab(): void L10 | Toggles the Calendar tab: opens if closed, closes if active, focuses if open but not active.
-by src/lib/features/event-calendar/event-calendar.service.ts:toggleEventCalendarTab <- src/lib/app/commands.ts:233 in getBuiltInCommands call
+by src/lib/features/event-calendar/event-calendar.service.ts:toggleEventCalendarTab <- src/lib/app/commands.ts:235 in getBuiltInCommands call
 by src/lib/features/event-calendar/event-calendar.service.ts:toggleEventCalendarTab <- src/lib/app/global-keybindings.ts:130 in GLOBAL_KEYBINDINGS call
 sym src/lib/features/event-calendar/event-calendar.service.ts:251 fn findCalendarEvent(path: string): Promise<EventNote | null> L3 | The calendar event at `path`, whether or not the Calendar tab has loaded.
 by src/lib/features/event-calendar/event-calendar.service.ts:findCalendarEvent <- src/lib/features/event-calendar/ShowInCalendarButton.svelte:39 in $effect@25 call
 sym src/lib/features/event-calendar/event-calendar.service.ts:266 fn openEventInCalendar(path: string): Promise<boolean> L10 | Opens the Calendar on the day of the event at `path` and asks the view to focus and pulse its block.
 by src/lib/features/event-calendar/event-calendar.service.ts:openEventInCalendar <- src/lib/features/event-calendar/ShowInCalendarButton.svelte:53 in handleClick call
 sym src/lib/features/event-calendar/event-calendar.service.ts:283 fn openNewEventDialog(): void L13 | Opens the Calendar tab and the create dialog at the default slot: now, rounded, on today; `dayStartHour` on any other focused day.
-by src/lib/features/event-calendar/event-calendar.service.ts:openNewEventDialog <- src/lib/app/commands.ts:241 in getBuiltInCommands call
+by src/lib/features/event-calendar/event-calendar.service.ts:openNewEventDialog <- src/lib/app/commands.ts:243 in getBuiltInCommands call
 by src/lib/features/event-calendar/event-calendar.service.ts:openNewEventDialog <- src/lib/features/event-calendar/EventCalendarView.svelte:74 in handleKeydown call
 sym src/lib/features/event-calendar/event-calendar.service.ts:310 fn acquireCalendarClock(): () => void L20 | Holds the calendar clock, which keeps `eventCalendarViewStore.nowMs` current across midnight and sleep: a tick on first acquire, every 30 s, and on window `foc…
 by src/lib/features/event-calendar/event-calendar.service.ts:acquireCalendarClock <- src/lib/features/event-calendar/EventCalendarView.svelte:220 in $effect@220 call
-by src/lib/features/event-calendar/event-calendar.service.ts:acquireCalendarClock <- src/lib/features/rail-shell/RailNoteList.svelte:112 in $effect@110 call
+by src/lib/features/event-calendar/event-calendar.service.ts:acquireCalendarClock <- src/lib/features/rail-shell/RailNoteList.svelte:128 in $effect@126 call
 by src/lib/features/event-calendar/event-calendar.service.ts:acquireCalendarClock <- src/lib/plugins/calendar/CalendarNavigator.svelte:21 in $effect@21 call
 sym src/lib/features/event-calendar/event-calendar.service.ts:339 fn resetEventCalendar(): void L11 | Resets the two event-calendar stores, discards any load in flight and bumps the write generation, so a write still in flight leaves the stores alone when it re…
 by src/lib/features/event-calendar/event-calendar.service.ts:resetEventCalendar <- src/lib/app/lifecycle/app-lifecycle.service.ts:149 in initializeVault call +1
@@ -139,10 +139,10 @@ sym src/lib/features/event-calendar/event-calendar.service.ts:1492 fn duplicateE
 by src/lib/features/event-calendar/event-calendar.service.ts:duplicateEventFromUi <- src/lib/features/event-calendar/EventDialog.svelte:180 in duplicate call
 by src/lib/features/event-calendar/event-calendar.service.ts:duplicateEventFromUi <- src/lib/features/event-calendar/EventPopover.svelte:139 in duplicateNote call
 sym src/lib/features/event-calendar/event-calendar.service.ts:1537 fn undoEventChangeFromUi(root?: HTMLElement): Promise<void> L3 | The Calendar keys' and the palette's undo: runs `undoEventChange` and reports the outcome in a toast. "Undone: <label>" carries a Redo action that focuses the …
-by src/lib/features/event-calendar/event-calendar.service.ts:undoEventChangeFromUi <- src/lib/app/commands.ts:261 in getBuiltInCommands call
+by src/lib/features/event-calendar/event-calendar.service.ts:undoEventChangeFromUi <- src/lib/app/commands.ts:264 in getBuiltInCommands call
 by src/lib/features/event-calendar/event-calendar.service.ts:undoEventChangeFromUi <- src/lib/features/event-calendar/EventCalendarView.svelte:86 in handleKeydown call
 sym src/lib/features/event-calendar/event-calendar.service.ts:1546 fn redoEventChangeFromUi(root?: HTMLElement): Promise<void> L3 | The Calendar keys' and the palette's redo: `undoEventChangeFromUi` the other way round, "Redone: <label>" with an Undo action.
-by src/lib/features/event-calendar/event-calendar.service.ts:redoEventChangeFromUi <- src/lib/app/commands.ts:271 in getBuiltInCommands call
+by src/lib/features/event-calendar/event-calendar.service.ts:redoEventChangeFromUi <- src/lib/app/commands.ts:274 in getBuiltInCommands call
 by src/lib/features/event-calendar/event-calendar.service.ts:redoEventChangeFromUi <- src/lib/features/event-calendar/EventCalendarView.svelte:89 in handleKeydown call
 ## locals
 local src/lib/features/event-calendar/event-calendar.service.ts:183 fn projectionOptions() L10

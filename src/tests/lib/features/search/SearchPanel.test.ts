@@ -162,6 +162,146 @@ describe('SearchPanel', () => {
 			expect(target.querySelector('[data-rail-search]')).not.toBeNull();
 		});
 
+		it('the first Escape with text clears the query and keeps focus in the input; the next one leaves it', () => {
+			settingsStore.updateLayout({ railItem: 'search' });
+			searchStore.setQuery('roadmap');
+			searchStore.requestFocus();
+			mountPanel();
+			expect(document.activeElement).toBe(input());
+			const first = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+			input().dispatchEvent(first);
+			flushSync();
+			expect(searchStore.query).toBe('');
+			expect(input().value).toBe('');
+			expect(document.activeElement).toBe(input());
+			input().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+			flushSync();
+			expect(document.activeElement).not.toBe(input());
+			expect(settingsStore.layout.railItem).toBe('search');
+			expect(target.querySelector('[data-rail-search]')).not.toBeNull();
+		});
+
+		describe('arrow keys in the results', () => {
+			const THREE: FtsSearchResult[] = [
+				...FTS,
+				{ path: 'Archive/Plan.md', title: 'Plan', score: 0.2, snippet: 'old <mark>roadmap</mark>', tags: '' },
+			];
+			const resultButtons = () =>
+				[...target.querySelectorAll<HTMLButtonElement>('[data-search-result] > button:first-child')];
+			const press = (el: Element, key: string, init: KeyboardEventInit = {}) => {
+				const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init });
+				el.dispatchEvent(event);
+				flushSync();
+				return event;
+			};
+			const tabStops = () => resultButtons().filter((b) => b.getAttribute('tabindex') === '0');
+
+			function mountWithResults() {
+				searchStore.setQuery('roadmap');
+				searchStore.setFtsResults(THREE);
+				searchStore.requestFocus();
+				mountPanel();
+				expect(document.activeElement).toBe(input());
+				expect(resultButtons()).toHaveLength(3);
+			}
+
+			it('ArrowDown in the input focuses the first result', () => {
+				mountWithResults();
+				const event = press(input(), 'ArrowDown');
+				expect(document.activeElement).toBe(resultButtons()[0]);
+				expect(event.defaultPrevented).toBe(true);
+			});
+
+			it('ArrowDown, End and Home move focus among the results, clamped at the ends', () => {
+				mountWithResults();
+				press(input(), 'ArrowDown');
+				press(resultButtons()[0], 'ArrowDown');
+				expect(document.activeElement).toBe(resultButtons()[1]);
+				press(resultButtons()[1], 'End');
+				expect(document.activeElement).toBe(resultButtons()[2]);
+				press(resultButtons()[2], 'ArrowDown');
+				expect(document.activeElement).toBe(resultButtons()[2]);
+				press(resultButtons()[2], 'Home');
+				expect(document.activeElement).toBe(resultButtons()[0]);
+				press(resultButtons()[0], 'ArrowDown');
+				press(resultButtons()[1], 'ArrowUp');
+				expect(document.activeElement).toBe(resultButtons()[0]);
+			});
+
+			it('keeps exactly one result button as the Tab stop, and it follows focus', () => {
+				mountWithResults();
+				expect(tabStops()).toEqual([resultButtons()[0]]);
+				expect(resultButtons().slice(1).map((b) => b.getAttribute('tabindex'))).toEqual(['-1', '-1']);
+				press(input(), 'ArrowDown');
+				press(resultButtons()[0], 'End');
+				expect(tabStops()).toEqual([resultButtons()[2]]);
+				press(resultButtons()[2], 'ArrowUp');
+				expect(tabStops()).toEqual([resultButtons()[1]]);
+			});
+
+			it('ArrowUp on the first result returns focus to the input', () => {
+				mountWithResults();
+				press(input(), 'ArrowDown');
+				const event = press(resultButtons()[0], 'ArrowUp');
+				expect(document.activeElement).toBe(input());
+				expect(event.defaultPrevented).toBe(true);
+			});
+
+			it('Enter on a focused result opens it', () => {
+				mountWithResults();
+				press(input(), 'ArrowDown');
+				press(resultButtons()[0], 'ArrowDown');
+				press(resultButtons()[1], 'Enter');
+				expect(openFileInEditor).toHaveBeenCalledTimes(1);
+				expect(openFileInEditor).toHaveBeenCalledWith('/vault/Welcome.md');
+			});
+
+			it('a held Enter (a repeat keydown) does not open the result again', () => {
+				mountWithResults();
+				press(input(), 'ArrowDown');
+				const event = press(resultButtons()[0], 'Enter', { repeat: true });
+				expect(event.defaultPrevented).toBe(true);
+				expect(openFileInEditor).not.toHaveBeenCalled();
+			});
+
+			it('in Semantic mode keeps one Tab stop keyed by chunk, and it follows ArrowDown', () => {
+				enableSemantic();
+				searchStore.setMode('semantic');
+				searchStore.setQuery('sidebar');
+				// Two chunks of one note: a key by path would give both rows the Tab stop
+				searchStore.setSemanticResults([
+					SEMANTIC,
+					{ ...SEMANTIC, key: 'Projects/Roadmap.md#1', heading: 'Risks', content: 'Scope creep' },
+				]);
+				searchStore.requestFocus();
+				mountPanel();
+				expect(resultButtons()).toHaveLength(2);
+				expect(tabStops()).toEqual([resultButtons()[0]]);
+				press(input(), 'ArrowDown');
+				press(resultButtons()[0], 'ArrowDown');
+				expect(document.activeElement).toBe(resultButtons()[1]);
+				expect(tabStops()).toEqual([resultButtons()[1]]);
+			});
+
+			it('leaves keys with a modifier held to the browser', () => {
+				mountWithResults();
+				expect(press(input(), 'ArrowDown', { metaKey: true }).defaultPrevented).toBe(false);
+				expect(document.activeElement).toBe(input());
+				press(input(), 'ArrowDown');
+				expect(press(resultButtons()[0], 'ArrowDown', { shiftKey: true }).defaultPrevented).toBe(false);
+				expect(press(resultButtons()[0], 'ArrowUp', { altKey: true }).defaultPrevented).toBe(false);
+				expect(document.activeElement).toBe(resultButtons()[0]);
+			});
+
+			it('ArrowDown in the input does nothing with no results', () => {
+				searchStore.setQuery('roadmap');
+				searchStore.requestFocus();
+				mountPanel();
+				expect(press(input(), 'ArrowDown').defaultPrevented).toBe(false);
+				expect(document.activeElement).toBe(input());
+			});
+		});
+
 		it('shows the store query and writes typed text to it', () => {
 			searchStore.setQuery('tag:work');
 			mountPanel();

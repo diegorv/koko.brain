@@ -91,7 +91,7 @@ async function seedEvents(page: Page): Promise<void> {
  * keystrokes) from the calendar.
  * @param dailyNote - tab name of the daily note the test clock auto-opens
  */
-async function openCalendar(page: Page, dailyNote = '2026-11-10.md'): Promise<void> {
+async function openCalendar(page: Page, dailyNote = '2026-11-10'): Promise<void> {
 	await expect(page.locator('[role="tab"]', { hasText: dailyNote })).toBeVisible({ timeout: 10_000 });
 	await openCommandPalette(page);
 	await page.locator('input[placeholder*="command"]:visible').first().fill('Toggle Calendar View');
@@ -115,13 +115,13 @@ test.describe('Event calendar', () => {
 
 	test('the right sidebar hides while the Calendar tab is active and comes back on a note', async ({ vaultPage: page }) => {
 		const sidebar = page.locator('[data-right-sidebar]');
-		await expect(page.locator('[role="tab"]', { hasText: '2026-11-10.md' })).toBeVisible({ timeout: 10_000 });
+		await expect(page.locator('[role="tab"]', { hasText: '2026-11-10' })).toBeVisible({ timeout: 10_000 });
 		await expect(sidebar).toBeVisible();
 
 		await openCalendar(page);
 		await expect(sidebar).toHaveCount(0);
 
-		await page.locator('[role="tab"]', { hasText: '2026-11-10.md' }).click();
+		await page.locator('[role="tab"]', { hasText: '2026-11-10' }).click();
 		await expect(sidebar).toBeVisible();
 	});
 
@@ -868,7 +868,7 @@ test.describe('Event calendar selected day in a narrow pane', () => {
 
 	test('a selected day at the end of the week scrolls into view', async ({ vaultPage: page }) => {
 		await page.setViewportSize({ width: 900, height: 800 });
-		await openCalendar(page, '2026-11-15.md');
+		await openCalendar(page, '2026-11-15');
 		const grid = page.locator('[data-time-grid]');
 		await expect(grid).toBeVisible();
 
@@ -883,7 +883,7 @@ test.describe('Event calendar now-line on a DST day', () => {
 	test.use({ clockTime: '2026-10-25T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
 
 	test('the fall-back day places 10:00 at 640px, not 704px', async ({ vaultPage: page }) => {
-		await openCalendar(page, '2026-10-25.md');
+		await openCalendar(page, '2026-10-25');
 
 		const line = page.locator('[data-day-column="2026-10-25"] [data-now-line]');
 		await expect(line).toHaveCount(1);

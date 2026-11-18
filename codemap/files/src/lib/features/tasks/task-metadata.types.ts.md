@@ -12,7 +12,7 @@ imp src/lib/features/tasks/tasks.logic.ts:5 -> src/lib/features/tasks/task-metad
 imp src/lib/features/tasks/tasks.service.ts:16 -> src/lib/features/tasks/task-metadata.types.ts type:TaskMetadata,type:TaskStatus
 imp src/lib/features/tasks/tasks.types.ts:1 -> src/lib/features/tasks/task-metadata.types.ts type:TaskMetadata,type:TaskStatus
 ## reach
-in2 src/lib/features/tasks/task-metadata.types.ts 9 files in 3 modules: src/lib/app(4) src/lib/features/tasks(4) src/lib/features/event-calendar(1)
+in2 src/lib/features/tasks/task-metadata.types.ts 10 files in 3 modules: src/lib/app(5) src/lib/features/tasks(4) src/lib/features/event-calendar(1)
 out2 src/lib/features/tasks/task-metadata.types.ts 52 files in 1 modules: src/lib/contracts(52)
 ## tests
 test src/tests/lib/features/tasks/TasksView.filters.test.ts imports-type src/lib/features/tasks/task-metadata.types.ts

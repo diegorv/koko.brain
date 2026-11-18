@@ -12,7 +12,7 @@ imp src/lib/plugins/graph-view/GraphControls.svelte:13 -> src/lib/plugins/graph-
 imp src/lib/plugins/graph-view/GraphView.svelte:19 -> src/lib/plugins/graph-view/graph-view.logic.ts filterGraphData,getLocalGraph,getNodeRadius,graphPalette,selectLabels,FALLBACK_GRAPH_PALETTE,type:GraphPalette,type:LabelCandidate
 imp src/lib/plugins/graph-view/graph-view.service.ts:5 -> src/lib/plugins/graph-view/graph-view.logic.ts buildGraphData
 ## reach
-in2 src/lib/plugins/graph-view/graph-view.logic.ts 4 files in 1 modules: src/lib/app(4)
+in2 src/lib/plugins/graph-view/graph-view.logic.ts 5 files in 1 modules: src/lib/app(5)
 out2 src/lib/plugins/graph-view/graph-view.logic.ts 3 files in 3 modules: src/lib/contracts(1) src/lib/core/filesystem(1) src/lib/utils(1)
 ## tests
 test src/tests/lib/plugins/graph-view/graph-view.logic.test.ts imports src/lib/plugins/graph-view/graph-view.logic.ts mirror

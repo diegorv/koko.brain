@@ -54,18 +54,19 @@ test.describe('File explorer', () => {
 		await expect(folderButton(page, `${PROJECTS_PATH}/archive`)).toBeVisible();
 	});
 
-	test('folders are listed in name order, and a list row opens its note', async ({ vaultPage: page }) => {
+	test('folders are listed in name order with the system folders last, and a list row opens its note', async ({ vaultPage: page }) => {
 		await openFiles(page);
 		const folders = await filesNavigator(page)
 			.locator('[data-files-navigator-folder]')
 			.evaluateAll((els) => els.map((el) => el.getAttribute('data-files-navigator-folder')));
-		// The vault root first; `_system` and `_templates` are created when the vault opens.
+		// The vault root first; `_system` (the system folder) and `_templates` (the fixture's
+		// templates folder) are created when the vault opens and come after the user folders.
 		expect(folders).toEqual([
 			TEST_VAULT_PATH,
-			`${TEST_VAULT_PATH}/_system`,
-			`${TEST_VAULT_PATH}/_templates`,
 			`${TEST_VAULT_PATH}/Daily`,
 			PROJECTS_PATH,
+			`${TEST_VAULT_PATH}/_system`,
+			`${TEST_VAULT_PATH}/_templates`,
 		]);
 
 		await listRow(page, 'Welcome').click();

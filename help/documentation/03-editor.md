@@ -8,6 +8,14 @@ Every file you open appears as a tab at the top of the editor area. The active t
 
 Tabs also show different icons based on file type — markdown, canvas, kanban, tasks, graph, and others each have their own icon for quick identification.
 
+A note's tab shows its name without the `.md` extension (`Roadmap.md` reads **Roadmap**). Other files keep their extension, such as `Board.canvas` or `notes.txt`.
+
+Hover a tab to see its full name and its path in the vault, plus "Unsaved changes" or "Pinned" when they apply.
+
+### Reordering Tabs
+
+Drag a tab along the tab bar to move it. A line marks where it will land, and the tab bar scrolls when you drag near either end. Pinned tabs always stay first: a pinned tab moves only among the pinned tabs, and an unpinned tab only among the unpinned ones.
+
 ### Dirty Indicator
 
 When you have unsaved changes, a filled dot appears next to the tab name. Press **Cmd+S** to save the current file and the dot disappears.
@@ -17,6 +25,13 @@ When you have unsaved changes, a filled dot appears next to the tab name. Press 
 - **Close a tab**: Click the **x** button on the tab, or press **Cmd+W**
 - **Next tab**: **Cmd+Shift+]**
 - **Previous tab**: **Cmd+Shift+[**
+
+### Many Open Tabs
+
+As you open more tabs, they shrink to make room (pinned tabs keep their size). Once they are as narrow as they go, the tab bar scrolls sideways, and a fade at either end shows that more tabs sit past it.
+
+- **Scroll the tab bar**: Scroll with the mouse wheel or trackpad over the tabs.
+- **List all tabs**: Click the arrow button at the right end of the tab bar. A menu lists every open tab in order, with its unsaved-changes dot and pin mark; the current tab is highlighted. Click one to switch to it. While some tabs are scrolled out of view, the button shows how many.
 
 ![Editor tabs with dirty indicator](screenshots/editor-tabs.png)
 
@@ -163,6 +178,10 @@ You can scale the entire interface up or down. Zoom affects the whole UI, not ju
 - **Reset to 100%**: `Cmd+0`
 
 Zoom steps through 11 fixed levels from 50% to 200% (the default is 100%). Each press moves one level up or down.
+
+Each change shows a small chip with the new level (for example **110%**) in the bottom-right corner, above the status bar, for about a second and a half. Click the chip to reset to 100%.
+
+The zoom level is remembered on this Mac and applied the next time you open the app, on the vault picker too. It is not stored in the vault, so it does not follow the vault to another computer.
 
 See [Keyboard Shortcuts](20-keyboard-shortcuts.md) for the full shortcut list.
 

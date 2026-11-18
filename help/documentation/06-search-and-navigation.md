@@ -51,16 +51,16 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Copy Block Link | `Cmd+Shift+L` |
 | | Copy Block Embed | — |
 | | View File History | `Cmd+Shift+H` |
-| **File Explorer** | New File | — |
-| | New Folder | — |
-| **Canvas** | New Canvas | — |
-| **Kanban** | New Kanban Board | — |
+| **File Explorer** | New note | — |
+| | New folder | — |
+| **Canvas** | New canvas | — |
+| **Kanban** | New kanban board | — |
 | **Navigation** | Open Quick Switcher | `Cmd+O` |
 | | Search in Vault | `Cmd+Shift+F` |
 | | Toggle Graph View | `Cmd+G` |
 | | Toggle Tasks View | `Cmd+Shift+T` |
 | | Toggle Tags View | — |
-| | Go to *item* (one per rail item: Search, Inbox, Today, Favorites, Types, Calendar, Files, Archive and each pin) | — |
+| | Go to *item* (one per rail item: Search, Inbox, Today, Favorites, Types, Days, Files, Archive and each pin; none for Tasks, Graph and Tags) | — |
 | | Open view: *view* (one per `.view` file, except a view hidden with `_visible: false`) | — |
 | **Calendar** | New Calendar Event | — |
 | | Calendar: Go to Today | — |
@@ -71,11 +71,15 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Hide Rail Panels | `Cmd+1` |
 | | Show Rail Panels | `Cmd+2` |
 | | Toggle Table of Contents | — |
+| | Toggle Properties Panel | — |
+| | Toggle Backlinks Panel | — |
+| | Toggle Outgoing Links Panel | — |
 | **Daily Notes** | Open Daily Note | — |
 | **Quick Capture** | Create Quick Capture Note | `Cmd+N` |
 | **1:1 Notes** | Create 1:1 Note | `Cmd+Shift+N` |
 | **Templates** | New File from Template | — |
 | **Settings** | Open Settings | `Cmd+,` |
+| | Open Trash (only while a vault is open) | — |
 
 ---
 
@@ -87,7 +91,7 @@ Vault Search searches across the full content of every note in your vault.
 
 It covers Markdown notes (`.md` and `.markdown`) in every mode. View files (`.view`) are not searched: they still appear in **Types > Views** and as **Open view** commands in the command palette, but their YAML never shows up as a search result. If you rename a view to `.md`, it becomes a searchable note.
 
-Search is a rail item: it fills the note list next to the rail, with the query in its header. `Cmd+Shift+F`, `/` (when you are not typing in a text field or the editor), the **Search in Vault** command, a tag click and a search link all open it and focus the input. `Cmd+Shift+F` does not close it again, and `Escape` only leaves the input; pick another rail item to leave Search.
+Search is a rail item: it fills the note list next to the rail, with the query in its header. `Cmd+Shift+F`, `/` (when you are not typing in a text field or the editor), the **Search in Vault** command, a tag click and a search link all open it and focus the input. `Cmd+Shift+F` does not close it again. The first `Escape` clears the query and keeps you in the input, and the next one leaves the input; pick another rail item to leave Search. `Down` in the input moves to the first result, `Up`, `Down`, `Home` and `End` move among the results, `Up` on the first result goes back to the input, and `Enter` opens the focused result. The results are one `Tab` stop.
 
 ![Search panel with results](screenshots/search-panel.png)
 

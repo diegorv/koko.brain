@@ -14,7 +14,7 @@ imp src/lib/features/file-history/FileHistoryDialog.svelte:10 -> src/lib/feature
 imp src/lib/features/file-history/FileHistoryDialog.svelte:11 -> pkg:@tauri-apps/plugin-dialog ask
 imp src/lib/features/file-history/FileHistoryDialog.svelte:12 -> src/lib/features/file-history/file-history.types.ts type:SnapshotInfo
 ## imported-by
-imp src/lib/app/AppOverlays.svelte:11 -> src/lib/features/file-history/FileHistoryDialog.svelte default
+imp src/lib/app/AppOverlays.svelte:12 -> src/lib/features/file-history/FileHistoryDialog.svelte default
 ## reach
 in2 src/lib/features/file-history/FileHistoryDialog.svelte 1 files in 1 modules: src/routes(1)
 out2 src/lib/features/file-history/FileHistoryDialog.svelte 27 files in 8 modules: src/lib/components(12) src/lib/core/filesystem(5) src/lib/core/editor(3) src/lib/contracts(2) src/lib/utils(2) +3 modules
@@ -22,7 +22,7 @@ out2 src/lib/features/file-history/FileHistoryDialog.svelte 27 files in 8 module
 test src/tests/lib/features/file-history/FileHistoryDialog.test.ts imports src/lib/features/file-history/FileHistoryDialog.svelte mirror
 ## symbols
 sym src/lib/features/file-history/FileHistoryDialog.svelte:1 component FileHistoryDialog L102
-by src/lib/features/file-history/FileHistoryDialog.svelte:default <- src/lib/app/AppOverlays.svelte:24 in (markup) mount
+by src/lib/features/file-history/FileHistoryDialog.svelte:default <- src/lib/app/AppOverlays.svelte:25 in (markup) mount
 ## locals
 local src/lib/features/file-history/FileHistoryDialog.svelte:26 fn handleOpenChange(open: boolean) L3
 local src/lib/features/file-history/FileHistoryDialog.svelte:30 fn handleRevealBackup(snapshot: SnapshotInfo) L9
@@ -32,7 +32,7 @@ mount src/lib/features/file-history/FileHistoryDialog.svelte:69 SnapshotList -> 
 mount src/lib/features/file-history/FileHistoryDialog.svelte:88 DiffViewer -> src/lib/features/file-history/DiffViewer.svelte
 mount src/lib/features/file-history/FileHistoryDialog.svelte:96 Button -> src/lib/components/ui/button/button.svelte
 ## mounted-at
-mount src/lib/app/AppOverlays.svelte:24 FileHistoryDialog -> src/lib/features/file-history/FileHistoryDialog.svelte
+mount src/lib/app/AppOverlays.svelte:25 FileHistoryDialog -> src/lib/features/file-history/FileHistoryDialog.svelte
 ## calls
 call src/lib/features/file-history/FileHistoryDialog.svelte:27 in handleOpenChange -> src/lib/features/file-history/file-history.service.ts:closeFileHistory call
 call src/lib/features/file-history/FileHistoryDialog.svelte:34 in handleRevealBackup -> src/lib/features/file-history/file-history.logic.ts:findBackupTimestamp call

@@ -20,7 +20,7 @@ imp src/lib/app/tauri-listeners.service.ts:16 -> src/lib/core/filesystem/folder-
 imp src/lib/app/tauri-listeners.service.ts:17 -> src/lib/features/collection/collection.service.ts applyPropertyDelta,buildPropertyIndex,propertyIndexNeedsWholeRead
 imp src/lib/app/tauri-listeners.service.ts:18 -> src/lib/utils/debug.ts error
 ## imported-by
-imp src/routes/(app)/+layout.svelte:11 -> src/lib/app/tauri-listeners.service.ts registerMenuSettingsListener,registerCloseHandler,registerExitRequestListener,registerFocusListener,registerVaultIndexUpdatedListener
+imp src/routes/(app)/+layout.svelte:12 -> src/lib/app/tauri-listeners.service.ts registerMenuSettingsListener,registerCloseHandler,registerExitRequestListener,registerFocusListener,registerVaultIndexUpdatedListener
 ## reach
 in2 src/lib/app/tauri-listeners.service.ts 0 files in 0 modules: -
 out2 src/lib/app/tauri-listeners.service.ts 88 files in 15 modules: src/lib/contracts(53) src/lib/core/settings(5) src/lib/core/editor(4) src/lib/core/filesystem(4) src/lib/features/collection(4) +10 modules
@@ -29,15 +29,15 @@ test src/tests/lib/app/tauri-listeners.service.test.ts imports src/lib/app/tauri
 test src/tests/lib/features/collection/CollectionView.restored-view.test.ts imports src/lib/app/tauri-listeners.service.ts
 ## symbols
 sym src/lib/app/tauri-listeners.service.ts:25 fn registerMenuSettingsListener(): () => void L16 | Registers a listener for the native macOS menu "Settings" event.
-by src/lib/app/tauri-listeners.service.ts:registerMenuSettingsListener <- src/routes/(app)/+layout.svelte:47 in $effect@46 call
+by src/lib/app/tauri-listeners.service.ts:registerMenuSettingsListener <- src/routes/(app)/+layout.svelte:52 in $effect@51 call
 sym src/lib/app/tauri-listeners.service.ts:48 fn registerCloseHandler(): () => void L18 | Registers a handler that runs `prepareForExit` before the window closes, preventing data loss on close.
-by src/lib/app/tauri-listeners.service.ts:registerCloseHandler <- src/routes/(app)/+layout.svelte:51 in $effect@50 call
+by src/lib/app/tauri-listeners.service.ts:registerCloseHandler <- src/routes/(app)/+layout.svelte:56 in $effect@55 call
 sym src/lib/app/tauri-listeners.service.ts:77 fn registerExitRequestListener(): () => void L27 | Registers a listener for the Rust `app:exit-requested` event, which Quit (Cmd+Q, the app menu) raises after holding the exit back.
-by src/lib/app/tauri-listeners.service.ts:registerExitRequestListener <- src/routes/(app)/+layout.svelte:55 in $effect@54 call
+by src/lib/app/tauri-listeners.service.ts:registerExitRequestListener <- src/routes/(app)/+layout.svelte:60 in $effect@59 call
 sym src/lib/app/tauri-listeners.service.ts:185 fn registerVaultIndexUpdatedListener(): () => void L134 | Registers a listener for the Rust `vault-index-updated` event.
-by src/lib/app/tauri-listeners.service.ts:registerVaultIndexUpdatedListener <- src/routes/(app)/+layout.svelte:71 in $effect@70 call
+by src/lib/app/tauri-listeners.service.ts:registerVaultIndexUpdatedListener <- src/routes/(app)/+layout.svelte:76 in $effect@75 call
 sym src/lib/app/tauri-listeners.service.ts:327 fn registerFocusListener(): () => void L20 | Registers a listener for window focus changes.
-by src/lib/app/tauri-listeners.service.ts:registerFocusListener <- src/routes/(app)/+layout.svelte:67 in $effect@66 call
+by src/lib/app/tauri-listeners.service.ts:registerFocusListener <- src/routes/(app)/+layout.svelte:72 in $effect@71 call
 ## calls
 call src/lib/app/tauri-listeners.service.ts:28 in registerMenuSettingsListener -> src/lib/contracts/ipc.ts:on call
 call src/lib/app/tauri-listeners.service.ts:29 in registerMenuSettingsListener -> src/lib/core/settings/settings-panel.store.svelte.ts:settingsPanelStore.toggle mcall

@@ -13,9 +13,10 @@ vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
 
 import { mount, unmount, flushSync } from 'svelte';
 import FilesNavigator from '#lib/features/rail-shell/FilesNavigator.svelte';
-import { FILES_LENS } from '#lib/features/rail-shell/lens.logic.js';
+import { FILES_LENS, FOLDER_LENS_KIND, resolveLens } from '#lib/features/rail-shell/lens.logic.js';
 import type { Lens } from '#lib/features/rail-shell/rail-shell.types.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
@@ -59,6 +60,7 @@ describe('FilesNavigator', () => {
 	beforeEach(() => {
 		vaultStore._reset();
 		vaultStore.open(VAULT);
+		settingsStore.reset();
 		fsStore.reset();
 		fsStore.setFileTree(TREE);
 		fileIconsStore.reset();
@@ -189,5 +191,151 @@ describe('FilesNavigator', () => {
 		fsStore.setFileTree([...TREE, dir(`${VAULT}/Zeta`)]);
 		flushSync();
 		expect(shownFolders()).toContain(`${VAULT}/Zeta`);
+	});
+
+	describe('system folders', () => {
+		const NOTES = `${VAULT}/_notes`;
+		const SYSTEM = `${VAULT}/_system`;
+		const SYSTEM_TEMPLATES = `${SYSTEM}/templates`;
+		const TEMPLATES = `${VAULT}/_templates`;
+		const AREAS = `${VAULT}/Areas`;
+		const DAILY = `${VAULT}/Daily`;
+		// Scan order: `_` sorts before letters.
+		const SCAN_TREE: FileTreeNode[] = [dir(NOTES), dir(SYSTEM, [dir(SYSTEM_TEMPLATES)]), dir(AREAS), dir(DAILY)];
+		const MUTED = 'text-file-explorer-muted-fg';
+		const nameOf = (path: string) => folder(path).querySelector<HTMLElement>('.truncate')!;
+
+		beforeEach(() => {
+			fsStore.setFileTree(SCAN_TREE);
+		});
+
+		it('lists the configured system folder after the user folders, muted; other underscore folders stay', () => {
+			mountNavigator();
+			expect(shownFolders()).toEqual([VAULT, NOTES, AREAS, DAILY, SYSTEM]);
+			expect(nameOf(SYSTEM).classList).toContain(MUTED);
+			expect(nameOf(NOTES).classList).not.toContain(MUTED);
+			expect(nameOf(AREAS).classList).not.toContain(MUTED);
+		});
+
+		it('treats the templates folder as a system folder too', () => {
+			settingsStore.updateTemplates({ folder: '_templates' });
+			fsStore.setFileTree([dir(NOTES), dir(SYSTEM), dir(TEMPLATES), dir(AREAS)]);
+			mountNavigator();
+			expect(shownFolders()).toEqual([VAULT, NOTES, AREAS, SYSTEM, TEMPLATES]);
+			expect(nameOf(TEMPLATES).classList).toContain(MUTED);
+		});
+
+		it('keeps scan order and mutes nothing when both settings are blank', () => {
+			settingsStore.updateTemplates({ folder: '', systemFolder: '' });
+			mountNavigator();
+			expect(shownFolders()).toEqual([VAULT, NOTES, SYSTEM, AREAS, DAILY]);
+			expect(nameOf(SYSTEM).classList).not.toContain(MUTED);
+		});
+
+		it('keeps a custom root order from folder-order.json, with the system folder still muted', () => {
+			// The fs service hands the tree over already in the saved order.
+			fsStore.setFolderOrder({ '.': ['_system', 'Daily', '_notes', 'Areas'] });
+			fsStore.setFileTree([dir(SYSTEM), dir(DAILY), dir(NOTES), dir(AREAS)]);
+			mountNavigator();
+			expect(shownFolders()).toEqual([VAULT, SYSTEM, DAILY, NOTES, AREAS]);
+			expect(nameOf(SYSTEM).classList).toContain(MUTED);
+		});
+
+		it('keeps a custom root order from a top-level folder _order', () => {
+			fsStore.setContentOrder(new Map([[DAILY, 1]]));
+			fsStore.setFileTree([dir(DAILY), dir(NOTES), dir(SYSTEM), dir(AREAS)]);
+			mountNavigator();
+			expect(shownFolders()).toEqual([VAULT, DAILY, NOTES, SYSTEM, AREAS]);
+			expect(nameOf(SYSTEM).classList).toContain(MUTED);
+		});
+
+		it('still moves the system folder last when only a nested folder has a custom order', () => {
+			fsStore.setFolderOrder({ _system: ['templates'] });
+			fsStore.setContentOrder(new Map([[SYSTEM_TEMPLATES, 1]]));
+			mountNavigator();
+			expect(shownFolders()).toEqual([VAULT, NOTES, AREAS, DAILY, SYSTEM]);
+		});
+
+		it('mutes an expanded subfolder of the system folder, leaving the order inside it alone', () => {
+			mountNavigator(FILES_LENS, [SYSTEM]);
+			expect(shownFolders()).toEqual([VAULT, NOTES, AREAS, DAILY, SYSTEM, SYSTEM_TEMPLATES]);
+			expect(nameOf(SYSTEM_TEMPLATES).classList).toContain(MUTED);
+		});
+
+		it('lets a folder title color win over the muted name', () => {
+			fileIconsStore.updateFrontmatterIcon(SYSTEM, { titleColor: '#22c55e' });
+			mountNavigator();
+			expect(nameOf(SYSTEM).classList).not.toContain(MUTED);
+			expect(nameOf(SYSTEM).style.color).toBe('rgb(34, 197, 94)');
+		});
+
+		it('shows a picked system folder in the primary color, not muted', () => {
+			mountNavigator({ kind: FOLDER_LENS_KIND, target: SYSTEM });
+			const row = target.querySelector<HTMLElement>(`[data-files-navigator-row="${SYSTEM}"]`)!;
+			expect(row.classList).toContain('text-file-explorer-primary');
+			expect(nameOf(SYSTEM).classList).not.toContain(MUTED);
+		});
+	});
+
+	describe('file counts', () => {
+		const MIXED = `${VAULT}/Mixed`;
+		const EMPTY = `${VAULT}/Empty`;
+		const mixedTree = (extra: FileTreeNode[] = []): FileTreeNode[] => [
+			dir(MIXED, [
+				dir(`${MIXED}/sub`, [file(`${MIXED}/sub/deep.md`)]),
+				file(`${MIXED}/a.md`),
+				file(`${MIXED}/b.md`),
+				file(`${MIXED}/board.canvas`),
+				file(`${MIXED}/.DS_Store`),
+				...extra,
+			]),
+			dir(EMPTY),
+			file(`${VAULT}/Welcome.md`),
+		];
+		const countOf = (path: string) =>
+			target.querySelector(`[data-files-navigator-row="${path}"] [data-files-navigator-count]`)?.textContent?.trim() ?? null;
+
+		beforeEach(() => {
+			fsStore.setFileTree(mixedTree());
+		});
+
+		it("shows a folder's direct, non-hidden file count, muted and in tabular figures", () => {
+			mountNavigator();
+			expect(countOf(MIXED)).toBe('3');
+			const count = target.querySelector<HTMLElement>(`[data-files-navigator-row="${MIXED}"] [data-files-navigator-count]`)!;
+			expect(count.classList).toContain('tabular-nums');
+			expect(count.classList).toContain('text-file-explorer-muted-fg');
+			expect(count.classList).toContain('ml-auto');
+			// Hidden from the folder button's accessible name.
+			expect(count.getAttribute('aria-hidden')).toBe('true');
+		});
+
+		it('picks the folder when the number is clicked', () => {
+			mountNavigator();
+			target.querySelector<HTMLElement>(`[data-files-navigator-row="${MIXED}"] [data-files-navigator-count]`)!.click();
+			expect(onPick).toHaveBeenLastCalledWith({ kind: 'folder', target: MIXED });
+		});
+
+		it('shows no number for an empty folder or the vault root', () => {
+			mountNavigator();
+			expect(countOf(EMPTY)).toBeNull();
+			expect(target.querySelector('[data-files-navigator-root] [data-files-navigator-count]')).toBeNull();
+		});
+
+		it("equals the folder lens's row count for the same tree", () => {
+			mountNavigator();
+			const lens = resolveLens(
+				{ kind: FOLDER_LENS_KIND, target: MIXED },
+				{ entries: [], vaultPath: VAULT, systemFolder: '_system', typeMetadataMap: new Map(), fileTree: fsStore.fileTree },
+			);
+			expect(countOf(MIXED)).toBe(String(lens!.notes.length));
+		});
+
+		it('updates when a file is added to the tree', () => {
+			mountNavigator();
+			fsStore.setFileTree(mixedTree([file(`${MIXED}/c.pdf`)]));
+			flushSync();
+			expect(countOf(MIXED)).toBe('4');
+		});
 	});
 });

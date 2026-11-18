@@ -5,7 +5,8 @@ fx src/lib/contracts/ipc.ts:26 tauri-api-core.invoke in call
 fx src/lib/core/settings/sections/UpdateSection.svelte:203 tauri-api-core.invoke in checkForUpdates
 fx src/lib/contracts/ipc.ts:88 tauri-api-event.listen in on
 fx src/lib/utils/log.service.ts:46 tauri-api-path.appLogDir in getLogDir
-fx src/lib/core/zoom/zoom.service.ts:29 tauri-api-webviewWindow.getCurrentWebviewWindow in applyZoom
+fx src/lib/core/zoom/zoom.service.ts:52 tauri-api-webviewWindow.getCurrentWebviewWindow in restoreZoom
+fx src/lib/core/zoom/zoom.service.ts:60 tauri-api-webviewWindow.getCurrentWebviewWindow in applyZoom
 fx src/lib/app/tauri-listeners.service.ts:51 tauri-api-window.getCurrentWindow in registerCloseHandler
 fx src/lib/app/tauri-listeners.service.ts:54 tauri-api-window.getCurrentWindow in registerCloseHandler
 fx src/lib/app/tauri-listeners.service.ts:330 tauri-api-window.getCurrentWindow in registerFocusListener
@@ -22,7 +23,7 @@ fx src/lib/core/settings/sections/UpdateSection.svelte:238 tauri-dialog.ask in c
 fx src/lib/core/vault/exit.service.ts:35 tauri-dialog.ask in confirmDiscardFailedSaves
 fx src/lib/features/file-history/FileHistoryDialog.svelte:44 tauri-dialog.ask in handleRestore
 fx src/lib/features/note-list/NoteRowMenu.svelte:163 tauri-dialog.ask in handleDelete
-fx src/lib/features/rail-shell/FilesNavigator.svelte:196 tauri-dialog.ask in handleDelete
+fx src/lib/features/rail-shell/FilesNavigator.svelte:248 tauri-dialog.ask in handleDelete
 fx src/lib/features/todoist-sync/sync-now.service.ts:1170 tauri-dialog.ask in confirmOverCap
 fx src/lib/features/todoist-sync/sync-now.service.ts:1184 tauri-dialog.ask in confirmLineBrake
 fx src/lib/features/todoist-sync/sync-now.service.ts:1192 tauri-dialog.ask in confirmDetaches

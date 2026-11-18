@@ -8,7 +8,7 @@ imp src/lib/features/command-palette/CommandPalette.svelte:5 -> src/lib/features
 imp src/lib/features/command-palette/CommandPalette.svelte:6 -> src/lib/features/command-palette/command-palette.logic.ts filterAndRankCommands,splitRecentCommands
 imp src/lib/features/command-palette/CommandPalette.svelte:7 -> src/lib/features/command-palette/command-palette.types.ts type:AppCommand
 ## imported-by
-imp src/lib/app/AppOverlays.svelte:6 -> src/lib/features/command-palette/CommandPalette.svelte default
+imp src/lib/app/AppOverlays.svelte:7 -> src/lib/features/command-palette/CommandPalette.svelte default
 ## reach
 in2 src/lib/features/command-palette/CommandPalette.svelte 1 files in 1 modules: src/routes(1)
 out2 src/lib/features/command-palette/CommandPalette.svelte 12 files in 2 modules: src/lib/components(11) src/lib/utils(1)
@@ -16,12 +16,12 @@ out2 src/lib/features/command-palette/CommandPalette.svelte 12 files in 2 module
 test src/tests/lib/features/command-palette/CommandPalette.test.ts imports src/lib/features/command-palette/CommandPalette.svelte mirror
 ## symbols
 sym src/lib/features/command-palette/CommandPalette.svelte:1 component CommandPalette props:commands L100
-by src/lib/features/command-palette/CommandPalette.svelte:default <- src/lib/app/AppOverlays.svelte:19 in (markup) mount
+by src/lib/features/command-palette/CommandPalette.svelte:default <- src/lib/app/AppOverlays.svelte:20 in (markup) mount
 ## locals
 local src/lib/features/command-palette/CommandPalette.svelte:34 fn handleOpenChange(open: boolean) L6
 local src/lib/features/command-palette/CommandPalette.svelte:41 fn executeCommand(command: AppCommand) L11
 ## mounted-at
-mount src/lib/app/AppOverlays.svelte:19 CommandPalette -> src/lib/features/command-palette/CommandPalette.svelte
+mount src/lib/app/AppOverlays.svelte:20 CommandPalette -> src/lib/features/command-palette/CommandPalette.svelte
 ## calls
 call src/lib/features/command-palette/CommandPalette.svelte:24 in filteredCommands=$derived -> src/lib/features/command-palette/command-palette.logic.ts:filterAndRankCommands call
 call src/lib/features/command-palette/CommandPalette.svelte:30 in recentGroups=$derived -> src/lib/features/command-palette/command-palette.logic.ts:splitRecentCommands call

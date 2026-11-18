@@ -7,6 +7,8 @@ setupLocalStorage();
 vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn() }));
 
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { GRAPH_VIRTUAL_PATH, TAGS_VIRTUAL_PATH, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { searchStore } from '#lib/features/search/search.store.svelte.js';
 import { openRailView, selectRailItem } from '#lib/app/rail-navigation.js';
@@ -21,6 +23,7 @@ beforeEach(() => {
 	clearLocalStorage();
 	settingsStore.reset();
 	searchStore.reset();
+	editorStore.reset();
 	settingsStore.updateLayout({ railItem: 'inbox', railPanelsVisible: false });
 });
 
@@ -54,6 +57,42 @@ describe('selectRailItem', () => {
 		selectRailItem({ key: BOARD_PIN.key, pin: BOARD_PIN });
 		expect(openFileInEditor).toHaveBeenCalledWith(BOARD);
 		expect(settingsStore.layout).toEqual(before);
+	});
+});
+
+describe('selectRailItem on a Tabs item', () => {
+	const NOTE = { path: '/vault/Welcome.md', name: 'Welcome', content: '', savedContent: '' };
+
+	it.each([
+		['tab:tasks', TASKS_VIRTUAL_PATH, 'tasks'],
+		['tab:graph', GRAPH_VIRTUAL_PATH, 'graph'],
+		['tab:tags', TAGS_VIRTUAL_PATH, 'tags'],
+	])('%s opens its tab, keeps it open and active on a second select, and writes no layout', (key, path, fileType) => {
+		editorStore.addTab(NOTE);
+		const before = { ...settingsStore.layout };
+
+		selectRailItem({ key });
+		expect(editorStore.activeTabPath).toBe(path);
+		expect(editorStore.activeTab?.fileType).toBe(fileType);
+		expect(editorStore.tabs.map((t) => t.path)).toEqual([NOTE.path, path]);
+
+		selectRailItem({ key });
+		expect(editorStore.activeTabPath).toBe(path);
+		expect(editorStore.tabs.map((t) => t.path)).toEqual([NOTE.path, path]);
+
+		expect(settingsStore.layout).toEqual(before);
+		expect(settingsStore.layout.railItem).toBe('inbox');
+		expect(settingsStore.layout.railPanelsVisible).toBe(false);
+	});
+
+	it('focuses an open tab that is not active, without opening a second one', () => {
+		selectRailItem({ key: 'tab:tags' });
+		editorStore.addTab(NOTE);
+		expect(editorStore.activeTabPath).toBe(NOTE.path);
+
+		selectRailItem({ key: 'tab:tags' });
+		expect(editorStore.activeTabPath).toBe(TAGS_VIRTUAL_PATH);
+		expect(editorStore.tabs.filter((t) => t.path === TAGS_VIRTUAL_PATH)).toHaveLength(1);
 	});
 });
 

@@ -1,7 +1,7 @@
 # file card src/lib/features/tasks/tasks.service.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/tasks/tasks.service.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls, effects
-file src/lib/features/tasks/tasks.service.ts service L595 module src/lib/features/tasks in6 t16
+file src/lib/features/tasks/tasks.service.ts service L595 module src/lib/features/tasks in7 t16
 ## imports
 imp src/lib/features/tasks/tasks.service.ts:2 -> src/lib/contracts/ipc.ts call
 imp src/lib/features/tasks/tasks.service.ts:3 -> src/lib/core/editor/editor.store.svelte.ts editorStore
@@ -25,12 +25,13 @@ imp src/lib/features/tasks/tasks.service.ts:19 -> src/lib/utils/path.ts vaultRel
 imp src/lib/app/commands.ts:33 -> src/lib/features/tasks/tasks.service.ts openTasksTab,toggleTasksTab
 imp src/lib/app/global-keybindings.ts:13 -> src/lib/features/tasks/tasks.service.ts toggleTasksTab
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:57 -> src/lib/features/tasks/tasks.service.ts loadSavedTasksView,resetTasks
+imp src/lib/app/rail-navigation.ts:12 -> src/lib/features/tasks/tasks.service.ts openTasksTab
 imp src/lib/features/tasks/SourcesPanel.svelte:11 -> src/lib/features/tasks/tasks.service.ts setTaskExcludes,setTaskSources
 imp src/lib/features/tasks/TaskLists.svelte:11 -> src/lib/features/tasks/tasks.service.ts deleteTaskView,duplicateTaskView,renameTaskView,revertTaskList,saveTaskView,saveTaskViewQuery,selectTaskList
 imp src/lib/features/tasks/TasksView.svelte:26 -> src/lib/features/tasks/tasks.service.ts buildTaskIndex,setTaskSources,setTaskStatusFromMenu,toggleTask,updateTaskFromMenu
 ## reach
-in2 src/lib/features/tasks/tasks.service.ts 3 files in 2 modules: src/lib/app(2) src/routes(1)
-out2 src/lib/features/tasks/tasks.service.ts 23 files in 10 modules: src/lib/utils(6) src/lib/core/settings(4) src/lib/contracts(3) src/lib/core/editor(2) src/lib/core/filesystem(2) +5 modules
+in2 src/lib/features/tasks/tasks.service.ts 5 files in 2 modules: src/lib/app(4) src/routes(1)
+out2 src/lib/features/tasks/tasks.service.ts 24 files in 10 modules: src/lib/utils(7) src/lib/core/settings(4) src/lib/contracts(3) src/lib/core/editor(2) src/lib/core/filesystem(2) +5 modules
 ## tests
 test src/tests/lib/features/tasks/tasks.service.test.ts imports src/lib/features/tasks/tasks.service.ts mirror
 test src/tests/lib/features/tasks/TasksView.collapse.test.ts imports src/lib/features/tasks/tasks.service.ts
@@ -82,10 +83,11 @@ by src/lib/features/tasks/tasks.service.ts:setTaskStatusFromMenu <- src/lib/feat
 sym src/lib/features/tasks/tasks.service.ts:463 fn updateTaskFromMenu(filePath: string, task: TaskItem, newText: string, message: string): Promise<void> L7 | A row menu's text change (due date, priority): `updateTask`, then a toast with `message` whose Undo writes `task.text` back, expecting `newText`.
 by src/lib/features/tasks/tasks.service.ts:updateTaskFromMenu <- src/lib/features/tasks/TasksView.svelte:555 in setRowDue call +1
 sym src/lib/features/tasks/tasks.service.ts:547 fn openTasksTab(): void L14 | Opens or focuses the Tasks tab.
-by src/lib/features/tasks/tasks.service.ts:openTasksTab <- src/lib/app/commands.ts:89 in tasksStatusFilterCommand call
+by src/lib/features/tasks/tasks.service.ts:openTasksTab <- src/lib/app/commands.ts:91 in tasksStatusFilterCommand call
+by src/lib/features/tasks/tasks.service.ts:openTasksTab <- src/lib/app/rail-navigation.ts:31 in selectRailItem call
 sym src/lib/features/tasks/tasks.service.ts:563 fn closeTasksTab(): void L6 | Closes the Tasks tab if it exists.
 sym src/lib/features/tasks/tasks.service.ts:571 fn toggleTasksTab(): void L10 | Toggles the Tasks tab: opens if closed, closes if active, focuses if open but not active.
-by src/lib/features/tasks/tasks.service.ts:toggleTasksTab <- src/lib/app/commands.ts:223 in getBuiltInCommands call
+by src/lib/features/tasks/tasks.service.ts:toggleTasksTab <- src/lib/app/commands.ts:225 in getBuiltInCommands call
 by src/lib/features/tasks/tasks.service.ts:toggleTasksTab <- src/lib/app/global-keybindings.ts:121 in GLOBAL_KEYBINDINGS call
 sym src/lib/features/tasks/tasks.service.ts:588 fn resetTasks(): void L8 | Resets all task state.
 by src/lib/features/tasks/tasks.service.ts:resetTasks <- src/lib/app/lifecycle/app-lifecycle.service.ts:673 in teardownVault call

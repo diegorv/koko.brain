@@ -40,9 +40,9 @@ describe('registerCalendarRail', () => {
 		off = null;
 	});
 
-	it('registers the Calendar navigator and the day lens, and one call unregisters both', () => {
+	it('registers the Days navigator and the day lens, and one call unregisters both', () => {
 		off = registerCalendarRail();
-		expect(railRegistryStore.navigators.map((n) => [n.id, n.label])).toEqual([['calendar', 'Calendar']]);
+		expect(railRegistryStore.navigators.map((n) => [n.id, n.label])).toEqual([['calendar', 'Days']]);
 		expect(railRegistryStore.lensProviders.map((p) => p.kind)).toEqual(['day']);
 
 		off();

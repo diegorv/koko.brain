@@ -8,7 +8,7 @@ imp src/lib/plugins/one-on-one/one-on-one-today.service.ts:2 -> src/lib/plugins/
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:68 -> src/lib/plugins/one-on-one/one-on-one-today.service.ts registerOneOnOneTodaySection
 ## reach
 in2 src/lib/plugins/one-on-one/one-on-one-today.service.ts 1 files in 1 modules: src/routes(1)
-out2 src/lib/plugins/one-on-one/one-on-one-today.service.ts 10 files in 8 modules: src/lib/core/editor(2) src/lib/plugins/one-on-one(2) src/lib/core/settings(1) src/lib/core/vault(1) src/lib/features/event-calendar(1) +3 modules
+out2 src/lib/plugins/one-on-one/one-on-one-today.service.ts 11 files in 8 modules: src/lib/core/editor(2) src/lib/core/settings(2) src/lib/plugins/one-on-one(2) src/lib/core/vault(1) src/lib/features/event-calendar(1) +3 modules
 ## tests
 test src/tests/lib/features/rail-shell/RailNoteList.test.ts imports src/lib/plugins/one-on-one/one-on-one-today.service.ts
 test src/tests/lib/plugins/one-on-one/MyPeopleSection.test.ts imports src/lib/plugins/one-on-one/one-on-one-today.service.ts

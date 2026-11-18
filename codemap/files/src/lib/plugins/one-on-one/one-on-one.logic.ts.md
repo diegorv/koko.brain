@@ -1,6 +1,6 @@
 # file card src/lib/plugins/one-on-one/one-on-one.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/plugins/one-on-one/one-on-one.logic.ts ' codemap/files
-file src/lib/plugins/one-on-one/one-on-one.logic.ts logic L241 module src/lib/plugins/one-on-one in4 t3
+file src/lib/plugins/one-on-one/one-on-one.logic.ts logic L242 module src/lib/plugins/one-on-one in4 t4
 ## imports
 imp src/lib/plugins/one-on-one/one-on-one.logic.ts:2 -> src/lib/core/settings/settings.types.ts type:PeriodicNotesSettings
 imp src/lib/plugins/one-on-one/one-on-one.logic.ts:3 -> src/lib/core/filesystem/fs.logic.ts isViewFile
@@ -9,7 +9,7 @@ imp src/lib/plugins/one-on-one/one-on-one.logic.ts:5 -> src/lib/features/rail-sh
 imp src/lib/plugins/one-on-one/one-on-one.logic.ts:6 -> src/lib/plugins/periodic-notes/periodic-notes.logic.ts buildWikilinkPath
 imp src/lib/plugins/one-on-one/one-on-one.logic.ts:7 -> src/lib/utils/note-date.ts parseDateKey
 ## imported-by
-imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:12 -> src/lib/plugins/one-on-one/one-on-one.logic.ts ONE_ON_ONE_EVERY_PROPERTY,buildMyPeople,myPeopleDaysLabel
+imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:14 -> src/lib/plugins/one-on-one/one-on-one.logic.ts buildMyPeople,myPeopleDaysLabel
 imp src/lib/plugins/one-on-one/OneOnOnePicker.svelte:6 -> src/lib/plugins/one-on-one/one-on-one.logic.ts filterPeople,type:PersonEntry
 imp src/lib/plugins/one-on-one/one-on-one.service.ts:11 -> src/lib/plugins/one-on-one/one-on-one.logic.ts buildOneOnOnePath,buildOneOnOneVariables,loadPeopleFromEntries,mergePeopleLists,withOneOnOneKind
 imp src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:1 -> src/lib/plugins/one-on-one/one-on-one.logic.ts type:PersonEntry
@@ -19,6 +19,7 @@ out2 src/lib/plugins/one-on-one/one-on-one.logic.ts 19 files in 7 modules: src/l
 ## tests
 test src/tests/lib/plugins/one-on-one/one-on-one.logic.test.ts imports src/lib/plugins/one-on-one/one-on-one.logic.ts mirror
 test src/tests/help/queryjs-contract.test.ts imports src/lib/plugins/one-on-one/one-on-one.logic.ts
+test src/tests/lib/core/settings/OneOnOneSection.test.ts imports src/lib/plugins/one-on-one/one-on-one.logic.ts
 test src/tests/lib/plugins/one-on-one/one-on-one.service.test.ts imports src/lib/plugins/one-on-one/one-on-one.logic.ts
 test src/tests/lib/plugins/one-on-one/OneOnOnePicker.test.ts imports-type src/lib/plugins/one-on-one/one-on-one.logic.ts
 ## symbols
@@ -38,13 +39,12 @@ by src/lib/plugins/one-on-one/one-on-one.logic.ts:filterPeople <- src/lib/plugin
 sym src/lib/plugins/one-on-one/one-on-one.logic.ts:114 interface MyPersonRow L12 | A row of Today's My people.
 sym src/lib/plugins/one-on-one/one-on-one.logic.ts:128 interface MyPeopleOptions L10 | What `buildMyPeople` reads besides the entries.
 sym src/lib/plugins/one-on-one/one-on-one.logic.ts:140 const ONE_ON_ONE_EVERY_PROPERTY L1 | The person note property that adds the person to My people and sets their 1:1 cadence.
-by src/lib/plugins/one-on-one/one-on-one.logic.ts:ONE_ON_ONE_EVERY_PROPERTY <- src/lib/plugins/one-on-one/MyPeopleSection.svelte:37 in (markup) markup
 sym src/lib/plugins/one-on-one/one-on-one.logic.ts:177 fn withOneOnOneKind(content: string): string L9 | Returns `content` with `kind: one-on-one` in its frontmatter, unless a top-level `kind:` line is already there (whatever its value).
 by src/lib/plugins/one-on-one/one-on-one.logic.ts:withOneOnOneKind <- src/lib/plugins/one-on-one/one-on-one.service.ts:98 in createOneOnOneNote call
 sym src/lib/plugins/one-on-one/one-on-one.logic.ts:200 fn buildMyPeople(entries: NoteEntryV2[], options: MyPeopleOptions): MyPersonRow[] L37 | Today's My people: the notes directly in the work people folder that set `_one_on_one_every` (`oneOnOneCadence`), each with its last 1:1.
-by src/lib/plugins/one-on-one/one-on-one.logic.ts:buildMyPeople <- src/lib/plugins/one-on-one/MyPeopleSection.svelte:17 in rows=$derived call
-sym src/lib/plugins/one-on-one/one-on-one.logic.ts:239 fn myPeopleDaysLabel(days: number | null): string L3 | A My people row's days label: `Nd`, or `never` without a 1:1.
-by src/lib/plugins/one-on-one/one-on-one.logic.ts:myPeopleDaysLabel <- src/lib/plugins/one-on-one/MyPeopleSection.svelte:63 in (markup) markup
+by src/lib/plugins/one-on-one/one-on-one.logic.ts:buildMyPeople <- src/lib/plugins/one-on-one/MyPeopleSection.svelte:19 in rows=$derived call
+sym src/lib/plugins/one-on-one/one-on-one.logic.ts:239 fn myPeopleDaysLabel(days: number | null): string L4 | A My people row's days label: `today`, `Nd ago`, or `never` without a 1:1.
+by src/lib/plugins/one-on-one/one-on-one.logic.ts:myPeopleDaysLabel <- src/lib/plugins/one-on-one/MyPeopleSection.svelte:75 in (markup) markup
 ## locals
 local src/lib/plugins/one-on-one/one-on-one.logic.ts:149 fn oneOnOneCadence(value: unknown, dueAfterDays: number): number | null L6
 local src/lib/plugins/one-on-one/one-on-one.logic.ts:163 fn isOneOnOneNote(entry: NoteEntryV2): boolean L5

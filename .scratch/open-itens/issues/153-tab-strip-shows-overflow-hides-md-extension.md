@@ -12,7 +12,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -29,3 +29,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/54-tab-strip-overflow.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-17, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/shell-sidebars-ux/issues/21-tab-strip-overflow-shrink.md`, `.scratch/shell-sidebars-ux/issues/22-tab-drag-path-tooltip-no-md.md` and `.scratch/shell-sidebars-ux/issues/24-breadcrumb-reveal-in-note-list.md`. Fade and tab list are in 21, the `.md` tab label in 22 and the breadcrumb `.md` in 24; every criterion is carried.

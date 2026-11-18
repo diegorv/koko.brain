@@ -451,6 +451,30 @@ describe('AppShell with a Markdown note open', () => {
 		}
 	});
 
+	it('names the toggle, reports its state as pressed and draws the focus ring', async () => {
+		settingsStore.updateLayout({ rightSidebarVisible: false });
+		await mountShell();
+		const toggle = () => target.querySelector<HTMLButtonElement>('button[aria-label="Right sidebar"]')!;
+
+		expect(toggle().getAttribute('aria-pressed')).toBe('false');
+		expect(toggle().classList).not.toContain('bg-accent');
+		expect(toggle().classList).toContain('dark:hover:bg-accent/50');
+		expect(toggle().classList).toContain('focus-visible:ring-[3px]');
+		expect(toggle().classList).toContain('focus-visible:ring-ring/50');
+		expect(toggle().classList).toContain('focus-visible:outline-none');
+
+		settingsStore.updateLayout({ rightSidebarVisible: true });
+		await settle();
+		expect(toggle().getAttribute('aria-pressed')).toBe('true');
+		expect(toggle().classList).toContain('bg-accent');
+		// A dark hover fill would override the pressed fill and make the toggle look unpressed.
+		expect(toggle().classList).not.toContain('dark:hover:bg-accent/50');
+
+		settingsStore.updateLayout({ rightSidebarVisible: false });
+		await settle();
+		expect(toggle().getAttribute('aria-pressed')).toBe('false');
+	});
+
 	it('draws the note action bar and the Properties header as the same pane toolbar', async () => {
 		settingsStore.updateLayout({ rightSidebarVisible: true });
 		await mountShell();

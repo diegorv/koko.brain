@@ -19,9 +19,9 @@ out2 src/lib/features/search/SemanticIndexStatus.svelte 13 files in 7 modules: s
 test src/tests/lib/features/search/SemanticIndexStatus.test.ts imports src/lib/features/search/SemanticIndexStatus.svelte mirror
 ## symbols
 sym src/lib/features/search/SemanticIndexStatus.svelte:1 component SemanticIndexStatus L69
-by src/lib/features/search/SemanticIndexStatus.svelte:default <- src/lib/app/AppShell.svelte:305 in (markup) mount
+by src/lib/features/search/SemanticIndexStatus.svelte:default <- src/lib/app/AppShell.svelte:307 in (markup) mount
 ## mounted-at
-mount src/lib/app/AppShell.svelte:305 SemanticIndexStatus -> src/lib/features/search/SemanticIndexStatus.svelte
+mount src/lib/app/AppShell.svelte:307 SemanticIndexStatus -> src/lib/features/search/SemanticIndexStatus.svelte
 ## calls
 call src/lib/features/search/SemanticIndexStatus.svelte:23 in (script) -> src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver call
 call src/lib/features/search/SemanticIndexStatus.svelte:31 in $effect@29 -> src/lib/core/editor/editor.logic.ts:isVirtualTab call

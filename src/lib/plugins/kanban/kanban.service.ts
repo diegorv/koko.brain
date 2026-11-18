@@ -20,14 +20,14 @@ export async function createKanbanFile(parentPath: string): Promise<string> {
 }
 
 /**
- * Adds "New Kanban Board" to the Files navigator's folder menu: the rail
+ * Adds "New kanban board" to the Files navigator's folder menu: the rail
  * shell may not import plugins (ADR 0003). Returns an unregister function;
  * `initializeVault` registers it and `teardownVault` unregisters it.
  */
 export function registerKanbanFolderCreator(): () => void {
 	return railRegistryStore.registerFolderCreator({
 		id: 'kanban',
-		label: 'New Kanban Board',
+		label: 'New kanban board',
 		icon: Kanban,
 		fileName: 'Untitled.kanban',
 		create: createKanbanFile,

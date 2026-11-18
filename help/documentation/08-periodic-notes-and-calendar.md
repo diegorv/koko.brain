@@ -15,9 +15,9 @@ Periodic notes are great for:
 
 Each note can be created from a template with pre-filled content, so you never start from a blank page.
 
-## The Calendar Navigator
+## The Days Navigator
 
-Click **Calendar** in the rail (the calendar icon, between Types and Files). The Calendar navigator opens beside the note list:
+Click **Days** in the rail (the calendar icon, between Types and Files). The Days navigator opens beside the note list:
 
 - A month grid, with arrows for the previous and next month (`<` `>`) and year (`«` `»`). Click the month name to go back to today.
 - **Dot indicators**: small dots appear below each day that has Markdown notes whose note date is that day. A note's date is its frontmatter `date`, else its frontmatter `created`, else the file's creation date on disk. So a meeting note with `date: 2026-10-27` written on the 30th puts its dot on the 27th, and an imported note with only `created` keeps its `created` day. A dot does not mean the day has a daily note.
@@ -37,7 +37,7 @@ Kokobrain remembers the picked day and opens on it after a restart. Clicking the
 The rail's **Today** item lists the notes dated today, and its header also has **Daily note**.
 
 > [!NOTE]
-> The navigator is for periodic notes and the notes dated each day. To plan events with times, use the [Calendar tab](27-calendar.md), which shows your Event notes on a day, week or month grid.
+> The Days navigator is for periodic notes and the notes dated each day. To plan events with times, use the [Calendar tab](27-calendar.md), which shows your Event notes on a day, week or month grid.
 
 You can also open or create today's daily note from the command palette: run **Open Daily Note** (under the "Daily Notes" category). If today's note does not exist yet, it is created from your configured daily template.
 

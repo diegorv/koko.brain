@@ -17,7 +17,7 @@ imp src/lib/features/tasks/tasks.service.ts:8 -> src/lib/core/vault/vault-entrie
 imp src/lib/plugins/mods/mod-app.service.ts:7 -> src/lib/core/vault/vault-entries.service.ts getVaultEntries
 imp src/lib/plugins/queryjs/queryjs-block-widget.ts:6 -> src/lib/core/vault/vault-entries.service.ts getVaultEntries
 ## reach
-in2 src/lib/core/vault/vault-entries.service.ts 20 files in 8 modules: src/lib/features/event-calendar(7) src/lib/app(5) src/lib/features/tasks(3) src/lib/features/rail-shell(1) src/lib/plugins/calendar(1) +3 modules: q impact src/lib/core/vault/vault-entries.service.ts --depth 2
+in2 src/lib/core/vault/vault-entries.service.ts 21 files in 8 modules: src/lib/features/event-calendar(7) src/lib/app(6) src/lib/features/tasks(3) src/lib/features/rail-shell(1) src/lib/plugins/calendar(1) +3 modules: q impact src/lib/core/vault/vault-entries.service.ts --depth 2
 out2 src/lib/core/vault/vault-entries.service.ts 4 files in 2 modules: src/lib/contracts(3) src/lib/core/vault(1)
 ## tests
 test src/tests/lib/core/vault/vault-entries.service.test.ts imports src/lib/core/vault/vault-entries.service.ts mirror

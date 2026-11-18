@@ -19,6 +19,7 @@ import {
 	railItemColor,
 	railItems,
 } from '#lib/features/rail-shell/rail-items.logic.js';
+import { GRAPH_VIRTUAL_PATH, TAGS_VIRTUAL_PATH, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import type { RailNavigator, RailPin } from '#lib/features/rail-shell/rail-shell.types.js';
 
 const CALENDAR: RailNavigator = {
@@ -43,21 +44,25 @@ describe('railItems', () => {
 			['favorites', 'Favorites', 'top'],
 			['types', 'Types', 'navigator'],
 			['files', 'Files', 'navigator'],
+			['tab:tasks', 'Tasks', 'tabs'],
+			['tab:graph', 'Graph', 'tabs'],
+			['tab:tags', 'Tags', 'tabs'],
 			['archive', 'Archive', 'bottom'],
 		]);
 	});
 
 	it('puts registered navigators between Types and Files, carrying the navigator', () => {
 		const items = railItems([CALENDAR], []);
-		expect(items.map((i) => i.key)).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'archive']);
+		expect(items.map((i) => i.key)).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'tab:tasks', 'tab:graph', 'tab:tags', 'archive']);
 		const calendar = items.find((i) => i.key === 'calendar')!;
 		expect(calendar).toMatchObject({ label: 'Calendar', group: 'navigator', navigator: CALENDAR });
 		expect(calendar.pin).toBeUndefined();
 	});
 
-	it('puts the pins, in their order, after the navigators and before Archive, carrying the pin', () => {
+	it('puts the pins, in their order, after the tabs and before Archive, carrying the pin', () => {
 		const items = railItems([CALENDAR], [READING, PROJECT]);
-		expect(summary(items).slice(-3)).toEqual([
+		expect(summary(items).slice(-4)).toEqual([
+			['tab:tags', 'Tags', 'tabs'],
 			['view:/vault/Reading.view', 'To read', 'pinned'],
 			['type:Project', 'Projects', 'pinned'],
 			['archive', 'Archive', 'bottom'],
@@ -71,8 +76,39 @@ describe('railItems', () => {
 
 	it('drops the hidden items and orders each group by the saved order, leaving the pins alone', () => {
 		const items = railItems([CALENDAR], [READING, PROJECT], ['archive', 'favorites', READING.key], ['files', 'types', PROJECT.key, READING.key]);
-		expect(items.map((i) => i.key)).toEqual(['search', 'inbox', 'today', 'files', 'types', 'calendar', READING.key, PROJECT.key]);
+		expect(items.map((i) => i.key)).toEqual(['search', 'inbox', 'today', 'files', 'types', 'calendar', 'tab:tasks', 'tab:graph', 'tab:tags', READING.key, PROJECT.key]);
 		expect(items.find((i) => i.key === 'calendar')!.navigator).toBe(CALENDAR);
+	});
+
+	it('puts Tasks, Graph and Tags in their own group after the navigators, each carrying the tab it opens', () => {
+		const items = railItems([CALENDAR], [READING]);
+		expect(items.filter((i) => i.group === 'tabs').map((i) => [i.key, i.label, i.tabPath])).toEqual([
+			['tab:tasks', 'Tasks', TASKS_VIRTUAL_PATH],
+			['tab:graph', 'Graph', GRAPH_VIRTUAL_PATH],
+			['tab:tags', 'Tags', TAGS_VIRTUAL_PATH],
+		]);
+		const keys = items.map((i) => i.key);
+		expect(keys.indexOf('tab:tasks')).toBe(keys.indexOf('files') + 1);
+		expect(keys.indexOf(READING.key)).toBe(keys.indexOf('tab:tags') + 1);
+		expect(items.filter((i) => i.group !== 'tabs').every((i) => i.tabPath === undefined)).toBe(true);
+	});
+
+	it('uses keys no navigator, pin or other built-in item has', () => {
+		for (const key of ['tab:tasks', 'tab:graph', 'tab:tags']) {
+			expect(key.startsWith('view:') || key.startsWith('type:')).toBe(false);
+			expect(railItems([CALENDAR], []).filter((i) => i.key === key)).toHaveLength(1);
+		}
+	});
+
+	it('hides a tab item listed in railHidden and orders the tabs by railOrder, within their group', () => {
+		const items = railItems([CALENDAR], [], ['tab:graph'], ['tab:tags', 'archive', 'tab:tasks']);
+		expect(items.filter((i) => i.group === 'tabs').map((i) => i.key)).toEqual(['tab:tags', 'tab:tasks']);
+		expect(items.map((i) => i.key).slice(-3)).toEqual(['tab:tags', 'tab:tasks', 'archive']);
+	});
+
+	it('lists the tab items when a saved railHidden predates them', () => {
+		const items = railItems([CALENDAR], [], ['archive', 'calendar']);
+		expect(items.filter((i) => i.group === 'tabs').map((i) => i.key)).toEqual(['tab:tasks', 'tab:graph', 'tab:tags']);
 	});
 });
 
@@ -139,8 +175,16 @@ describe('moveRailItem', () => {
 	const items = railItems([CALENDAR], [READING]);
 
 	it('swaps an item with its neighbour in its group and returns the order of every listed item', () => {
-		expect(moveRailItem(items, 'files', -1)).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'calendar', 'archive']);
-		expect(moveRailItem(items, 'inbox', 1)).toEqual(['search', 'today', 'inbox', 'favorites', 'types', 'calendar', 'files', 'archive']);
+		expect(moveRailItem(items, 'files', -1)).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'calendar', 'tab:tasks', 'tab:graph', 'tab:tags', 'archive']);
+		expect(moveRailItem(items, 'inbox', 1)).toEqual(['search', 'today', 'inbox', 'favorites', 'types', 'calendar', 'files', 'tab:tasks', 'tab:graph', 'tab:tags', 'archive']);
+	});
+
+	it('moves a tab item within the tabs group and never out of it', () => {
+		expect(moveRailItem(items, 'tab:graph', -1)).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'tab:graph', 'tab:tasks', 'tab:tags', 'archive']);
+		expect(moveRailItem(items, 'tab:graph', 1)).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'tab:tasks', 'tab:tags', 'tab:graph', 'archive']);
+		expect(moveRailItem(items, 'tab:tasks', -1)).toBeNull();
+		expect(moveRailItem(items, 'tab:tags', 1)).toBeNull();
+		expect(moveRailItem(items, 'files', 1)).toBeNull();
 	});
 
 	it('does not move an item past the end of its group, above Search, or Search itself', () => {
@@ -167,6 +211,9 @@ describe('railItemColor', () => {
 		['calendar', '#f43f5e'],
 		['files', '#14b8a6'],
 		['archive', '#78716c'],
+		['tab:tasks', '#22c55e'],
+		['tab:graph', '#6366f1'],
+		['tab:tags', '#ec4899'],
 	])('gives %s its own color', (key, color) => {
 		expect(railItemColor(key)).toBe(color);
 	});

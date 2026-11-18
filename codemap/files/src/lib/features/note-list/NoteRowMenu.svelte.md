@@ -24,7 +24,7 @@ imp src/lib/features/note-list/NoteRowMenu.svelte:29 -> src/lib/utils/menu-actio
 imp src/lib/features/note-list/NoteRowMenu.svelte:30 -> src/lib/features/note-list/note-row-menu.context.ts RENAME_SHORTCUT,setNoteRowMenuContext,type:NoteRowRenameState
 imp src/lib/features/note-list/NoteRowMenu.svelte:31 -> src/lib/features/note-list/note-row.types.ts type:NoteRowNote
 ## imported-by
-imp src/lib/features/rail-shell/RailNoteList.svelte:49 -> src/lib/features/note-list/NoteRowMenu.svelte default
+imp src/lib/features/rail-shell/RailNoteList.svelte:58 -> src/lib/features/note-list/NoteRowMenu.svelte default
 ## reach
 in2 src/lib/features/note-list/NoteRowMenu.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/note-list/NoteRowMenu.svelte 54 files in 16 modules: src/lib/components(19) src/lib/features/collection(5) src/lib/core/editor(4) src/lib/features/file-icons(4) src/lib/utils(4) +11 modules
@@ -34,7 +34,7 @@ test src/tests/lib/features/note-list/NoteRowMenu.show-in-views.test.ts harness 
 test src/tests/lib/features/note-list/NoteRowMenu.test.ts harness src/lib/features/note-list/NoteRowMenu.svelte mirror via src/tests/fixtures/NoteRowMenuHarness.svelte
 ## symbols
 sym src/lib/features/note-list/NoteRowMenu.svelte:1 component NoteRowMenu props:notes,extraItems=,class=,children L302
-by src/lib/features/note-list/NoteRowMenu.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:814 in (markup) mount
+by src/lib/features/note-list/NoteRowMenu.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:889 in (markup) mount
 ## locals
 local src/lib/features/note-list/NoteRowMenu.svelte:73 fn runOrToast(verb: string, note: NoteRowNote, op: () => Promise<unknown>) L10
 local src/lib/features/note-list/NoteRowMenu.svelte:84 fn handleDuplicate(note: NoteRowNote) L3
@@ -53,7 +53,7 @@ local src/lib/features/note-list/NoteRowMenu.svelte:193 fn handleIconPickerClose
 ## mounts
 mount src/lib/features/note-list/NoteRowMenu.svelte:291 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 ## mounted-at
-mount src/lib/features/rail-shell/RailNoteList.svelte:814 NoteRowMenu -> src/lib/features/note-list/NoteRowMenu.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:889 NoteRowMenu -> src/lib/features/note-list/NoteRowMenu.svelte
 ## calls
 call src/lib/features/note-list/NoteRowMenu.svelte:55 in iconPickerRef=$derived -> src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore.getFrontmatterIcon mcall
 call src/lib/features/note-list/NoteRowMenu.svelte:58 in (script) -> src/lib/features/note-list/note-row-menu.context.ts:setNoteRowMenuContext call

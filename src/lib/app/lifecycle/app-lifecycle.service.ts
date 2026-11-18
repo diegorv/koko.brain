@@ -272,7 +272,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		registerOneOnOneActionBarAction(),
 		// Today's My people in the rail shell: same lifetime, same list.
 		registerOneOnOneTodaySection(),
-		// New Kanban Board in the Files navigator's folder menu: same lifetime, same list.
+		// New kanban board in the Files navigator's folder menu: same lifetime, same list.
 		registerKanbanFolderCreator(),
 		// The rail shell's Calendar navigator and Day lens: same lifetime, same list.
 		registerCalendarRail(),

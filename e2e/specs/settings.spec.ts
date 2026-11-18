@@ -1,12 +1,22 @@
 import type { Locator } from '@playwright/test';
 import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
-import { pressShortcut } from '../fixtures/helpers';
+import { openCommandPalette, pressShortcut } from '../fixtures/helpers';
 
 test.describe('Settings panel', () => {
 	test('Cmd+, opens the panel', async ({ vaultPage: page }) => {
 		await pressShortcut(page, 'Mod+Comma');
 		const panel = page.locator('[role="dialog"][aria-label="Settings"]');
 		await expect(panel).toBeVisible();
+	});
+
+	test('the palette command Open Trash opens the panel on the Trash section', async ({ vaultPage: page }) => {
+		await openCommandPalette(page);
+		await page.locator('input[placeholder*="command"]:visible').first().fill('Open Trash');
+		await page.getByRole('option', { name: /Open Trash/ }).click();
+
+		const panel = page.locator('[role="dialog"][aria-label="Settings"]');
+		await expect(panel).toBeVisible();
+		await expect(panel.getByRole('heading', { name: 'Trash', exact: true })).toBeVisible();
 	});
 
 	test('the panel ends at the top edge of the status bar', async ({ vaultPage: page }) => {
@@ -20,7 +30,7 @@ test.describe('Settings panel', () => {
 		expect(barBox).not.toBeNull();
 		expect(panelBox!.y + panelBox!.height).toBeLessThanOrEqual(barBox!.y + 0.5);
 		expect(panelBox!.y + panelBox!.height).toBeGreaterThanOrEqual(barBox!.y - 0.5);
-		expect(barBox!.height).toBeCloseTo(32, 0);
+		expect(barBox!.height).toBeCloseTo(24, 0);
 	});
 
 	test('navigating between sections updates the visible content', async ({ vaultPage: page }) => {

@@ -21,6 +21,7 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
@@ -76,7 +77,7 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 		document.body.innerHTML = '';
 	});
 
-	it('holds Search, Inbox, Today, Favorites, Types, Files and Archive in PRD order, each with an accessible name', () => {
+	it('holds Search, Inbox, Today, Favorites, Types, Files, Tasks, Graph, Tags and Archive in PRD order, each with an accessible name', () => {
 		mountRail();
 		expect([...target.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('aria-label'))).toEqual([
 			'Search',
@@ -85,6 +86,9 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 			'Favorites',
 			'Types',
 			'Files',
+			'Tasks',
+			'Graph',
+			'Tags',
 			'Archive',
 		]);
 	});
@@ -99,7 +103,7 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 		});
 		mountRail('calendar');
 		const keys = () => [...target.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('data-rail-item'));
-		expect(keys()).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'archive']);
+		expect(keys()).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'tab:tasks', 'tab:graph', 'tab:tags', 'archive']);
 		const calendar = target.querySelector<HTMLButtonElement>('[data-rail-item="calendar"]')!;
 		expect(calendar.getAttribute('aria-label')).toBe('Calendar');
 		expect(calendar.getAttribute('aria-current')).toBe('page');
@@ -108,7 +112,7 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 
 		off();
 		flushSync();
-		expect(keys()).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'archive']);
+		expect(keys()).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'tab:tasks', 'tab:graph', 'tab:tags', 'archive']);
 	});
 
 	it('puts a divider between Favorites and Types', () => {
@@ -413,6 +417,7 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 		const color = (key: string) => target.querySelector<HTMLElement>(`[data-rail-item="${key}"]`)!.style.getPropertyValue('--rail-c');
 		expect(color('inbox')).toBe('#3b82f6');
 		expect(color('archive')).toBe('#78716c');
+		expect(color('tab:tasks')).toBe('#22c55e');
 		expect(color('other')).toBe('#0ea5e9');
 		expect(target.querySelector<HTMLElement>('[data-rail-item="inbox"] svg')!.parentElement!.style.color).toBe('var(--rail-c)');
 	});
@@ -424,7 +429,7 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 
 	it.runIf(labeled)('titles the Workspace and Browse groups as children of the rail', () => {
 		mountRail();
-		expect(sectionTitles()).toEqual(['Workspace', 'Browse']);
+		expect(sectionTitles()).toEqual(['Workspace', 'Browse', 'Tabs']);
 		const nav = target.querySelector('[data-rail]')!;
 		for (const text of ['Workspace', 'Browse']) {
 			const title = target.querySelector(`[data-rail-section-title="${text}"]`)!;
@@ -439,7 +444,7 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 		mountRail();
 		settingsStore.updateLayout({ railHidden: ['types', 'files'] });
 		flushSync();
-		expect(sectionTitles()).toEqual(['Workspace']);
+		expect(sectionTitles()).toEqual(['Workspace', 'Tabs']);
 	});
 
 	it('draws the Inbox count as a pill on the item color', () => {
@@ -660,12 +665,12 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 
 		settingsStore.updateLayout({ railHidden: ['favorites', 'archive', 'search', 'today'], railOrder: ['files', 'types', 'today'] });
 		flushSync();
-		expect(keys()).toEqual(['search', 'today', 'inbox', 'files', 'types', 'calendar']);
+		expect(keys()).toEqual(['search', 'today', 'inbox', 'files', 'types', 'calendar', 'tab:tasks', 'tab:graph', 'tab:tags']);
 		expect(target.querySelector('[data-rail-bottom]')!.children).toHaveLength(0);
 
 		settingsStore.updateLayout({ railHidden: [], railOrder: [] });
 		flushSync();
-		expect(keys()).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'archive']);
+		expect(keys()).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'tab:tasks', 'tab:graph', 'tab:tags', 'archive']);
 	});
 
 	it('hands the clicked item key to onSelect', () => {
@@ -688,9 +693,10 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 
 	// The saved key is turned back into a lens by restoreRailItem; a rendered
 	// item it does not know would restore as the default item, so its click would do nothing.
-	it('renders only items that restoreRailItem restores to themselves', () => {
+	// The Tabs items open a tab and are never saved, so they are left out.
+	it('renders only items that restoreRailItem restores to themselves, the Tabs items aside', () => {
 		mountRail();
-		const keys = [...target.querySelectorAll<HTMLElement>('[data-rail-item]')].map((el) => el.dataset.railItem);
+		const keys = [...target.querySelectorAll<HTMLElement>('[data-rail-item]:not([data-rail-tabs] *)')].map((el) => el.dataset.railItem);
 		expect(keys).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'archive']);
 		expect(keys.map((key) => restoreRailItem(key))).toEqual([
 			{ item: 'search', lens: SEARCH_LENS },
@@ -702,6 +708,70 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 			{ item: 'archive', lens: ARCHIVE_LENS },
 		]);
 	});
+
+	describe('Tabs items', () => {
+		const group = () => target.querySelector<HTMLElement>('[data-rail-tabs]');
+		const tabKeys = () => [...(group()?.querySelectorAll('[data-rail-item]') ?? [])].map((el) => el.getAttribute('data-rail-item'));
+		const row = (key: string) => target.querySelector<HTMLButtonElement>(`[data-rail-tabs] [data-rail-item="${key}"]`)!;
+
+		it('draws Tasks, Graph and Tags with icons in their own group, after the navigators and a divider, before the pins', () => {
+			typeDefinitionsStore.setEntries([entryV2('/vault/Reading.view', { frontmatter: { _rail: true } })]);
+			mountRail();
+			expect(tabKeys()).toEqual(['tab:tasks', 'tab:graph', 'tab:tags']);
+			expect([...group()!.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('aria-label'))).toEqual(['Tasks', 'Graph', 'Tags']);
+			for (const key of tabKeys()) expect(row(key!).querySelector('svg')).not.toBeNull();
+			const divider = group()!.previousElementSibling!;
+			expect(divider.hasAttribute('data-rail-tabs-divider')).toBe(true);
+			expect(divider.previousElementSibling?.getAttribute('data-rail-item')).toBe('files');
+			expect(group()!.nextElementSibling?.hasAttribute('data-rail-pinned-divider')).toBe(true);
+			expect(group()!.classList).toContain('shrink-0');
+			expect([...group()!.querySelectorAll('[data-rail-title]')].map((el) => el.textContent)).toEqual(titled ? ['Tasks', 'Graph', 'Tags'] : []);
+		});
+
+		it.runIf(labeled)('titles the group Tabs inside it', () => {
+			mountRail();
+			expect(target.querySelector('[data-rail-section-title="Tabs"]')!.parentElement).toBe(group());
+		});
+
+		it('hands the clicked key to onSelect', () => {
+			mountRail();
+			for (const key of ['tab:tasks', 'tab:graph', 'tab:tags']) {
+				row(key).click();
+				expect(onSelect).toHaveBeenLastCalledWith(key);
+			}
+		});
+
+		it('marks Tasks current only while its tab is the active tab, whatever the rail item', () => {
+			editorStore.addTab({ path: '/vault/note.md', name: 'note', content: '', savedContent: '' });
+			mountRail('tab:tasks');
+			expect(row('tab:tasks').hasAttribute('aria-current')).toBe(false);
+			expect(tinted(row('tab:tasks'))).toBe(false);
+
+			editorStore.addTab({ path: TASKS_VIRTUAL_PATH, name: 'Tasks', content: '', savedContent: '', fileType: 'tasks' });
+			flushSync();
+			expect(row('tab:tasks').getAttribute('aria-current')).toBe('page');
+			expect(tinted(row('tab:tasks'))).toBe(true);
+			expect(row('tab:graph').hasAttribute('aria-current')).toBe(false);
+			expect(row('tab:tags').hasAttribute('aria-current')).toBe(false);
+
+			editorStore.setActiveIndex(0);
+			flushSync();
+			expect(row('tab:tasks').hasAttribute('aria-current')).toBe(false);
+		});
+
+		it('drops the group and its divider while every Tabs item is hidden', () => {
+			mountRail();
+			settingsStore.updateLayout({ railHidden: ['tab:tasks', 'tab:graph', 'tab:tags'] });
+			flushSync();
+			expect(group()).toBeNull();
+			expect(target.querySelector('[data-rail-tabs-divider]')).toBeNull();
+
+			settingsStore.updateLayout({ railHidden: ['tab:graph'], railOrder: ['tab:tags'] });
+			flushSync();
+			expect(tabKeys()).toEqual(['tab:tags', 'tab:tasks']);
+		});
+	});
+
 	describe('pinned items', () => {
 		const READING = '/vault/Reading.view';
 		const BOARD = '/vault/Board.view';
@@ -723,14 +793,14 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 		const group = () => target.querySelector<HTMLElement>('[data-rail-pinned]');
 		const pin = (key: string) => target.querySelector<HTMLButtonElement>(`[data-rail-pinned] [data-rail-item="${key}"]`)!;
 
-		it('renders the pinned group under the navigator items, after a divider, above Archive', () => {
+		it('renders the pinned group under the Tabs items, after a divider, above Archive', () => {
 			setEntries(PINNED);
 			mountRail();
 			const keys = [...target.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('data-rail-item'));
-			expect(keys).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'type:Project', `view:${BOARD}`, `view:${READING}`, 'archive']);
+			expect(keys).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'tab:tasks', 'tab:graph', 'tab:tags', 'type:Project', `view:${BOARD}`, `view:${READING}`, 'archive']);
 			const divider = group()!.previousElementSibling!;
 			expect(divider.hasAttribute('data-rail-pinned-divider')).toBe(true);
-			expect(divider.previousElementSibling?.getAttribute('data-rail-item')).toBe('files');
+			expect(divider.previousElementSibling?.hasAttribute('data-rail-tabs')).toBe(true);
 			expect(group()!.nextElementSibling?.hasAttribute('data-rail-bottom')).toBe(true);
 		});
 
@@ -837,7 +907,7 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 		it.runIf(labeled)('titles the group inside it, so the divider and the group stay siblings', () => {
 			setEntries(PINNED);
 			mountRail();
-			expect(sectionTitles()).toEqual(['Workspace', 'Browse', 'Pinned']);
+			expect(sectionTitles()).toEqual(['Workspace', 'Browse', 'Tabs', 'Pinned']);
 			expect(target.querySelector('[data-rail-section-title="Pinned"]')!.parentElement).toBe(group());
 			expect(group()!.previousElementSibling?.hasAttribute('data-rail-pinned-divider')).toBe(true);
 		});
@@ -848,7 +918,7 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 			expect(sectionTitles()).toContain('Pinned');
 			setEntries([]);
 			flushSync();
-			expect(sectionTitles()).toEqual(['Workspace', 'Browse']);
+			expect(sectionTitles()).toEqual(['Workspace', 'Browse', 'Tabs']);
 		});
 
 		it('uses the resolved icon color for the row, else the pin fallback', () => {
@@ -885,7 +955,7 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 			typeDefinitionsStore.setEntries([entryV2('/vault/Reading.view', { frontmatter: { _rail: true } })]);
 			railRegistryStore.registerAction({ key: KEY, label: 'Hello mod', icon: 'lucide:sparkles', run: vi.fn() });
 			mountRail();
-			expect(keys()).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'view:/vault/Reading.view', KEY, 'archive']);
+			expect(keys()).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'tab:tasks', 'tab:graph', 'tab:tags', 'view:/vault/Reading.view', KEY, 'archive']);
 			const block = target.querySelector('[data-rail-actions]')!;
 			expect(block.previousElementSibling?.hasAttribute('data-rail-actions-divider')).toBe(true);
 			expect(block.previousElementSibling?.previousElementSibling?.hasAttribute('data-rail-pinned')).toBe(true);
@@ -1056,14 +1126,14 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 		it.runIf(labeled)('titles the group inside it, and drops the title with its last action', () => {
 			const off = railRegistryStore.registerAction({ key: KEY, label: 'Hello mod', icon: 'lucide:sparkles', run: vi.fn() });
 			mountRail();
-			expect(sectionTitles()).toEqual(['Workspace', 'Browse', 'Actions']);
+			expect(sectionTitles()).toEqual(['Workspace', 'Browse', 'Tabs', 'Actions']);
 			const block = target.querySelector('[data-rail-actions]')!;
 			expect(target.querySelector('[data-rail-section-title="Actions"]')!.parentElement).toBe(block);
 			expect(block.previousElementSibling?.hasAttribute('data-rail-actions-divider')).toBe(true);
 
 			off();
 			flushSync();
-			expect(sectionTitles()).toEqual(['Workspace', 'Browse']);
+			expect(sectionTitles()).toEqual(['Workspace', 'Browse', 'Tabs']);
 		});
 	});
 });

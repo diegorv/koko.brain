@@ -16,7 +16,7 @@ dep src/lib/app -> src/lib/core/settings 32
 dep src/lib/app -> src/lib/core/status-bar 2
 dep src/lib/app -> src/lib/core/trash 1
 dep src/lib/app -> src/lib/core/vault 13
-dep src/lib/app -> src/lib/core/zoom 1
+dep src/lib/app -> src/lib/core/zoom 2
 dep src/lib/app -> src/lib/features/auto-organize 2
 dep src/lib/app -> src/lib/features/backlinks 4
 dep src/lib/app -> src/lib/features/canvas 2
@@ -34,12 +34,12 @@ dep src/lib/app -> src/lib/features/properties 8
 dep src/lib/app -> src/lib/features/quick-switcher 5
 dep src/lib/app -> src/lib/features/rail-shell 19
 dep src/lib/app -> src/lib/features/search 10
-dep src/lib/app -> src/lib/features/tags 3
-dep src/lib/app -> src/lib/features/tasks 5
+dep src/lib/app -> src/lib/features/tags 4
+dep src/lib/app -> src/lib/features/tasks 6
 dep src/lib/app -> src/lib/features/todoist-sync 8
 dep src/lib/app -> src/lib/features/type-definitions 14
 dep src/lib/app -> src/lib/plugins/calendar 2
-dep src/lib/app -> src/lib/plugins/graph-view 4
+dep src/lib/app -> src/lib/plugins/graph-view 5
 dep src/lib/app -> src/lib/plugins/kanban 4
 dep src/lib/app -> src/lib/plugins/mods 9
 dep src/lib/app -> src/lib/plugins/one-on-one 5
@@ -61,24 +61,24 @@ entry src/lib/app/lifecycle/app-lifecycle.service.ts ext-in1 src/routes/(app)/+l
 entry src/lib/app/lifecycle/index-updater.service.ts ext-in1 src/routes/(app)/+layout.svelte
 entry src/lib/app/tauri-listeners.service.ts ext-in1 src/routes/(app)/+layout.svelte
 ## files
-file src/lib/app/AppOverlays.svelte component L25 module src/lib/app in1 t1
-file src/lib/app/AppShell.svelte component L314 module src/lib/app in1 t2
+file src/lib/app/AppOverlays.svelte component L27 module src/lib/app in1 t1
+file src/lib/app/AppShell.svelte component L316 module src/lib/app in1 t2
 file src/lib/app/EditorView.svelte component L159 module src/lib/app in1 t3
 file src/lib/app/LabsSection.svelte component L52 module src/lib/app in1 t1
 file src/lib/app/SettingsPanel.svelte component L162 module src/lib/app in1 t1
 file src/lib/app/boot.ts other L97 module src/lib/app in1 t15
-file src/lib/app/commands.ts other L432 module src/lib/app in1 t5
+file src/lib/app/commands.ts other L460 module src/lib/app in1 t5
 file src/lib/app/deep-link-actions.ts other L240 module src/lib/app in1 t2
 file src/lib/app/editor-host.ts other L216 module src/lib/app in1 t8
 file src/lib/app/global-keybindings.ts other L229 module src/lib/app in2 t1
 file src/lib/app/lifecycle/app-lifecycle.service.ts service L686 module src/lib/app in1 t3
 file src/lib/app/lifecycle/index-updater.service.ts service L44 module src/lib/app in1 t1
 file src/lib/app/lifecycle/watcher-handler.service.ts service L126 module src/lib/app in1 t3
-file src/lib/app/rail-navigation.ts other L38 module src/lib/app in3 t1
+file src/lib/app/rail-navigation.ts other L59 module src/lib/app in3 t1
 file src/lib/app/tauri-listeners.service.ts service L346 module src/lib/app in1 t2
 ## public
-sym src/lib/app/AppOverlays.svelte:1 component AppOverlays L25
-sym src/lib/app/AppShell.svelte:1 component AppShell props:children L314
+sym src/lib/app/AppOverlays.svelte:1 component AppOverlays L27
+sym src/lib/app/AppShell.svelte:1 component AppShell props:children L316
 sym src/lib/app/boot.ts:34 fn registerAppPorts(): void L50 | Wires the features and plugins that core reaches through ports for the whole app lifetime.
 sym src/lib/app/global-keybindings.ts:222 fn registerGlobalKeybindings(): () => void L8 | Registers all app-wide keyboard shortcuts.
 sym src/lib/app/lifecycle/app-lifecycle.service.ts:137 fn initializeVault(vaultPath: string): Promise<void> L423 | Initializes all app systems when a vault is opened.

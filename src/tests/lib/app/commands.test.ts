@@ -91,6 +91,7 @@ import { toKey } from '#lib/features/event-calendar/event-calendar-dates.logic.j
 import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
 import CalendarDays from '@lucide/svelte/icons/calendar-days';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
+import { registerCalendarRail } from '#lib/plugins/calendar/calendar-rail.service.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
@@ -146,10 +147,21 @@ describe('getBuiltInCommands', () => {
 		expect(modCommandsStore.list).toEqual([]);
 	});
 
-	it('returns 43 built-in commands with no navigator, no pin, no view and no calendar history', () => {
+	it('returns 46 built-in commands with no vault, no navigator, no pin, no view and no calendar history', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(43);
+		expect(commands).toHaveLength(46);
+	});
+
+	it('names the creators "New <kind>" in sentence case, under their unchanged ids', () => {
+		const labels = new Map(getBuiltInCommands().map((c) => [c.id, c.label]));
+
+		expect(['file-explorer:new-file', 'file-explorer:new-folder', 'canvas:new', 'kanban:new'].map((id) => labels.get(id))).toEqual([
+			'New note',
+			'New folder',
+			'New canvas',
+			'New kanban board',
+		]);
 	});
 
 	it('includes Toggle Favorite (Cmd+D) and Toggle Organized (Cmd+E) acting on the active note', () => {
@@ -562,6 +574,72 @@ describe('getBuiltInCommands', () => {
 		expect(settingsPanelStore.isOpen).toBe(true);
 	});
 
+	describe('right panel toggles', () => {
+		/** The four panel flags, to assert that a toggle moves only its own */
+		function panelFlags() {
+			const { propertiesVisible, backlinksVisible, outgoingLinksVisible, tableOfContentsVisible } = settingsStore.layout;
+			return { propertiesVisible, backlinksVisible, outgoingLinksVisible, tableOfContentsVisible };
+		}
+
+		it.each([
+			['layout:toggle-properties', 'Toggle Properties Panel', 'propertiesVisible'],
+			['layout:toggle-backlinks', 'Toggle Backlinks Panel', 'backlinksVisible'],
+			['layout:toggle-outgoing-links', 'Toggle Outgoing Links Panel', 'outgoingLinksVisible'],
+		] as const)('%s is "%s" in Layout and flips only %s, twice back to the start', (id, label, flag) => {
+			vaultStore.open('/vault');
+			const command = getBuiltInCommands().find((c) => c.id === id);
+			expect(command).toMatchObject({ label, category: 'Layout' });
+			const before = panelFlags();
+
+			command!.action();
+			expect(panelFlags()).toEqual({ ...before, [flag]: !before[flag] });
+			command!.action();
+			expect(panelFlags()).toEqual(before);
+		});
+
+		it('turning a panel on from the palette shows a hidden right sidebar', () => {
+			vaultStore.open('/vault');
+			settingsStore.updateLayout({ rightSidebarVisible: false, backlinksVisible: false });
+
+			getBuiltInCommands().find((c) => c.id === 'layout:toggle-backlinks')!.action();
+
+			expect(settingsStore.layout.backlinksVisible).toBe(true);
+			expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+		});
+	});
+
+	describe('Open Trash', () => {
+		const openTrash = () => getBuiltInCommands().find((c) => c.id === 'settings:open-trash');
+
+		it('is "Open Trash" in Settings and opens the Settings sheet on Trash; a second run keeps it there', () => {
+			vaultStore.open('/vault');
+			expect(openTrash()).toMatchObject({ label: 'Open Trash', category: 'Settings' });
+
+			openTrash()!.action();
+			expect(settingsPanelStore.isOpen).toBe(true);
+			expect(settingsPanelStore.activeSection).toBe('trash');
+
+			openTrash()!.action();
+			expect(settingsPanelStore.isOpen).toBe(true);
+			expect(settingsPanelStore.activeSection).toBe('trash');
+		});
+
+		it('moves an open Settings sheet from another section to Trash', () => {
+			vaultStore.open('/vault');
+			settingsPanelStore.open('editor');
+
+			openTrash()!.action();
+
+			expect(settingsPanelStore.isOpen).toBe(true);
+			expect(settingsPanelStore.activeSection).toBe('trash');
+		});
+
+		it('does not exist while no vault is open', () => {
+			expect(vaultStore.isOpen).toBe(false);
+			expect(openTrash()).toBeUndefined();
+		});
+	});
+
 });
 
 describe('getBuiltInCommands rail commands', () => {
@@ -611,6 +689,17 @@ describe('getBuiltInCommands rail commands', () => {
 			['rail:go-to:archive', 'Go to Archive'],
 		]);
 		expect(goTo().every((c) => c.category === 'Navigation')).toBe(true);
+	});
+
+	it('names the registered day navigator "Go to Days", keeps "Toggle Calendar View", and has no Go to for the Tabs items', () => {
+		const unregister = registerCalendarRail();
+		const labels = getBuiltInCommands().map((c) => c.label);
+
+		expect(labels).toContain('Go to Days');
+		expect(labels).toContain('Toggle Calendar View');
+		for (const label of ['Go to Calendar', 'Go to Tasks', 'Go to Graph', 'Go to Tags']) expect(labels).not.toContain(label);
+		expect(goTo().map((c) => c.id)).toEqual(expect.not.arrayContaining(['rail:go-to:tab:tasks', 'rail:go-to:tab:graph', 'rail:go-to:tab:tags']));
+		unregister();
 	});
 
 	it('adds a navigator registered and a pin added after the first build the next time the list is built', () => {

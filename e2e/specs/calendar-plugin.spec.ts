@@ -12,14 +12,14 @@ function listLabel(page: Page) {
 	return page.locator('[data-rail-note-list] [data-note-list-label]');
 }
 
-/** Picks the Calendar rail item, which opens the Calendar navigator on today's month. */
+/** Picks the Days rail item, which opens the Days navigator on today's month. */
 async function openCalendarNavigator(page: Page): Promise<void> {
 	await page.locator('[data-rail-item="calendar"]').click();
 	await expect(calendar(page)).toBeVisible({ timeout: 5_000 });
 }
 
 test.describe('Calendar plugin', () => {
-	test('the Calendar rail item opens the navigator on today, listing today\'s notes', async ({ vaultPage: page }) => {
+	test('the Days rail item opens the navigator on today, listing today\'s notes', async ({ vaultPage: page }) => {
 		await openCalendarNavigator(page);
 		await expect(page.locator('[data-rail-item="calendar"]')).toHaveAttribute('aria-current', 'page');
 		await expect(calendar(page).locator('[data-calendar-month-label]')).toHaveText('November 2026');

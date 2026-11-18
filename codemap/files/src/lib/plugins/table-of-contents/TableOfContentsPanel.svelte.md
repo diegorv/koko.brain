@@ -17,13 +17,13 @@ out2 src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte 9 files in 5 
 test src/tests/lib/plugins/table-of-contents/TableOfContentsPanel.test.ts imports src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte mirror
 ## symbols
 sym src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte:1 component TableOfContentsPanel L82
-by src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte:default <- src/lib/app/AppShell.svelte:282 in (markup) mount
+by src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte:default <- src/lib/app/AppShell.svelte:284 in (markup) mount
 ## locals
 local src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte:14 fn setExpanded(open: boolean) L3
 ## mounts
 mount src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte:46 SidebarSection -> src/lib/core/layout/SidebarSection.svelte
 ## mounted-at
-mount src/lib/app/AppShell.svelte:282 TableOfContentsPanel -> src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte
+mount src/lib/app/AppShell.svelte:284 TableOfContentsPanel -> src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte
 ## calls
 call src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte:15 in setExpanded -> src/lib/plugins/table-of-contents/toc.store.svelte.ts:tocStore.setExpandedPath mcall
 call src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte:23 in $effect@19 -> src/lib/plugins/table-of-contents/toc.store.svelte.ts:tocStore.setExpandedPath mcall

@@ -25,9 +25,11 @@ import {
 import {
 	hideRailPanels,
 	showClaudePanel,
+	setRightPanelVisible,
 	showRailPanels,
 	toggleClaudePanel,
 	toggleLeftSidebar,
+	toggleRightPanel,
 	toggleRightSidebar,
 } from '#lib/core/layout/layout.service.js';
 
@@ -291,5 +293,99 @@ describe('toggleClaudePanel / showClaudePanel', () => {
 		showClaudePanel();
 		expect(settingsStore.layout.claudeVisible).toBe(true);
 		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+	});
+});
+
+describe('toggleRightPanel / setRightPanelVisible', () => {
+	beforeEach(resetAll);
+	afterEach(teardownAll);
+
+	/** The four panel flags plus the sidebar flag, to assert that nothing else moved */
+	function panelFlags() {
+		const { propertiesVisible, backlinksVisible, outgoingLinksVisible, tableOfContentsVisible, rightSidebarVisible } = settingsStore.layout;
+		return { propertiesVisible, backlinksVisible, outgoingLinksVisible, tableOfContentsVisible, rightSidebarVisible };
+	}
+
+	/** Opens a markdown note tab, so the right sidebar can show */
+	function openNoteTab(): void {
+		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: '', savedContent: '' });
+	}
+
+	it('toggleRightPanel flips only that panel flag, and twice returns it', () => {
+		settingsStore.updateLayout({ rightSidebarVisible: true });
+		openNoteTab();
+		const before = panelFlags();
+
+		toggleRightPanel('backlinks');
+		expect(panelFlags()).toEqual({ ...before, backlinksVisible: !before.backlinksVisible });
+
+		toggleRightPanel('backlinks');
+		expect(panelFlags()).toEqual(before);
+	});
+
+	it('turning a panel on shows a hidden right sidebar on a note tab, and persists both', async () => {
+		vaultStore.open('/vault');
+		settingsStore.updateLayout({ rightSidebarVisible: false, backlinksVisible: false });
+		openNoteTab();
+		startSettingsPersistence('/vault');
+
+		toggleRightPanel('backlinks');
+		await settle();
+
+		expect(settingsStore.layout.backlinksVisible).toBe(true);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+		expect(persisted().layout).toMatchObject({ backlinksVisible: true, rightSidebarVisible: true });
+	});
+
+	it('turning a panel on with no tab open shows a hidden right sidebar', () => {
+		settingsStore.updateLayout({ rightSidebarVisible: false, outgoingLinksVisible: false });
+
+		setRightPanelVisible('outgoingLinks', true);
+
+		expect(settingsStore.layout.outgoingLinksVisible).toBe(true);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+	});
+
+	it('turning a panel on while a kanban tab is active sets the flag but leaves the sidebar hidden', () => {
+		settingsStore.updateLayout({ rightSidebarVisible: false, backlinksVisible: false });
+		editorStore.addTab({ path: '/vault/b.kanban', name: 'b.kanban', content: '', savedContent: '', fileType: 'kanban' });
+
+		toggleRightPanel('backlinks');
+
+		expect(settingsStore.layout.backlinksVisible).toBe(true);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(false);
+	});
+
+	it('turning a panel on while a virtual tab is active leaves the sidebar hidden', () => {
+		settingsStore.updateLayout({ rightSidebarVisible: false, propertiesVisible: false });
+		editorStore.addTab({ path: TASKS_VIRTUAL_PATH, name: 'Tasks', content: '', savedContent: '', fileType: 'tasks' });
+
+		setRightPanelVisible('properties', true);
+
+		expect(settingsStore.layout.propertiesVisible).toBe(true);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(false);
+	});
+
+	it('turning a panel off leaves the sidebar as it was, shown or hidden', () => {
+		openNoteTab();
+		settingsStore.updateLayout({ rightSidebarVisible: true, tableOfContentsVisible: true });
+		setRightPanelVisible('tableOfContents', false);
+		expect(settingsStore.layout.tableOfContentsVisible).toBe(false);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+
+		settingsStore.updateLayout({ rightSidebarVisible: false, propertiesVisible: true });
+		toggleRightPanel('properties');
+		expect(settingsStore.layout.propertiesVisible).toBe(false);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(false);
+	});
+
+	it('setting a panel to the state it already has changes nothing', () => {
+		openNoteTab();
+		settingsStore.updateLayout({ rightSidebarVisible: false, backlinksVisible: false });
+		const before = panelFlags();
+
+		setRightPanelVisible('backlinks', false);
+
+		expect(panelFlags()).toEqual(before);
 	});
 });

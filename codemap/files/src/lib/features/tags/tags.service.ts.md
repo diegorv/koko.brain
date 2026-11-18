@@ -1,6 +1,6 @@
 # file card src/lib/features/tags/tags.service.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/tags/tags.service.ts ' codemap/files
-file src/lib/features/tags/tags.service.ts service L168 module src/lib/features/tags in3 t4
+file src/lib/features/tags/tags.service.ts service L168 module src/lib/features/tags in4 t4
 ## imports
 imp src/lib/features/tags/tags.service.ts:1 -> src/lib/contracts/ipc.ts call
 imp src/lib/features/tags/tags.service.ts:2 -> src/lib/utils/debug.ts debug,error,timeAsync,timeSync
@@ -12,9 +12,10 @@ imp src/lib/features/tags/tags.service.ts:7 -> src/lib/features/tags/tags.logic.
 ## imported-by
 imp src/lib/app/commands.ts:44 -> src/lib/features/tags/tags.service.ts toggleTagsTab
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:24 -> src/lib/features/tags/tags.service.ts buildTagIndex,resetTags
+imp src/lib/app/rail-navigation.ts:11 -> src/lib/features/tags/tags.service.ts openTagsTab
 imp src/lib/features/tags/TagsView.svelte:7 -> src/lib/features/tags/tags.service.ts scheduleTagIndexRebuild,updateTagSort
 ## reach
-in2 src/lib/features/tags/tags.service.ts 3 files in 2 modules: src/lib/app(2) src/routes(1)
+in2 src/lib/features/tags/tags.service.ts 5 files in 2 modules: src/lib/app(4) src/routes(1)
 out2 src/lib/features/tags/tags.service.ts 8 files in 5 modules: src/lib/contracts(2) src/lib/core/settings(2) src/lib/utils(2) src/lib/core/editor(1) src/lib/features/tags(1)
 ## tests
 test src/tests/lib/features/tags/tags.service.test.ts imports src/lib/features/tags/tags.service.ts mirror
@@ -30,9 +31,10 @@ sym src/lib/features/tags/tags.service.ts:109 fn scheduleTagIndexRebuild(): void
 by src/lib/features/tags/tags.service.ts:scheduleTagIndexRebuild <- src/lib/features/tags/TagsView.svelte:73 in $effect@70 call
 sym src/lib/features/tags/tags.service.ts:118 fn flushScheduledTagIndexRebuild(): Promise<void> L6 | Flushes any pending debounced trigger and waits for the current rebuild (and any pending re-run) to settle.
 sym src/lib/features/tags/tags.service.ts:126 fn openTagsTab(): void L14 | Opens or focuses the Tags tab.
+by src/lib/features/tags/tags.service.ts:openTagsTab <- src/lib/app/rail-navigation.ts:37 in selectRailItem call
 sym src/lib/features/tags/tags.service.ts:142 fn closeTagsTab(): void L6 | Closes the Tags tab if it exists.
 sym src/lib/features/tags/tags.service.ts:150 fn toggleTagsTab(): void L10 | Toggles the Tags tab: opens if closed, closes if active, focuses if open but not active.
-by src/lib/features/tags/tags.service.ts:toggleTagsTab <- src/lib/app/commands.ts:298 in getBuiltInCommands call
+by src/lib/features/tags/tags.service.ts:toggleTagsTab <- src/lib/app/commands.ts:301 in getBuiltInCommands call
 sym src/lib/features/tags/tags.service.ts:162 fn resetTags(): void L7 | Resets all tag state and cancels any pending scheduled rebuild.
 by src/lib/features/tags/tags.service.ts:resetTags <- src/lib/app/lifecycle/app-lifecycle.service.ts:664 in teardownVault call
 ## locals

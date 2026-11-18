@@ -9,7 +9,7 @@ dep src/lib/plugins/one-on-one -> src/lib/core/editor 2
 dep src/lib/plugins/one-on-one -> src/lib/core/filesystem 1
 dep src/lib/plugins/one-on-one -> src/lib/core/frontmatter 1
 dep src/lib/plugins/one-on-one -> src/lib/core/note-creator 2
-dep src/lib/plugins/one-on-one -> src/lib/core/settings 3
+dep src/lib/plugins/one-on-one -> src/lib/core/settings 4
 dep src/lib/plugins/one-on-one -> src/lib/core/vault 2
 dep src/lib/plugins/one-on-one -> src/lib/features/event-calendar 1
 dep src/lib/plugins/one-on-one -> src/lib/features/note-action-bar 1
@@ -25,10 +25,10 @@ entry src/lib/plugins/one-on-one/one-on-one.service.ts ext-in4 src/lib/app/comma
 entry src/lib/plugins/one-on-one/OneOnOnePicker.svelte ext-in1 src/lib/app/AppOverlays.svelte
 entry src/lib/plugins/one-on-one/one-on-one-today.service.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 ## files
-file src/lib/plugins/one-on-one/MyPeopleSection.svelte component L77 module src/lib/plugins/one-on-one in1 t1
+file src/lib/plugins/one-on-one/MyPeopleSection.svelte component L89 module src/lib/plugins/one-on-one in1 t1
 file src/lib/plugins/one-on-one/OneOnOnePicker.svelte component L95 module src/lib/plugins/one-on-one in1 t1
 file src/lib/plugins/one-on-one/one-on-one-today.service.ts service L18 module src/lib/plugins/one-on-one in1 t2
-file src/lib/plugins/one-on-one/one-on-one.logic.ts logic L241 module src/lib/plugins/one-on-one in4 t3
+file src/lib/plugins/one-on-one/one-on-one.logic.ts logic L242 module src/lib/plugins/one-on-one in4 t4
 file src/lib/plugins/one-on-one/one-on-one.service.ts service L135 module src/lib/plugins/one-on-one in6 t8
 file src/lib/plugins/one-on-one/one-on-one.store.svelte.ts store L42 module src/lib/plugins/one-on-one in2 t3
 ## public

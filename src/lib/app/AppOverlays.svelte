@@ -2,6 +2,7 @@
 	import { Toaster } from 'svelte-sonner';
 	import SettingsPanel from '#lib/app/SettingsPanel.svelte';
 	import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+	import ZoomChip from '#lib/core/zoom/ZoomChip.svelte';
 	import QuickSwitcher from '#lib/features/quick-switcher/QuickSwitcher.svelte';
 	import CommandPalette from '#lib/features/command-palette/CommandPalette.svelte';
 	import TemplatePicker from '#lib/plugins/templates/TemplatePicker.svelte';
@@ -23,3 +24,4 @@
 <ModDialogHost />
 <FileHistoryDialog />
 <TodoistSyncLogDialog />
+<ZoomChip />

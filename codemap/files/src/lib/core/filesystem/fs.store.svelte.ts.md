@@ -21,8 +21,8 @@ imp src/lib/features/note-list/NoteRowMenu.svelte:16 -> src/lib/core/filesystem/
 imp src/lib/features/properties/PropertiesView.svelte:12 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/features/properties/RelationshipSearch.svelte:5 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:3 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
-imp src/lib/features/rail-shell/FilesNavigator.svelte:21 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
-imp src/lib/features/rail-shell/RailNoteList.svelte:13 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
+imp src/lib/features/rail-shell/FilesNavigator.svelte:24 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
+imp src/lib/features/rail-shell/RailNoteList.svelte:21 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/features/rail-shell/TypesNavigator.svelte:23 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:5 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/plugins/kanban/kanban.service.ts:6 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
@@ -74,7 +74,7 @@ more tests 17 not shown: src/tests/lib/features/rail-shell(5) src/tests/lib/plug
 ## symbols
 sym src/lib/core/filesystem/fs.store.svelte.ts:25 store fsStore L24 | Central store for the file system / file explorer state.
 by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/AppShell.svelte:123 in viewFilesKey=$derived member +3
-by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/commands.ts:101 in openViewCommands member
+by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/commands.ts:103 in openViewCommands member
 by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/editor-host.ts:77 in treeLinkIndex member +1
 by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/lifecycle/app-lifecycle.service.ts:387 in initializeVault mcall +4
 by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/tauri-listeners.service.ts:198 in registerVaultIndexUpdatedListener member +2
@@ -88,8 +88,8 @@ mem src/lib/core/filesystem/fs.store.svelte.ts:26 get fsStore.fileTree r:36 w-vi
 more r 36 not shown: src/lib/app(9) src/lib/core/filesystem(9) src/lib/features/rail-shell(9) src/lib/core/trash(2) src/lib/features/properties(2) src/lib/plugins/kanban(2) src/lib/features/canvas(1) src/lib/features/event-calendar(1) +1 modules: q store src/lib/core/filesystem/fs.store.svelte.ts:fsStore.fileTree
 mem src/lib/core/filesystem/fs.store.svelte.ts:27 get fsStore.isLoading r:- w-via:startLoading,stopLoading,reset
 mem src/lib/core/filesystem/fs.store.svelte.ts:28 get fsStore.renamingPath r:src/lib/features/note-list/NoteRow.svelte:47,src/lib/features/note-list/NoteRowMenu.svelte:110,src/lib/features/note-list/NoteRowMenu.svelte:132 w-via:setRenamingPath,reset
-mem src/lib/core/filesystem/fs.store.svelte.ts:29 get fsStore.folderOrder r:src/lib/app/lifecycle/app-lifecycle.service.ts:389,src/lib/core/filesystem/fs.service.ts:139,src/lib/core/filesystem/fs.watcher.ts:218 w-via:setFolderOrder,reset
-mem src/lib/core/filesystem/fs.store.svelte.ts:30 get fsStore.contentOrder r:src/lib/app/tauri-listeners.service.ts:198,src/lib/app/tauri-listeners.service.ts:252,src/lib/core/filesystem/fs.service.ts:110,src/lib/core/filesystem/fs.service.ts:138,src/lib/core/filesystem/fs.watcher.ts:229 w-via:setContentOrder,reset
+mem src/lib/core/filesystem/fs.store.svelte.ts:29 get fsStore.folderOrder r:src/lib/app/lifecycle/app-lifecycle.service.ts:389,src/lib/core/filesystem/fs.service.ts:139,src/lib/core/filesystem/fs.watcher.ts:218,src/lib/features/rail-shell/FilesNavigator.svelte:99 w-via:setFolderOrder,reset
+mem src/lib/core/filesystem/fs.store.svelte.ts:30 get fsStore.contentOrder r:src/lib/app/tauri-listeners.service.ts:198,src/lib/app/tauri-listeners.service.ts:252,src/lib/core/filesystem/fs.service.ts:110,src/lib/core/filesystem/fs.service.ts:138,src/lib/core/filesystem/fs.watcher.ts:229,src/lib/features/rail-shell/FilesNavigator.svelte:99 w-via:setContentOrder,reset
 mem src/lib/core/filesystem/fs.store.svelte.ts:32 do fsStore.setFileTree w:src/lib/app/lifecycle/app-lifecycle.service.ts:390,src/lib/core/filesystem/fs.service.ts:116,src/lib/core/filesystem/fs.service.ts:165,src/lib/core/filesystem/fs.watcher.ts:250,src/lib/core/filesystem/path-change.service.ts:184,src/lib/core/filesystem/path-change.service.ts:211
 mem src/lib/core/filesystem/fs.store.svelte.ts:33 do fsStore.setFolderOrder w:src/lib/core/filesystem/fs.service.ts:49,src/lib/core/filesystem/fs.service.ts:55,src/lib/core/filesystem/fs.service.ts:64,src/lib/core/filesystem/fs.service.ts:68
 mem src/lib/core/filesystem/fs.store.svelte.ts:34 do fsStore.setContentOrder w:src/lib/app/lifecycle/app-lifecycle.service.ts:387,src/lib/app/tauri-listeners.service.ts:201

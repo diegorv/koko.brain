@@ -355,6 +355,26 @@ test.describe('Rail shell', () => {
 		await expect(page.locator('[data-right-sidebar]')).toHaveCount(0);
 	});
 
+	test('the Tabs rail entries open Tasks, Graph and Tags, and a second click keeps the tab and the rail item', async ({ vaultPage: page }) => {
+		await openInbox(page);
+		await listRow(page, 'Welcome').click();
+		await expectTabActive(page, 'Welcome');
+		const inbox = page.locator('[data-rail-item="inbox"]');
+
+		for (const [key, tab] of [['tab:tasks', 'Tasks'], ['tab:graph', 'Graph View'], ['tab:tags', 'Tags']] as const) {
+			const item = page.locator(`[data-rail-tabs] [data-rail-item="${key}"]`);
+			await item.click();
+			await expectTabActive(page, tab);
+			await expect(item).toHaveAttribute('aria-current', 'page');
+			await item.click();
+			await expectTabActive(page, tab);
+			await expect(page.locator('[role="tab"]', { hasText: tab })).toHaveCount(1);
+			await expect(inbox).toHaveAttribute('aria-current', 'page');
+			await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Inbox');
+		}
+		await expect(page.locator('[data-rail-item="tab:tasks"]')).not.toHaveAttribute('aria-current', 'page');
+	});
+
 	test('Cmd+1 hides the note list, Cmd+2 shows it, Cmd+Shift+B toggles it; the rail stays and the state is saved', async ({ vaultPage: page }) => {
 		await openInbox(page);
 		await listRow(page, 'Welcome').click();
@@ -1063,7 +1083,7 @@ test.describe('Search on the rail', () => {
 		return railSearch(page).locator('[data-rail-search-header] input');
 	}
 
-	test('"/" opens Search and focuses the input; a query lists the matching note with its snippet; Escape leaves the input', async ({ vaultPage: page }) => {
+	test('"/" opens Search and focuses the input; a query lists the matching note with its snippet; ArrowDown and Enter open it', async ({ vaultPage: page }) => {
 		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
 		// The daily note opens with the editor focused; "/" there is text, so focus the rail first.
 		await page.locator('[data-rail-item="today"]').click();
@@ -1081,11 +1101,11 @@ test.describe('Search on the rail', () => {
 		await expect(row).toContainText('for the next milestone.');
 		await expect(railSearch(page)).toContainText('1 result');
 
-		await page.keyboard.press('Escape');
-		await expect(searchInput(page)).not.toBeFocused();
-		await expect(row).toBeVisible();
+		await page.keyboard.press('ArrowDown');
+		await expect(row.getByRole('button').first()).toBeFocused();
+		await expect(row.getByRole('button').first()).toHaveAttribute('tabindex', '0');
 
-		await row.getByRole('button').first().click();
+		await page.keyboard.press('Enter');
 		await expectTabActive(page, 'Roadmap');
 	});
 

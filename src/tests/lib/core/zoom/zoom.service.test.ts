@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const mockSetZoom = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 
@@ -7,13 +7,25 @@ vi.mock('@tauri-apps/api/webviewWindow', () => ({
 	getCurrentWebviewWindow: () => ({ setZoom: mockSetZoom }),
 }));
 
-import { zoomIn, zoomOut, resetZoom } from '#lib/core/zoom/zoom.service.js';
+import { zoomIn, zoomOut, resetZoom, restoreZoom } from '#lib/core/zoom/zoom.service.js';
+import { zoomStore } from '#lib/core/zoom/zoom.store.svelte.js';
+
+const ZOOM_KEY = 'kokobrain:zoom';
 
 describe('zoom.service', () => {
 	beforeEach(async () => {
+		// Fake timers for every case, so a hide timer started in one test never fires in another.
+		vi.useFakeTimers();
 		vi.clearAllMocks();
 		await resetZoom(); // reset module state to 1.0
 		vi.clearAllMocks(); // clear the setZoom call from resetZoom
+		vi.clearAllTimers();
+		localStorage.clear();
+		zoomStore._reset();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
 	});
 
 	describe('zoomIn', () => {
@@ -113,6 +125,139 @@ describe('zoom.service', () => {
 			await zoomIn();
 
 			expect(mockSetZoom).toHaveBeenCalledWith(1.1);
+		});
+	});
+
+	describe('remembered level', () => {
+		it('stores the level after zoomIn', async () => {
+			await zoomIn();
+
+			expect(localStorage.getItem(ZOOM_KEY)).toBe('1.1');
+		});
+
+		it('removes the key on resetZoom', async () => {
+			await zoomIn();
+			await resetZoom();
+
+			expect(localStorage.getItem(ZOOM_KEY)).toBeNull();
+		});
+
+		it('restoreZoom applies a stored level and the next zoomIn steps from it', async () => {
+			localStorage.setItem(ZOOM_KEY, '1.25');
+
+			await restoreZoom();
+
+			expect(mockSetZoom).toHaveBeenCalledTimes(1);
+			expect(mockSetZoom).toHaveBeenCalledWith(1.25);
+			expect(zoomStore.level).toBe(1.25);
+
+			await zoomIn();
+
+			expect(mockSetZoom).toHaveBeenLastCalledWith(1.5);
+		});
+
+		it.each(['abc', '1.3', 'NaN', '1', null])('restoreZoom with %s makes no call and leaves 1.0', async (stored) => {
+			if (stored !== null) localStorage.setItem(ZOOM_KEY, stored);
+
+			await restoreZoom();
+
+			expect(mockSetZoom).not.toHaveBeenCalled();
+			expect(zoomStore.level).toBe(1);
+
+			await zoomIn();
+
+			expect(mockSetZoom).toHaveBeenCalledWith(1.1);
+		});
+
+		it('restoreZoom makes no call when storage throws', async () => {
+			const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+				throw new Error('blocked');
+			});
+			try {
+				await restoreZoom();
+			} finally {
+				spy.mockRestore();
+			}
+
+			expect(mockSetZoom).not.toHaveBeenCalled();
+		});
+
+		it('a rejecting setZoom propagates and leaves the key and the level', async () => {
+			await zoomIn();
+			mockSetZoom.mockRejectedValueOnce(new Error('ipc failed'));
+
+			await expect(zoomIn()).rejects.toThrow('ipc failed');
+
+			expect(localStorage.getItem(ZOOM_KEY)).toBe('1.1');
+			expect(zoomStore.level).toBe(1.1);
+		});
+
+		it('two zoomIn calls started without awaiting end at 1.25', async () => {
+			await Promise.all([zoomIn(), zoomIn()]);
+
+			expect(mockSetZoom).toHaveBeenNthCalledWith(1, 1.1);
+			expect(mockSetZoom).toHaveBeenNthCalledWith(2, 1.25);
+			expect(localStorage.getItem(ZOOM_KEY)).toBe('1.25');
+			expect(zoomStore.level).toBe(1.25);
+		});
+	});
+
+	describe('chip', () => {
+		it('a change sets the level and shows the chip', async () => {
+			await zoomIn();
+
+			expect(zoomStore.level).toBe(1.1);
+			expect(zoomStore.chipVisible).toBe(true);
+		});
+
+		it('hides the chip after 1500 ms', async () => {
+			await zoomOut();
+
+			vi.advanceTimersByTime(1499);
+			expect(zoomStore.chipVisible).toBe(true);
+
+			vi.advanceTimersByTime(1);
+			expect(zoomStore.chipVisible).toBe(false);
+		});
+
+		it('a second change at 1000 ms keeps the chip until 2500 ms', async () => {
+			await zoomIn();
+			vi.advanceTimersByTime(1000);
+			await zoomIn();
+
+			vi.advanceTimersByTime(1499);
+			expect(zoomStore.chipVisible).toBe(true);
+			expect(zoomStore.level).toBe(1.25);
+
+			vi.advanceTimersByTime(1);
+			expect(zoomStore.chipVisible).toBe(false);
+		});
+
+		it('resetZoom shows the chip at 1', async () => {
+			await zoomIn();
+			vi.advanceTimersByTime(1500);
+
+			await resetZoom();
+
+			expect(zoomStore.level).toBe(1);
+			expect(zoomStore.chipVisible).toBe(true);
+		});
+
+		it('restoreZoom never shows the chip', async () => {
+			localStorage.setItem(ZOOM_KEY, '1.5');
+
+			await restoreZoom();
+
+			expect(zoomStore.level).toBe(1.5);
+			expect(zoomStore.chipVisible).toBe(false);
+		});
+
+		it('a rejecting setZoom does not show the chip', async () => {
+			mockSetZoom.mockRejectedValueOnce(new Error('ipc failed'));
+
+			await expect(zoomIn()).rejects.toThrow('ipc failed');
+
+			expect(zoomStore.chipVisible).toBe(false);
 		});
 	});
 });

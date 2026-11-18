@@ -5,7 +5,7 @@ file src/lib/features/rail-shell/list-view-sort.logic.ts logic L68 module src/li
 imp src/lib/features/rail-shell/list-view-sort.logic.ts:1 -> src/lib/features/collection/collection.types.ts type:SortDef
 imp src/lib/features/rail-shell/list-view-sort.logic.ts:2 -> src/lib/features/rail-shell/list-toolbar.types.ts type:ListSortConfig,type:ListSortOption
 ## imported-by
-imp src/lib/features/rail-shell/RailNoteList.svelte:80 -> src/lib/features/rail-shell/list-view-sort.logic.ts listSortToSortDef,viewListSort
+imp src/lib/features/rail-shell/RailNoteList.svelte:89 -> src/lib/features/rail-shell/list-view-sort.logic.ts listSortToSortDef,viewListSort
 ## reach
 in2 src/lib/features/rail-shell/list-view-sort.logic.ts 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/rail-shell/list-view-sort.logic.ts 1 files in 1 modules: src/lib/features/collection(1)
@@ -14,9 +14,9 @@ test src/tests/lib/features/rail-shell/list-view-sort.logic.test.ts imports src/
 ## symbols
 sym src/lib/features/rail-shell/list-view-sort.logic.ts:9 fn sortDefToListSort(def: SortDef): ListSortConfig L16 | Maps a view's `sort:` column to the Sort dropdown's option.
 sym src/lib/features/rail-shell/list-view-sort.logic.ts:27 fn listSortToSortDef(config: ListSortConfig): SortDef L4 | Inverse of `sortDefToListSort`.
-by src/lib/features/rail-shell/list-view-sort.logic.ts:listSortToSortDef <- src/lib/features/rail-shell/RailNoteList.svelte:461 in handleSortSelect call
+by src/lib/features/rail-shell/list-view-sort.logic.ts:listSortToSortDef <- src/lib/features/rail-shell/RailNoteList.svelte:477 in handleSortSelect call
 sym src/lib/features/rail-shell/list-view-sort.logic.ts:53 fn viewListSort(sorts: readonly SortDef[], frontmatterSort: string): ListSortConfig L16 | The order a view's list shows.
-by src/lib/features/rail-shell/list-view-sort.logic.ts:viewListSort <- src/lib/features/rail-shell/RailNoteList.svelte:553 in sortMenuConfig=$derived call
+by src/lib/features/rail-shell/list-view-sort.logic.ts:viewListSort <- src/lib/features/rail-shell/RailNoteList.svelte:569 in sortMenuConfig=$derived call
 ## locals
 local src/lib/features/rail-shell/list-view-sort.logic.ts:33 fn sortColumnFor(option: ListSortOption): string L14
 ## calls

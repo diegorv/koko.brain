@@ -30,7 +30,7 @@ by src/lib/core/settings/theme.service.ts:THEME_VARS_STORAGE_KEY <- src/routes/c
 sym src/lib/core/settings/theme.service.ts:44 fn applyTheme(theme: Theme): void L5 | Applies a theme by setting all its color tokens as CSS custom properties on the document root element.
 by src/lib/core/settings/theme.service.ts:applyTheme <- src/lib/core/settings/sections/ThemeEditor.svelte:68 in applyDraft call
 sym src/lib/core/settings/theme.service.ts:54 fn applyStoredTheme(): void L15 | Applies the theme the main window last mirrored to localStorage.
-by src/lib/core/settings/theme.service.ts:applyStoredTheme <- src/routes/(app)/+layout.svelte:36 in (script) call
+by src/lib/core/settings/theme.service.ts:applyStoredTheme <- src/routes/(app)/+layout.svelte:37 in (script) call
 by src/lib/core/settings/theme.service.ts:applyStoredTheme <- src/routes/composer/+page.svelte:162 in onStorage call +2
 sym src/lib/core/settings/theme.service.ts:76 fn applyActiveTheme(): void L12 | Reads the active theme from the settings store, applies it, and mirrors its CSS variables to localStorage for the secondary windows (see `THEME_VARS_STORAGE_KE…
 by src/lib/core/settings/theme.service.ts:applyActiveTheme <- src/lib/core/settings/sections/AppearanceSection.svelte:77 in updateTheme call +5

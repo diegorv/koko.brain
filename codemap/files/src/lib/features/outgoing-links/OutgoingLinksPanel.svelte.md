@@ -18,14 +18,14 @@ out2 src/lib/features/outgoing-links/OutgoingLinksPanel.svelte 15 files in 9 mod
 test src/tests/lib/features/outgoing-links/OutgoingLinksPanel.test.ts imports src/lib/features/outgoing-links/OutgoingLinksPanel.svelte mirror
 ## symbols
 sym src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:1 component OutgoingLinksPanel L87
-by src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:default <- src/lib/app/AppShell.svelte:288 in (markup) mount
+by src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:default <- src/lib/app/AppShell.svelte:290 in (markup) mount
 ## locals
 local src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:17 fn handleOpenChange(open: boolean) L3
 local src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:21 fn fetchData() L7
 ## mounts
 mount src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:51 SidebarSection -> src/lib/core/layout/SidebarSection.svelte
 ## mounted-at
-mount src/lib/app/AppShell.svelte:288 OutgoingLinksPanel -> src/lib/features/outgoing-links/OutgoingLinksPanel.svelte
+mount src/lib/app/AppShell.svelte:290 OutgoingLinksPanel -> src/lib/features/outgoing-links/OutgoingLinksPanel.svelte
 ## calls
 call src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:18 in handleOpenChange -> src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:fetchData call
 call src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:26 in fetchData -> src/lib/features/outgoing-links/outgoing-links.service.ts:fetchOutgoingLinksV2 call

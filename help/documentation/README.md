@@ -27,7 +27,7 @@ After that, explore any topic that interests you.
 | 05 | [Wikilinks & References](05-wikilinks.md) | Linking notes, block references, embeds |
 | 06 | [Search & Navigation](06-search-and-navigation.md) | Quick Switcher, Command Palette, full-text and semantic search |
 | 07 | [Sidebar Panels](07-sidebar-panels.md) | The right sidebar (backlinks, outgoing links, properties) and the Tags view |
-| 08 | [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md) | Daily/weekly/monthly/quarterly notes, the Calendar navigator |
+| 08 | [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md) | Daily/weekly/monthly/quarterly notes, the Days navigator |
 | 09 | [Quick Capture & Templates](09-quick-notes-and-templates.md) | Instant capture (composer popover + clipboard shortcut + Cmd+N), 1:1 meeting notes, template system |
 | 10 | [Tasks & Todoist](10-tasks-and-todoist.md) | Aggregated task view, metadata, Todoist sync |
 | 11 | [Canvas](11-canvas.md) | Infinite visual canvas with nodes, edges, and colors |

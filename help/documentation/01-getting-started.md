@@ -70,7 +70,7 @@ Kokobrain uses a three-column layout that you can customize to your liking.
 
 | Area | Location | What it shows |
 |------|----------|---------------|
-| **Rail and note list** | Far left | The rail (see [The Rail](#the-rail)). Each item fills the note list beside it; Types, Calendar and Files also open a navigator between the rail and the list. |
+| **Rail and note list** | Far left | The rail (see [The Rail](#the-rail)). Each item fills the note list beside it; Types, Days and Files also open a navigator between the rail and the list. Tasks, Graph and Tags open their tab instead. |
 | **Editor area** | Center | Your open notes, arranged in tabs |
 | **Right sidebar** | Far right (optional) | Properties, Table of Contents, Backlinks, and Outgoing Links |
 
@@ -90,10 +90,11 @@ At the bottom of the window you will find the **status bar**, which shows inform
 The rail runs down the left edge of the window. Each built-in item has an icon in its own color, the same on every theme, and the item you picked is tinted with that color. From top to bottom:
 
 1. **Search**, **Inbox** (with a badge counting the notes to organize), **Today** and **Favorites**.
-2. A divider, then **Types**, **Calendar** and **Files**. These three also open a navigator: the Types navigator, the month calendar with its periodic notes, and the folder tree.
-3. Your **pinned items**, after another divider: views and types you pinned (see [Pinned Rail Items](25-types-and-relationships.md#pinned-rail-items)).
-4. Buttons added by your [mods](28-mods.md), after another divider. Clicking one opens the mod's picker and leaves the note list as it is.
-5. **Archive**, at the bottom.
+2. A divider, then **Types**, **Days** and **Files**. These three also open a navigator: the Types navigator, the month calendar of days with its periodic notes, and the folder tree.
+3. After another divider, **Tasks**, **Graph** and **Tags**. Each opens its tab in the editor, or brings it to the front if it is already open; a second click never closes it. They leave the note list and the picked item as they are, and the button is highlighted while its tab is the active tab.
+4. Your **pinned items**, after another divider: views and types you pinned (see [Pinned Rail Items](25-types-and-relationships.md#pinned-rail-items)).
+5. Buttons added by your [mods](28-mods.md), after another divider. Clicking one opens the mod's picker and leaves the note list as it is.
+6. **Archive**, at the bottom.
 
 When the items do not fit the window, the whole rail scrolls, Archive included, and no scrollbar shows.
 
@@ -101,7 +102,7 @@ The rail has three forms:
 
 | Form | Width | What it shows |
 |------|-------|---------------|
-| **Labeled** (the default) | 140 px. Drag its right edge to resize it between 140 and 320 px; double-click the edge to return to 140 px | Each icon with its name on one line, under the section titles Workspace, Browse, Pinned and Actions |
+| **Labeled** (the default) | 140 px. Drag its right edge to resize it between 140 and 320 px; double-click the edge to return to 140 px | Each icon with its name on one line, under the section titles Workspace, Browse, Tabs, Pinned and Actions |
 | **Captioned** | 84 px | Each icon with its name below it, and dividers but no section titles. A long name is cut off; hover the item for all of it |
 | **Collapsed** | 48 px | Icons only; hover an item for its name |
 
@@ -115,9 +116,9 @@ The choices are saved where the list comes from. A view saves its sort as `sort:
 
 **Settings > Layout** also hides the items you do not use, moves an item up or down within its group, and turns the Inbox badge off. Search and Today cannot be hidden, and Search stays first (see [Settings > Layout](19-settings.md#layout)).
 
-From the keyboard, the Command Palette (`Cmd+P`) has a **Go to** command for every item the rail shows (**Go to Inbox**, **Go to Types**, one per pin) and an **Open view:** command for every `.view` file except a hidden one (see [Keyboard Shortcuts](20-keyboard-shortcuts.md#commands-without-shortcuts)).
+From the keyboard, the Command Palette (`Cmd+P`) has a **Go to** command for every item the rail shows except Tasks, Graph and Tags, which have their **Toggle** commands (**Go to Inbox**, **Go to Days**, one per pin) and an **Open view:** command for every `.view` file except a hidden one (see [Keyboard Shortcuts](20-keyboard-shortcuts.md#commands-without-shortcuts)).
 
-The **Types** navigator lists your views first, then your types. Views are your `.view` files: saved filters that fill the note list. They can be grouped under subheadings (`_group`), hidden from the list (`_visible: false`) and pinned to the rail. The **+** next to **Views** opens the **New view** dialog, which asks for a name and optional filters; a view's right-click menu has **Edit view** (the same dialog), **Pin to rail**, **Move to Trash** and more. A view that cannot run says so in the note list (**Loading...**, **This view no longer exists**, or **This view cannot be shown** with the reason and an **Open view** button). See [The Types Navigator](25-types-and-relationships.md#the-types-navigator) and [View Files](25-types-and-relationships.md#view-files-view).
+The **Types** navigator lists your views first, then your types. Views are your `.view` files: saved filters that fill the note list. They can be grouped under subheadings (`_group`), hidden from the list (`_visible: false`) and pinned to the rail. The **+** next to **Views** opens the **New view** dialog, which asks for a name and optional filters; a view's right-click menu has **Edit view** (the same dialog), **Pin to rail**, **Move to Trash** and more. A view that cannot run says so in the note list (**Loading notes**, **This view no longer exists**, or **This view cannot be shown** with the reason and an **Open view** button). See [The Types Navigator](25-types-and-relationships.md#the-types-navigator) and [View Files](25-types-and-relationships.md#view-files-view).
 
 ---
 

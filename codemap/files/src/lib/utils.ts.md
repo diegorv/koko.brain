@@ -1,9 +1,10 @@
 # file card src/lib/utils.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/utils.ts ' codemap/files
-file src/lib/utils.ts other L20 module src/lib/utils.ts in54 t1
+file src/lib/utils.ts other L20 module src/lib/utils.ts in55 t1
 ## imports
 imp src/lib/utils.ts:4 -> src/lib/utils/text-roles.ts TEXT_ROLES
 ## imported-by
+imp src/lib/components/EmptyState.svelte:5 -> src/lib/utils.ts cn
 imp src/lib/components/ui/button/button.svelte:2 -> src/lib/utils.ts cn,type:WithElementRef
 imp src/lib/components/ui/command/command-dialog.svelte:7 -> src/lib/utils.ts type:WithoutChildrenOrChild
 imp src/lib/components/ui/command/command-empty.svelte:3 -> src/lib/utils.ts cn
@@ -43,15 +44,15 @@ imp src/lib/components/ui/dropdown-menu/dropdown-menu-shortcut.svelte:3 -> src/l
 imp src/lib/components/ui/dropdown-menu/dropdown-menu-sub-content.svelte:3 -> src/lib/utils.ts cn
 imp src/lib/components/ui/dropdown-menu/dropdown-menu-sub-trigger.svelte:4 -> src/lib/utils.ts cn
 imp src/lib/components/ui/input/input.svelte:3 -> src/lib/utils.ts cn,type:WithElementRef
-imp src/lib/components/ui/popover/popover-content.svelte:2 -> src/lib/utils.ts cn
-more imported-by 17 not shown: src/lib/components(17): q importers src/lib/utils.ts
+more imported-by 18 not shown: src/lib/components(18): q importers src/lib/utils.ts
 ## reach
-in2 src/lib/utils.ts 13 files in 1 modules: src/lib/components(13)
+in2 src/lib/utils.ts 14 files in 2 modules: src/lib/components(13) src/lib/features/rail-shell(1)
 out2 src/lib/utils.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/utils/text-roles.test.ts imports src/lib/utils.ts
 ## symbols
 sym src/lib/utils.ts:10 fn cn(...inputs: ClassValue[]) L3
+by src/lib/utils.ts:cn <- src/lib/components/EmptyState.svelte:32 in (markup) markup +1
 by src/lib/utils.ts:cn <- src/lib/components/ui/button/button.svelte:62 in (markup) markup +1
 by src/lib/utils.ts:cn <- src/lib/components/ui/command/command-empty.svelte:15 in (markup) markup
 by src/lib/utils.ts:cn <- src/lib/components/ui/command/command-group.svelte:20 in (markup) markup
@@ -59,8 +60,7 @@ by src/lib/utils.ts:cn <- src/lib/components/ui/command/command-input.svelte:18 
 by src/lib/utils.ts:cn <- src/lib/components/ui/command/command-item.svelte:19 in (markup) markup
 by src/lib/utils.ts:cn <- src/lib/components/ui/command/command-link-item.svelte:15 in (markup) markup
 by src/lib/utils.ts:cn <- src/lib/components/ui/command/command-list.svelte:18 in (markup) markup
-by src/lib/utils.ts:cn <- src/lib/components/ui/command/command-separator.svelte:15 in (markup) markup
-more by 45 not shown: src/lib/components(45): q importers src/lib/utils.ts:cn
+more by 46 not shown: src/lib/components(46): q importers src/lib/utils.ts:cn
 sym src/lib/utils.ts:14 type WithElementRef L3
 by src/lib/utils.ts:WithElementRef <- src/lib/components/ui/button/button.svelte:2 in (module) import
 by src/lib/utils.ts:WithElementRef <- src/lib/components/ui/command/command-shortcut.svelte:2 in (script) import

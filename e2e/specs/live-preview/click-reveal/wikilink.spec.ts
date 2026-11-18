@@ -28,8 +28,8 @@ test.describe('Live Preview - click reveal: wikilink', () => {
 
 		await expect(page.locator('[role="tab"][aria-selected="true"]'), `click hit ${click.hit}`).toContainText('Wiki');
 
-		await page.locator('[role="tab"]', { hasText: 'test.md' }).click();
-		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('test.md');
+		await page.getByRole('tab', { name: 'test.md', exact: true }).click();
+		await expect(page.locator('[role="tab"][aria-selected="true"]')).toHaveText('test');
 		await expect(page.locator('.cm-lp-wikilink', { hasText: 'Wiki' })).toBeVisible();
 		expect(await isRevealed(page, RAW_LINK)).toBe(false);
 		expect(await activeLineText(page), `click hit ${click.hit}`).toBe(END_LINE);
@@ -46,7 +46,7 @@ test.describe('Live Preview - click reveal: wikilink', () => {
 		expect(await activeLineText(page), `click hit ${click.hit}`).toBe(LINK_LINE);
 		expect(await isRevealed(page, RAW_LINK)).toBe(true);
 		await expect(page.locator('.cm-lp-wikilink')).toHaveCount(0);
-		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('test.md');
+		await expect(page.locator('[role="tab"][aria-selected="true"]')).toHaveText('test');
 	});
 
 	test('Cmd/Ctrl+click on the rendered wikilink opens its target and the source stays rendered', async ({ lpPage: page }) => {
@@ -63,8 +63,8 @@ test.describe('Live Preview - click reveal: wikilink', () => {
 		}
 
 		await expect(page.locator(activeTab), `click hit ${click.hit}`).toContainText('Wiki');
-		await page.locator('[role="tab"]', { hasText: 'test.md' }).click();
-		await expect(page.locator(activeTab)).toContainText('test.md');
+		await page.getByRole('tab', { name: 'test.md', exact: true }).click();
+		await expect(page.locator(activeTab)).toHaveText('test');
 		await expect(page.locator('.cm-lp-wikilink', { hasText: 'Wiki' })).toBeVisible();
 		expect(await isRevealed(page, RAW_LINK)).toBe(false);
 		expect(await activeLineText(page)).toBe(END_LINE);
@@ -80,8 +80,8 @@ test.describe('Live Preview - click reveal: wikilink', () => {
 
 		await expect(page.locator(activeTab), `click hit ${click.hit}`).toContainText('Target');
 		await expect(page.locator(activeTab)).not.toContainText('shown alias');
-		await page.locator('[role="tab"]', { hasText: 'test.md' }).click();
-		await expect(page.locator(activeTab)).toContainText('test.md');
+		await page.getByRole('tab', { name: 'test.md', exact: true }).click();
+		await expect(page.locator(activeTab)).toHaveText('test');
 		await expect(page.locator('.cm-lp-wikilink', { hasText: 'shown alias' })).toBeVisible();
 		expect(await isRevealed(page, RAW_ALIAS)).toBe(false);
 		expect(await activeLineText(page)).toBe(END_LINE);
@@ -96,6 +96,6 @@ test.describe('Live Preview - click reveal: wikilink', () => {
 
 		expect(await activeLineText(page)).toBe(ALIAS_LINE);
 		expect(await isRevealed(page, RAW_ALIAS)).toBe(true);
-		await expect(page.locator(activeTab)).toContainText('test.md');
+		await expect(page.locator(activeTab)).toHaveText('test');
 	});
 });

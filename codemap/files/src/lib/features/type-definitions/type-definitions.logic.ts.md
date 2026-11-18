@@ -17,7 +17,7 @@ imp src/lib/features/type-definitions/type-definitions.store.svelte.ts:3 -> src/
 imp src/lib/features/type-definitions/type-sidebar.logic.ts:7 -> src/lib/features/type-definitions/type-definitions.logic.ts type:TypeMetadata
 imp src/lib/features/type-definitions/type-sidebar.logic.ts:8 -> src/lib/features/type-definitions/type-definitions.logic.ts getTypeMetadataFallback
 ## reach
-in2 src/lib/features/type-definitions/type-definitions.logic.ts 43 files in 14 modules: src/lib/features/rail-shell(17) src/lib/app(9) src/lib/plugins/calendar(3) src/lib/features/event-calendar(2) src/lib/features/note-list(2) +9 modules: q impact src/lib/features/type-definitions/type-definitions.logic.ts --depth 2
+in2 src/lib/features/type-definitions/type-definitions.logic.ts 44 files in 14 modules: src/lib/features/rail-shell(18) src/lib/app(9) src/lib/plugins/calendar(3) src/lib/features/event-calendar(2) src/lib/features/note-list(2) +9 modules: q impact src/lib/features/type-definitions/type-definitions.logic.ts --depth 2
 out2 src/lib/features/type-definitions/type-definitions.logic.ts 5 files in 4 modules: src/lib/utils(2) src/lib/contracts(1) src/lib/core/filesystem(1) src/lib/core/frontmatter(1)
 ## tests
 test src/tests/lib/features/type-definitions/type-definitions.logic.test.ts imports src/lib/features/type-definitions/type-definitions.logic.ts mirror
@@ -71,7 +71,7 @@ sym src/lib/features/type-definitions/type-definitions.logic.ts:250 fn buildType
 by src/lib/features/type-definitions/type-definitions.logic.ts:buildTypeNoteDir <- src/lib/features/event-calendar/EventCalendarSection.svelte:55 in eventFolder=$derived call
 by src/lib/features/type-definitions/type-definitions.logic.ts:buildTypeNoteDir <- src/lib/features/type-definitions/type-definitions.service.ts:59 in resolveTypedNoteTarget call
 sym src/lib/features/type-definitions/type-definitions.logic.ts:265 fn getTypeMetadataFallback(name: string, map: Map<string, TypeMetadata>): TypeMetadata L11 | Returns metadata for a type name, falling back to builtins then defaults.
-by src/lib/features/type-definitions/type-definitions.logic.ts:getTypeMetadataFallback <- src/lib/features/rail-shell/lens.logic.ts:365 in resolveTypeLens call
+by src/lib/features/type-definitions/type-definitions.logic.ts:getTypeMetadataFallback <- src/lib/features/rail-shell/lens.logic.ts:367 in resolveTypeLens call
 by src/lib/features/type-definitions/type-definitions.logic.ts:getTypeMetadataFallback <- src/lib/features/type-definitions/type-sidebar.logic.ts:207 in buildTypeSections call
 ## locals
 local src/lib/features/type-definitions/type-definitions.logic.ts:66 fn fmString(fm: Record<string, FrontmatterValue>, key: string): string | null L4

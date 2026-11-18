@@ -7,7 +7,7 @@ imp src/lib/features/tags/tags.store.svelte.ts:1 -> src/lib/features/tags/tags.t
 imp src/lib/features/tags/TagsView.svelte:6 -> src/lib/features/tags/tags.store.svelte.ts tagsStore
 imp src/lib/features/tags/tags.service.ts:6 -> src/lib/features/tags/tags.store.svelte.ts tagsStore
 ## reach
-in2 src/lib/features/tags/tags.store.svelte.ts 3 files in 1 modules: src/lib/app(3)
+in2 src/lib/features/tags/tags.store.svelte.ts 4 files in 1 modules: src/lib/app(4)
 out2 src/lib/features/tags/tags.store.svelte.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/features/tags/tags.store.test.ts imports src/lib/features/tags/tags.store.svelte.ts mirror

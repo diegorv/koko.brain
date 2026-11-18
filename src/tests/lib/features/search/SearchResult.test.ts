@@ -80,6 +80,7 @@ describe('SearchResult — click lands the cursor on the match (issue 02)', () =
 		semanticResult?: SemanticSearchResult;
 		hybridResult?: HybridSearchResult;
 		legacyResult?: LegacySearchResult;
+		tabindex?: number;
 	}): void {
 		component = mount(SearchResult, { target, props });
 		flushSync();
@@ -213,6 +214,19 @@ describe('SearchResult — click lands the cursor on the match (issue 02)', () =
 		const rows = target.querySelectorAll('[data-search-result]');
 		expect(rows).toHaveLength(1);
 		expect(rows[0].textContent).toContain('target');
+	});
+
+	it('puts the given tabindex on the card button, and none when not given', () => {
+		const ftsResult: FtsSearchResult = { path: 'notes/target.md', title: 'target', score: 1.2, snippet: 'alpha', tags: '' };
+		const card = () => target.querySelector('[data-search-result] > button')!;
+		mountResult({ ftsResult, tabindex: -1 });
+		expect(card().getAttribute('tabindex')).toBe('-1');
+		unmount(component!);
+		mountResult({ ftsResult, tabindex: 0 });
+		expect(card().getAttribute('tabindex')).toBe('0');
+		unmount(component!);
+		mountResult({ ftsResult });
+		expect(card().hasAttribute('tabindex')).toBe(false);
 	});
 
 	it('legacy result: writes no scroll target until the note is actually open', async () => {

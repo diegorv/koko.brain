@@ -49,7 +49,7 @@ import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.ser
 import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { modCommandsStore } from '#lib/plugins/mods/mod-commands.store.svelte.js';
 import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
-import { hideRailPanels, showClaudePanel, showRailPanels, toggleClaudePanel, toggleLeftSidebar, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
+import { hideRailPanels, showClaudePanel, showRailPanels, toggleClaudePanel, toggleLeftSidebar, toggleRightPanel, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
 import { attachActiveNote } from '#lib/features/claude-code/claude.service.js';
 import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
 import { shortcutFor } from '#lib/app/global-keybindings.js';
@@ -57,7 +57,8 @@ import { openRailView, selectRailItem } from '#lib/app/rail-navigation.js';
 
 /**
  * A "Go to <item>" command per rail item, from the same list as the rail, so a
- * hidden item has none. The stores are read here, while the list is built, so
+ * hidden item has none. The Tabs items have none either: their tabs already
+ * have Toggle commands. The stores are read here, while the list is built, so
  * the palette's prop expression re-runs when a navigator registers, a pin is
  * added or Settings > Layout hides or moves an item.
  */
@@ -65,7 +66,8 @@ function railGoToCommands(): AppCommand[] {
 	void typeDefinitionsStore.entriesVersion;
 	const pins = pinnedRailItems(typeDefinitionsStore.entries, typeDefinitionsStore.typeMetadataMap);
 	const { railHidden, railOrder } = settingsStore.layout;
-	return railItems(railRegistryStore.navigators, pins, parseRailHidden(railHidden), parseRailOrder(railOrder)).map((item) => ({
+	const items = railItems(railRegistryStore.navigators, pins, parseRailHidden(railHidden), parseRailOrder(railOrder));
+	return items.filter((item) => item.group !== 'tabs').map((item) => ({
 		id: `rail:go-to:${item.key}`,
 		label: `Go to ${item.label}`,
 		category: 'Navigation',
@@ -178,7 +180,7 @@ export function getBuiltInCommands(): AppCommand[] {
 		},
 		{
 			id: 'file-explorer:new-file',
-			label: 'New File',
+			label: 'New note',
 			category: 'File Explorer',
 			action: async () => {
 				const path = vaultStore.path;
@@ -190,7 +192,7 @@ export function getBuiltInCommands(): AppCommand[] {
 		},
 		{
 			id: 'file-explorer:new-folder',
-			label: 'New Folder',
+			label: 'New folder',
 			category: 'File Explorer',
 			action: async () => {
 				const path = vaultStore.path;
@@ -201,7 +203,7 @@ export function getBuiltInCommands(): AppCommand[] {
 		},
 		{
 			id: 'canvas:new',
-			label: 'New Canvas',
+			label: 'New canvas',
 			category: 'Canvas',
 			action: async () => {
 				const path = vaultStore.path;
@@ -212,7 +214,7 @@ export function getBuiltInCommands(): AppCommand[] {
 		},
 		{
 			id: 'kanban:new',
-			label: 'New Kanban Board',
+			label: 'New kanban board',
 			category: 'Kanban',
 			action: async () => {
 				const path = vaultStore.path;
@@ -280,8 +282,9 @@ export function getBuiltInCommands(): AppCommand[] {
 				eventCalendarViewStore.goToToday();
 			},
 		},
-		// Listed only when they can act: an idle Undo or Redo would outrank
-		// "Go to Calendar" for "cal" and only toast "Nothing to undo".
+		// Listed only when they can act: an idle Undo or Redo would crowd the
+		// Calendar commands that do something for "cal" and only toast
+		// "Nothing to undo".
 		...(eventCalendarStore.canUndo
 			? [{
 				id: 'event-calendar:undo',
@@ -360,10 +363,25 @@ export function getBuiltInCommands(): AppCommand[] {
 			id: 'layout:toggle-table-of-contents',
 			label: 'Toggle Table of Contents',
 			category: 'Layout',
-			action: () => {
-				const current = settingsStore.layout.tableOfContentsVisible;
-				settingsStore.updateLayout({ tableOfContentsVisible: !current });
-			},
+			action: () => toggleRightPanel('tableOfContents'),
+		},
+		{
+			id: 'layout:toggle-properties',
+			label: 'Toggle Properties Panel',
+			category: 'Layout',
+			action: () => toggleRightPanel('properties'),
+		},
+		{
+			id: 'layout:toggle-backlinks',
+			label: 'Toggle Backlinks Panel',
+			category: 'Layout',
+			action: () => toggleRightPanel('backlinks'),
+		},
+		{
+			id: 'layout:toggle-outgoing-links',
+			label: 'Toggle Outgoing Links Panel',
+			category: 'Layout',
+			action: () => toggleRightPanel('outgoingLinks'),
 		},
 		{
 			id: 'note:toggle-favorite',
@@ -439,6 +457,16 @@ export function getBuiltInCommands(): AppCommand[] {
 			shortcut: shortcutFor('settings:open'),
 			action: () => { settingsPanelStore.toggle(); },
 		},
+		// Listed only with a vault open: without one the Trash section has no
+		// trash to load and would only say "Trash is empty".
+		...(vaultStore.isOpen
+			? [{
+				id: 'settings:open-trash',
+				label: 'Open Trash',
+				category: 'Settings',
+				action: () => { settingsPanelStore.open('trash'); },
+			}]
+			: []),
 		{
 			id: 'file-history:open',
 			label: 'View File History',

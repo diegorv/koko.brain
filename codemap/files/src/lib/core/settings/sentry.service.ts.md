@@ -10,7 +10,7 @@ imp src/lib/app/lifecycle/app-lifecycle.service.ts:41 -> src/lib/core/settings/s
 imp src/lib/core/settings/sections/SentrySection.svelte:5 -> src/lib/core/settings/sentry.service.ts configureSentry,sendSentryTestEvent
 imp src/lib/utils/debug.ts:5 -> src/lib/core/settings/sentry.service.ts captureSentryException
 ## reach
-in2 src/lib/core/settings/sentry.service.ts 73 files in 33 modules: src/lib/app(8) src/lib/features/todoist-sync(7) src/lib/core/settings(6) src/lib/core/filesystem(5) src/lib/features/rail-shell(4) +28 modules: q impact src/lib/core/settings/sentry.service.ts --depth 2
+in2 src/lib/core/settings/sentry.service.ts 74 files in 34 modules: src/lib/app(8) src/lib/features/todoist-sync(7) src/lib/core/settings(6) src/lib/core/filesystem(5) src/lib/features/rail-shell(4) +29 modules: q impact src/lib/core/settings/sentry.service.ts --depth 2
 out2 src/lib/core/settings/sentry.service.ts 4 files in 2 modules: src/lib/contracts(2) src/lib/core/settings(2)
 ## tests
 test src/tests/lib/core/settings/sentry.service.test.ts imports src/lib/core/settings/sentry.service.ts mirror

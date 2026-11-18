@@ -36,15 +36,20 @@ test.describe('Search', () => {
 		await expect(railSearch(page).locator('[data-search-result]')).toHaveCount(0);
 	});
 
-	test('Escape leaves the input and keeps the results; another rail item closes Search', async ({ vaultPage: page }) => {
+	test('the first Escape clears the query, the next leaves the input; another rail item closes Search', async ({ vaultPage: page }) => {
 		await openSearch(page);
 		await searchInput(page).fill('Roadmap');
 		const row = railSearch(page).locator('[data-search-result]', { hasText: 'Roadmap' }).first();
 		await expect(row).toBeVisible({ timeout: 5_000 });
 
 		await page.keyboard.press('Escape');
+		await expect(searchInput(page)).toHaveValue('');
+		await expect(searchInput(page)).toBeFocused();
+		await expect(railSearch(page).locator('[data-search-result]')).toHaveCount(0);
+
+		await page.keyboard.press('Escape');
 		await expect(searchInput(page)).not.toBeFocused();
-		await expect(row).toBeVisible();
+		await expect(railSearch(page)).toBeVisible();
 
 		await page.locator('[data-rail-item="inbox"]').click();
 		await expect(railSearch(page)).toHaveCount(0);

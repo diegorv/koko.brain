@@ -89,7 +89,7 @@ test.describe('Live Preview - click reveal: wikilink note embed', () => {
 		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('Missing note');
 
 		// The source note still shows the embed rendered, not its raw syntax.
-		await page.locator('[role="tab"]', { hasText: 'test.md' }).click();
+		await page.getByRole('tab', { name: 'test.md', exact: true }).click();
 		await expect(page.locator(EMBED)).toHaveCount(1);
 		expect(await isRevealed(page, RAW_EMBED)).toBe(false);
 	});

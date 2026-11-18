@@ -23,7 +23,7 @@ test src/tests/lib/plugins/table-of-contents/TableOfContentsPanel.test.ts mocks 
 sym src/lib/core/editor/open-note-at.service.ts:13 type NoteTarget L3 | Where inside a note to place the caret.
 sym src/lib/core/editor/open-note-at.service.ts:35 fn openNoteAt(path: string | null, target: NoteTarget): Promise<void> L15 | Single owner of "open this note and put the caret at this position".
 by src/lib/core/editor/open-note-at.service.ts:openNoteAt <- src/lib/features/event-calendar/EventTaskChip.svelte:34 in (markup) markup
-by src/lib/core/editor/open-note-at.service.ts:openNoteAt <- src/lib/features/search/SearchResult.svelte:112 in handleClick call +2
+by src/lib/core/editor/open-note-at.service.ts:openNoteAt <- src/lib/features/search/SearchResult.svelte:115 in handleClick call +2
 by src/lib/core/editor/open-note-at.service.ts:openNoteAt <- src/lib/features/tasks/TasksView.svelte:266 in handleTextClick call +2
 by src/lib/core/editor/open-note-at.service.ts:openNoteAt <- src/lib/plugins/mods/mod-app.service.ts:32 in MOD_APP ref
 by src/lib/core/editor/open-note-at.service.ts:openNoteAt <- src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte:60 in (markup) markup

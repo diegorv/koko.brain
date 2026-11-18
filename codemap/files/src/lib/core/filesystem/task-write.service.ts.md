@@ -10,7 +10,7 @@ imp src/lib/core/filesystem/task-write.service.ts:4 -> src/lib/core/filesystem/n
 imp src/lib/features/tasks/tasks.service.ts:6 -> src/lib/core/filesystem/task-write.service.ts settleTaskWrite
 imp src/lib/features/todoist-sync/closed-note-writer.service.ts:7 -> src/lib/core/filesystem/task-write.service.ts settleTaskWrite
 ## reach
-in2 src/lib/core/filesystem/task-write.service.ts 8 files in 3 modules: src/lib/app(3) src/lib/features/tasks(3) src/lib/features/todoist-sync(2)
+in2 src/lib/core/filesystem/task-write.service.ts 9 files in 3 modules: src/lib/app(4) src/lib/features/tasks(3) src/lib/features/todoist-sync(2)
 out2 src/lib/core/filesystem/task-write.service.ts 12 files in 6 modules: src/lib/utils(5) src/lib/core/editor(3) src/lib/contracts(1) src/lib/core/filesystem(1) src/lib/core/markdown-editor(1) +1 modules
 ## tests
 test src/tests/lib/core/filesystem/task-write.service.test.ts imports src/lib/core/filesystem/task-write.service.ts mirror

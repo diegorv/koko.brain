@@ -20,7 +20,7 @@ imp src/lib/features/rail-shell/lens.logic.ts:42 -> src/lib/features/collection/
 imp src/lib/features/type-definitions/ViewDialog.svelte:9 -> src/lib/features/collection/toolbar/filter.logic.ts filterGroupsToFilter,getAllKnownProperties,isUnaryOperator,parseFilterToGroups
 imp src/lib/features/type-definitions/type-note-list.logic.ts:3 -> src/lib/features/collection/toolbar/filter.logic.ts parseFilterToGroups,filterGroupsToFilter,getAllKnownProperties
 ## reach
-in2 src/lib/features/collection/toolbar/filter.logic.ts 25 files in 9 modules: src/lib/features/rail-shell(11) src/lib/app(5) src/lib/features/auto-organize(3) src/lib/features/note-list(1) src/lib/features/quick-switcher(1) +4 modules: q impact src/lib/features/collection/toolbar/filter.logic.ts --depth 2
+in2 src/lib/features/collection/toolbar/filter.logic.ts 26 files in 9 modules: src/lib/features/rail-shell(12) src/lib/app(5) src/lib/features/auto-organize(3) src/lib/features/note-list(1) src/lib/features/quick-switcher(1) +4 modules: q impact src/lib/features/collection/toolbar/filter.logic.ts --depth 2
 out2 src/lib/features/collection/toolbar/filter.logic.ts 4 files in 3 modules: src/lib/features/collection(2) src/lib/core/filesystem(1) src/lib/utils(1)
 ## tests
 test src/tests/help/examples-scoping.test.ts imports src/lib/features/collection/toolbar/filter.logic.ts
@@ -36,7 +36,7 @@ test src/tests/lib/plugins/queryjs/kb-api.view-page.test.ts imports src/lib/feat
 sym src/lib/features/collection/toolbar/filter.logic.ts:22 fn parseExpressionToRow(expr: string): FilterRow L10 | Tries to parse a simple expression into a visual FilterRow.
 by src/lib/features/collection/toolbar/filter.logic.ts:parseExpressionToRow <- src/lib/features/auto-organize/auto-organize.logic.ts:41 in filterProblem call
 sym src/lib/features/collection/toolbar/filter.logic.ts:38 fn filterRowToExpression(row: FilterRow): string L51 | Converts a FilterRow back into an expression string for YAML serialization.
-by src/lib/features/collection/toolbar/filter.logic.ts:filterRowToExpression <- src/lib/features/rail-shell/lens.logic.ts:868 in describeViewFilters ref
+by src/lib/features/collection/toolbar/filter.logic.ts:filterRowToExpression <- src/lib/features/rail-shell/lens.logic.ts:870 in describeViewFilters ref
 sym src/lib/features/collection/toolbar/filter.logic.ts:94 fn parseFilterToGroups(filter: CollectionFilter | string | undefined): FilterGroup[] L47 | Converts a CollectionFilter or string (from YAML) into FilterGroup[] for the visual UI.
 by src/lib/features/collection/toolbar/filter.logic.ts:parseFilterToGroups <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:144 in toGroups call
 by src/lib/features/collection/toolbar/filter.logic.ts:parseFilterToGroups <- src/lib/features/collection/CollectionView.svelte:161 in seedFromDefinition call +1

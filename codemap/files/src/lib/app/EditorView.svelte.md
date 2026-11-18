@@ -27,14 +27,14 @@ imp src/lib/app/EditorView.svelte:28 -> src/lib/core/editor/editor.types.ts type
 imp src/lib/app/AppShell.svelte:40 -> src/lib/app/EditorView.svelte default
 ## reach
 in2 src/lib/app/EditorView.svelte 1 files in 1 modules: src/routes(1)
-out2 src/lib/app/EditorView.svelte 133 files in 29 modules: src/lib/features/collection(18) src/lib/features/event-calendar(12) src/lib/features/tasks(12) src/lib/core/markdown-editor(11) src/lib/utils(10) +24 modules
+out2 src/lib/app/EditorView.svelte 135 files in 30 modules: src/lib/features/collection(18) src/lib/core/markdown-editor(12) src/lib/features/event-calendar(12) src/lib/features/tasks(12) src/lib/utils(10) +25 modules
 ## tests
 test src/tests/lib/app/EditorView.test.ts imports src/lib/app/EditorView.svelte mirror
 test src/tests/lib/features/canvas/canvas-tab-switch.test.ts imports src/lib/app/EditorView.svelte
 test src/tests/lib/features/collection/CollectionView.view-writes.test.ts imports src/lib/app/EditorView.svelte
 ## symbols
 sym src/lib/app/EditorView.svelte:1 component EditorView L159
-by src/lib/app/EditorView.svelte:default <- src/lib/app/AppShell.svelte:262 in (markup) mount
+by src/lib/app/EditorView.svelte:default <- src/lib/app/AppShell.svelte:264 in (markup) mount
 ## mounts
 mount src/lib/app/EditorView.svelte:59 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/app/EditorView.svelte:67 EditorTabs -> src/lib/core/markdown-editor/EditorTabs.svelte
@@ -48,7 +48,7 @@ mount src/lib/app/EditorView.svelte:85 CanvasView -> src/lib/features/canvas/Can
 mount src/lib/app/EditorView.svelte:90 CollectionView -> src/lib/features/collection/CollectionView.svelte
 mount src/lib/app/EditorView.svelte:93 MarkdownEditor -> src/lib/core/markdown-editor/MarkdownEditor.svelte
 ## mounted-at
-mount src/lib/app/AppShell.svelte:262 EditorView -> src/lib/app/EditorView.svelte
+mount src/lib/app/AppShell.svelte:264 EditorView -> src/lib/app/EditorView.svelte
 ## calls
 call src/lib/app/EditorView.svelte:44 in isVirtual=$derived -> src/lib/core/editor/editor.logic.ts:isVirtualTab call
 call src/lib/app/EditorView.svelte:45 in isMarkdownNote=$derived -> src/lib/core/editor/editor.logic.ts:isMarkdownNoteTab call

@@ -17,9 +17,9 @@ out2 src/lib/features/properties/NoteInfo.svelte 12 files in 6 modules: src/lib/
 test src/tests/lib/features/properties/NoteInfo.test.ts imports src/lib/features/properties/NoteInfo.svelte mirror
 ## symbols
 sym src/lib/features/properties/NoteInfo.svelte:1 component NoteInfo L55
-by src/lib/features/properties/NoteInfo.svelte:default <- src/lib/app/AppShell.svelte:291 in (markup) mount
+by src/lib/features/properties/NoteInfo.svelte:default <- src/lib/app/AppShell.svelte:293 in (markup) mount
 ## mounted-at
-mount src/lib/app/AppShell.svelte:291 NoteInfo -> src/lib/features/properties/NoteInfo.svelte
+mount src/lib/app/AppShell.svelte:293 NoteInfo -> src/lib/features/properties/NoteInfo.svelte
 ## calls
 call src/lib/features/properties/NoteInfo.svelte:12 in rows=$derived -> src/lib/features/properties/note-info.logic.ts:buildNoteInfoRows call
 call src/lib/features/properties/NoteInfo.svelte:25 in $effect@18 -> src/lib/core/vault/vault-entries.service.ts:getVaultEntries call

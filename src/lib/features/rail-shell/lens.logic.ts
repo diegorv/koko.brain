@@ -253,10 +253,12 @@ export function staleRailPinFix(railItem: unknown, pinned: readonly RailPin[]): 
  * The row's second line: the note's modified time in relative form
  * (`formatRelativeTime`, the order most lists sort by) and its vault-relative
  * folder. Parts that are unknown or at the vault root are left out.
+ * `withFolder: false` leaves the folder out, for a folder lens, whose rows
+ * all sit in the folder the list is titled with.
  * The relative time is read from the clock when the row is built; it does not tick.
  */
-export function noteSubtitle(entry: NoteEntryV2, vaultPath: string | null): string {
-	return [formatRelativeTime(entry.modifiedAt), vaultFolder(entry.path, vaultPath)].filter(Boolean).join(' · ');
+export function noteSubtitle(entry: NoteEntryV2, vaultPath: string | null, { withFolder = true }: { withFolder?: boolean } = {}): string {
+	return [formatRelativeTime(entry.modifiedAt), withFolder ? vaultFolder(entry.path, vaultPath) : ''].filter(Boolean).join(' · ');
 }
 
 /** An entry's note date (`noteDateKey`: frontmatter `date`, else `created`, else the disk creation time), or null. */
@@ -278,7 +280,7 @@ function vaultFolder(path: string, vaultPath: string | null): string {
 	return slash === -1 ? '' : relative.slice(0, slash);
 }
 
-function toLensNote(entry: NoteEntryV2, vaultPath: string | null): LensNote {
+function toLensNote(entry: NoteEntryV2, vaultPath: string | null, options?: { withFolder?: boolean }): LensNote {
 	return {
 		path: entry.path,
 		title: entry.title,
@@ -287,7 +289,7 @@ function toLensNote(entry: NoteEntryV2, vaultPath: string | null): LensNote {
 		createdAt: entry.createdAt,
 		frontmatter: entry.frontmatter,
 		isA: entry.isA,
-		subtitle: noteSubtitle(entry, vaultPath),
+		subtitle: noteSubtitle(entry, vaultPath, options),
 		italic: isInboxEntry(entry),
 		archived: entry.archived,
 		kind: 'markdown',
@@ -921,7 +923,11 @@ export function fileKind(name: string): FileKind {
 	return 'other';
 }
 
-/** The row subtitle of a file the entries snapshot does not describe. */
+/**
+ * The row subtitle of a file the entries snapshot does not describe: every
+ * non-markdown file, and a note not yet indexed (`Note`). An indexed note's
+ * row shows its modified time instead.
+ */
 const FILE_KIND_LABELS: Record<FileKind, string> = {
 	markdown: 'Note',
 	canvas: 'Canvas',
@@ -942,6 +948,32 @@ export function navigatorFolders(nodes: readonly FileTreeNode[] | undefined): Fi
 	return (nodes ?? []).filter((n) => n.isDirectory && !isHiddenName(n.name));
 }
 
+/**
+ * The files of a tree level a folder lens lists: files of every kind, hidden
+ * ones left out, in tree order. Its length is the navigator's folder count, so
+ * the count always equals the note list of that folder.
+ */
+export function folderFiles(nodes: readonly FileTreeNode[] | undefined): FileTreeNode[] {
+	return (nodes ?? []).filter((n) => !n.isDirectory && !isHiddenName(n.name));
+}
+
+/**
+ * Whether a tree path is one of the configured system folders
+ * (`templates.systemFolder`, `templates.folder`) or lies under one. The
+ * settings are vault-relative; a blank one matches nothing, as in
+ * `excludeSystemFolder`. Other underscore folders (`_notes`) are user folders.
+ */
+export function systemFolderPredicate(vaultPath: string, folders: readonly string[]): (path: string) => boolean {
+	const base = vaultRoot(vaultPath);
+	const roots = folders.map((f) => f.trim().replace(/^\/+|\/+$/g, '')).filter(Boolean).map((f) => `${base}/${f}`);
+	return (path) => roots.some((root) => path === root || path.startsWith(root + '/'));
+}
+
+/** `folders` with the system ones moved after the others, each half in its incoming order. */
+export function systemFoldersLast(folders: readonly FileTreeNode[], isSystem: (path: string) => boolean): FileTreeNode[] {
+	return [...folders.filter((f) => !isSystem(f.path)), ...folders.filter((f) => isSystem(f.path))];
+}
+
 /** The navigator folder at `path`, descending only through folders the navigator shows. */
 function findNavigatorFolder(nodes: readonly FileTreeNode[], path: string): FileTreeNode | null {
 	for (const node of navigatorFolders(nodes)) {
@@ -956,10 +988,14 @@ function vaultRoot(vaultPath: string): string {
 	return vaultPath.replace(/\/+$/, '');
 }
 
-/** A folder lens row: a markdown file from its entry, any other file (or a note not yet indexed) from its tree node. */
+/**
+ * A folder lens row: a markdown file from its entry, its subtitle without the
+ * folder (the lens is that folder), any other file (or a note not yet indexed)
+ * from its tree node.
+ */
 function fileToLensNote(node: FileTreeNode, entry: NoteEntryV2 | undefined, vaultPath: string): LensNote {
 	const kind = fileKind(node.name);
-	if (kind === 'markdown' && entry) return toLensNote(entry, vaultPath);
+	if (kind === 'markdown' && entry) return toLensNote(entry, vaultPath, { withFolder: false });
 	const dot = node.name.lastIndexOf('.');
 	return {
 		path: node.path,
@@ -1001,9 +1037,7 @@ function resolveFolderLens(lens: Lens, ctx: LensContext): ResolvedLens | null {
 		rule = `in ${getRelativePath(root, folder.path)}/`;
 	}
 	const byPath = new Map(ctx.entries.map((e) => [e.path, e]));
-	const notes = children
-		.filter((n) => !n.isDirectory && !isHiddenName(n.name))
-		.map((n) => fileToLensNote(n, byPath.get(n.path), root));
+	const notes = folderFiles(children).map((n) => fileToLensNote(n, byPath.get(n.path), root));
 	return { label, rule, notes };
 }
 

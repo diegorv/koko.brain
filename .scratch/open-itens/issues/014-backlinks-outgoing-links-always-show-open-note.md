@@ -6,7 +6,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Answered:** first wave, picked by the owner on 2026-11-06. Owner, 2026-11-12: approved as a deep-dive addition to the queue. Nothing open.
 
@@ -44,3 +44,4 @@ Fix direction: make the skip apply only when the store currently holds that path
 ## Comments
 
 - 2026-11-12: deep dive (`.scratch/open-itens/research/deep-dive-2026-11-12/`) confirmed the bug at HEAD and the owner approved it as a queue addition. Impact lowered to medium (critique M1). Added the note that both panels reset the store directly, so the skip record must follow the store's `reset()`. Noted the uncalled unlinked-mentions cache as out of scope. Dropped the stale order note on ux-polish Issue 06, which is wontfix. Added a Backlinks criterion for the store-reset case, matching the existing Outgoing links one.
+- 2026-11-17, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/shell-sidebars-ux/issues/06-backlinks-outgoing-stay-open-readable-rows.md`. All six criteria are carried.

@@ -87,8 +87,8 @@ describe('railRegistryStore', () => {
 	it('registers folder creators in order, replaces one by id and unregisters it', async () => {
 		const offKanban = railRegistryStore.registerFolderCreator(creator('kanban', 'Old'));
 		railRegistryStore.registerFolderCreator(creator('board'));
-		railRegistryStore.registerFolderCreator(creator('kanban', 'New Kanban Board'));
-		expect(railRegistryStore.folderCreators.map((c) => c.label)).toEqual(['board', 'New Kanban Board']);
+		railRegistryStore.registerFolderCreator(creator('kanban', 'New kanban board'));
+		expect(railRegistryStore.folderCreators.map((c) => c.label)).toEqual(['board', 'New kanban board']);
 		expect(await railRegistryStore.folderCreators[1].create('/vault/Work')).toBe('/vault/Work/Untitled.kanban');
 
 		offKanban();

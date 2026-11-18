@@ -40,11 +40,11 @@ by src/lib/features/properties/lifecycle.service.ts:toggleFavoriteForPath <- src
 sym src/lib/features/properties/lifecycle.service.ts:66 fn setTypeRailPin(definitionPath: string, pinned: boolean): Promise<void> L10 | Pins the type whose definition note is at `definitionPath` to the rail (`_rail: true`) or unpins it (the key removed), through `updateNoteFrontmatter`, so the …
 by src/lib/features/properties/lifecycle.service.ts:setTypeRailPin <- src/lib/features/rail-shell/TypesNavigator.svelte:384 in (markup) markup
 sym src/lib/features/properties/lifecycle.service.ts:78 fn toggleActiveNoteFavorite(): Promise<void> L3 | Flips `_favorite` on the active note.
-by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteFavorite <- src/lib/app/commands.ts:343 in getBuiltInCommands call
+by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteFavorite <- src/lib/app/commands.ts:361 in getBuiltInCommands call
 by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteFavorite <- src/lib/app/global-keybindings.ts:195 in GLOBAL_KEYBINDINGS call
 by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteFavorite <- src/lib/features/note-action-bar/NoteActionBar.svelte:151 in (markup) markup
 sym src/lib/features/properties/lifecycle.service.ts:83 fn toggleActiveNoteOrganized(): Promise<void> L3 | Flips `_organized` on the active note; `_archived` is left as-is.
-by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteOrganized <- src/lib/app/commands.ts:350 in getBuiltInCommands call
+by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteOrganized <- src/lib/app/commands.ts:368 in getBuiltInCommands call
 by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteOrganized <- src/lib/app/global-keybindings.ts:201 in GLOBAL_KEYBINDINGS call
 by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteOrganized <- src/lib/features/note-action-bar/NoteActionBar.svelte:160 in (markup) markup
 sym src/lib/features/properties/lifecycle.service.ts:91 fn toggleActiveNoteArchived(): Promise<void> L3 | Archives the active note, or restores it when archived.

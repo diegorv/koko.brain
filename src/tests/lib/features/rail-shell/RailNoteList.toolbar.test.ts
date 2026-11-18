@@ -314,7 +314,7 @@ describe('RailNoteList - toolbar', () => {
 		await new Promise((resolve) => setTimeout(resolve, 200));
 		await settle();
 		// The full-text call failed: the local match answers, with no toast.
-		expect(target.querySelector('[data-note-list-no-matches]')?.textContent?.trim()).toBe('No matching notes');
+		expect(target.querySelector('[data-note-list-no-matches] [data-empty-state-title]')?.textContent).toBe('No notes match "zzz"');
 		expect(target.querySelector('[data-note-list-empty]')).toBeNull();
 		expect(toast.error).not.toHaveBeenCalled();
 

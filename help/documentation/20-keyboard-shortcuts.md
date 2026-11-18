@@ -105,10 +105,10 @@ These commands are available via the Command Palette (`Cmd+P`) but don't have ke
 
 | Command | Description |
 |---------|-------------|
-| New File | Create a new markdown file |
-| New Folder | Create a new folder |
-| New Canvas | Create a new canvas file |
-| New Kanban Board | Create a new `.kanban` board file |
+| New note | Create a new markdown file at the vault root |
+| New folder | Create a new folder at the vault root |
+| New canvas | Create a new canvas file at the vault root |
+| New kanban board | Create a new `.kanban` board file at the vault root |
 | New File from Template | Create a note from a template |
 | Open Daily Note | Open or create today's daily note |
 | Pin/Unpin Tab | Pin or unpin the active tab |
@@ -118,8 +118,9 @@ These commands are available via the Command Palette (`Cmd+P`) but don't have ke
 | New Calendar Event | Open the Calendar tab and the new-event dialog |
 | Calendar: Go to Today | Open the Calendar tab on today |
 | Calendar: Undo / Calendar: Redo | Undo or redo the last calendar change (`Cmd+Z` / `Cmd+Shift+Z` inside the Calendar tab). Listed only when there is something to undo or redo |
-| Toggle Table of Contents | Toggle the TOC panel in the right sidebar |
-| Go to *item* | Do what a click on that rail button does, for every rail item: Search, Inbox, Today, Favorites, Types, Calendar, Files, Archive and each pinned view or type (e.g. **Go to Inbox**). Shows the panels if `Cmd+1` hid them (a pinned view that opens in the editor leaves them as they are) |
+| Toggle Properties Panel / Toggle Backlinks Panel / Toggle Outgoing Links Panel / Toggle Table of Contents | Show or hide that panel in the right sidebar. Turning a panel on also shows a hidden sidebar, except on tabs where the sidebar never shows (canvas, kanban, views and virtual tabs) |
+| Open Trash | Open Settings on the Trash section. Listed only while a vault is open |
+| Go to *item* | Do what a click on that rail button does, for every rail item: Search, Inbox, Today, Favorites, Types, Days, Files, Archive and each pinned view or type (e.g. **Go to Inbox**). Tasks, Graph and Tags have none; use their Toggle commands. Shows the panels if `Cmd+1` hid them (a pinned view that opens in the editor leaves them as they are) |
 | Open view: *view* | Pick the view in the Types navigator, or open it in the editor when it has `_open_in_editor: true`, as its Views row does. Every `.view` in the vault has one, except a view hidden from Views with `_visible: false` |
 
 > [!TIP]
