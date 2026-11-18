@@ -11,7 +11,7 @@ test src/tests/lib/core/markdown-editor/extensions/live-preview/code-highlight.l
 ## symbols
 sym src/lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.ts:28 interface HighlightResult L4 | Result of syntax highlighting
 sym src/lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.ts:38 fn highlightCode(code: string, language?: string): HighlightResult L10 | Highlights code using lowlight (highlight.js wrapper).
-by src/lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.ts:highlightCode <- src/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.ts:112 in CodeBlockWidget.toDOM call
+by src/lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.ts:highlightCode <- src/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.ts:119 in CodeBlockWidget.toDOM call
 ## locals
 local src/lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.ts:8 fn escapeHtml(text: string): string L3
 local src/lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.ts:13 fn hastToHtml(node: Root | Element | Text): string L13

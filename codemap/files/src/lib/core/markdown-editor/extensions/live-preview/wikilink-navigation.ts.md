@@ -25,7 +25,7 @@ by src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:f
 sym src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:28 fn followWikilinkClick(view: EditorView, pos: number): Promise<void> L11 | Follows the wikilink at `pos` in `view` through `followWikilinkInfo`.
 by src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:followWikilinkClick <- src/lib/core/markdown-editor/MarkdownEditor.svelte:288 in handleEditorClick call
 sym src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:45 fn followWikilinkInfo(view: EditorView, info: WikilinkInfo): Promise<void> L22 | Follows a parsed wikilink from `view`.
-by src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:followWikilinkInfo <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:348 in renderCellContent call +1
+by src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:followWikilinkInfo <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:363 in renderCellContent call +1
 by src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:followWikilinkInfo <- src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts:112 in executeButtonAction call
 ## calls
 call src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:18 in followWikilink -> src/lib/core/filesystem/fs.logic.ts:isBinaryFile call

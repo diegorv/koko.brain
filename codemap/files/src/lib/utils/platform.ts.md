@@ -22,14 +22,14 @@ sym src/lib/utils/platform.ts:17 fn detectMac(nav: PlatformNavigator | undefined
 sym src/lib/utils/platform.ts:23 const IS_MAC = detectMac(…) L1 | True when the app runs on macOS.
 by src/lib/utils/platform.ts:IS_MAC <- src/lib/core/markdown-editor/MarkdownEditor.svelte:275 in handleEditorClick ref
 by src/lib/utils/platform.ts:IS_MAC <- src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts:17 in handleLivePreviewLinkMousedown ref +1
-by src/lib/utils/platform.ts:IS_MAC <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:285 in renderInlineSegments ref +2
+by src/lib/utils/platform.ts:IS_MAC <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:300 in renderInlineSegments ref +2
 by src/lib/utils/platform.ts:IS_MAC <- src/lib/plugins/queryjs/kb-api.ts:513 in KBAPI.renderValue ref
 sym src/lib/utils/platform.ts:30 fn isOpenLinkModifier(e: LinkClickModifiers, mac: boolean): boolean L3 | True when a click carries the platform's "open link" modifier: Cmd on macOS, Ctrl on Windows/Linux.
 by src/lib/utils/platform.ts:isOpenLinkModifier <- src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts:18 in handleLivePreviewLinkMousedown call +1
-by src/lib/utils/platform.ts:isOpenLinkModifier <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:285 in renderInlineSegments call
+by src/lib/utils/platform.ts:isOpenLinkModifier <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:300 in renderInlineSegments call
 by src/lib/utils/platform.ts:isOpenLinkModifier <- src/lib/core/markdown-editor/wikilink-click-target.ts:70 in resolveWikilinkClickPosition call
 sym src/lib/utils/platform.ts:38 fn isMacContextClick(e: LinkClickModifiers, mac: boolean): boolean L3 | True for a macOS Ctrl+click.
-by src/lib/utils/platform.ts:isMacContextClick <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:342 in renderCellContent call +1
+by src/lib/utils/platform.ts:isMacContextClick <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:357 in renderCellContent call +1
 by src/lib/utils/platform.ts:isMacContextClick <- src/lib/core/markdown-editor/wikilink-click-target.ts:66 in resolveWikilinkClickPosition call
 by src/lib/utils/platform.ts:isMacContextClick <- src/lib/plugins/queryjs/kb-api.ts:513 in KBAPI.renderValue call
 ## calls

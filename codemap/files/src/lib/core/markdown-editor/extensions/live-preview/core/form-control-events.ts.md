@@ -11,5 +11,5 @@ out2 src/lib/core/markdown-editor/extensions/live-preview/core/form-control-even
 test src/tests/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.test.ts imports src/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.ts mirror
 ## symbols
 sym src/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.ts:28 fn isFormControlInputEvent(event: Event): boolean L5 | `WidgetType.ignoreEvent` answer for a widget that holds form controls.
-by src/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.ts:isFormControlInputEvent <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:446 in TableWidget.ignoreEvent call +3
-by src/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.ts:isFormControlInputEvent <- src/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.ts:143 in CodeBlockWidget.ignoreEvent call
+by src/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.ts:isFormControlInputEvent <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:461 in TableWidget.ignoreEvent call +3
+by src/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.ts:isFormControlInputEvent <- src/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.ts:150 in CodeBlockWidget.ignoreEvent call

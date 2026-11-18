@@ -72,7 +72,7 @@ by src/lib/core/frontmatter/properties.logic.ts:extractRawFrontmatter <- src/lib
 by src/lib/core/frontmatter/properties.logic.ts:extractRawFrontmatter <- src/lib/features/file-icons/file-icons.logic.ts:84 in parseFrontmatterIconFields call
 sym src/lib/core/frontmatter/properties.logic.ts:55 fn extractBody(content: string): string L5 | Returns the body content after the frontmatter block.
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/core/frontmatter/frontmatter-write.service.ts:128 in attempt call
-by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:913 in dispatchMetaBindUpdate call
+by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:931 in dispatchMetaBindUpdate call
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/features/auto-organize/auto-organize.service.ts:644 in withRuleProperties call
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/features/deep-link/deep-link.logic.ts:390 in injectTitleIntoContent call +1
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/features/event-calendar/event-calendar-event.logic.ts:358 in applyEventDraft call
@@ -85,7 +85,7 @@ sym src/lib/core/frontmatter/properties.logic.ts:340 fn parseFrontmatterProperti
 by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/core/frontmatter/frontmatter-write.service.ts:128 in attempt call
 by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input-plugin.ts:59 in buildMetaBindInputDecorations call
 by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/core/markdown-editor/extensions/live-preview/plugins/table-field.ts:18 in computeTables call
-by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:912 in dispatchMetaBindUpdate call
+by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:930 in dispatchMetaBindUpdate call
 by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/features/auto-organize/auto-organize.logic.ts:866 in propertyWriteSkipReason call
 by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/features/auto-organize/auto-organize.service.ts:633 in withRuleProperties call +1
 by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/features/collection/collection.logic.ts:36 in buildNoteRecord call
@@ -95,11 +95,11 @@ sym src/lib/core/frontmatter/properties.logic.ts:357 type LossyFrontmatterReason
 by src/lib/core/frontmatter/properties.logic.ts:LossyFrontmatterReason <- src/lib/core/frontmatter/frontmatter-write.service.ts:14 in (module) import
 sym src/lib/core/frontmatter/properties.logic.ts:380 const LOSSY_FRONTMATTER_MESSAGES: Readonly<Record<LossyFrontmatterReason, string>> L8 | Error text per `LossyFrontmatterReason`, shared by every writer that refuses a lossy rewrite, so the Properties panel, meta-bind and `updateNoteFrontmatter` te…
 by src/lib/core/frontmatter/properties.logic.ts:LOSSY_FRONTMATTER_MESSAGES <- src/lib/core/frontmatter/frontmatter-write.service.ts:49 in WRITE_ERROR_MESSAGES ref
-by src/lib/core/frontmatter/properties.logic.ts:LOSSY_FRONTMATTER_MESSAGES <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:908 in dispatchMetaBindUpdate ref
+by src/lib/core/frontmatter/properties.logic.ts:LOSSY_FRONTMATTER_MESSAGES <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:926 in dispatchMetaBindUpdate ref
 sym src/lib/core/frontmatter/properties.logic.ts:405 fn detectLossyFrontmatter(content: string): LossyFrontmatterReason | null L57 | Tells a caller, before it rewrites a note, whether the `parseFrontmatterProperties` -> `serializeProperties` round trip would lose data, and why.
 by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/lib/app/deep-link-actions.ts:205 in executeCaptureAction call
 by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/lib/core/frontmatter/frontmatter-write.service.ts:125 in attempt call
-by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:905 in dispatchMetaBindUpdate call
+by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:923 in dispatchMetaBindUpdate call
 by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/lib/features/auto-organize/auto-organize.logic.ts:863 in propertyWriteSkipReason call
 by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/lib/features/auto-organize/auto-organize.service.ts:639 in withRuleProperties call +1
 by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/lib/features/event-calendar/event-calendar.service.ts:943 in createNow call +1
@@ -114,12 +114,12 @@ sym src/lib/core/frontmatter/properties.logic.ts:603 fn serializeProperties(prop
 sym src/lib/core/frontmatter/properties.logic.ts:634 fn yamlScalar(value: string): string L3 | The one-line YAML scalar for `value`, for pasting after `key: ` or `- ` in a frontmatter block: plain when a plain scalar reads back as the same string, quoted…
 by src/lib/core/frontmatter/properties.logic.ts:yamlScalar <- src/lib/plugins/quick-capture/note-composer.logic.ts:129 in processCaptureTemplate call
 sym src/lib/core/frontmatter/properties.logic.ts:651 fn setPropertyByBindTarget(properties: Property[], bindTarget: string, value: string | number | boolean): Property[] L15 | Sets a property value addressed by a (possibly aliased) meta-bind bind target, matching on the canonical key.
-by src/lib/core/frontmatter/properties.logic.ts:setPropertyByBindTarget <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:914 in dispatchMetaBindUpdate call
+by src/lib/core/frontmatter/properties.logic.ts:setPropertyByBindTarget <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:932 in dispatchMetaBindUpdate call
 sym src/lib/core/frontmatter/properties.logic.ts:674 fn typedOptionValue(option: string): string | number | boolean L7 | The value a meta-bind select writes for an option string.
-by src/lib/core/frontmatter/properties.logic.ts:typedOptionValue <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:815 in createMetaBindSelect call
+by src/lib/core/frontmatter/properties.logic.ts:typedOptionValue <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:833 in createMetaBindSelect call
 sym src/lib/core/frontmatter/properties.logic.ts:689 fn rebuildContent(properties: Property[], body: string, original?: string): string L9 | Rebuilds the full file content with updated frontmatter properties.
 by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/core/frontmatter/frontmatter-write.service.ts:128 in attempt call
-by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:915 in dispatchMetaBindUpdate call
+by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:933 in dispatchMetaBindUpdate call
 by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/features/auto-organize/auto-organize.service.ts:644 in withRuleProperties call
 by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/features/deep-link/deep-link.logic.ts:398 in injectTitleIntoContent call +4
 by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/features/event-calendar/event-calendar-event.logic.ts:362 in applyEventDraft call

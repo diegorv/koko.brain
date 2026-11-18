@@ -134,11 +134,11 @@ file src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/table-field.ts other L69 module src/lib/core/markdown-editor in1 t4
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/video-plugin.ts other L56 module src/lib/core/markdown-editor in1 t2
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.ts other L98 module src/lib/core/markdown-editor in1 t2
-file src/lib/core/markdown-editor/extensions/live-preview/styles.ts other L1023 module src/lib/core/markdown-editor in16 t6
-file src/lib/core/markdown-editor/extensions/live-preview/widgets.ts other L1127 module src/lib/core/markdown-editor in8 t15
-file src/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.ts other L183 module src/lib/core/markdown-editor in1 t1
+file src/lib/core/markdown-editor/extensions/live-preview/styles.ts other L1031 module src/lib/core/markdown-editor in16 t6
+file src/lib/core/markdown-editor/extensions/live-preview/widgets.ts other L1145 module src/lib/core/markdown-editor in8 t15
+file src/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.ts other L190 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/extensions/live-preview/widgets/math-widget.ts other L77 module src/lib/core/markdown-editor in3 t1
-file src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts other L136 module src/lib/core/markdown-editor in2 t2
+file src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts other L139 module src/lib/core/markdown-editor in2 t2
 file src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts other L143 module src/lib/core/markdown-editor in1 t4
 file src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts other L66 module src/lib/core/markdown-editor in4 t3
 file src/lib/core/markdown-editor/extensions/tag/completion.logic.ts logic L102 module src/lib/core/markdown-editor in1 t1
@@ -195,6 +195,7 @@ sym src/lib/core/markdown-editor/tab-view-state.ts:107 fn clearAllTabViewStates(
 fx-count dom.blur 1
 fx-count dom.change 3
 fx-count dom.click 1
+fx-count dom.error 1
 fx-count dom.input 1
 fx-count dom.keydown 1
 fx-count dom.mousedown 17

@@ -15,7 +15,7 @@ test src/tests/lib/utils/sanitize-url.test.ts imports src/lib/utils/sanitize-url
 ## symbols
 sym src/lib/utils/sanitize-url.ts:5 fn isSafeUrl(url: string): boolean L11 | Returns true if the URL is safe to open or use as a resource src
 by src/lib/utils/sanitize-url.ts:isSafeUrl <- src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts:34 in handleLivePreviewLinkMousedown call
-by src/lib/utils/sanitize-url.ts:isSafeUrl <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:163 in ImageWidget.toDOM call +2
+by src/lib/utils/sanitize-url.ts:isSafeUrl <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:178 in ImageWidget.toDOM call +2
 by src/lib/utils/sanitize-url.ts:isSafeUrl <- src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts:114 in executeButtonAction call
 by src/lib/utils/sanitize-url.ts:isSafeUrl <- src/lib/features/canvas/LinkNode.svelte:81 in handleClick call
 by src/lib/utils/sanitize-url.ts:isSafeUrl <- src/lib/features/tasks/tasks.logic.ts:60 in parseTaskTextSegments call

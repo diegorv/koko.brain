@@ -30,10 +30,10 @@ sym src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:20 fn
 by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling <- src/lib/app/boot.ts:38 in registerAppPorts call
 sym src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:28 fn editorLog(tag: string, message: string): void L3 | Writes one tagged line through the configured log port.
 by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:editorLog <- src/lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin.ts:89 in runIsolated call
-by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:editorLog <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:907 in dispatchMetaBindUpdate call
+by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:editorLog <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:925 in dispatchMetaBindUpdate call
 sym src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:36 fn reportError(tag: string, message: string, err: unknown): void L4 | Reports an editor error the user cannot act on: the devtools console plus the configured log port.
 by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:reportError <- src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts:38 in handleLivePreviewLinkMousedown call
-by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:reportError <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:295 in renderInlineSegments call
+by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:reportError <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:310 in renderInlineSegments call
 by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:reportError <- src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:34 in followWikilinkClick call +1
 by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:reportError <- src/lib/core/markdown-editor/extensions/tag/completion.ts:28 in tagCompletionSource call
 by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:reportError <- src/lib/core/markdown-editor/extensions/wikilink/completion.ts:21 in resolveTargetContent call

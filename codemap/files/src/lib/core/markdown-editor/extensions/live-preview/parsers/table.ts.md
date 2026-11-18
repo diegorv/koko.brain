@@ -17,7 +17,7 @@ sym src/lib/core/markdown-editor/extensions/live-preview/parsers/table.ts:5 type
 by src/lib/core/markdown-editor/extensions/live-preview/parsers/table.ts:ColumnAlignment <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:3 in (module) import
 sym src/lib/core/markdown-editor/extensions/live-preview/parsers/table.ts:8 interface TableBlock L16 | Parsed data for a GFM table block detected via the Lezer syntax tree
 sym src/lib/core/markdown-editor/extensions/live-preview/parsers/table.ts:32 fn parseAlignments(text: string): ColumnAlignment[] L17 | Parses column alignments from a table delimiter row text (e.g. `| :--- / :---: / ---: |`).
-by src/lib/core/markdown-editor/extensions/live-preview/parsers/table.ts:parseAlignments <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:549 in delimiterAlignments call
+by src/lib/core/markdown-editor/extensions/live-preview/parsers/table.ts:parseAlignments <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:566 in delimiterAlignments call
 sym src/lib/core/markdown-editor/extensions/live-preview/parsers/table.ts:129 fn findAllTables(state: EditorState): TableBlock[] L44 | Finds all GFM tables using the Lezer syntax tree (`Table` nodes from the GFM extension) for the table and row ranges; each row's cells come from `splitRow`.
 by src/lib/core/markdown-editor/extensions/live-preview/parsers/table.ts:findAllTables <- src/lib/core/markdown-editor/extensions/live-preview/plugins/table-field.ts:19 in computeTables call
 ## locals
