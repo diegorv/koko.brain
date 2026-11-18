@@ -44,7 +44,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 07 | [Quick Capture says what it does and shows Saving (copy and state only)](issues/07-quick-capture-copy-saving-state.md) | none | done | issue/07-quick-capture-copy-saving-state (e7eeb2aed) | 2026-11-18 |
 | 08 | [Live-preview widgets show failure and progress](issues/08-livepreview-widgets-show-failure-progress.md) | 03 | done | issue/08-livepreview-widgets-show-failure-progress (e118671bf) | 2026-11-18 |
 | 09 | [Collection table: readable names, visible sort order, sticky header](issues/09-collection-table-readable-names-visible-sort.md) | none | done | issue/09-collection-table-readable-names-visible-sort (8611869b7) | 2026-11-18 |
-| 10 | [Kanban cards: no empty date row, clamped preview, growing editor](issues/10-kanban-cards-no-empty-date-row.md) | 05 | in-progress | | |
+| 10 | [Kanban cards: no empty date row, clamped preview, growing editor](issues/10-kanban-cards-no-empty-date-row.md) | 05 | done | issue/10-kanban-cards-no-empty-date-row (5c06e1aa7) | 2026-11-18 |
 | 11 | [Kanban lanes: visible add row, empty and filtered counts, collapsed rail](issues/11-kanban-lanes-visible-add-row-empty.md) | 05, 10 | todo | | |
 | 12 | [Kanban list, table and archive: named checks, clean cells, restore feedback](issues/12-kanban-list-table-archive-named-checks.md) | 05, 11 | todo | | |
 | 13 | [Callouts, headings and the meta-bind number field read cleanly](issues/13-callouts-headings-metabind-number-field-read.md) | 08 | done | issue/13-callouts-headings-metabind-number-field-read (51497add3) | 2026-11-18 |
@@ -113,3 +113,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 17:03 — 05 — start — launched by /relay-lite:run — c59f1937a
 - 2026-11-18 17:17 — 05 — deliver — merged after review 1 APPROVED with findings, fix round (tab-switch test uses a real card edit, help text on filter clearing; swatch keyboard gap left for the radiogroup follow-up), re-review 2 APPROVED (claude); full vitest suite passed (17555 tests) — de36eedfd
 - 2026-11-18 17:18 — 10 — start — launched by /relay-lite:run — 457e600eb
+- 2026-11-18 17:32 — 10 — deliver — merged after review 1 CHANGES_REQUESTED, fix round, re-review 2 APPROVED (claude); full vitest suite passed (17569 tests) — 5c06e1aa7
