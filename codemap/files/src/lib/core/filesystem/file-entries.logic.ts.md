@@ -14,7 +14,7 @@ imp src/lib/features/canvas/CanvasFilePicker.svelte:3 -> src/lib/core/filesystem
 imp src/lib/features/properties/PropertiesView.svelte:14 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree
 imp src/lib/features/properties/RelationshipSearch.svelte:7 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree,filterAndRank
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:19 -> src/lib/core/filesystem/file-entries.logic.ts entryFolder,flattenFileTree,filterAndRank,splitRecentFiles,type:FileEntry
-imp src/lib/features/rail-shell/RailNoteList.svelte:26 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree
+imp src/lib/features/rail-shell/RailNoteList.svelte:35 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree
 imp src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:4 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree
 imp src/lib/plugins/kanban/kanban.service.ts:8 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree
 imp src/lib/plugins/quick-capture/composer-editor-host.service.ts:2 -> src/lib/core/filesystem/file-entries.logic.ts type:FileEntry
@@ -41,7 +41,7 @@ by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/feat
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/properties/PropertiesView.svelte:61 in relLinksMap=$derived call
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/properties/RelationshipSearch.svelte:24 in allFiles=$derived call
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/quick-switcher/QuickSwitcher.svelte:32 in allFiles=$derived call
-by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/rail-shell/RailNoteList.svelte:565 in allPaths=$derived call
+by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/rail-shell/RailNoteList.svelte:581 in allPaths=$derived call
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:28 in files=$derived call
 more by 1 not shown: src/lib/plugins/kanban(1): q importers src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree
 sym src/lib/core/filesystem/file-entries.logic.ts:30 const MAX_RESULTS L1 | Maximum number of results rendered by the quick switcher.

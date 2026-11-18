@@ -10,7 +10,7 @@ imp src/lib/features/rail-shell/Rail.svelte:25 -> src/lib/features/type-definiti
 imp src/lib/features/rail-shell/lens.logic.ts:17 -> src/lib/features/type-definitions/inbox-workflow.logic.ts isInboxEntry
 imp src/lib/features/tasks/task-query.logic.ts:5 -> src/lib/features/type-definitions/inbox-workflow.logic.ts isInboxEntry
 ## reach
-in2 src/lib/features/type-definitions/inbox-workflow.logic.ts 24 files in 7 modules: src/lib/features/rail-shell(10) src/lib/features/tasks(6) src/lib/app(4) src/lib/features/quick-switcher(1) src/lib/features/search(1) +2 modules: q impact src/lib/features/type-definitions/inbox-workflow.logic.ts --depth 2
+in2 src/lib/features/type-definitions/inbox-workflow.logic.ts 25 files in 7 modules: src/lib/features/rail-shell(11) src/lib/features/tasks(6) src/lib/app(4) src/lib/features/quick-switcher(1) src/lib/features/search(1) +2 modules: q impact src/lib/features/type-definitions/inbox-workflow.logic.ts --depth 2
 out2 src/lib/features/type-definitions/inbox-workflow.logic.ts 7 files in 5 modules: src/lib/core/filesystem(2) src/lib/features/collection(2) src/lib/contracts(1) src/lib/features/file-icons(1) src/lib/features/type-definitions(1)
 ## tests
 test src/tests/lib/features/type-definitions/inbox-workflow.logic.test.ts imports src/lib/features/type-definitions/inbox-workflow.logic.ts mirror

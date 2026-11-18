@@ -10,7 +10,7 @@ module src-tauri/src/semantic rust files 12 in-modules 2 out-modules 1 pub 39/69
 module src-tauri/src/utils rust files 5 in-modules 6 out-modules 0 pub 17/33 ipc 0/0 card ~1.8k
 module src-tauri/src/vault rust files 9 in-modules 2 out-modules 1 pub 46/105 ipc 0/0 card ~3.9k
 module src/lib/app app files 15 in-modules 1 out-modules 46 pub 12/27 ipc 11/0 card ~2.4k
-module src/lib/components components files 97 in-modules 31 out-modules 1 pub 0/0 ipc 0/0 card ~6.1k
+module src/lib/components components files 98 in-modules 31 out-modules 1 pub 1/1 ipc 0/0 card ~6.2k
 module src/lib/contracts contracts files 56 in-modules 26 out-modules 0 pub 45/65 ipc 0/0 card ~4.4k
 module src/lib/core/editor core files 6 in-modules 37 out-modules 3 pub 44/52 ipc 0/0 card ~4.3k
 module src/lib/core/filesystem core files 14 in-modules 29 out-modules 7 pub 60/91 ipc 14/0 card ~7k
@@ -40,7 +40,7 @@ module src/lib/features/note-list features files 4 in-modules 1 out-modules 9 pu
 module src/lib/features/outgoing-links features files 5 in-modules 2 out-modules 7 pub 3/6 ipc 2/0 card ~0.9k
 module src/lib/features/properties features files 13 in-modules 5 out-modules 13 pub 14/34 ipc 1/0 card ~2.3k
 module src/lib/features/quick-switcher features files 4 in-modules 1 out-modules 11 pub 3/8 ipc 1/0 card ~1k
-module src/lib/features/rail-shell features files 30 in-modules 8 out-modules 17 pub 51/162 ipc 2/0 card ~6.4k
+module src/lib/features/rail-shell features files 31 in-modules 8 out-modules 17 pub 51/169 ipc 2/0 card ~6.5k
 module src/lib/features/search features files 12 in-modules 4 out-modules 9 pub 14/52 ipc 16/0 card ~2.1k
 module src/lib/features/tags features files 8 in-modules 1 out-modules 7 pub 4/24 ipc 1/0 card ~0.9k
 module src/lib/features/tasks features files 14 in-modules 2 out-modules 10 pub 7/135 ipc 2/0 card ~1.5k
@@ -70,17 +70,17 @@ layer app -> features 122
 layer app -> plugins 44
 layer app -> utils 17
 layer components -> components 98
-layer components -> lib-root 54
+layer components -> lib-root 55
 layer contracts -> contracts 85
 layer core -> components 33
 layer core -> contracts 15
 layer core -> core 468
 layer core -> types 5
 layer core -> utils 68
-layer features -> components 99
+layer features -> components 100
 layer features -> contracts 43
 layer features -> core 341
-layer features -> features 728
+layer features -> features 731
 layer features -> types 23
 layer features -> utils 98
 layer lib-root -> utils 1

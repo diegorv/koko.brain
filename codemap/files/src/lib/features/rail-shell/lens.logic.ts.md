@@ -1,7 +1,7 @@
 # file card src/lib/features/rail-shell/lens.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/rail-shell/lens.logic.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls
-file src/lib/features/rail-shell/lens.logic.ts logic L1111 module src/lib/features/rail-shell in19 t30
+file src/lib/features/rail-shell/lens.logic.ts logic L1111 module src/lib/features/rail-shell in20 t30
 ## imports
 imp src/lib/features/rail-shell/lens.logic.ts:1 -> src/lib/types/vault-v2.types.ts type:NoteEntryV2
 imp src/lib/features/rail-shell/lens.logic.ts:2 -> src/lib/core/settings/settings.types.ts type:LayoutSettings
@@ -31,9 +31,10 @@ imp src/lib/features/quick-switcher/QuickSwitcher.svelte:16 -> src/lib/features/
 imp src/lib/features/rail-shell/FilesNavigator.svelte:55 -> src/lib/features/rail-shell/lens.logic.ts FILES_LENS,FOLDER_LENS_KIND,navigatorFolders,VIEW_LENS_KIND,viewLabels
 imp src/lib/features/rail-shell/LayoutSection.svelte:8 -> src/lib/features/rail-shell/lens.logic.ts SEARCH_RAIL_ITEM,TODAY_RAIL_ITEM
 imp src/lib/features/rail-shell/Rail.svelte:26 -> src/lib/features/rail-shell/lens.logic.ts pinnedRailItems
-imp src/lib/features/rail-shell/RailNoteList.svelte:55 -> src/lib/features/rail-shell/lens.logic.ts FOLDER_LENS_KIND,lensListsEntries,newNoteRule,queryViewLens,resolveLens,resolveViewLens,TODAY_DATED_GROUP,TODAY_LENS_KIND,todayLens,VIEW_LENS_KIND,viewEntriesLoaded,viewLoadFromQuery,viewNoteType,viewReadError
+imp src/lib/features/rail-shell/RailNoteList.svelte:64 -> src/lib/features/rail-shell/lens.logic.ts FOLDER_LENS_KIND,lensListsEntries,newNoteRule,queryViewLens,resolveLens,resolveViewLens,TODAY_DATED_GROUP,TODAY_LENS_KIND,todayLens,VIEW_LENS_KIND,viewEntriesLoaded,viewLoadFromQuery,viewNoteType,viewReadError
 imp src/lib/features/rail-shell/TypesNavigator.svelte:52 -> src/lib/features/rail-shell/lens.logic.ts sameLens,VIEW_LENS_KIND,viewEntriesLoaded,viewLabels
 imp src/lib/features/rail-shell/files-navigator.service.ts:3 -> src/lib/features/rail-shell/lens.logic.ts followFolderPathChange
+imp src/lib/features/rail-shell/list-empty.logic.ts:2 -> src/lib/features/rail-shell/lens.logic.ts ARCHIVE_LENS,FAVORITES_LENS,FOLDER_LENS_KIND,INBOX_LENS,NEIGHBOURHOOD_LENS_KIND,TYPES_LENS,UNTYPED_LENS,VIEW_LENS_KIND
 imp src/lib/features/rail-shell/neighbourhood.service.ts:3 -> src/lib/features/rail-shell/lens.logic.ts NEIGHBOURHOOD_RAIL_ITEM,TODAY_RAIL_ITEM
 imp src/lib/features/rail-shell/new-note.service.ts:10 -> src/lib/features/rail-shell/lens.logic.ts newNoteContent
 imp src/lib/features/rail-shell/rail-items.logic.ts:2 -> src/lib/features/rail-shell/lens.logic.ts FILES_RAIL_ITEM,SEARCH_RAIL_ITEM,TODAY_RAIL_ITEM,TYPES_RAIL_ITEM
@@ -78,27 +79,34 @@ test src/tests/lib/plugins/calendar/day-lens.logic.test.ts imports src/lib/featu
 test src/tests/lib/plugins/mods/mod-query.service.test.ts imports src/lib/features/rail-shell/lens.logic.ts
 ## symbols
 sym src/lib/features/rail-shell/lens.logic.ts:63 const INBOX_LENS: Lens L1 | The Inbox rail item's lens.
+by src/lib/features/rail-shell/lens.logic.ts:INBOX_LENS <- src/lib/features/rail-shell/list-empty.logic.ts:132 in explainEmptyList member
 sym src/lib/features/rail-shell/lens.logic.ts:66 const TODAY_LENS_KIND L1 | The lens kind of the Today rail item; its target is the day it lists, as a `YYYY-MM-DD` key.
-by src/lib/features/rail-shell/lens.logic.ts:TODAY_LENS_KIND <- src/lib/features/rail-shell/RailNoteList.svelte:107 in isToday=$derived ref
+by src/lib/features/rail-shell/lens.logic.ts:TODAY_LENS_KIND <- src/lib/features/rail-shell/RailNoteList.svelte:123 in isToday=$derived ref
 sym src/lib/features/rail-shell/lens.logic.ts:72 const TODAY_LENS: Lens L1 | The Today rail item's lens before the note list gives it the current day.
 sym src/lib/features/rail-shell/lens.logic.ts:75 fn todayLens(todayKey: string): Lens L3 | The Today lens of a day (`todayKey`), which the note list keeps on the clock's day.
-by src/lib/features/rail-shell/lens.logic.ts:todayLens <- src/lib/features/rail-shell/RailNoteList.svelte:119 in shownLens=$derived call
+by src/lib/features/rail-shell/lens.logic.ts:todayLens <- src/lib/features/rail-shell/RailNoteList.svelte:135 in shownLens=$derived call
 sym src/lib/features/rail-shell/lens.logic.ts:85 const TODAY_DATED_GROUP L1 | The Today lens's group of the notes dated today; plugin sections (`railRegistryStore.todaySections`) show before it.
-by src/lib/features/rail-shell/lens.logic.ts:TODAY_DATED_GROUP <- src/lib/features/rail-shell/RailNoteList.svelte:670 in groupedItems=$derived ref
+by src/lib/features/rail-shell/lens.logic.ts:TODAY_DATED_GROUP <- src/lib/features/rail-shell/RailNoteList.svelte:686 in groupedItems=$derived ref
 sym src/lib/features/rail-shell/lens.logic.ts:88 const FAVORITES_LENS: Lens L1 | The Favorites rail item's lens.
+by src/lib/features/rail-shell/lens.logic.ts:FAVORITES_LENS <- src/lib/features/rail-shell/list-empty.logic.ts:130 in explainEmptyList member
 sym src/lib/features/rail-shell/lens.logic.ts:91 const ARCHIVE_LENS: Lens L1 | The Archive rail item's lens.
+by src/lib/features/rail-shell/lens.logic.ts:ARCHIVE_LENS <- src/lib/features/rail-shell/list-empty.logic.ts:134 in explainEmptyList member
 sym src/lib/features/rail-shell/lens.logic.ts:97 const SEARCH_LENS: Lens L1 | The Search rail item's lens.
 by src/lib/features/rail-shell/lens.logic.ts:SEARCH_LENS <- src/lib/app/AppShell.svelte:245 in (markup) markup
 sym src/lib/features/rail-shell/lens.logic.ts:100 const UNTYPED_LENS: Lens L1 | The Untyped row of the Types navigator: notes with no type.
+by src/lib/features/rail-shell/lens.logic.ts:UNTYPED_LENS <- src/lib/features/rail-shell/list-empty.logic.ts:136 in explainEmptyList member
 sym src/lib/features/rail-shell/lens.logic.ts:106 const TYPES_LENS: Lens L1 | The Types rail item's lens before a navigator row is picked.
+by src/lib/features/rail-shell/lens.logic.ts:TYPES_LENS <- src/lib/features/rail-shell/list-empty.logic.ts:115 in explainEmptyList member +1
 sym src/lib/features/rail-shell/lens.logic.ts:109 const VIEW_LENS_KIND L1 | The lens kind of a `.view` file; its target is the file's absolute path.
 by src/lib/features/rail-shell/lens.logic.ts:VIEW_LENS_KIND <- src/lib/app/rail-navigation.ts:37 in openRailView ref
 by src/lib/features/rail-shell/lens.logic.ts:VIEW_LENS_KIND <- src/lib/features/rail-shell/FilesNavigator.svelte:412 in (markup) markup
-by src/lib/features/rail-shell/lens.logic.ts:VIEW_LENS_KIND <- src/lib/features/rail-shell/RailNoteList.svelte:135 in viewPath=$derived ref
+by src/lib/features/rail-shell/lens.logic.ts:VIEW_LENS_KIND <- src/lib/features/rail-shell/RailNoteList.svelte:151 in viewPath=$derived ref
 by src/lib/features/rail-shell/lens.logic.ts:VIEW_LENS_KIND <- src/lib/features/rail-shell/TypesNavigator.svelte:67 in viewRows=$derived ref +2
+by src/lib/features/rail-shell/lens.logic.ts:VIEW_LENS_KIND <- src/lib/features/rail-shell/list-empty.logic.ts:120 in explainEmptyList ref
 sym src/lib/features/rail-shell/lens.logic.ts:112 const FOLDER_LENS_KIND L1 | The lens kind of a Files navigator folder; its target is the folder's absolute path, none is the vault root.
 by src/lib/features/rail-shell/lens.logic.ts:FOLDER_LENS_KIND <- src/lib/features/rail-shell/FilesNavigator.svelte:109 in lensFor ref +1
-by src/lib/features/rail-shell/lens.logic.ts:FOLDER_LENS_KIND <- src/lib/features/rail-shell/RailNoteList.svelte:574 in currentNewNoteRule ref
+by src/lib/features/rail-shell/lens.logic.ts:FOLDER_LENS_KIND <- src/lib/features/rail-shell/RailNoteList.svelte:590 in currentNewNoteRule ref
+by src/lib/features/rail-shell/lens.logic.ts:FOLDER_LENS_KIND <- src/lib/features/rail-shell/list-empty.logic.ts:116 in explainEmptyList ref +1
 sym src/lib/features/rail-shell/lens.logic.ts:115 const FILES_LENS: Lens L1 | The Files rail item's lens before a folder is picked: the vault root.
 by src/lib/features/rail-shell/lens.logic.ts:FILES_LENS <- src/lib/features/rail-shell/FilesNavigator.svelte:109 in lensFor ref +1
 sym src/lib/features/rail-shell/lens.logic.ts:118 const TODAY_RAIL_ITEM L1 | The rail item that shows the Today lens.
@@ -120,6 +128,7 @@ by src/lib/features/rail-shell/lens.logic.ts:FILES_RAIL_ITEM <- src/lib/app/AppS
 by src/lib/features/rail-shell/lens.logic.ts:FILES_RAIL_ITEM <- src/lib/app/commands.ts:169 in getBuiltInCommands ref
 by src/lib/features/rail-shell/lens.logic.ts:FILES_RAIL_ITEM <- src/lib/features/rail-shell/rail-items.logic.ts:46 in railItems ref
 sym src/lib/features/rail-shell/lens.logic.ts:133 const NEIGHBOURHOOD_LENS_KIND L1 | The lens kind of a note's neighbourhood; its target is the note's absolute path.
+by src/lib/features/rail-shell/lens.logic.ts:NEIGHBOURHOOD_LENS_KIND <- src/lib/features/rail-shell/list-empty.logic.ts:117 in explainEmptyList ref
 sym src/lib/features/rail-shell/lens.logic.ts:140 const NEIGHBOURHOOD_RAIL_ITEM L1 | The rail item key while the note list shows a neighbourhood.
 by src/lib/features/rail-shell/lens.logic.ts:NEIGHBOURHOOD_RAIL_ITEM <- src/lib/features/rail-shell/neighbourhood.service.ts:12 in openNeighbourhood ref +1
 sym src/lib/features/rail-shell/lens.logic.ts:143 fn neighbourhoodLens(path: string): Lens L3 | The Neighbourhood lens of the note at `path`.
@@ -138,12 +147,12 @@ by src/lib/features/rail-shell/lens.logic.ts:entryNoteDate <- src/lib/plugins/on
 sym src/lib/features/rail-shell/lens.logic.ts:326 fn listEntries(ctx: LensContext, includes: (entry: NoteEntryV2) => boolean): LensNote[] L6 | The entries `includes` keeps as note list rows: system folder excluded, newest change first (the built-in lenses' order).
 by src/lib/features/rail-shell/lens.logic.ts:listEntries <- src/lib/plugins/calendar/day-lens.logic.ts:41 in resolveDayLens call
 sym src/lib/features/rail-shell/lens.logic.ts:434 fn resolveLens(lens: Lens, ctx: LensContext, providers: readonly RailLensProvider[] = [], archived: ArchivedFilter = 'active'): Resol… L15 | Turns a lens into the note list's label, rule and notes.
-by src/lib/features/rail-shell/lens.logic.ts:resolveLens <- src/lib/features/rail-shell/RailNoteList.svelte:184 in resolved=$derived call
+by src/lib/features/rail-shell/lens.logic.ts:resolveLens <- src/lib/features/rail-shell/RailNoteList.svelte:200 in resolved=$derived call +1
 sym src/lib/features/rail-shell/lens.logic.ts:456 fn lensListsEntries(lens: Lens): boolean L3 | True when a lens's list comes from the entries snapshot, so before the first snapshot it would say it is empty.
-by src/lib/features/rail-shell/lens.logic.ts:lensListsEntries <- src/lib/features/rail-shell/RailNoteList.svelte:186 in resolved=$derived call
+by src/lib/features/rail-shell/lens.logic.ts:lensListsEntries <- src/lib/features/rail-shell/RailNoteList.svelte:202 in resolved=$derived call
 sym src/lib/features/rail-shell/lens.logic.ts:471 fn viewEntriesLoaded(store: { readonly entries: readonly { path: string }[]; readonly entriesVersion: number }, propertyIndex: ReadonlyMap<… L11 | Whether this vault's entries have landed, for a `.view`'s row set (`viewRowSet` drops a record with no entry).
 by src/lib/features/rail-shell/lens.logic.ts:viewEntriesLoaded <- src/lib/app/boot.ts:79 in registerAppPorts call
-by src/lib/features/rail-shell/lens.logic.ts:viewEntriesLoaded <- src/lib/features/rail-shell/RailNoteList.svelte:241 in loadView call
+by src/lib/features/rail-shell/lens.logic.ts:viewEntriesLoaded <- src/lib/features/rail-shell/RailNoteList.svelte:257 in loadView call
 by src/lib/features/rail-shell/lens.logic.ts:viewEntriesLoaded <- src/lib/features/rail-shell/TypesNavigator.svelte:108 in $effect@96 call
 sym src/lib/features/rail-shell/lens.logic.ts:492 fn typeNavigatorRows(ctx: Pick<LensContext, 'entries' | 'vaultPath' | 'systemFolder' | 'typeMetadataMap'>, showUntyped: boolean): TypeNavig… L25 | The Types navigator's rows: the visible types in sidebar order, each with the number of notes its lens lists, then Untyped when `showUntyped` is on.
 by src/lib/features/rail-shell/lens.logic.ts:typeNavigatorRows <- src/lib/app/AppShell.svelte:133 in entryTypeRows=$derived call
@@ -161,7 +170,7 @@ by src/lib/features/rail-shell/lens.logic.ts:INITIAL_TYPES_PICK_CHECK <- src/lib
 sym src/lib/features/rail-shell/lens.logic.ts:592 fn stepTypesPickCheck(prev: TypesPickCheck, now: { vaultPath: string | null; indexReady: boolean; entriesVersion: number }): { next: TypesPi… L13 | Advances the stale Types pick check by one observation and says whether to run `staleTypesPickFix` now.
 by src/lib/features/rail-shell/lens.logic.ts:stepTypesPickCheck <- src/lib/app/AppShell.svelte:162 in $effect@161 call
 sym src/lib/features/rail-shell/lens.logic.ts:618 fn newNoteRule(lens: Lens, ctx: NewNoteContext, providers: readonly RailLensProvider[] = []): NewNoteRule | null L20 | The one lens-to-new-note rule behind "+ New here".
-by src/lib/features/rail-shell/lens.logic.ts:newNoteRule <- src/lib/features/rail-shell/RailNoteList.svelte:575 in currentNewNoteRule call
+by src/lib/features/rail-shell/lens.logic.ts:newNoteRule <- src/lib/features/rail-shell/RailNoteList.svelte:591 in currentNewNoteRule call
 sym src/lib/features/rail-shell/lens.logic.ts:640 fn newNoteContent(rule: PlainNewNoteRule): string L5 | The new note's initial content: the rule's frontmatter block, or empty when it sets none.
 by src/lib/features/rail-shell/lens.logic.ts:newNoteContent <- src/lib/features/rail-shell/new-note.service.ts:37 in createNoteHere call
 sym src/lib/features/rail-shell/lens.logic.ts:656 fn viewNavigatorRows(tree: FileTreeNode[], entriesByPath: Map<string, NoteEntryV2>): TypeNavigatorRow[] L24 | The Views part of the Types navigator: every `.view` file in the tree but the hidden ones (`_visible: false`), labelled by its `_sidebar_label`, marked to open…
@@ -178,22 +187,22 @@ sym src/lib/features/rail-shell/lens.logic.ts:749 fn blockRowSet<T extends Pick<
 by src/lib/features/rail-shell/lens.logic.ts:blockRowSet <- src/lib/app/boot.ts:63 in registerAppPorts call
 sym src/lib/features/rail-shell/lens.logic.ts:775 interface ViewQueryResult L16 | A view's query, run.
 sym src/lib/features/rail-shell/lens.logic.ts:798 fn queryViewLens(definition: CollectionDefinition, overrides: ViewQueryOverrides | null, propertyIndex: Map<string, PropertyIndexRecord… L24 | Runs the view the rail runs (`railViewIndex`: the one `_rail_view` names, else the first) of a parsed `.view` over the property index, with the toolbar overrid…
-by src/lib/features/rail-shell/lens.logic.ts:queryViewLens <- src/lib/features/rail-shell/RailNoteList.svelte:272 in loadView call
+by src/lib/features/rail-shell/lens.logic.ts:queryViewLens <- src/lib/features/rail-shell/RailNoteList.svelte:288 in loadView call
 by src/lib/features/rail-shell/lens.logic.ts:queryViewLens <- src/lib/features/rail-shell/view-lens.service.ts:36 in countViewNotes call
 sym src/lib/features/rail-shell/lens.logic.ts:824 type ViewLoad L1 | Where a view lens's load got to: a status that has no list, or its query run.
 by src/lib/features/rail-shell/lens.logic.ts:ViewLoad <- src/lib/features/rail-shell/view-lens.service.ts:5 in (module) import
 sym src/lib/features/rail-shell/lens.logic.ts:827 fn viewLoadFromQuery(result: ViewQueryResult | null): ViewLoad L3 | The load of a query run: `ran`, or an error when the definition has no view to run (`queryViewLens` gave null).
-by src/lib/features/rail-shell/lens.logic.ts:viewLoadFromQuery <- src/lib/features/rail-shell/RailNoteList.svelte:279 in loadView call
+by src/lib/features/rail-shell/lens.logic.ts:viewLoadFromQuery <- src/lib/features/rail-shell/RailNoteList.svelte:295 in loadView call
 by src/lib/features/rail-shell/lens.logic.ts:viewLoadFromQuery <- src/lib/features/rail-shell/view-lens.service.ts:36 in countViewNotes call
 sym src/lib/features/rail-shell/lens.logic.ts:832 fn viewReadError(err: unknown): ViewLoad L3 | The load of a `.view` whose read threw.
-by src/lib/features/rail-shell/lens.logic.ts:viewReadError <- src/lib/features/rail-shell/RailNoteList.svelte:284 in loadView call
+by src/lib/features/rail-shell/lens.logic.ts:viewReadError <- src/lib/features/rail-shell/RailNoteList.svelte:300 in loadView call
 by src/lib/features/rail-shell/lens.logic.ts:viewReadError <- src/lib/features/rail-shell/view-lens.service.ts:40 in countViewNotes call
 sym src/lib/features/rail-shell/lens.logic.ts:845 fn resolveViewLens(viewPath: string, load: ViewLoad, ctx: LensContext): ResolvedLens L15 | Turns a view's load into the note list: the view's label, its filters in words (ending in `view "<name>"` when `_rail_view` named the view that ran, else in "f…
-by src/lib/features/rail-shell/lens.logic.ts:resolveViewLens <- src/lib/features/rail-shell/RailNoteList.svelte:181 in resolved=$derived call +5
+by src/lib/features/rail-shell/lens.logic.ts:resolveViewLens <- src/lib/features/rail-shell/RailNoteList.svelte:197 in resolved=$derived call +5
 by src/lib/features/rail-shell/lens.logic.ts:resolveViewLens <- src/lib/features/rail-shell/view-lens.service.ts:42 in countViewNotes call
 sym src/lib/features/rail-shell/lens.logic.ts:866 fn describeViewFilters(groups: readonly FilterGroup[], includesArchived = false): string L11 | A view's filter groups in words, e.g. "_type == 'Project' and status == 'active', not archived".
 sym src/lib/features/rail-shell/lens.logic.ts:892 fn viewNoteType(groups: readonly FilterGroup[], knownTypes: Iterable<string>): string | null L15 | The type a view's "+ New here" note gets: the value of its one `_type` equality filter, in the casing of the matching known type.
-by src/lib/features/rail-shell/lens.logic.ts:viewNoteType <- src/lib/features/rail-shell/RailNoteList.svelte:347 in viewTypeName=$derived call
+by src/lib/features/rail-shell/lens.logic.ts:viewNoteType <- src/lib/features/rail-shell/RailNoteList.svelte:363 in viewTypeName=$derived call
 sym src/lib/features/rail-shell/lens.logic.ts:913 fn fileKind(name: string): FileKind L10 | The kind of a file, from its name's extension (case-insensitive).
 by src/lib/features/rail-shell/lens.logic.ts:fileKind <- src/lib/features/quick-switcher/QuickSwitcher.svelte:130 in (markup) markup
 sym src/lib/features/rail-shell/lens.logic.ts:941 fn navigatorFolders(nodes: readonly FileTreeNode[] | undefined): FileTreeNode[] L3 | The folders of a tree level the Files navigator shows: directories, hidden ones left out, in tree order.

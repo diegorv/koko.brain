@@ -24,7 +24,7 @@ imp src/lib/features/event-calendar/EventWeekStrip.svelte:4 -> src/lib/features/
 imp src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:4 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
 imp src/lib/features/event-calendar/event-calendar-gesture-guard.ts:1 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
 imp src/lib/features/event-calendar/event-calendar.service.ts:42 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
-imp src/lib/features/rail-shell/RailNoteList.svelte:53 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
+imp src/lib/features/rail-shell/RailNoteList.svelte:62 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
 imp src/lib/plugins/calendar/CalendarNavigator.svelte:11 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
 imp src/lib/plugins/calendar/calendar-rail.service.ts:4 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
 imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:11 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore

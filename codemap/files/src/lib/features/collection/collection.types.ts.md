@@ -31,8 +31,8 @@ imp src/lib/features/collection/toolbar/sort.logic.ts:1 -> src/lib/features/coll
 imp src/lib/features/collection/toolbar/toolbar.types.ts:1 -> src/lib/features/collection/collection.types.ts type:CollectionFilter
 imp src/lib/features/collection/view-row-set.port.ts:1 -> src/lib/features/collection/collection.types.ts type:CollectionDefinition,type:CollectionViewDef,type:PropertyIndexRecord
 imp src/lib/features/collection/yaml-parser.ts:2 -> src/lib/features/collection/collection.types.ts type:CollectionDefinition,type:CollectionFilter,type:CollectionViewDef,type:SortDef
-imp src/lib/features/rail-shell/RailNoteList.svelte:23 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord,type:SortDef
-imp src/lib/features/rail-shell/RailNoteList.svelte:36 -> src/lib/features/collection/collection.types.ts type:CollectionDefinition
+imp src/lib/features/rail-shell/RailNoteList.svelte:32 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord,type:SortDef
+imp src/lib/features/rail-shell/RailNoteList.svelte:45 -> src/lib/features/collection/collection.types.ts type:CollectionDefinition
 imp src/lib/features/rail-shell/TypesNavigator.svelte:47 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
 imp src/lib/features/rail-shell/lens.logic.ts:43 -> src/lib/features/collection/collection.types.ts type:CollectionDefinition,type:CollectionViewDef,type:PropertyIndexRecord,type:SortDef
 imp src/lib/features/rail-shell/list-view-sort.logic.ts:1 -> src/lib/features/collection/collection.types.ts type:SortDef
@@ -44,7 +44,7 @@ imp src/lib/plugins/mods/mod-query.service.ts:3 -> src/lib/features/collection/c
 imp src/lib/plugins/queryjs/kb-api.ts:1 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
 imp src/lib/plugins/queryjs/queryjs.logic.ts:1 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
 ## reach
-in2 src/lib/features/collection/collection.types.ts 41 files in 13 modules: src/lib/features/rail-shell(10) src/lib/app(9) src/lib/features/auto-organize(4) src/lib/features/type-definitions(4) src/lib/features/event-calendar(3) +8 modules: q impact src/lib/features/collection/collection.types.ts --depth 2
+in2 src/lib/features/collection/collection.types.ts 42 files in 13 modules: src/lib/features/rail-shell(11) src/lib/app(9) src/lib/features/auto-organize(4) src/lib/features/type-definitions(4) src/lib/features/event-calendar(3) +8 modules: q impact src/lib/features/collection/collection.types.ts --depth 2
 out2 src/lib/features/collection/collection.types.ts 0 files in 0 modules: -
 ## tests
 test src/tests/fixtures/recent-view.fixture.ts imports-type src/lib/features/collection/collection.types.ts
@@ -108,7 +108,7 @@ by src/lib/features/collection/collection.types.ts:SortDef <- src/lib/features/c
 by src/lib/features/collection/collection.types.ts:SortDef <- src/lib/features/collection/toolbar/SortPanel.svelte:13 in (script) import
 by src/lib/features/collection/collection.types.ts:SortDef <- src/lib/features/collection/toolbar/sort.logic.ts:1 in (module) import
 by src/lib/features/collection/collection.types.ts:SortDef <- src/lib/features/collection/yaml-parser.ts:2 in (module) import
-by src/lib/features/collection/collection.types.ts:SortDef <- src/lib/features/rail-shell/RailNoteList.svelte:23 in (script) import
+by src/lib/features/collection/collection.types.ts:SortDef <- src/lib/features/rail-shell/RailNoteList.svelte:32 in (script) import
 by src/lib/features/collection/collection.types.ts:SortDef <- src/lib/features/rail-shell/lens.logic.ts:43 in (module) import
 by src/lib/features/collection/collection.types.ts:SortDef <- src/lib/features/rail-shell/list-view-sort.logic.ts:1 in (module) import
 more by 1 not shown: src/lib/features/type-definitions(1): q importers src/lib/features/collection/collection.types.ts:SortDef
@@ -130,7 +130,7 @@ by src/lib/features/collection/collection.types.ts:CollectionDefinition <- src/l
 by src/lib/features/collection/collection.types.ts:CollectionDefinition <- src/lib/features/collection/toolbar/properties.logic.ts:2 in (module) import
 by src/lib/features/collection/collection.types.ts:CollectionDefinition <- src/lib/features/collection/view-row-set.port.ts:1 in (module) import
 by src/lib/features/collection/collection.types.ts:CollectionDefinition <- src/lib/features/collection/yaml-parser.ts:2 in (module) import
-by src/lib/features/collection/collection.types.ts:CollectionDefinition <- src/lib/features/rail-shell/RailNoteList.svelte:36 in (script) import
+by src/lib/features/collection/collection.types.ts:CollectionDefinition <- src/lib/features/rail-shell/RailNoteList.svelte:45 in (script) import
 by src/lib/features/collection/collection.types.ts:CollectionDefinition <- src/lib/features/rail-shell/lens.logic.ts:43 in (module) import
 by src/lib/features/collection/collection.types.ts:CollectionDefinition <- src/lib/features/type-definitions/type-definitions.service.ts:25 in (module) import
 more by 3 not shown: src/lib/features/type-definitions(2) src/lib/plugins/mods(1): q importers src/lib/features/collection/collection.types.ts:CollectionDefinition

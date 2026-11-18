@@ -1,7 +1,7 @@
 # file card src/lib/features/type-definitions/type-sidebar.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/type-definitions/type-sidebar.logic.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls
-file src/lib/features/type-definitions/type-sidebar.logic.ts logic L649 module src/lib/features/type-definitions in18 t9
+file src/lib/features/type-definitions/type-sidebar.logic.ts logic L649 module src/lib/features/type-definitions in19 t9
 ## imports
 imp src/lib/features/type-definitions/type-sidebar.logic.ts:3 -> src/lib/types/vault-v2.types.ts type:NoteEntryV2
 imp src/lib/features/type-definitions/type-sidebar.logic.ts:4 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode
@@ -22,9 +22,10 @@ imp src/lib/features/note-list/NoteRow.svelte:12 -> src/lib/features/type-defini
 imp src/lib/features/note-list/NoteRowMenu.svelte:27 -> src/lib/features/type-definitions/type-sidebar.logic.ts getViewVisible
 imp src/lib/features/rail-shell/Rail.svelte:24 -> src/lib/features/type-definitions/type-sidebar.logic.ts excludeSystemFolder
 imp src/lib/features/rail-shell/RailArchivedMenu.svelte:5 -> src/lib/features/type-definitions/type-sidebar.logic.ts type:ArchivedFilter
-imp src/lib/features/rail-shell/RailNoteList.svelte:37 -> src/lib/features/type-definitions/type-sidebar.logic.ts effectiveViewSortLabel,getViewListProperties,getViewSort
-imp src/lib/features/rail-shell/RailNoteList.svelte:51 -> src/lib/features/type-definitions/type-sidebar.logic.ts type:ArchivedFilter
+imp src/lib/features/rail-shell/RailNoteList.svelte:46 -> src/lib/features/type-definitions/type-sidebar.logic.ts effectiveViewSortLabel,getViewListProperties,getViewSort
+imp src/lib/features/rail-shell/RailNoteList.svelte:60 -> src/lib/features/type-definitions/type-sidebar.logic.ts type:ArchivedFilter
 imp src/lib/features/rail-shell/lens.logic.ts:20 -> src/lib/features/type-definitions/type-sidebar.logic.ts buildTypeSections,collectViewFiles,excludeSystemFolder,formatRelativeTime,getNotesForSelection,getNotesForViewPaths,getViewGroup,getViewLabel,getViewOpensInEditor,getViewOrder,getViewSort,getViewVisible,ignoredKeyNotes,isListableNote,sortViewFiles,type:ArchivedFilter,type:TypeSidebarSelection
+imp src/lib/features/rail-shell/list-empty.logic.ts:1 -> src/lib/features/type-definitions/type-sidebar.logic.ts type:ArchivedFilter
 imp src/lib/features/rail-shell/list-search.logic.ts:1 -> src/lib/features/type-definitions/type-sidebar.logic.ts splitPropertyIntoPills
 imp src/lib/features/rail-shell/view-lens.service.ts:3 -> src/lib/features/type-definitions/type-sidebar.logic.ts railViewNameNote
 imp src/lib/features/type-definitions/inbox-workflow.logic.ts:2 -> src/lib/features/type-definitions/type-sidebar.logic.ts isListableNote
@@ -51,8 +52,9 @@ sym src/lib/features/type-definitions/type-sidebar.logic.ts:23 interface TypeSid
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:34 type SidebarFilter L1 | Filter mode for the type sidebar.
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:40 type ArchivedFilter L1 | Which notes a type or Untyped list shows by lifecycle: the active ones (not archived), all of them, or only the archived ones.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:ArchivedFilter <- src/lib/features/rail-shell/RailArchivedMenu.svelte:5 in (script) import
-by src/lib/features/type-definitions/type-sidebar.logic.ts:ArchivedFilter <- src/lib/features/rail-shell/RailNoteList.svelte:51 in (script) import
+by src/lib/features/type-definitions/type-sidebar.logic.ts:ArchivedFilter <- src/lib/features/rail-shell/RailNoteList.svelte:60 in (script) import
 by src/lib/features/type-definitions/type-sidebar.logic.ts:ArchivedFilter <- src/lib/features/rail-shell/lens.logic.ts:36 in (module) import
+by src/lib/features/type-definitions/type-sidebar.logic.ts:ArchivedFilter <- src/lib/features/rail-shell/list-empty.logic.ts:1 in (module) import
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:48 type NavItemId L1 | Identifiers for the top nav items in the type sidebar.
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:51 type TypeSidebarSelection L5 | What is currently selected in the type sidebar.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:TypeSidebarSelection <- src/lib/features/rail-shell/lens.logic.ts:37 in (module) import
@@ -114,13 +116,13 @@ by src/lib/features/type-definitions/type-sidebar.logic.ts:ignoredKeyNotes <- sr
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:466 fn getViewOrder(entry: NoteEntryV2 | undefined): number L4 | Extracts _order from a view entry's frontmatter.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewOrder <- src/lib/features/rail-shell/lens.logic.ts:230 in pinnedRailItems call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:475 fn getViewSort(entry: NoteEntryV2 | undefined): string L4 | Extracts _sort from a view entry's frontmatter.
-by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewSort <- src/lib/features/rail-shell/RailNoteList.svelte:553 in sortMenuConfig=$derived call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewSort <- src/lib/features/rail-shell/RailNoteList.svelte:569 in sortMenuConfig=$derived call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewSort <- src/lib/features/rail-shell/lens.logic.ts:727 in viewRowSet call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:484 fn effectiveViewSortLabel(entry: NoteEntryV2 | undefined): string L4 | The Sort panel's text for a view list that no sort of the view's own orders: its `_sort`, or the default when it has none or one that is ignored.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:effectiveViewSortLabel <- src/lib/app/boot.ts:80 in registerAppPorts call
-by src/lib/features/type-definitions/type-sidebar.logic.ts:effectiveViewSortLabel <- src/lib/features/rail-shell/RailNoteList.svelte:749 in (markup) markup
+by src/lib/features/type-definitions/type-sidebar.logic.ts:effectiveViewSortLabel <- src/lib/features/rail-shell/RailNoteList.svelte:824 in (markup) markup
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:490 fn getViewListProperties(entry: NoteEntryV2 | undefined): string[] L5 | Extracts _list_properties_display from a view entry's frontmatter.
-by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewListProperties <- src/lib/features/rail-shell/RailNoteList.svelte:378 in savedProperties=$derived call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewListProperties <- src/lib/features/rail-shell/RailNoteList.svelte:394 in savedProperties=$derived call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:502 fn sortViewFiles(views: ViewFileEntry[], entriesByPath: Map<string, NoteEntryV2>): ViewFileEntry[] L12 | Sorts view files by _order from the entries index, then by the label the row shows (`getViewLabel`) in natural order, then by path.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:sortViewFiles <- src/lib/features/rail-shell/lens.logic.ts:658 in viewNavigatorRows call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:533 fn updateViewIconYaml(yamlString: string, icon?: string, color?: string, titleColor?: string): string L24 | Updates _icon, _color, and _title_color in a .view YAML string, dropping their aliases, so an absent value removes the key in either spelling.

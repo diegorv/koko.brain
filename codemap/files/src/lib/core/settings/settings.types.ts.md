@@ -32,7 +32,7 @@ imp src/lib/plugins/queryjs/QueryjsSection.svelte:6 -> src/lib/core/settings/set
 imp src/lib/plugins/quick-capture/note-composer.logic.ts:3 -> src/lib/core/settings/settings.types.ts type:PeriodicNotesSettings
 imp src/lib/utils/app-channel.ts:1 -> src/lib/core/settings/settings.types.ts type:ReleaseChannel
 ## reach
-in2 src/lib/core/settings/settings.types.ts 99 files in 26 modules: src/lib/features/event-calendar(22) src/lib/core/settings(12) src/lib/app(11) src/lib/features/rail-shell(11) src/lib/features/search(5) +21 modules: q impact src/lib/core/settings/settings.types.ts --depth 2
+in2 src/lib/core/settings/settings.types.ts 100 files in 26 modules: src/lib/features/event-calendar(22) src/lib/core/settings(12) src/lib/features/rail-shell(12) src/lib/app(11) src/lib/features/search(5) +21 modules: q impact src/lib/core/settings/settings.types.ts --depth 2
 out2 src/lib/core/settings/settings.types.ts 2 files in 2 modules: src/lib/core/settings(1) src/lib/utils(1)
 ## tests
 test src/tests/lib/core/settings/UpdateSection.channel.test.ts imports-type src/lib/core/settings/settings.types.ts

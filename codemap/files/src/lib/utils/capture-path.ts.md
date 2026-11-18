@@ -6,7 +6,7 @@ imp src/lib/features/rail-shell/lens.logic.ts:15 -> src/lib/utils/capture-path.t
 imp src/lib/plugins/calendar/day-lens.logic.ts:1 -> src/lib/utils/capture-path.ts buildCaptureFolder
 imp src/lib/plugins/quick-capture/note-composer.logic.ts:4 -> src/lib/utils/capture-path.ts buildCaptureFolder
 ## reach
-in2 src/lib/utils/capture-path.ts 22 files in 7 modules: src/lib/features/rail-shell(11) src/lib/app(5) src/lib/plugins/calendar(2) src/lib/features/quick-switcher(1) src/lib/features/search(1) +2 modules: q impact src/lib/utils/capture-path.ts --depth 2
+in2 src/lib/utils/capture-path.ts 23 files in 7 modules: src/lib/features/rail-shell(12) src/lib/app(5) src/lib/plugins/calendar(2) src/lib/features/quick-switcher(1) src/lib/features/search(1) +2 modules: q impact src/lib/utils/capture-path.ts --depth 2
 out2 src/lib/utils/capture-path.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/utils/capture-path.test.ts imports src/lib/utils/capture-path.ts mirror

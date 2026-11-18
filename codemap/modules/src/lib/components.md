@@ -1,7 +1,7 @@
 # module card src/lib/components
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/components ' codemap/modules
-sections: neighbors, entry files, files, debt
-module src/lib/components components files 97 in-modules 31 out-modules 1 pub 0/0 ipc 0/0 card ~6.1k
+sections: neighbors, entry files, files, public, debt
+module src/lib/components components files 98 in-modules 31 out-modules 1 pub 1/1 ipc 0/0 card ~6.2k
 ## neighbors
 dep src/lib/app -> src/lib/components 5
 dep src/lib/core/layout -> src/lib/components 1
@@ -19,7 +19,7 @@ dep src/lib/features/note-list -> src/lib/components 1
 dep src/lib/features/outgoing-links -> src/lib/components 1
 dep src/lib/features/properties -> src/lib/components 4
 dep src/lib/features/quick-switcher -> src/lib/components 1
-dep src/lib/features/rail-shell -> src/lib/components 10
+dep src/lib/features/rail-shell -> src/lib/components 11
 dep src/lib/features/search -> src/lib/components 4
 dep src/lib/features/tags -> src/lib/components 4
 dep src/lib/features/tasks -> src/lib/components 12
@@ -34,7 +34,7 @@ dep src/lib/plugins/queryjs -> src/lib/components 2
 dep src/lib/plugins/table-of-contents -> src/lib/components 1
 dep src/lib/plugins/templates -> src/lib/components 1
 dep src/routes -> src/lib/components 1
-dep src/lib/components -> src/lib/utils.ts 54
+dep src/lib/components -> src/lib/utils.ts 55
 in2 src/lib/components 0 modules: -
 out2 src/lib/components 1 modules: src/lib/utils(1)
 ## entry files
@@ -51,8 +51,10 @@ entry src/lib/components/ui/command/index.ts ext-in7 src/lib/core/settings/secti
 entry src/lib/components/ui/separator/index.ts ext-in5 src/lib/features/backlinks/BacklinksPanel.svelte src/lib/features/collection/toolbar/FilterPanel.svelte src/lib/features/outgoing-links/OutgoingLinksPanel.svelte src/lib/features/properties/PropertiesView.svelte src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte
 entry src/lib/components/ui/collapsible/index.ts ext-in4 src/lib/core/layout/SidebarSection.svelte src/lib/features/backlinks/BacklinksPanel.svelte src/lib/features/collection/toolbar/FilterPanel.svelte src/lib/features/tags/TagItem.svelte
 entry src/lib/components/ui/tooltip/index.ts ext-in3 src/lib/features/event-calendar/EventCalendarHeader.svelte src/lib/features/event-calendar/EventCalendarView.svelte src/lib/plugins/periodic-notes/DailyNoteButton.svelte
+entry src/lib/components/EmptyState.svelte ext-in1 src/lib/features/rail-shell/RailNoteList.svelte
 entry src/lib/components/ui/resizable/index.ts ext-in1 src/lib/app/AppShell.svelte
 ## files
+file src/lib/components/EmptyState.svelte component L57 module src/lib/components in1 t1
 file src/lib/components/ui/button/button.svelte component L82 module src/lib/components in1 t0
 file src/lib/components/ui/button/index.ts other L17 module src/lib/components in39 t0
 file src/lib/components/ui/collapsible/collapsible-content.svelte component L7 module src/lib/components in1 t0
@@ -150,5 +152,7 @@ file src/lib/components/ui/tooltip/tooltip-portal.svelte component L7 module src
 file src/lib/components/ui/tooltip/tooltip-provider.svelte component L7 module src/lib/components in1 t0
 file src/lib/components/ui/tooltip/tooltip-trigger.svelte component L7 module src/lib/components in1 t0
 file src/lib/components/ui/tooltip/tooltip.svelte component L7 module src/lib/components in1 t0
+## public
+sym src/lib/components/EmptyState.svelte:1 component EmptyState props:title,hint,icon,action,compact=,spinner=,class,...rest L57
 ## debt
 -

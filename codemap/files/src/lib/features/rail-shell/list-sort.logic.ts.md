@@ -4,7 +4,7 @@ file src/lib/features/rail-shell/list-sort.logic.ts logic L64 module src/lib/fea
 ## imports
 imp src/lib/features/rail-shell/list-sort.logic.ts:1 -> src/lib/features/rail-shell/list-toolbar.types.ts type:ListSortConfig,type:ListSortDirection,type:ListSortOption
 ## imported-by
-imp src/lib/features/rail-shell/RailNoteList.svelte:78 -> src/lib/features/rail-shell/list-sort.logic.ts formatListSort,parseListSort
+imp src/lib/features/rail-shell/RailNoteList.svelte:87 -> src/lib/features/rail-shell/list-sort.logic.ts formatListSort,parseListSort
 imp src/lib/features/rail-shell/RailSortMenu.svelte:7 -> src/lib/features/rail-shell/list-sort.logic.ts BUILT_IN_SORT_OPTIONS,defaultSortDirection,propertySortOption,sortOptionLabel
 imp src/lib/features/rail-shell/list-prefs.logic.ts:2 -> src/lib/features/rail-shell/list-sort.logic.ts formatListSort,parseListSort
 imp src/lib/features/rail-shell/list-prefs.service.ts:6 -> src/lib/features/rail-shell/list-sort.logic.ts formatListSort
@@ -24,9 +24,9 @@ by src/lib/features/rail-shell/list-sort.logic.ts:sortOptionLabel <- src/lib/fea
 sym src/lib/features/rail-shell/list-sort.logic.ts:34 fn propertySortOption(key: string): ListSortOption L3 | The sort option for a frontmatter key.
 by src/lib/features/rail-shell/list-sort.logic.ts:propertySortOption <- src/lib/features/rail-shell/RailSortMenu.svelte:46 in propertyOptions=$derived call
 sym src/lib/features/rail-shell/list-sort.logic.ts:39 fn formatListSort(config: ListSortConfig): string L3 | Serializes a sort as `<option>:<direction>`, the form stored in `_list_sort` and settings.
-by src/lib/features/rail-shell/list-sort.logic.ts:formatListSort <- src/lib/features/rail-shell/RailNoteList.svelte:416 in sameSort call +1
+by src/lib/features/rail-shell/list-sort.logic.ts:formatListSort <- src/lib/features/rail-shell/RailNoteList.svelte:432 in sameSort call +1
 by src/lib/features/rail-shell/list-sort.logic.ts:formatListSort <- src/lib/features/rail-shell/list-prefs.logic.ts:86 in withListPrefs call
 by src/lib/features/rail-shell/list-sort.logic.ts:formatListSort <- src/lib/features/rail-shell/list-prefs.service.ts:68 in saveTypeListSort call
 sym src/lib/features/rail-shell/list-sort.logic.ts:47 fn parseListSort(raw: unknown): ListSortConfig | null L18 | Inverse of formatListSort.
-by src/lib/features/rail-shell/list-sort.logic.ts:parseListSort <- src/lib/features/rail-shell/RailNoteList.svelte:375 in savedSort=$derived call
+by src/lib/features/rail-shell/list-sort.logic.ts:parseListSort <- src/lib/features/rail-shell/RailNoteList.svelte:391 in savedSort=$derived call
 by src/lib/features/rail-shell/list-sort.logic.ts:parseListSort <- src/lib/features/rail-shell/list-prefs.logic.ts:30 in parseEntry call

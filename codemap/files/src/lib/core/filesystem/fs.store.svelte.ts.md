@@ -22,7 +22,7 @@ imp src/lib/features/properties/PropertiesView.svelte:12 -> src/lib/core/filesys
 imp src/lib/features/properties/RelationshipSearch.svelte:5 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:3 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/features/rail-shell/FilesNavigator.svelte:21 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
-imp src/lib/features/rail-shell/RailNoteList.svelte:13 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
+imp src/lib/features/rail-shell/RailNoteList.svelte:21 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/features/rail-shell/TypesNavigator.svelte:23 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:5 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/plugins/kanban/kanban.service.ts:6 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore

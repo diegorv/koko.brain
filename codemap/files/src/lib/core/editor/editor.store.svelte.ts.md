@@ -36,7 +36,7 @@ imp src/lib/features/properties/PropertiesView.svelte:9 -> src/lib/core/editor/e
 imp src/lib/features/properties/lifecycle.service.ts:1 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/properties/properties.service.ts:1 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/rail-shell/Rail.svelte:14 -> src/lib/core/editor/editor.store.svelte.ts editorStore
-imp src/lib/features/rail-shell/RailNoteList.svelte:10 -> src/lib/core/editor/editor.store.svelte.ts editorStore
+imp src/lib/features/rail-shell/RailNoteList.svelte:18 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/rail-shell/TypesNavigator.svelte:17 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/search/SemanticIndexStatus.svelte:7 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/tags/tags.service.ts:4 -> src/lib/core/editor/editor.store.svelte.ts editorStore

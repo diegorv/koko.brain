@@ -47,7 +47,7 @@ dep src/lib/utils.ts -> src/lib/utils 1
 dep src/routes -> src/lib/utils 2
 dep src/lib/utils -> src/lib/contracts 3
 dep src/lib/utils -> src/lib/core/settings 3
-in2 src/lib/utils 5 modules: src/lib/components(54) src/lib/core/layout(2) src/lib/core/status-bar(1) src/lib/plugins/table-of-contents(1) src/lib/plugins/word-count(1)
+in2 src/lib/utils 5 modules: src/lib/components(55) src/lib/core/layout(2) src/lib/core/status-bar(1) src/lib/plugins/table-of-contents(1) src/lib/plugins/word-count(1)
 out2 src/lib/utils 0 modules: -
 ## entry files
 entry src/lib/utils/debug.ts ext-in73 src/lib/app/LabsSection.svelte src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/app/global-keybindings.ts src/lib/app/lifecycle/app-lifecycle.service.ts more importers 68 not shown: src/lib/features/todoist-sync(7) src/lib/core/settings(6) src/lib/core/filesystem(5) +30 modules: q importers src/lib/utils/debug.ts

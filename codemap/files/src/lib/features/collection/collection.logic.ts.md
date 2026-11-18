@@ -24,7 +24,7 @@ imp src/lib/features/collection/linear-calendar.logic.ts:4 -> src/lib/features/c
 imp src/lib/features/rail-shell/lens.logic.ts:40 -> src/lib/features/collection/collection.logic.ts executeQuery,filterCitesArchived
 imp src/lib/plugins/mods/mod-query.service.ts:1 -> src/lib/features/collection/collection.logic.ts executeQuery
 ## reach
-in2 src/lib/features/collection/collection.logic.ts 29 files in 9 modules: src/lib/features/rail-shell(11) src/lib/app(9) src/lib/features/auto-organize(2) src/lib/features/collection(2) src/lib/features/quick-switcher(1) +4 modules: q impact src/lib/features/collection/collection.logic.ts --depth 2
+in2 src/lib/features/collection/collection.logic.ts 30 files in 9 modules: src/lib/features/rail-shell(12) src/lib/app(9) src/lib/features/auto-organize(2) src/lib/features/collection(2) src/lib/features/quick-switcher(1) +4 modules: q impact src/lib/features/collection/collection.logic.ts --depth 2
 out2 src/lib/features/collection/collection.logic.ts 12 files in 5 modules: src/lib/features/collection(5) src/lib/utils(4) src/lib/contracts(1) src/lib/core/filesystem(1) src/lib/core/frontmatter(1)
 ## tests
 test src/tests/fixtures/recent-view.fixture.ts imports src/lib/features/collection/collection.logic.ts

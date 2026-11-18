@@ -23,7 +23,7 @@ imp src/lib/features/tasks/TasksView.svelte:30 -> src/lib/features/file-icons/fi
 imp src/lib/features/type-definitions/type-sidebar.logic.ts:10 -> src/lib/features/file-icons/file-icons.logic.ts extractViewIcon,parseIconValuePermissive
 imp src/lib/plugins/mods/mods-host.service.ts:12 -> src/lib/features/file-icons/file-icons.logic.ts parseIconValuePermissive
 ## reach
-in2 src/lib/features/file-icons/file-icons.logic.ts 23 files in 9 modules: src/lib/app(8) src/lib/features/rail-shell(5) src/lib/features/type-definitions(3) src/lib/features/auto-organize(2) src/lib/features/event-calendar(1) +4 modules: q impact src/lib/features/file-icons/file-icons.logic.ts --depth 2
+in2 src/lib/features/file-icons/file-icons.logic.ts 24 files in 9 modules: src/lib/app(8) src/lib/features/rail-shell(6) src/lib/features/type-definitions(3) src/lib/features/auto-organize(2) src/lib/features/event-calendar(1) +4 modules: q impact src/lib/features/file-icons/file-icons.logic.ts --depth 2
 out2 src/lib/features/file-icons/file-icons.logic.ts 5 files in 4 modules: src/lib/utils(2) src/lib/contracts(1) src/lib/core/frontmatter(1) src/lib/core/settings(1)
 ## tests
 test src/tests/lib/features/file-icons/file-icons.logic.test.ts imports src/lib/features/file-icons/file-icons.logic.ts mirror
