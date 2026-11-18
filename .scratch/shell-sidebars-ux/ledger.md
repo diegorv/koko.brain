@@ -52,7 +52,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 15 | [One note-actions group in the row menu, the More menu and the palette, with a one-click Mark organized on Inbox rows](issues/15-note-actions-group-inbox-organized.md) | 12, 14 | todo | | |
 | 16 | [Filters show their count and can be cleared; the .view tab's triggers are named single buttons; an empty table says filters hid its rows](issues/16-filters-count-clear-view-triggers.md) | 12 | todo | | |
 | 17 | [Note-list header: one Display popover, a state dot, and "+" visible down to 150 px](issues/17-note-list-display-popover.md) | 16 | todo | | |
-| 18 | [Shared roving-list util and arrow keys in Search results](issues/18-roving-list-search-arrows.md) | none | in-progress | | |
+| 18 | [Shared roving-list util and arrow keys in Search results](issues/18-roving-list-search-arrows.md) | none | done | issue/18-roving-list-search-arrows (946fa2132) | 2026-11-18 |
 | 19 | [Rail note list: one Tab stop, arrow keys, focus follows removals and rename](issues/19-rail-note-list-keyboard.md) | 12, 15, 18 | todo | | |
 | 20 | [Palette "Go to X" lands focus in the note list, and "New note here" becomes a command](issues/20-palette-go-to-focus-new-note-here.md) | 13, 19 | todo | | |
 | 21 | [The tab strip shows what is off screen, tabs shrink, and the sidebar toggle stops covering them](issues/21-tab-strip-overflow-shrink.md) | none | todo | | |
@@ -86,3 +86,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 03:42 — 14 — start — launched by /relay-lite:run — 4a0593ac4
 - 2026-11-18 04:00 — 14 — deliver — review 1 APPROVED with 2 findings (count inside the folder button, ml-auto test), fixed; round 2 APPROVED; full suite 17204 passed; rebased, squashed and pushed — 1be913d25
 - 2026-11-18 04:02 — 18 — start — launched by /relay-lite:run — d407096b4
+- 2026-11-18 04:18 — 18 — deliver — review 1 APPROVED with findings (Semantic Tab stop and held Enter tests), fixed; Show in Calendar Tab stop deferred to 19; round 2 APPROVED; full suite 17238 passed; squashed and pushed — 946fa2132
