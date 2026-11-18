@@ -20,7 +20,7 @@ imp src/lib/plugins/periodic-notes/periodic-notes.logic.ts:2 -> src/lib/utils/da
 imp src/lib/plugins/queryjs/kb-datetime.ts:5 -> src/lib/utils/date.ts side-effect
 imp src/lib/utils/template.ts:2 -> src/lib/utils/date.ts formatDateWithOffset,formatNow,formatNowOnDate
 ## reach
-in2 src/lib/utils/date.ts 28 files in 13 modules: src/lib/app(5) src/lib/features/collection(3) src/lib/features/file-history(3) src/lib/features/tasks(3) src/lib/plugins/calendar(3) +8 modules: q impact src/lib/utils/date.ts --depth 2
+in2 src/lib/utils/date.ts 29 files in 13 modules: src/lib/app(5) src/lib/features/collection(4) src/lib/features/file-history(3) src/lib/features/tasks(3) src/lib/plugins/calendar(3) +8 modules: q impact src/lib/utils/date.ts --depth 2
 out2 src/lib/utils/date.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/utils/date.test.ts imports src/lib/utils/date.ts mirror
@@ -40,7 +40,7 @@ more by 1 not shown: src/lib/utils(1): q importers src/lib/utils/date.ts:formatN
 sym src/lib/utils/date.ts:26 fn formatNowOnDate(contextDate: dayjs.Dayjs, outputFormat: string, offsetDays: number = 0): string L14 | Like `formatNow`, but anchored to a specific calendar date instead of today.
 by src/lib/utils/date.ts:formatNowOnDate <- src/lib/utils/template.ts:114 in evaluateDateNow call
 sym src/lib/utils/date.ts:42 fn formatDate(date: dayjs.ConfigType, format: string): string L3 | Formats a date value (string, Date, dayjs, etc.) into the given format string.
-by src/lib/utils/date.ts:formatDate <- src/lib/features/collection/calendar.logic.ts:178 in formatDateKey call
+by src/lib/utils/date.ts:formatDate <- src/lib/features/collection/calendar.logic.ts:191 in formatDateKey call
 by src/lib/utils/date.ts:formatDate <- src/lib/features/file-history/file-history.logic.ts:177 in toDateKey call
 by src/lib/utils/date.ts:formatDate <- src/lib/features/tasks/TasksView.svelte:626 in modifiedTitle call
 by src/lib/utils/date.ts:formatDate <- src/lib/features/tasks/tasks.logic.ts:131 in chipDate call

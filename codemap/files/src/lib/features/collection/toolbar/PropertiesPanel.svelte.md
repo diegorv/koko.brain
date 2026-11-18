@@ -9,7 +9,7 @@ imp src/lib/features/collection/toolbar/PropertiesPanel.svelte:5 -> src/lib/feat
 imp src/lib/features/collection/toolbar/PropertiesPanel.svelte:6 -> src/lib/features/collection/toolbar/formula.logic.ts addFormulaEntry,removeFormulaEntry,updateFormulaEntry,setFormulaEditing,validateFormulaName
 imp src/lib/features/collection/toolbar/PropertiesPanel.svelte:13 -> src/lib/features/collection/toolbar/FormulaRow.svelte default
 ## imported-by
-imp src/lib/features/collection/CollectionView.svelte:28 -> src/lib/features/collection/toolbar/PropertiesPanel.svelte default
+imp src/lib/features/collection/CollectionView.svelte:29 -> src/lib/features/collection/toolbar/PropertiesPanel.svelte default
 ## reach
 in2 src/lib/features/collection/toolbar/PropertiesPanel.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/collection/toolbar/PropertiesPanel.svelte 9 files in 5 modules: src/lib/features/collection(4) src/lib/core/filesystem(2) src/lib/components(1) src/lib/core/frontmatter(1) src/lib/utils(1)
@@ -17,7 +17,7 @@ out2 src/lib/features/collection/toolbar/PropertiesPanel.svelte 9 files in 5 mod
 test src/tests/lib/features/collection/toolbar/PropertiesPanel.svelte.test.ts imports src/lib/features/collection/toolbar/PropertiesPanel.svelte mirror
 ## symbols
 sym src/lib/features/collection/toolbar/PropertiesPanel.svelte:1 component PropertiesPanel props:visibleColumns,allColumns,propertyConfigs,onColumnsChange,formulaEntries,onFormulasChange L169
-by src/lib/features/collection/toolbar/PropertiesPanel.svelte:default <- src/lib/features/collection/CollectionView.svelte:673 in (markup) mount
+by src/lib/features/collection/toolbar/PropertiesPanel.svelte:default <- src/lib/features/collection/CollectionView.svelte:699 in (markup) mount
 ## locals
 local src/lib/features/collection/toolbar/PropertiesPanel.svelte:56 fn getDisplayName(column: string): string L3
 local src/lib/features/collection/toolbar/PropertiesPanel.svelte:62 fn handleToggle(column: string, checked: boolean) L3
@@ -25,7 +25,7 @@ local src/lib/features/collection/toolbar/PropertiesPanel.svelte:66 fn handleAdd
 ## mounts
 mount src/lib/features/collection/toolbar/PropertiesPanel.svelte:118 FormulaRow -> src/lib/features/collection/toolbar/FormulaRow.svelte
 ## mounted-at
-mount src/lib/features/collection/CollectionView.svelte:673 PropertiesPanel -> src/lib/features/collection/toolbar/PropertiesPanel.svelte
+mount src/lib/features/collection/CollectionView.svelte:699 PropertiesPanel -> src/lib/features/collection/toolbar/PropertiesPanel.svelte
 ## calls
 call src/lib/features/collection/toolbar/PropertiesPanel.svelte:57 in getDisplayName -> src/lib/features/collection/collection.logic.ts:columnLabel call
 call src/lib/features/collection/toolbar/PropertiesPanel.svelte:63 in handleToggle -> src/lib/features/collection/toolbar/properties.logic.ts:toggleColumn call

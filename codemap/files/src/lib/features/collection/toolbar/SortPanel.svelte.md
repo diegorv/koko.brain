@@ -9,7 +9,7 @@ imp src/lib/features/collection/toolbar/SortPanel.svelte:14 -> src/lib/features/
 imp src/lib/features/collection/toolbar/SortPanel.svelte:15 -> src/lib/features/collection/toolbar/filter.logic.ts inferPropertyType
 imp src/lib/features/collection/toolbar/SortPanel.svelte:16 -> src/lib/features/collection/toolbar/sort.logic.ts removeSort,toggleSortDirection,reorderSorts,getSortDirectionLabel
 ## imported-by
-imp src/lib/features/collection/CollectionView.svelte:27 -> src/lib/features/collection/toolbar/SortPanel.svelte default
+imp src/lib/features/collection/CollectionView.svelte:28 -> src/lib/features/collection/toolbar/SortPanel.svelte default
 imp src/lib/features/rail-shell/RailNoteList.svelte:30 -> src/lib/features/collection/toolbar/SortPanel.svelte default
 ## reach
 in2 src/lib/features/collection/toolbar/SortPanel.svelte 2 files in 1 modules: src/lib/app(2)
@@ -18,7 +18,7 @@ out2 src/lib/features/collection/toolbar/SortPanel.svelte 28 files in 5 modules:
 test src/tests/lib/features/collection/toolbar/SortPanel.svelte.test.ts imports src/lib/features/collection/toolbar/SortPanel.svelte mirror
 ## symbols
 sym src/lib/features/collection/toolbar/SortPanel.svelte:1 component SortPanel props:sorts,availableProperties,propertyConfigs,propertyIndex,onSortsChange,emptyText= L160
-by src/lib/features/collection/toolbar/SortPanel.svelte:default <- src/lib/features/collection/CollectionView.svelte:631 in (markup) mount
+by src/lib/features/collection/toolbar/SortPanel.svelte:default <- src/lib/features/collection/CollectionView.svelte:657 in (markup) mount
 by src/lib/features/collection/toolbar/SortPanel.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:818 in (markup) mount
 ## locals
 local src/lib/features/collection/toolbar/SortPanel.svelte:48 fn getDisplayName(column: string): string L3
@@ -39,7 +39,7 @@ mount src/lib/features/collection/toolbar/SortPanel.svelte:146 Button -> src/lib
 mount src/lib/features/collection/toolbar/SortPanel.svelte:151 DropdownMenuContent -> src/lib/components/ui/dropdown-menu/dropdown-menu-content.svelte
 mount src/lib/features/collection/toolbar/SortPanel.svelte:153 DropdownMenuItem -> src/lib/components/ui/dropdown-menu/dropdown-menu-item.svelte
 ## mounted-at
-mount src/lib/features/collection/CollectionView.svelte:631 SortPanel -> src/lib/features/collection/toolbar/SortPanel.svelte
+mount src/lib/features/collection/CollectionView.svelte:657 SortPanel -> src/lib/features/collection/toolbar/SortPanel.svelte
 mount src/lib/features/rail-shell/RailNoteList.svelte:818 SortPanel -> src/lib/features/collection/toolbar/SortPanel.svelte
 ## calls
 call src/lib/features/collection/toolbar/SortPanel.svelte:49 in getDisplayName -> src/lib/features/collection/collection.logic.ts:columnLabel call

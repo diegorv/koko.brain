@@ -13,7 +13,7 @@ fx src/lib/features/tags/tags.service.ts:91 timer-wrap.debounce args=() => { voi
 fx src/lib/features/canvas/CanvasInner.svelte:112 timer.queueMicrotask in $effect@99
 fx src/lib/features/canvas/CanvasInner.svelte:302 timer.queueMicrotask in handleKeydown
 fx src/lib/features/canvas/CanvasInner.svelte:316 timer.queueMicrotask in handleKeydown
-fx src/lib/features/collection/CollectionView.svelte:439 timer.queueMicrotask in handleAddView
+fx src/lib/features/collection/CollectionView.svelte:455 timer.queueMicrotask in handleAddView
 fx src/lib/features/properties/RelationshipSearch.svelte:41 timer.queueMicrotask in (markup)
 fx src/routes/composer/+page.svelte:186 timer.queueMicrotask in resetForShow
 fx src/lib/app/AppShell.svelte:85 timer.requestAnimationFrame in (script)
@@ -29,7 +29,7 @@ fx src/lib/features/canvas/CanvasLinkInput.svelte:43 timer.requestAnimationFrame
 fx src/lib/features/canvas/LinkNode.svelte:48 timer.requestAnimationFrame in startEditing
 fx src/lib/features/canvas/TextNode.svelte:24 timer.requestAnimationFrame in $effect@20
 fx src/lib/features/canvas/TextNode.svelte:31 timer.requestAnimationFrame in startEditing
-fx src/lib/features/collection/CollectionView.svelte:465 timer.requestAnimationFrame in startTabRename
+fx src/lib/features/collection/CollectionView.svelte:481 timer.requestAnimationFrame in startTabRename
 fx src/lib/features/collection/toolbar/PropertiesPanel.svelte:69 timer.requestAnimationFrame in handleAddFormula
 fx src/lib/features/note-list/NoteRowMenu.svelte:120 timer.requestAnimationFrame in $effect@109
 fx src/lib/features/rail-shell/FilesNavigator.svelte:195 timer.requestAnimationFrame in focusRenameInput

@@ -36,7 +36,7 @@ imp src/lib/features/backlinks/backlinks.service.ts:5 -> src/lib/core/vault/vaul
 imp src/lib/features/canvas/CanvasInner.svelte:46 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/canvas/FileNode.svelte:10 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/canvas/canvas-image.service.ts:2 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
-imp src/lib/features/collection/CollectionView.svelte:17 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
+imp src/lib/features/collection/CollectionView.svelte:18 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/collection/collection-block-widget.ts:9 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/collection/collection.service.ts:7 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/deep-link/deep-link.service.ts:5 -> src/lib/core/vault/vault.store.svelte.ts vaultStore

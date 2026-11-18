@@ -36,7 +36,7 @@ imp src/lib/features/backlinks/BacklinksPanel.svelte:13 -> src/lib/core/editor/e
 imp src/lib/features/backlinks/LinkItem.svelte:3 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/canvas/CanvasInner.svelte:45 -> src/lib/core/editor/editor.service.ts openFileInEditor,registerPendingEditFlusher
 imp src/lib/features/canvas/FileNode.svelte:9 -> src/lib/core/editor/editor.service.ts openFileInEditor
-imp src/lib/features/collection/CollectionView.svelte:16 -> src/lib/core/editor/editor.service.ts openFileInEditor,reloadExternallyChangedTabs
+imp src/lib/features/collection/CollectionView.svelte:17 -> src/lib/core/editor/editor.service.ts openFileInEditor,reloadExternallyChangedTabs
 imp src/lib/features/collection/collection-block-widget.ts:8 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/deep-link/deep-link.service.ts:8 -> src/lib/core/editor/editor.service.ts openFileInEditor,saveFileByPath,syncExternalContentToEditor
 imp src/lib/features/event-calendar/EventCalendarNeedsAttention.svelte:2 -> src/lib/core/editor/editor.service.ts openFileInEditor
@@ -179,7 +179,7 @@ sym src/lib/core/editor/editor.service.ts:463 fn closeTabsForDeletedPath(deleted
 by src/lib/core/editor/editor.service.ts:closeTabsForDeletedPath <- src/lib/core/filesystem/path-change.service.ts:171 in applyPathChange call
 sym src/lib/core/editor/editor.service.ts:485 fn reloadExternallyChangedTabs(changedPaths: string[]): Promise<void> L30 | Reloads content from disk for open tabs whose files were externally modified.
 by src/lib/core/editor/editor.service.ts:reloadExternallyChangedTabs <- src/lib/app/lifecycle/app-lifecycle.service.ts:511 in initializeVault call
-by src/lib/core/editor/editor.service.ts:reloadExternallyChangedTabs <- src/lib/features/collection/CollectionView.svelte:335 in writeYaml call
+by src/lib/core/editor/editor.service.ts:reloadExternallyChangedTabs <- src/lib/features/collection/CollectionView.svelte:351 in writeYaml call
 sym src/lib/core/editor/editor.service.ts:522 fn resetEditor() L6 | Cancels any pending auto-saves and resets all editor state.
 by src/lib/core/editor/editor.service.ts:resetEditor <- src/lib/app/lifecycle/app-lifecycle.service.ts:660 in teardownVault call
 ## locals

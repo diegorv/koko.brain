@@ -27,7 +27,7 @@ module src/lib/core/zoom core files 3 in-modules 2 out-modules 1 pub 5/7 ipc 0/0
 module src/lib/features/auto-organize features files 8 in-modules 1 out-modules 12 pub 4/61 ipc 0/0 card ~1.2k
 module src/lib/features/backlinks features files 6 in-modules 2 out-modules 8 pub 6/13 ipc 4/0 card ~1.1k
 module src/lib/features/canvas features files 19 in-modules 2 out-modules 4 pub 2/62 ipc 0/0 card ~1.2k
-module src/lib/features/collection features files 32 in-modules 6 out-modules 9 pub 49/161 ipc 1/0 card ~6.4k
+module src/lib/features/collection features files 32 in-modules 6 out-modules 9 pub 49/162 ipc 1/0 card ~6.4k
 module src/lib/features/command-palette features files 5 in-modules 1 out-modules 2 pub 4/7 ipc 0/0 card ~0.8k
 module src/lib/features/copy-block-link features files 1 in-modules 1 out-modules 3 pub 2/3 ipc 0/0 card ~0.5k
 module src/lib/features/deep-link features files 4 in-modules 4 out-modules 8 pub 14/33 ipc 0/0 card ~1.8k
@@ -80,7 +80,7 @@ layer core -> utils 71
 layer features -> components 104
 layer features -> contracts 43
 layer features -> core 342
-layer features -> features 740
+layer features -> features 741
 layer features -> types 23
 layer features -> utils 100
 layer lib-root -> utils 1

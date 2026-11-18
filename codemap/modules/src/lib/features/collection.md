@@ -1,7 +1,7 @@
 # module card src/lib/features/collection
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/features/collection ' codemap/modules
 sections: neighbors, entry files, files, public, stores, effects, debt
-module src/lib/features/collection features files 32 in-modules 6 out-modules 9 pub 49/161 ipc 1/0 card ~6.4k
+module src/lib/features/collection features files 32 in-modules 6 out-modules 9 pub 49/162 ipc 1/0 card ~6.4k
 ## neighbors
 dep src/lib/app -> src/lib/features/collection 8
 dep src/lib/features/auto-organize -> src/lib/features/collection 18
@@ -41,9 +41,9 @@ entry src/lib/features/collection/toolbar/SortPanel.svelte ext-in1 src/lib/featu
 file src/lib/features/collection/CollectionCalendarView.svelte component L172 module src/lib/features/collection in1 t0
 file src/lib/features/collection/CollectionLinearCalendarView.svelte component L219 module src/lib/features/collection in1 t0
 file src/lib/features/collection/CollectionTableView.svelte component L108 module src/lib/features/collection in1 t1
-file src/lib/features/collection/CollectionView.svelte component L736 module src/lib/features/collection in1 t4
-file src/lib/features/collection/calendar.logic.ts logic L179 module src/lib/features/collection in3 t2
-file src/lib/features/collection/collection-block-widget.ts other L544 module src/lib/features/collection in2 t6
+file src/lib/features/collection/CollectionView.svelte component L766 module src/lib/features/collection in1 t4
+file src/lib/features/collection/calendar.logic.ts logic L192 module src/lib/features/collection in4 t2
+file src/lib/features/collection/collection-block-widget.ts other L568 module src/lib/features/collection in2 t6
 file src/lib/features/collection/collection.logic.ts logic L541 module src/lib/features/collection in13 t32
 file src/lib/features/collection/collection.service.ts service L220 module src/lib/features/collection in4 t22
 file src/lib/features/collection/collection.store.svelte.ts store L83 module src/lib/features/collection in13 t45
@@ -71,9 +71,9 @@ file src/lib/features/collection/toolbar/toolbar.types.ts types L106 module src/
 file src/lib/features/collection/view-row-set.port.ts other L65 module src/lib/features/collection in4 t2
 file src/lib/features/collection/yaml-parser.ts other L430 module src/lib/features/collection in11 t18
 ## public
-sym src/lib/features/collection/CollectionView.svelte:1 component CollectionView props:path,yamlContent,onYamlChange,rewriteView L736
-sym src/lib/features/collection/collection-block-widget.ts:70 fn clearCollectionCache(): void L3 | Drops all cached renders.
-sym src/lib/features/collection/collection-block-widget.ts:432 const collectionBlockRenderer: FencedBlockRenderer L7 | Renders `` ```collection `` blocks; the app installs it in the editor's `fencedBlockRenderers`.
+sym src/lib/features/collection/CollectionView.svelte:1 component CollectionView props:path,yamlContent,onYamlChange,rewriteView L766
+sym src/lib/features/collection/collection-block-widget.ts:74 fn clearCollectionCache(): void L3 | Drops all cached renders.
+sym src/lib/features/collection/collection-block-widget.ts:456 const collectionBlockRenderer: FencedBlockRenderer L7 | Renders `` ```collection `` blocks; the app installs it in the editor's `fencedBlockRenderers`.
 sym src/lib/features/collection/collection.logic.ts:23 fn buildNoteRecord(filePath: string, content: string, mtime = 0, ctime = 0, size = 0): PropertyIndexRecord L22 | Builds a PropertyIndexRecord from a file path and its content.
 sym src/lib/features/collection/collection.logic.ts:133 fn executeQuery(definition: CollectionDefinition, view: CollectionViewDef, index: Map<string, PropertyIndexRecord>, vaultPath: string … L91 | Executes a query against the property index using a collection definition and view.
 sym src/lib/features/collection/collection.logic.ts:271 fn filterCitesArchived(filter: FilterItem | undefined): boolean L15 | Whether a filter cites the archived flag, which hands the archived rows of a `.view` to the filter instead of the default exclusion.

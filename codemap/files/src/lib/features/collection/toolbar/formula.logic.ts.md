@@ -5,7 +5,7 @@ file src/lib/features/collection/toolbar/formula.logic.ts logic L144 module src/
 imp src/lib/features/collection/toolbar/formula.logic.ts:1 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FormulaEntry
 imp src/lib/features/collection/toolbar/formula.logic.ts:2 -> src/lib/features/collection/expression/parser.ts parse
 ## imported-by
-imp src/lib/features/collection/CollectionView.svelte:22 -> src/lib/features/collection/toolbar/formula.logic.ts formulasToEntries,entriesToFormulas
+imp src/lib/features/collection/CollectionView.svelte:23 -> src/lib/features/collection/toolbar/formula.logic.ts formulasToEntries,entriesToFormulas
 imp src/lib/features/collection/toolbar/FormulaRow.svelte:7 -> src/lib/features/collection/toolbar/formula.logic.ts validateFormulaExpression
 imp src/lib/features/collection/toolbar/PropertiesPanel.svelte:6 -> src/lib/features/collection/toolbar/formula.logic.ts addFormulaEntry,removeFormulaEntry,updateFormulaEntry,setFormulaEditing,validateFormulaName
 ## reach
@@ -16,9 +16,9 @@ test src/tests/lib/features/collection/toolbar/FormulaRow.svelte.test.ts imports
 test src/tests/lib/features/collection/toolbar/formula-logic.test.ts imports src/lib/features/collection/toolbar/formula.logic.ts
 ## symbols
 sym src/lib/features/collection/toolbar/formula.logic.ts:15 fn formulasToEntries(formulas: Record<string, string> | undefined): FormulaEntry[] L11 | Converts a formulas Record (from CollectionDefinition) into FormulaEntry[] for the UI.
-by src/lib/features/collection/toolbar/formula.logic.ts:formulasToEntries <- src/lib/features/collection/CollectionView.svelte:164 in seedFromDefinition call
+by src/lib/features/collection/toolbar/formula.logic.ts:formulasToEntries <- src/lib/features/collection/CollectionView.svelte:167 in seedFromDefinition call
 sym src/lib/features/collection/toolbar/formula.logic.ts:31 fn entriesToFormulas(entries: FormulaEntry[]): Record<string, string> | undefined L12 | Converts FormulaEntry[] (from the UI) back into a Record<string, string>.
-by src/lib/features/collection/toolbar/formula.logic.ts:entriesToFormulas <- src/lib/features/collection/CollectionView.svelte:211 in activeFormulas=$derived call +1
+by src/lib/features/collection/toolbar/formula.logic.ts:entriesToFormulas <- src/lib/features/collection/CollectionView.svelte:214 in activeFormulas=$derived call +1
 sym src/lib/features/collection/toolbar/formula.logic.ts:48 fn createEmptyFormulaEntry(): FormulaEntry L8 | Creates a new empty FormulaEntry for the "Add formula" action.
 sym src/lib/features/collection/toolbar/formula.logic.ts:61 fn addFormulaEntry(entries: FormulaEntry[]): FormulaEntry[] L3 | Adds a new formula entry to the list.
 by src/lib/features/collection/toolbar/formula.logic.ts:addFormulaEntry <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:67 in handleAddFormula call

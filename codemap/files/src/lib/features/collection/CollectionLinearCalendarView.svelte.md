@@ -5,13 +5,13 @@ file src/lib/features/collection/CollectionLinearCalendarView.svelte component L
 imp src/lib/features/collection/CollectionLinearCalendarView.svelte:2 -> src/lib/features/collection/collection.types.ts type:QueryResult,type:PropertyIndexRecord
 imp src/lib/features/collection/CollectionLinearCalendarView.svelte:3 -> src/lib/features/collection/linear-calendar.logic.ts buildLinearYearLayout,buildColorMapping,getColorForValue,type:MonthRow,type:ColorMapping
 ## imported-by
-imp src/lib/features/collection/CollectionView.svelte:25 -> src/lib/features/collection/CollectionLinearCalendarView.svelte default
+imp src/lib/features/collection/CollectionView.svelte:26 -> src/lib/features/collection/CollectionLinearCalendarView.svelte default
 ## reach
 in2 src/lib/features/collection/CollectionLinearCalendarView.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/collection/CollectionLinearCalendarView.svelte 4 files in 2 modules: src/lib/features/collection(3) src/lib/utils(1)
 ## symbols
 sym src/lib/features/collection/CollectionLinearCalendarView.svelte:1 component CollectionLinearCalendarView props:result,dateProperty,endDateProperty,colorProperty,onClickRecord L219
-by src/lib/features/collection/CollectionLinearCalendarView.svelte:default <- src/lib/features/collection/CollectionView.svelte:711 in (markup) mount
+by src/lib/features/collection/CollectionLinearCalendarView.svelte:default <- src/lib/features/collection/CollectionView.svelte:741 in (markup) mount
 ## locals
 local src/lib/features/collection/CollectionLinearCalendarView.svelte:53 fn goToPrevYear() L1
 local src/lib/features/collection/CollectionLinearCalendarView.svelte:54 fn goToNextYear() L1
@@ -24,7 +24,7 @@ local src/lib/features/collection/CollectionLinearCalendarView.svelte:71 fn getB
 local src/lib/features/collection/CollectionLinearCalendarView.svelte:75 fn getBarTop(lane: number): string L3
 local src/lib/features/collection/CollectionLinearCalendarView.svelte:79 fn getBarColor(colorValue: string | null): string L4
 ## mounted-at
-mount src/lib/features/collection/CollectionView.svelte:711 CollectionLinearCalendarView -> src/lib/features/collection/CollectionLinearCalendarView.svelte
+mount src/lib/features/collection/CollectionView.svelte:741 CollectionLinearCalendarView -> src/lib/features/collection/CollectionLinearCalendarView.svelte
 ## calls
 call src/lib/features/collection/CollectionLinearCalendarView.svelte:42 in layout=$derived -> src/lib/features/collection/linear-calendar.logic.ts:buildLinearYearLayout call
 call src/lib/features/collection/CollectionLinearCalendarView.svelte:47 in colorMapping=$derived -> src/lib/features/collection/linear-calendar.logic.ts:buildColorMapping call
