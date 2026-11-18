@@ -31,6 +31,8 @@
 		isDragOver?: boolean;
 		dropIndicatorIndex?: number;
 		onWikilinkClick?: (target: string, heading?: string) => void;
+		/** Called with a tag (no `#`) when its chip on a card is clicked */
+		onTagClick?: (tag: string) => void;
 		onAddItem: (laneId: string, text: string) => void;
 		onToggleItem: (laneId: string, itemId: string) => void;
 		onUpdateItem: (laneId: string, itemId: string, text: string) => void;
@@ -73,6 +75,7 @@
 		isDragOver = false,
 		dropIndicatorIndex = -1,
 		onWikilinkClick,
+		onTagClick,
 		onAddItem,
 		onToggleItem,
 		onUpdateItem,
@@ -333,6 +336,7 @@
 					isDragging={dragItemId === item.id}
 					{tagColors}
 					{onWikilinkClick}
+					{onTagClick}
 					{onSetTagColor}
 					{onRemoveTagColor}
 					{disableDrag}

@@ -17,16 +17,16 @@ Not in this ticket: the shared swatch radiogroup / `menuitemradio` primitive (cr
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes. Also run `chrome-state-styles`, `menu-item-anatomy` and `chrome-type-scale` (markup changes).
 
-- [ ] Failing test first, `src/tests/lib/plugins/kanban/KanbanView.test.ts` (harness `src/tests/fixtures/KanbanViewHarness.svelte`, real stores and logic, only `kanban.service.js` mocked): typing a query shows "Clear filter"; clicking it empties `kanbanStore.filterQuery` and all cards render again.
-- [ ] Escape in the filter input clears it.
-- [ ] With two kanban tabs in the real `editorStore`, switching the active tab path clears the filter and the focus ring; unmounting clears the filter. An open card edit is not closed by the switch.
-- [ ] Clicking a `#design` chip sets the filter to `#design` and hides an untagged card.
-- [ ] "Tag color" (only on cards with tags) writes `settings.tagColors` in the persisted markdown and "Reset to default" removes the entry; the card-menu pin at `KanbanView.test.ts:246-254` (`['Edit', 'Archive', 'Card color', 'Delete']`) is updated on purpose.
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, `src/tests/lib/plugins/kanban/KanbanView.test.ts` (harness `src/tests/fixtures/KanbanViewHarness.svelte`, real stores and logic, only `kanban.service.js` mocked): typing a query shows "Clear filter"; clicking it empties `kanbanStore.filterQuery` and all cards render again.
+- [x] Escape in the filter input clears it.
+- [x] With two kanban tabs in the real `editorStore`, switching the active tab path clears the filter and the focus ring; unmounting clears the filter. An open card edit is not closed by the switch.
+- [x] Clicking a `#design` chip sets the filter to `#design` and hides an untagged card.
+- [x] "Tag color" (only on cards with tags) writes `settings.tagColors` in the persisted markdown and "Reset to default" removes the entry; the card-menu pin at `KanbanView.test.ts:246-254` (`['Edit', 'Archive', 'Card color', 'Delete']`) is updated on purpose.
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Original proposal
 
@@ -57,3 +57,5 @@ Tickets 10, 11, 12 and 42 edit `KanbanView.svelte`, `KanbanCard.svelte` and `Kan
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): none.
+
+- 2026-11-18, branch issue/05-kanban-filter-clears-resets-per-board: the kanban filter gets a "Clear filter" button and clears on Escape, resets on tab switch, source-mode toggle and unmount (an open card edit survives), a tag chip click filters on that tag, and "Tag color" moves to the card menu. Review round 1 APPROVED with findings; fix round: the tab-switch test opens a real card edit, help text reworded; swatch keyboard gap deferred to the shared radiogroup follow-up. Review round 2 APPROVED (no findings). Tests: pnpm check 0 errors; full suite at 76cea8a32 657/657 files, 17555 passed, 56 skipped, 1 todo, exit=0.

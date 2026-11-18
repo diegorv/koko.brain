@@ -11,7 +11,9 @@
 	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 	import List from '@lucide/svelte/icons/list';
 	import Table from '@lucide/svelte/icons/table';
+	import X from '@lucide/svelte/icons/x';
 	import * as Select from '#lib/components/ui/select/index.js';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import {
 		parseKanbanBoard,
 		serializeKanbanBoard,
@@ -257,6 +259,37 @@
 		void currentViewMode;
 		untrack(() => kanbanStore.clearFocus());
 	});
+
+	// ── Filter ─────────────────────────────────────────────────
+
+	let filterInputEl = $state<HTMLInputElement | null>(null);
+
+	// The filter and the ring are module state and EditorView mounts this view
+	// unkeyed, so both would follow the user to the next board. The teardown runs
+	// on every path change and on destroy. The derived keeps a pin, reorder or
+	// close of another tab, which keeps the path, from re-running it. Editing ids
+	// stay: clearing them unmounts an open textarea.
+	let activePath = $derived(editorStore.activeTab?.path ?? null);
+	$effect(() => {
+		void activePath;
+		return () => {
+			kanbanStore.setFilterQuery('');
+			kanbanStore.clearFocus();
+		};
+	});
+
+	function handleClearFilter() {
+		kanbanStore.setFilterQuery('');
+		filterInputEl?.focus();
+	}
+
+	function handleFilterKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') kanbanStore.setFilterQuery('');
+	}
+
+	function handleTagClick(tag: string) {
+		kanbanStore.setFilterQuery(`#${tag}`);
+	}
 
 	function handleBoardKeydown(e: KeyboardEvent) {
 		// The root wraps every view mode; only the board shows the ring.
@@ -535,12 +568,28 @@
 		</div>
 		<div class="flex items-center gap-1.5">
 			<Search class="size-3.5 text-muted-foreground" />
-			<input
-				class="rounded-xs border border-border bg-background px-2 py-0.5 text-xs outline-none placeholder:text-muted-foreground/50 focus:border-primary"
-				placeholder="Filter cards..."
-				value={kanbanStore.filterQuery}
-				oninput={(e) => kanbanStore.setFilterQuery(e.currentTarget.value)}
-			/>
+			<div class="relative">
+				<input
+					bind:this={filterInputEl}
+					class="rounded-xs border border-border bg-background py-0.5 pr-6 pl-2 text-xs outline-none placeholder:text-muted-foreground/50 focus:border-primary"
+					placeholder="Filter cards..."
+					value={kanbanStore.filterQuery}
+					oninput={(e) => kanbanStore.setFilterQuery(e.currentTarget.value)}
+					onkeydown={handleFilterKeydown}
+				/>
+				{#if kanbanStore.filterQuery !== ''}
+					<button
+						type="button"
+						class="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+						aria-label="Clear filter"
+						title="Clear filter"
+						onmousedown={(e) => e.preventDefault()}
+						onclick={handleClearFilter}
+					>
+						<X class="size-3.5" />
+					</button>
+				{/if}
+			</div>
 		</div>
 	</div>
 
@@ -574,6 +623,7 @@
 			isDragOver={dragOverLaneId === lane.id}
 			{dropIndicatorIndex}
 			onWikilinkClick={handleWikilinkClick}
+			onTagClick={handleTagClick}
 			onAddItem={handleAddItem}
 			onToggleItem={handleToggleItem}
 			onUpdateItem={handleUpdateItem}

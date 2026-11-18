@@ -36,10 +36,10 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Renaming a kanban lane keeps its settings; new lanes get unique names](issues/01-renaming-kanban-lane-keeps-settings-new.md) | none | done | issue/01-renaming-kanban-lane-keeps-settings-new (0ac92a4d3) | 2026-11-18 |
-| 02 | [Kanban keyboard shortcuts act only on the card you see; the sort menu is the themed Select](issues/02-kanban-keyboard-shortcuts-act-only-card.md) | 01 | in-progress | | |
+| 02 | [Kanban keyboard shortcuts act only on the card you see; the sort menu is the themed Select](issues/02-kanban-keyboard-shortcuts-act-only-card.md) | 01 | done | issue/02-kanban-keyboard-shortcuts-act-only-card (4a2b167ad) | 2026-11-18 |
 | 03 | [QueryJS tables: Prev and Next work, tables scroll, buttons show focus](issues/03-queryjs-tables-prev-next-work-tables.md) | none | done | issue/03-queryjs-tables-prev-next-work-tables (0c1205f8f) | 2026-11-18 |
 | 04 | [Canvas file and link cards: a plain click selects, an open button opens, previews skip frontmatter](issues/04-canvas-file-link-cards-plain-click.md) | none | todo | | |
-| 05 | [Kanban filter clears, resets per board, and a tag click filters](issues/05-kanban-filter-clears-resets-per-board.md) | 02 | todo | | |
+| 05 | [Kanban filter clears, resets per board, and a tag click filters](issues/05-kanban-filter-clears-resets-per-board.md) | 02 | in-progress | | |
 | 06 | [Canvas surfaces and overlays draw from theme tokens](issues/06-canvas-surfaces-overlays-draw-theme-tokens.md) | 04 | todo | | |
 | 07 | [Quick Capture says what it does and shows Saving (copy and state only)](issues/07-quick-capture-copy-saving-state.md) | none | done | issue/07-quick-capture-copy-saving-state (e7eeb2aed) | 2026-11-18 |
 | 08 | [Live-preview widgets show failure and progress](issues/08-livepreview-widgets-show-failure-progress.md) | 03 | done | issue/08-livepreview-widgets-show-failure-progress (e118671bf) | 2026-11-18 |
@@ -109,3 +109,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 16:16 — 01 — start — launched by /relay-lite:run — d2a981915
 - 2026-11-18 16:27 — 01 — deliver — merged after review 1 APPROVED with findings, fix round (renameLane reads only an own settings key), re-review 2 APPROVED (claude); full vitest suite passed (17527 tests) — 0ac92a4d3
 - 2026-11-18 16:49 — 02 — start — launched by /relay-lite:run — df325826f
+- 2026-11-18 17:03 — 02 — deliver — merged after review 1 APPROVED with 4 findings, fix round (board keys skip collapsed-lane cards, comment and import fixes), re-review 2 APPROVED (claude); full vitest suite passed (17543 tests) — 4a2b167ad
+- 2026-11-18 17:03 — 05 — start — launched by /relay-lite:run — c59f1937a

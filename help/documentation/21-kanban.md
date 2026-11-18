@@ -73,7 +73,7 @@ You can:
 - **Move a card** — drag it to a different lane or position within the same lane.
 - **Delete a card** — right-click the card and choose Delete.
 - **Archive a card** — right-click the card and choose Archive. The card moves to the Archive section.
-- **Right-click a card** — opens a context menu with Edit, Archive, Card color (submenu with color swatches), and Delete.
+- **Right-click a card** — opens a context menu with Edit, Archive, Card color (submenu with color swatches), Tag color (only on a card with tags) and Delete.
 
 ### Wikilink Autocomplete
 
@@ -151,7 +151,9 @@ Add `#tags` anywhere in the card text:
 - [ ] Refactor auth module #backend #tech-debt
 ```
 
-Tags are displayed as colored chips on the card. Click a tag chip to open a color popover and pick a color for that tag; the choice is stored in `settings.tagColors` and applied to every card using the tag.
+Tags are displayed as colored chips on the card. Click a tag chip to filter the board to that tag (it puts `#tag` in the filter bar).
+
+To color a tag, right-click a card that carries it and open **Tag color**: each tag of the card has a row of swatches and, once colored, **Reset to default**. The choice is stored in `settings.tagColors` and applied to every card using the tag.
 
 ### Wikilinks
 
@@ -169,7 +171,11 @@ Each lane has additional configuration accessible by right-clicking the lane tit
 
 ## Filtering Cards
 
-Use the **filter bar** at the top of the board to search across all cards. The filter is case-insensitive and matches card text, tags, and wikilinks.
+Use the **filter bar** at the top of the board to search across all cards. The filter is case-insensitive and matches card text, tags, and wikilinks. Clicking a tag chip on a card fills it with that tag.
+
+To clear the filter, click the **X** at the end of the filter bar or press `Escape` in it. The filter also clears when you leave the board: switch to another tab, toggle source mode, or close it.
+
+The filter matches raw text, so `#design` also shows cards tagged `#design-system`.
 
 ## Sorting Cards
 
