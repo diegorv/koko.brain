@@ -100,7 +100,7 @@ sym src/lib/core/settings/settings.store.svelte.ts:167 store settingsStore L249 
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/AppShell.svelte:61 in rightSidebarShown=$derived member +32
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/EditorView.svelte:9 in (script) import
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/boot.ts:38 in registerAppPorts member +2
-by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/commands.ts:66 in railGoToCommands member +4
+by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/commands.ts:66 in railGoToCommands member +2
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/deep-link-actions.ts:56 in executeDailyAction member +3
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/editor-host.ts:55 in periodicTarget member +1
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/lifecycle/app-lifecycle.service.ts:215 in initializeVault member +11
@@ -116,7 +116,7 @@ more r 8 not shown: src/lib/core/settings(4) src/lib/app(1) src/lib/features/rai
 mem src/lib/core/settings/settings.store.svelte.ts:171 get settingsStore.oneOnOne r:12 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 more r 12 not shown: src/lib/core/settings(6) src/lib/plugins/one-on-one(5) src/lib/plugins/templates(1): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.oneOnOne
 mem src/lib/core/settings/settings.store.svelte.ts:172 get settingsStore.layout r:50 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
-more r 50 not shown: src/lib/features/rail-shell(22) src/lib/app(21) src/lib/plugins/calendar(3) src/lib/core/layout(2) src/lib/features/type-definitions(2): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.layout
+more r 50 not shown: src/lib/features/rail-shell(22) src/lib/app(20) src/lib/core/layout(3) src/lib/plugins/calendar(3) src/lib/features/type-definitions(2): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.layout
 mem src/lib/core/settings/settings.store.svelte.ts:173 get settingsStore.folderNotes r:src/lib/core/settings/sections/FilesSection.svelte:40,src/lib/features/rail-shell/FilesNavigator.svelte:243 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 mem src/lib/core/settings/settings.store.svelte.ts:174 get settingsStore.editor r:21 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 more r 21 not shown: src/lib/core/markdown-editor(11) src/lib/core/settings(8) src/lib/features/note-action-bar(2): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.editor
@@ -158,7 +158,7 @@ mem src/lib/core/settings/settings.store.svelte.ts:208 do settingsStore.updatePe
 mem src/lib/core/settings/settings.store.svelte.ts:229 do settingsStore.updateQuickCapture w:src/lib/core/settings/sections/QuickCaptureSection.svelte:45,src/lib/core/settings/sections/QuickCaptureSection.svelte:57,src/lib/core/settings/sections/QuickCaptureSection.svelte:72 | Partially updates Quick Capture settings, merging with existing values.
 mem src/lib/core/settings/settings.store.svelte.ts:242 do settingsStore.updateOneOnOne w:src/lib/core/settings/sections/OneOnOneSection.svelte:15,src/lib/core/settings/sections/OneOnOneSection.svelte:31,src/lib/core/settings/sections/OneOnOneSection.svelte:43,src/lib/core/settings/sections/OneOnOneSection.svelte:57,src/lib/core/settings/sections/OneOnOneSection.svelte:69,src/lib/core/settings/sections/OneOnOneSection.svelte:81 | Partially updates 1:1 notes settings, merging with existing values
 mem src/lib/core/settings/settings.store.svelte.ts:250 do settingsStore.updateLayout w:41 | Partially updates layout settings, merging with existing values
-more w 41 not shown: src/lib/features/rail-shell(19) src/lib/app(12) src/lib/core/layout(4) src/lib/features/type-definitions(2) src/lib/plugins/calendar(2) src/lib/features/search(1) src/lib/plugins/table-of-contents(1): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.updateLayout
+more w 41 not shown: src/lib/features/rail-shell(19) src/lib/app(11) src/lib/core/layout(5) src/lib/features/type-definitions(2) src/lib/plugins/calendar(2) src/lib/features/search(1) src/lib/plugins/table-of-contents(1): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.updateLayout
 mem src/lib/core/settings/settings.store.svelte.ts:258 do settingsStore.updateFolderNotes w:src/lib/core/settings/sections/FilesSection.svelte:42 | Partially updates folder notes settings, merging with existing values
 mem src/lib/core/settings/settings.store.svelte.ts:266 do settingsStore.updateEditor w:12 | Partially updates editor settings, merging with existing values
 more w 12 not shown: src/lib/core/settings(11) src/lib/features/note-action-bar(1): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.updateEditor

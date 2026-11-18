@@ -4,7 +4,7 @@ sections: neighbors, entry files, files, public, stores, effects, debt
 module src/lib/core/settings core files 38 in-modules 29 out-modules 6 pub 53/175 ipc 3/0 card ~6.7k
 ## neighbors
 dep src/lib/app -> src/lib/core/settings 32
-dep src/lib/core/layout -> src/lib/core/settings 1
+dep src/lib/core/layout -> src/lib/core/settings 2
 dep src/lib/core/markdown-editor -> src/lib/core/settings 4
 dep src/lib/core/vault -> src/lib/core/settings 1
 dep src/lib/features/auto-organize -> src/lib/core/settings 4
@@ -42,7 +42,7 @@ in2 src/lib/core/settings 11 modules: src/lib/core/filesystem(5) src/lib/core/ed
 out2 src/lib/core/settings 2 modules: src/lib/core/filesystem(4) src/lib/core/editor(2)
 ## entry files
 entry src/lib/core/settings/settings.store.svelte.ts ext-in68 src/lib/app/AppShell.svelte src/lib/app/EditorView.svelte src/lib/app/boot.ts src/lib/app/commands.ts src/lib/app/deep-link-actions.ts more importers 63 not shown: src/lib/features/event-calendar(10) src/lib/features/rail-shell(9) src/lib/features/search(5) +22 modules: q importers src/lib/core/settings/settings.store.svelte.ts
-entry src/lib/core/settings/settings.types.ts ext-in15 src/lib/app/SettingsPanel.svelte src/lib/features/event-calendar/EventCalendarSection.svelte src/lib/features/event-calendar/event-calendar-event.logic.ts src/lib/features/event-calendar/event-calendar-form.logic.ts src/lib/features/event-calendar/event-calendar.types.ts more importers 10 not shown: src/lib/plugins/calendar(2) src/lib/plugins/periodic-notes(2) src/lib/features/rail-shell(1) +5 modules: q importers src/lib/core/settings/settings.types.ts
+entry src/lib/core/settings/settings.types.ts ext-in16 src/lib/app/SettingsPanel.svelte src/lib/core/layout/layout.service.ts src/lib/features/event-calendar/EventCalendarSection.svelte src/lib/features/event-calendar/event-calendar-event.logic.ts src/lib/features/event-calendar/event-calendar-form.logic.ts more importers 11 not shown: src/lib/plugins/calendar(2) src/lib/plugins/periodic-notes(2) src/lib/features/event-calendar(1) +6 modules: q importers src/lib/core/settings/settings.types.ts
 entry src/lib/core/settings/sections/SettingItem.svelte ext-in7 src/lib/app/LabsSection.svelte src/lib/features/auto-organize/AutoOrganizeSection.svelte src/lib/features/event-calendar/EventCalendarSection.svelte src/lib/features/rail-shell/LayoutSection.svelte src/lib/features/search/SearchSection.svelte more importers 2 not shown: src/lib/features/todoist-sync(1) src/lib/plugins/queryjs(1): q importers src/lib/core/settings/sections/SettingItem.svelte
 entry src/lib/core/settings/settings-panel.store.svelte.ts ext-in6 src/lib/app/SettingsPanel.svelte src/lib/app/commands.ts src/lib/app/global-keybindings.ts src/lib/app/tauri-listeners.service.ts src/lib/features/event-calendar/EventCalendarSection.svelte more importers 1 not shown: src/lib/features/search(1): q importers src/lib/core/settings/settings-panel.store.svelte.ts
 entry src/lib/core/settings/settings.logic.ts ext-in6 src/lib/app/SettingsPanel.svelte src/lib/core/markdown-editor/MarkdownEditor.svelte src/lib/features/event-calendar/EventCalendarSection.svelte src/lib/features/event-calendar/EventColorSwatches.svelte src/lib/features/event-calendar/event-calendar-event.logic.ts more importers 1 not shown: src/lib/features/todoist-sync(1): q importers src/lib/core/settings/settings.logic.ts
@@ -97,7 +97,7 @@ file src/lib/core/settings/settings-persistence.svelte.ts other L122 module src/
 file src/lib/core/settings/settings.logic.ts logic L303 module src/lib/core/settings in11 t2
 file src/lib/core/settings/settings.service.ts service L297 module src/lib/core/settings in3 t6
 file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in84 t128
-file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in24 t0
+file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in25 t0
 file src/lib/core/settings/theme-builder.logic.ts logic L318 module src/lib/core/settings in3 t10
 file src/lib/core/settings/theme-catalog.service.ts service L45 module src/lib/core/settings in1 t1
 file src/lib/core/settings/theme-editor.logic.ts logic L303 module src/lib/core/settings in3 t1

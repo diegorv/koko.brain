@@ -41,7 +41,7 @@ by src/lib/plugins/one-on-one/one-on-one.service.ts:createOneOnOneNote <- src/li
 sym src/lib/plugins/one-on-one/one-on-one.service.ts:107 fn registerOneOnOneActionBarAction(): () => void L15 | Registers "New 1:1" into the note action bar for Person notes; the person is the note's file name.
 by src/lib/plugins/one-on-one/one-on-one.service.ts:registerOneOnOneActionBarAction <- src/lib/app/lifecycle/app-lifecycle.service.ts:271 in initializeVault call
 sym src/lib/plugins/one-on-one/one-on-one.service.ts:127 fn openOneOnOnePicker(onSelect?: OneOnOneSelectHandler): Promise<void> L4 | Opens the person picker dialog, loading people first.
-by src/lib/plugins/one-on-one/one-on-one.service.ts:openOneOnOnePicker <- src/lib/app/commands.ts:376 in getBuiltInCommands call
+by src/lib/plugins/one-on-one/one-on-one.service.ts:openOneOnOnePicker <- src/lib/app/commands.ts:391 in getBuiltInCommands call
 by src/lib/plugins/one-on-one/one-on-one.service.ts:openOneOnOnePicker <- src/lib/app/global-keybindings.ts:159 in GLOBAL_KEYBINDINGS call
 by src/lib/plugins/one-on-one/one-on-one.service.ts:openOneOnOnePicker <- src/lib/plugins/mods/mod-app.service.ts:43 in MOD_APP ref
 sym src/lib/plugins/one-on-one/one-on-one.service.ts:133 fn resetOneOnOne(): void L3 | Resets 1:1 notes plugin state

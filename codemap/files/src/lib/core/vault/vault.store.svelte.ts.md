@@ -96,7 +96,7 @@ sym src/lib/core/vault/vault.store.svelte.ts:60 store vaultStore L100 | Reactive
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/AppShell.svelte:71 in $effect@66 member +6
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/LabsSection.svelte:25 in setModsEnabled member
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/boot.ts:64 in registerAppPorts member +2
-by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/commands.ts:154 in getBuiltInCommands member +3
+by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/commands.ts:154 in getBuiltInCommands member +4
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/editor-host.ts:99 in vaultTags member +5
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/lifecycle/app-lifecycle.service.ts:141 in initializeVault mcall +2
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/lifecycle/watcher-handler.service.ts:41 in rebuildAllIndexes member
@@ -107,7 +107,7 @@ store src/lib/core/vault/vault.store.svelte.ts:60 vaultStore esc:1
 mem src/lib/core/vault/vault.store.svelte.ts:61 get vaultStore.path r:175 w-via:open,close,_reset
 more r 175 not shown: src/lib/features/rail-shell(21) src/lib/app(20) src/lib/plugins/mods(18) src/lib/features/search(12) src/lib/features/event-calendar(11) src/lib/features/type-definitions(10) src/lib/core/filesystem(9) src/lib/core/settings(8) +22 modules: q store src/lib/core/vault/vault.store.svelte.ts:vaultStore.path
 mem src/lib/core/vault/vault.store.svelte.ts:62 get vaultStore.name r:src/lib/features/note-action-bar/note-action-bar.service.ts:59,src/lib/plugins/quick-capture/quick-capture.service.ts:103 w-via:open,close,_reset
-mem src/lib/core/vault/vault.store.svelte.ts:64 get vaultStore.isOpen r:src/lib/app/AppShell.svelte:184,src/lib/features/backlinks/BacklinksPanel.svelte:59,src/routes/(app)/+layout.svelte:76,src/routes/(app)/+layout.svelte:117 w-via:open,close,_reset | Whether a vault is currently open (computed from path)
+mem src/lib/core/vault/vault.store.svelte.ts:64 get vaultStore.isOpen r:src/lib/app/AppShell.svelte:184,src/lib/app/commands.ts:429,src/lib/features/backlinks/BacklinksPanel.svelte:59,src/routes/(app)/+layout.svelte:76,src/routes/(app)/+layout.svelte:117 w-via:open,close,_reset | Whether a vault is currently open (computed from path)
 mem src/lib/core/vault/vault.store.svelte.ts:65 get vaultStore.recentVaults r:src/lib/features/deep-link/deep-link.service.ts:142,src/routes/(app)/+page.svelte:36,src/routes/(app)/+page.svelte:46 w-via:open,removeRecent,_reset
 mem src/lib/core/vault/vault.store.svelte.ts:71 get vaultStore.vaultIndexVersion r:28 w-via:bumpVaultIndexVersion,_reset | Current monotonic version of the Rust `VaultIndex`.
 more r 28 not shown: src/lib/features/event-calendar(16) src/lib/features/backlinks(3) src/lib/features/outgoing-links(2) src/lib/features/tasks(2) src/lib/app(1) src/lib/core/vault(1) src/lib/features/properties(1) src/lib/features/tags(1) +1 modules: q store src/lib/core/vault/vault.store.svelte.ts:vaultStore.vaultIndexVersion

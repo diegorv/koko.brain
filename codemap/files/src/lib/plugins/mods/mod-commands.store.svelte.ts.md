@@ -19,12 +19,12 @@ test src/tests/lib/plugins/mods/mods-host.service.test.ts imports src/lib/plugin
 ## symbols
 sym src/lib/plugins/mods/mod-commands.store.svelte.ts:2 interface ModCommand L10 | A mod action reachable through raw app access and, when marked, the palette.
 sym src/lib/plugins/mods/mod-commands.store.svelte.ts:19 store modCommandsStore L34 | Live mod action registry, independent of the command palette UI.
-by src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore <- src/lib/app/commands.ts:425 in getBuiltInCommands member
+by src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore <- src/lib/app/commands.ts:450 in getBuiltInCommands member
 by src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore <- src/lib/plugins/mods/mod-app.service.ts:57 in MOD_APP ref
 by src/lib/plugins/mods/mod-commands.store.svelte.ts:modCommandsStore <- src/lib/plugins/mods/mods-host.service.ts:220 in createModContext mcall +1
 ## store
 store src/lib/plugins/mods/mod-commands.store.svelte.ts:19 modCommandsStore esc:1
-mem src/lib/plugins/mods/mod-commands.store.svelte.ts:21 get modCommandsStore.list r:src/lib/app/commands.ts:425 w-via:register,place,reset | Every action in registration order, including actions absent from the palette.
+mem src/lib/plugins/mods/mod-commands.store.svelte.ts:21 get modCommandsStore.list r:src/lib/app/commands.ts:450 w-via:register,place,reset | Every action in registration order, including actions absent from the palette.
 mem src/lib/plugins/mods/mod-commands.store.svelte.ts:26 do modCommandsStore.register w:src/lib/plugins/mods/mods-host.service.ts:550 | Registers an action, replacing its id; cleanup removes only this registration.
 mem src/lib/plugins/mods/mod-commands.store.svelte.ts:37 do modCommandsStore.place w:src/lib/plugins/mods/mods-host.service.ts:220 | Marks a registered action for the palette until this placement is disposed.
 mem src/lib/plugins/mods/mod-commands.store.svelte.ts:48 do modCommandsStore.reset w:- | Drops registrations and their placements.

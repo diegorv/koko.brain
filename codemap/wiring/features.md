@@ -68,7 +68,7 @@ reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerNavigator read-by src/lib/features/rail-shell/rail-registry.store.svelte.ts:42 railRegistryStore.navigators
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerNavigator fired-by src/lib/app/AppShell.svelte:108 in railItem=$derived
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerNavigator fired-by src/lib/app/AppShell.svelte:116 in registeredNavigator=$derived
-reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerNavigator fired-by src/lib/app/commands.ts:67 in railGoToCommands <- src/lib/app/commands.ts:423 in getBuiltInCommands
+reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerNavigator fired-by src/lib/app/commands.ts:67 in railGoToCommands <- src/lib/app/commands.ts:448 in getBuiltInCommands
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerNavigator fired-by src/lib/features/rail-shell/LayoutSection.svelte:39 in items=$derived
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerNavigator fired-by src/lib/features/rail-shell/Rail.svelte:84 in items=$derived
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerNavigator registered-at src/lib/plugins/calendar/calendar-rail.service.ts:26 in registerCalendarRail args={ id: CALENDAR_RAIL_ITEM, label: 'Calendar', icon: CalendarDays, component: Cal… -> src/lib/plugins/calendar/calendar-rail.service.ts:registerCalendarRail

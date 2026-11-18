@@ -1,12 +1,13 @@
 # file card src/lib/core/settings/settings.types.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/settings/settings.types.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols
-file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in24 t0
+file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in25 t0
 ## imports
 imp src/lib/core/settings/settings.types.ts:1 -> src/lib/core/settings/settings.logic.ts type:EVENT_CALENDAR_COLORS,type:EVENT_CALENDAR_VIEW_MODES,type:TODOIST_SYNC_CONTEXTS
 imp src/lib/core/settings/settings.types.ts:399 -> src/lib/core/settings/theme.types.ts type:AppearanceSettings
 ## imported-by
 imp src/lib/app/SettingsPanel.svelte:40 -> src/lib/core/settings/settings.types.ts type:SettingsSection
+imp src/lib/core/layout/layout.service.ts:3 -> src/lib/core/settings/settings.types.ts type:LayoutSettings
 imp src/lib/core/settings/heading-typography.logic.ts:1 -> src/lib/core/settings/settings.types.ts type:HeadingFontWeight,type:HeadingTypography
 imp src/lib/core/settings/sections/HeadingTypographyEditor.svelte:10 -> src/lib/core/settings/settings.types.ts type:HeadingTypography,type:HeadingFontWeight
 imp src/lib/core/settings/sections/UpdateSection.svelte:13 -> src/lib/core/settings/settings.types.ts type:ReleaseChannel
@@ -31,7 +32,7 @@ imp src/lib/plugins/queryjs/QueryjsSection.svelte:6 -> src/lib/core/settings/set
 imp src/lib/plugins/quick-capture/note-composer.logic.ts:3 -> src/lib/core/settings/settings.types.ts type:PeriodicNotesSettings
 imp src/lib/utils/app-channel.ts:1 -> src/lib/core/settings/settings.types.ts type:ReleaseChannel
 ## reach
-in2 src/lib/core/settings/settings.types.ts 100 files in 27 modules: src/lib/features/event-calendar(22) src/lib/core/settings(12) src/lib/app(11) src/lib/features/rail-shell(11) src/lib/features/search(5) +22 modules: q impact src/lib/core/settings/settings.types.ts --depth 2
+in2 src/lib/core/settings/settings.types.ts 99 files in 26 modules: src/lib/features/event-calendar(22) src/lib/core/settings(12) src/lib/app(11) src/lib/features/rail-shell(11) src/lib/features/search(5) +21 modules: q impact src/lib/core/settings/settings.types.ts --depth 2
 out2 src/lib/core/settings/settings.types.ts 2 files in 2 modules: src/lib/core/settings(1) src/lib/utils(1)
 ## tests
 test src/tests/lib/core/settings/UpdateSection.channel.test.ts imports-type src/lib/core/settings/settings.types.ts
@@ -54,6 +55,7 @@ by src/lib/core/settings/settings.types.ts:PeriodicNotesSettings <- src/lib/plug
 sym src/lib/core/settings/settings.types.ts:38 interface PeriodicNotesUpdate L8 | Deep-partial variant of PeriodicNotesSettings — nested period objects accept partial fields
 by src/lib/core/settings/settings.types.ts:PeriodicNotesUpdate <- src/lib/core/settings/settings.store.svelte.ts:1 in (module) import
 sym src/lib/core/settings/settings.types.ts:48 interface LayoutSettings L70 | Configuration for layout visibility preferences
+by src/lib/core/settings/settings.types.ts:LayoutSettings <- src/lib/core/layout/layout.service.ts:3 in (module) import
 by src/lib/core/settings/settings.types.ts:LayoutSettings <- src/lib/core/settings/settings.logic.ts:2 in (module) import
 by src/lib/core/settings/settings.types.ts:LayoutSettings <- src/lib/core/settings/settings.store.svelte.ts:1 in (module) import
 by src/lib/core/settings/settings.types.ts:LayoutSettings <- src/lib/features/rail-shell/lens.logic.ts:2 in (module) import

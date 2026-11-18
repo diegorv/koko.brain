@@ -21,7 +21,7 @@ test src/tests/lib/app/global-keybindings.test.ts mocks src/lib/plugins/quick-ca
 test src/tests/lib/features/command-palette/CommandPalette.test.ts mocks src/lib/plugins/quick-capture/note-composer.service.ts
 ## symbols
 sym src/lib/plugins/quick-capture/note-composer.service.ts:20 fn createNoteComposer(): Promise<void> L35 | Creates and opens a new capture note instantly via the in-editor note-composer surface (Cmd+N).
-by src/lib/plugins/quick-capture/note-composer.service.ts:createNoteComposer <- src/lib/app/commands.ts:369 in getBuiltInCommands call
+by src/lib/plugins/quick-capture/note-composer.service.ts:createNoteComposer <- src/lib/app/commands.ts:384 in getBuiltInCommands call
 by src/lib/plugins/quick-capture/note-composer.service.ts:createNoteComposer <- src/lib/app/global-keybindings.ts:152 in GLOBAL_KEYBINDINGS call
 ## calls
 call src/lib/plugins/quick-capture/note-composer.service.ts:28 in createNoteComposer -> src/lib/plugins/quick-capture/note-composer.logic.ts:buildCapturePath call

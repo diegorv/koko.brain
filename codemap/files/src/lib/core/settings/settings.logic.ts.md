@@ -17,7 +17,7 @@ imp src/lib/features/event-calendar/EventColorSwatches.svelte:2 -> src/lib/core/
 imp src/lib/features/event-calendar/event-calendar-event.logic.ts:15 -> src/lib/core/settings/settings.logic.ts EVENT_CALENDAR_COLORS
 imp src/lib/features/todoist-sync/TodoistSection.svelte:9 -> src/lib/core/settings/settings.logic.ts clampSyncIntervalMinutes
 ## reach
-in2 src/lib/core/settings/settings.logic.ts 29 files in 11 modules: src/lib/features/event-calendar(11) src/lib/core/settings(5) src/lib/app(3) src/lib/plugins/calendar(2) src/lib/plugins/periodic-notes(2) +6 modules: q impact src/lib/core/settings/settings.logic.ts --depth 2
+in2 src/lib/core/settings/settings.logic.ts 30 files in 12 modules: src/lib/features/event-calendar(11) src/lib/core/settings(5) src/lib/app(3) src/lib/plugins/calendar(2) src/lib/plugins/periodic-notes(2) +7 modules: q impact src/lib/core/settings/settings.logic.ts --depth 2
 out2 src/lib/core/settings/settings.logic.ts 1 files in 1 modules: src/lib/core/settings(1)
 ## tests
 test src/tests/lib/core/settings/settings.logic.test.ts imports src/lib/core/settings/settings.logic.ts mirror

@@ -6,7 +6,7 @@ imp src/lib/core/layout/layout.logic.ts:1 -> src/lib/core/editor/editor.logic.ts
 imp src/lib/core/layout/layout.logic.ts:8 -> src/lib/core/filesystem/fs.logic.ts isCanvasFile,isKanbanFile,isViewFile
 ## imported-by
 imp src/lib/app/AppShell.svelte:56 -> src/lib/core/layout/layout.logic.ts hidesRightSidebar,isRightSidebarShown
-imp src/lib/core/layout/layout.service.ts:3 -> src/lib/core/layout/layout.logic.ts hidesRightSidebar
+imp src/lib/core/layout/layout.service.ts:4 -> src/lib/core/layout/layout.logic.ts hidesRightSidebar
 ## reach
 in2 src/lib/core/layout/layout.logic.ts 3 files in 2 modules: src/lib/app(2) src/routes(1)
 out2 src/lib/core/layout/layout.logic.ts 3 files in 3 modules: src/lib/core/editor(1) src/lib/core/filesystem(1) src/lib/utils(1)
@@ -15,7 +15,7 @@ test src/tests/lib/core/layout/layout.logic.test.ts imports src/lib/core/layout/
 ## symbols
 sym src/lib/core/layout/layout.logic.ts:23 fn hidesRightSidebar(activeTabPath: string | null): boolean L6 | Whether the tab at `activeTabPath` always hides the right sidebar: every panel in it covers notes only.
 by src/lib/core/layout/layout.logic.ts:hidesRightSidebar <- src/lib/app/AppShell.svelte:189 in (markup) markup
-by src/lib/core/layout/layout.logic.ts:hidesRightSidebar <- src/lib/core/layout/layout.service.ts:31 in toggleRightSidebar call
+by src/lib/core/layout/layout.logic.ts:hidesRightSidebar <- src/lib/core/layout/layout.service.ts:32 in toggleRightSidebar call +1
 sym src/lib/core/layout/layout.logic.ts:36 fn isRightSidebarShown(visible: boolean, activeTabPath: string | null): boolean L3 | Whether the right sidebar renders.
 by src/lib/core/layout/layout.logic.ts:isRightSidebarShown <- src/lib/app/AppShell.svelte:61 in rightSidebarShown=$derived call
 ## calls

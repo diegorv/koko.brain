@@ -167,7 +167,7 @@ by src/lib/core/editor/editor.service.ts:switchToPreviousTab <- src/lib/app/glob
 sym src/lib/core/editor/editor.service.ts:418 fn togglePinTab(index: number) L3 | Toggles the pinned state of the tab at the given index
 by src/lib/core/editor/editor.service.ts:togglePinTab <- src/lib/core/markdown-editor/EditorTabs.svelte:102 in (markup) markup
 sym src/lib/core/editor/editor.service.ts:423 fn togglePinActiveTab() L5 | Toggles the pinned state of the currently active tab
-by src/lib/core/editor/editor.service.ts:togglePinActiveTab <- src/lib/app/commands.ts:356 in getBuiltInCommands call
+by src/lib/core/editor/editor.service.ts:togglePinActiveTab <- src/lib/app/commands.ts:371 in getBuiltInCommands call
 sym src/lib/core/editor/editor.service.ts:437 fn toggleSourceMode() L3 | Toggles between live preview and source mode.
 by src/lib/core/editor/editor.service.ts:toggleSourceMode <- src/lib/app/global-keybindings.ts:187 in GLOBAL_KEYBINDINGS call
 by src/lib/core/editor/editor.service.ts:toggleSourceMode <- src/lib/features/note-action-bar/NoteActionBar.svelte:178 in (markup) markup

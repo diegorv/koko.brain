@@ -67,7 +67,7 @@ file src/lib/app/EditorView.svelte component L159 module src/lib/app in1 t3
 file src/lib/app/LabsSection.svelte component L52 module src/lib/app in1 t1
 file src/lib/app/SettingsPanel.svelte component L162 module src/lib/app in1 t1
 file src/lib/app/boot.ts other L97 module src/lib/app in1 t15
-file src/lib/app/commands.ts other L432 module src/lib/app in1 t5
+file src/lib/app/commands.ts other L457 module src/lib/app in1 t5
 file src/lib/app/deep-link-actions.ts other L240 module src/lib/app in1 t2
 file src/lib/app/editor-host.ts other L216 module src/lib/app in1 t8
 file src/lib/app/global-keybindings.ts other L229 module src/lib/app in2 t1
