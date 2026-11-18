@@ -48,7 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [Kanban lanes: visible add row, empty and filtered counts, collapsed rail](issues/11-kanban-lanes-visible-add-row-empty.md) | 05, 10 | todo | | |
 | 12 | [Kanban list, table and archive: named checks, clean cells, restore feedback](issues/12-kanban-list-table-archive-named-checks.md) | 05, 11 | todo | | |
 | 13 | [Callouts, headings and the meta-bind number field read cleanly](issues/13-callouts-headings-metabind-number-field-read.md) | 08 | done | issue/13-callouts-headings-metabind-number-field-read (51497add3) | 2026-11-18 |
-| 14 | [Inline collection block: readable table, built-in names, other-views hint](issues/14-inline-collection-block-readable-table-builtin.md) | 09, 13 | todo | | |
+| 14 | [Inline collection block: readable table, built-in names, other-views hint](issues/14-inline-collection-block-readable-table-builtin.md) | 09, 13 | in-progress | | |
 | 15 | [Filter and Sort panels: visible conjunction and named remove buttons](issues/15-filter-sort-conjunction-names.md) | none | todo | | |
 | 16 | [Canvas handles show on selected nodes; image cards get 8 handles and real loading and error states](issues/16-canvas-handles-show-selected-nodes-image.md) | 06 | todo | | |
 | 17 | [The canvas context menu and pickers work from the keyboard and show Mac shortcut glyphs](issues/17-canvas-context-menu-pickers-work-keyboard.md) | 06 | todo | | |
@@ -94,3 +94,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 14:22 — 13 — deliver — merged after review 1 APPROVED, fix round (meta-bind rule pin, --cm-lp-callout-accent rename for theme-css-contract), re-review 2 APPROVED (claude); full vitest suite passed on second run (17409 tests); owner eye check in WKWebView still open — 51497add3
 - 2026-11-18 14:23 — 09 — start — launched by /relay-lite:run — 66030ac65
 - 2026-11-18 14:38 — 09 — deliver — merged after review 1 APPROVED, fix round (sortState computed once per header), re-review 2 APPROVED (claude); full vitest suite passed (17440 tests); manual sticky-header check with 60+ rows still open — 8611869b7
+- 2026-11-18 14:38 — 14 — start — launched by /relay-lite:run — 1476dbf87
