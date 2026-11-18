@@ -63,7 +63,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 26 | [Calendar month grid reads at a glance](issues/26-calendar-month-grid-reads-at-glance.md) | 24, 25 | todo | | |
 | 27 | [The Tasks toolbar and list say what they do](issues/27-tasks-toolbar-list-say-they-do.md) | none | todo | | |
 | 28 | [The Days mini month works narrow and by screen reader](issues/28-days-mini-month-works-narrow-by.md) | 26 | todo | | |
-| 29 | [The template picker names the template and what Enter will do](issues/29-template-picker-names-template-enter-will.md) | none | todo | | |
+| 29 | [The template picker names the template and what Enter will do](issues/29-template-picker-names-template-enter-will.md) | none | in-progress | | |
 | 30 | [The type name dialog stays open while it saves](issues/30-type-name-dialog-stays-open-while.md) | none | todo | | |
 | 31 | [Auto Organize section: honest copy, archive-off hint, save-failure toast, excluded folders with feedback, named controls](issues/31-auto-organize-section-honest-copy-archiveoff.md) | 21 | todo | | |
 | 32 | [Auto Organize rule row: stable property rows, template variables, named controls, Off state, focus on what you just added](issues/32-auto-organize-rule-row-stable-property.md) | 15, 31 | todo | | |
@@ -98,3 +98,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 14:53 — 14 — deliver — merged after review 1 APPROVED with findings, fix round (DATE_TEXT matches only a whole date or datetime; selector pin loosening rejected), re-review 2 APPROVED (claude); full vitest suite passed (17456 tests) — 7bf8332b1
 - 2026-11-18 14:53 — 07 — start — launched by /relay-lite:run — 72c8352db
 - 2026-11-18 15:03 — 07 — deliver — merged after review 1 APPROVED, fix round (late-reject test pins Saving... and default hint after summon; aria-live rejected for later), re-review 2 APPROVED (claude); full vitest suite passed (17462 tests) — e7eeb2aed
+- 2026-11-18 15:03 — 29 — start — launched by /relay-lite:run — b98cfbb37
