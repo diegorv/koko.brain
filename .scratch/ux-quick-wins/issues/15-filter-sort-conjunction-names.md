@@ -13,16 +13,16 @@ Not in this ticket: `SortPanel.svelte` (its remove name "Remove sort by <label>"
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run (no E2E surface changes: the tests that find the conjunction trigger read its `textContent`, which an extra SVG does not change).
 
-- [ ] Failing test first (`src/tests/lib/features/collection/toolbar/FilterPanel.svelte.test.ts`): both conjunction triggers contain a chevron and the bordered classes; the text is still "All the following are true"; choosing "Any" still emits `or`.
-- [ ] Failing test first (`FilterRow.svelte.test.ts`): `getByRole('button', { name: 'Remove filter on status' })` finds the visual-mode remove; the raw-mode remove is found by name; a row with no property is named "Remove filter".
-- [ ] Failing test first (`FormulaRow.svelte.test.ts`): both removes are found by "Remove formula <name>"; an unnamed entry gives "Remove formula".
-- [ ] The four consumers' tests pass unchanged: `ViewDialog.svelte.test.ts`, `AutoOrganizeRuleRow.test.ts` (`:132-136` find the trigger by `textContent?.trim()`), `RailNoteList.view.test.ts`, `RailNoteList.toolbar.test.ts`.
-- [ ] No `.view`, settings or rules file is written by any new code path; the existing `onFiltersChange` calls are unchanged.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first (`src/tests/lib/features/collection/toolbar/FilterPanel.svelte.test.ts`): both conjunction triggers contain a chevron and the bordered classes; the text is still "All the following are true"; choosing "Any" still emits `or`.
+- [x] Failing test first (`FilterRow.svelte.test.ts`): `getByRole('button', { name: 'Remove filter on status' })` finds the visual-mode remove; the raw-mode remove is found by name; a row with no property is named "Remove filter".
+- [x] Failing test first (`FormulaRow.svelte.test.ts`): both removes are found by "Remove formula <name>"; an unnamed entry gives "Remove formula".
+- [x] The four consumers' tests pass unchanged: `ViewDialog.svelte.test.ts`, `AutoOrganizeRuleRow.test.ts` (`:132-136` find the trigger by `textContent?.trim()`), `RailNoteList.view.test.ts`, `RailNoteList.toolbar.test.ts`.
+- [x] No `.view`, settings or rules file is written by any new code path; the existing `onFiltersChange` calls are unchanged.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -54,3 +54,4 @@ Checked at 085b23c5d.
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping, and the split of the keyboard sort order into ticket 44. No owner questions on this ticket.
+- 2026-11-18, deliver (branch issue/15-filter-sort-conjunction-names): conjunction triggers in the Filter and Sort panels are bordered with a chevron; filter and formula remove buttons carry names ("Remove filter on <prop>", "Remove formula <name>"). Fix round after review 1: remove `Button` attributes split one per line; the styling test asserts the chevron is the trigger's last child. Tests: pnpm check 0 errors; FilterPanel/FilterRow/FormulaRow 23/23; full suite at a28c16033 exit 0, 17600 passed, 0 failed. Reviews: round 1 APPROVED (nits), round 2 APPROVED (no findings).

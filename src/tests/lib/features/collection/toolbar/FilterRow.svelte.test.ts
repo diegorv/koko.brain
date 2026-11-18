@@ -86,3 +86,68 @@ describe('FilterRow — raw expression validity', () => {
 		expect(message()).toBeNull();
 	});
 });
+
+describe('FilterRow — remove button name', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+	let removed = 0;
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	function render(row: Partial<FilterRowType>): void {
+		removed = 0;
+		target = document.body.appendChild(document.createElement('div'));
+		component = mount(FilterRow, {
+			target,
+			props: {
+				row: { id: 'r1', property: '', operator: 'is', value: '', ...row } as FilterRowType,
+				availableProperties: ['status'],
+				propertyIndex: new Map(),
+				onUpdate: () => {},
+				onRemove: () => { removed++; },
+			},
+		});
+		flushSync();
+	}
+
+	/** The button whose accessible name (its aria-label) is `name`, as getByRole would find it. */
+	function removeButton(name: string): HTMLButtonElement {
+		const el = target.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`);
+		if (!el) throw new Error(`button "${name}" not found`);
+		return el;
+	}
+
+	it('names the visual-mode remove after its property, with a matching title', () => {
+		render({ property: 'status' });
+
+		const button = removeButton('Remove filter on status');
+		expect(button.title).toBe('Remove filter on status');
+		button.click();
+		expect(removed).toBe(1);
+	});
+
+	it('names the raw-mode remove after its property', () => {
+		render({ property: 'status', raw: "status == 'active'" });
+
+		const button = removeButton('Remove filter on status');
+		expect(button.title).toBe('Remove filter on status');
+		button.click();
+		expect(removed).toBe(1);
+	});
+
+	it('names the remove "Remove filter" when the row has no property', () => {
+		render({ property: '' });
+		expect(removeButton('Remove filter').title).toBe('Remove filter');
+
+		unmount(component!);
+		component = null;
+		document.body.innerHTML = '';
+
+		render({ property: '', raw: '' });
+		expect(removeButton('Remove filter').title).toBe('Remove filter');
+	});
+});

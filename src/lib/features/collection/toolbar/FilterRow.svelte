@@ -50,6 +50,9 @@
 	/** Whether the current operator is unary (no value input needed) */
 	let unary = $derived(isUnaryOperator(row.operator));
 
+	/** Accessible name and tooltip of the icon-only remove button */
+	let removeLabel = $derived(row.property ? `Remove filter on ${row.property}` : 'Remove filter');
+
 	/** Groups properties into File, Note, and Formula categories */
 	let propertyGroups = $derived.by(() => {
 		const file: string[] = [];
@@ -98,7 +101,14 @@
 				aria-describedby={rawError ? `filter-error-${row.id}` : undefined}
 				class="border-input bg-background placeholder:text-muted-foreground h-7 flex-1 rounded-md border px-2 font-mono text-xs outline-none focus-visible:border-ring aria-invalid:border-destructive"
 			/>
-			<Button variant="ghost" size="icon-sm" class="size-7 shrink-0" onclick={onRemove}>
+			<Button
+				variant="ghost"
+				size="icon-sm"
+				class="size-7 shrink-0"
+				aria-label={removeLabel}
+				title={removeLabel}
+				onclick={onRemove}
+			>
 				<X class="size-3.5" />
 			</Button>
 		</div>
@@ -181,7 +191,14 @@
 		{/if}
 
 		<!-- Delete button -->
-		<Button variant="ghost" size="icon-sm" class="size-7 shrink-0" onclick={onRemove}>
+		<Button
+			variant="ghost"
+			size="icon-sm"
+			class="size-7 shrink-0"
+			aria-label={removeLabel}
+			title={removeLabel}
+			onclick={onRemove}
+		>
 			<X class="size-3.5" />
 		</Button>
 	</div>
