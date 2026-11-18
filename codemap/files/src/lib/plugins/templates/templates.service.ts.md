@@ -15,7 +15,7 @@ imp src/lib/plugins/templates/templates.service.ts:14 -> src/lib/utils/debug.ts 
 ## imported-by
 imp src/lib/app/commands.ts:28 -> src/lib/plugins/templates/templates.service.ts openTemplatePicker
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:44 -> src/lib/plugins/templates/templates.service.ts resetTemplates,ensureTemplatesFolder
-imp src/lib/plugins/templates/TemplatePicker.svelte:5 -> src/lib/plugins/templates/templates.service.ts createFileFromTemplate
+imp src/lib/plugins/templates/TemplatePicker.svelte:7 -> src/lib/plugins/templates/templates.service.ts createFileFromTemplate
 ## reach
 in2 src/lib/plugins/templates/templates.service.ts 2 files in 2 modules: src/lib/app(1) src/routes(1)
 out2 src/lib/plugins/templates/templates.service.ts 17 files in 7 modules: src/lib/core/filesystem(5) src/lib/core/settings(4) src/lib/contracts(2) src/lib/core/editor(2) src/lib/utils(2) +2 modules
@@ -28,7 +28,7 @@ test src/tests/lib/plugins/templates/TemplatePicker.test.ts mocks src/lib/plugin
 ## symbols
 sym src/lib/plugins/templates/templates.service.ts:20 fn loadTemplates(): Promise<void> L29 | Scans the _templates/ folder in the vault and populates the templates store.
 sym src/lib/plugins/templates/templates.service.ts:55 fn createFileFromTemplate(templatePath: string, fileName: string): Promise<void> L15 | Creates a new file from a template.
-by src/lib/plugins/templates/templates.service.ts:createFileFromTemplate <- src/lib/plugins/templates/TemplatePicker.svelte:41 in confirmCreate call
+by src/lib/plugins/templates/templates.service.ts:createFileFromTemplate <- src/lib/plugins/templates/TemplatePicker.svelte:57 in confirmCreate call
 sym src/lib/plugins/templates/templates.service.ts:75 fn ensureTemplatesFolder(): Promise<void> L51 | Ensures the _templates/ folder and default template files exist.
 by src/lib/plugins/templates/templates.service.ts:ensureTemplatesFolder <- src/lib/app/lifecycle/app-lifecycle.service.ts:407 in initializeVault call
 sym src/lib/plugins/templates/templates.service.ts:128 fn openTemplatePicker(): Promise<void> L4 | Opens the template picker dialog, loading templates first
