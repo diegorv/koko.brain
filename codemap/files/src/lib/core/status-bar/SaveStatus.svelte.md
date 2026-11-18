@@ -13,9 +13,9 @@ out2 src/lib/core/status-bar/SaveStatus.svelte 2 files in 2 modules: src/lib/cor
 test src/tests/lib/core/status-bar/SaveStatus.test.ts imports src/lib/core/status-bar/SaveStatus.svelte mirror
 ## symbols
 sym src/lib/core/status-bar/SaveStatus.svelte:1 component SaveStatus L39
-by src/lib/core/status-bar/SaveStatus.svelte:default <- src/lib/app/AppShell.svelte:309 in (markup) mount
+by src/lib/core/status-bar/SaveStatus.svelte:default <- src/lib/app/AppShell.svelte:311 in (markup) mount
 ## mounted-at
-mount src/lib/app/AppShell.svelte:309 SaveStatus -> src/lib/core/status-bar/SaveStatus.svelte
+mount src/lib/app/AppShell.svelte:311 SaveStatus -> src/lib/core/status-bar/SaveStatus.svelte
 ## calls
 call src/lib/core/status-bar/SaveStatus.svelte:9 in status=$derived -> src/lib/core/editor/editor.logic.ts:isVirtualTab call
 call src/lib/core/status-bar/SaveStatus.svelte:10 in status=$derived -> src/lib/core/editor/editor.logic.ts:isTabDirty call

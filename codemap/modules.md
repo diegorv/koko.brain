@@ -15,8 +15,8 @@ module src/lib/contracts contracts files 56 in-modules 26 out-modules 0 pub 45/6
 module src/lib/core/editor core files 6 in-modules 37 out-modules 3 pub 44/52 ipc 0/0 card ~4.3k
 module src/lib/core/filesystem core files 14 in-modules 29 out-modules 7 pub 60/91 ipc 14/0 card ~7k
 module src/lib/core/frontmatter core files 4 in-modules 16 out-modules 3 pub 28/40 ipc 0/0 card ~3.5k
-module src/lib/core/layout core files 3 in-modules 5 out-modules 4 pub 8/10 ipc 0/0 card ~1k
-module src/lib/core/markdown-editor core files 108 in-modules 11 out-modules 7 pub 35/353 ipc 0/0 card ~8.9k
+module src/lib/core/layout core files 3 in-modules 6 out-modules 4 pub 8/10 ipc 0/0 card ~1.1k
+module src/lib/core/markdown-editor core files 109 in-modules 11 out-modules 8 pub 35/357 ipc 0/0 card ~8.9k
 module src/lib/core/note-creator core files 2 in-modules 12 out-modules 5 pub 4/6 ipc 2/0 card ~1.4k
 module src/lib/core/rule-actions core files 1 in-modules 2 out-modules 0 pub 1/3 ipc 0/0 card ~0.5k
 module src/lib/core/settings core files 38 in-modules 29 out-modules 6 pub 53/175 ipc 3/0 card ~6.7k
@@ -72,9 +72,9 @@ layer app -> utils 17
 layer components -> components 98
 layer components -> lib-root 55
 layer contracts -> contracts 85
-layer core -> components 33
+layer core -> components 34
 layer core -> contracts 15
-layer core -> core 468
+layer core -> core 471
 layer core -> types 5
 layer core -> utils 68
 layer features -> components 101

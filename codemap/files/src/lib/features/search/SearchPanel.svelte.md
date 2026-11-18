@@ -21,7 +21,7 @@ out2 src/lib/features/search/SearchPanel.svelte 21 files in 9 modules: src/lib/u
 test src/tests/lib/features/search/SearchPanel.test.ts imports src/lib/features/search/SearchPanel.svelte mirror
 ## symbols
 sym src/lib/features/search/SearchPanel.svelte:1 component SearchPanel props:firstPane= L356
-by src/lib/features/search/SearchPanel.svelte:default <- src/lib/app/AppShell.svelte:246 in (markup) mount
+by src/lib/features/search/SearchPanel.svelte:default <- src/lib/app/AppShell.svelte:248 in (markup) mount
 ## locals
 local src/lib/features/search/SearchPanel.svelte:37 fn handleInput(e: Event) L4
 local src/lib/features/search/SearchPanel.svelte:43 fn hasModifier(e: KeyboardEvent): boolean L3
@@ -39,7 +39,7 @@ mount src/lib/features/search/SearchPanel.svelte:305 SearchResultItem -> src/lib
 mount src/lib/features/search/SearchPanel.svelte:310 SearchResultItem -> src/lib/features/search/SearchResult.svelte
 mount src/lib/features/search/SearchPanel.svelte:314 SearchResultItem -> src/lib/features/search/SearchResult.svelte
 ## mounted-at
-mount src/lib/app/AppShell.svelte:246 SearchPanel -> src/lib/features/search/SearchPanel.svelte
+mount src/lib/app/AppShell.svelte:248 SearchPanel -> src/lib/features/search/SearchPanel.svelte
 ## calls
 call src/lib/features/search/SearchPanel.svelte:33 in $effect@28 -> src/lib/features/search/search.store.svelte.ts:searchStore.markFocusHandled mcall
 call src/lib/features/search/SearchPanel.svelte:39 in handleInput -> src/lib/features/search/search.store.svelte.ts:searchStore.setQuery mcall

@@ -14,8 +14,8 @@ out2 src/lib/features/todoist-sync/TodoistSyncStatus.svelte 6 files in 3 modules
 test src/tests/lib/features/todoist-sync/TodoistSyncStatus.test.ts imports src/lib/features/todoist-sync/TodoistSyncStatus.svelte mirror
 ## symbols
 sym src/lib/features/todoist-sync/TodoistSyncStatus.svelte:1 component TodoistSyncStatus L31
-by src/lib/features/todoist-sync/TodoistSyncStatus.svelte:default <- src/lib/app/AppShell.svelte:308 in (markup) mount
+by src/lib/features/todoist-sync/TodoistSyncStatus.svelte:default <- src/lib/app/AppShell.svelte:310 in (markup) mount
 ## mounted-at
-mount src/lib/app/AppShell.svelte:308 TodoistSyncStatus -> src/lib/features/todoist-sync/TodoistSyncStatus.svelte
+mount src/lib/app/AppShell.svelte:310 TodoistSyncStatus -> src/lib/features/todoist-sync/TodoistSyncStatus.svelte
 ## calls
 call src/lib/features/todoist-sync/TodoistSyncStatus.svelte:9 in label=$derived -> src/lib/features/todoist-sync/sync-scheduler.logic.ts:syncStatusLabel call

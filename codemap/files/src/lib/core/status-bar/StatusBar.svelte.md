@@ -8,6 +8,6 @@ in2 src/lib/core/status-bar/StatusBar.svelte 1 files in 1 modules: src/routes(1)
 out2 src/lib/core/status-bar/StatusBar.svelte 0 files in 0 modules: -
 ## symbols
 sym src/lib/core/status-bar/StatusBar.svelte:1 component StatusBar props:left,right L34
-by src/lib/core/status-bar/StatusBar.svelte:default <- src/lib/app/AppShell.svelte:302 in (markup) mount
+by src/lib/core/status-bar/StatusBar.svelte:default <- src/lib/app/AppShell.svelte:304 in (markup) mount
 ## mounted-at
-mount src/lib/app/AppShell.svelte:302 StatusBar -> src/lib/core/status-bar/StatusBar.svelte
+mount src/lib/app/AppShell.svelte:304 StatusBar -> src/lib/core/status-bar/StatusBar.svelte

@@ -18,7 +18,7 @@ out2 src/lib/app/rail-navigation.ts 30 files in 10 modules: src/lib/utils(6) src
 test src/tests/lib/app/rail-navigation.test.ts imports src/lib/app/rail-navigation.ts mirror
 ## symbols
 sym src/lib/app/rail-navigation.ts:14 fn selectRailItem(item: Pick<RailItem, 'key' | 'pin'>): void L11 | What a click on a rail item does, and the only place that decides it: the rail hands every click here (with the pin, for a pinned item), and so do the palette'…
-by src/lib/app/rail-navigation.ts:selectRailItem <- src/lib/app/AppShell.svelte:203 in (markup) markup
+by src/lib/app/rail-navigation.ts:selectRailItem <- src/lib/app/AppShell.svelte:205 in (markup) markup
 by src/lib/app/rail-navigation.ts:selectRailItem <- src/lib/app/commands.ts:71 in railGoToCommands call
 sym src/lib/app/rail-navigation.ts:32 fn openRailView(path: string, opensInEditor: boolean): void L7 | Does what a click on the view's Views row does, for the palette's Open view commands: a view with `_open_in_editor` opens in the editor and leaves the layout a…
 by src/lib/app/rail-navigation.ts:openRailView <- src/lib/app/commands.ts:108 in openViewCommands call

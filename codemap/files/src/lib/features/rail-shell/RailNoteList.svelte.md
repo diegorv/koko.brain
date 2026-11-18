@@ -68,7 +68,7 @@ test src/tests/lib/features/rail-shell/RailNoteList.toolbar.test.ts imports src/
 test src/tests/lib/features/rail-shell/RailNoteList.view.test.ts imports src/lib/features/rail-shell/RailNoteList.svelte mirror
 ## symbols
 sym src/lib/features/rail-shell/RailNoteList.svelte:1 component RailNoteList props:lens,firstPane= L984
-by src/lib/features/rail-shell/RailNoteList.svelte:default <- src/lib/app/AppShell.svelte:248 in (markup) mount
+by src/lib/features/rail-shell/RailNoteList.svelte:default <- src/lib/app/AppShell.svelte:250 in (markup) mount
 ## locals
 local src/lib/features/rail-shell/RailNoteList.svelte:137 fn lensContext(): LensContext L12
 local src/lib/features/rail-shell/RailNoteList.svelte:236 fn stepSeed(event: ViewSeedEvent): boolean L5
@@ -110,7 +110,7 @@ mount src/lib/features/rail-shell/RailNoteList.svelte:923 EmptyState -> src/lib/
 mount src/lib/features/rail-shell/RailNoteList.svelte:948 EmptyState -> src/lib/components/EmptyState.svelte
 mount src/lib/features/rail-shell/RailNoteList.svelte:971 NoteRow -> src/lib/features/note-list/NoteRow.svelte
 ## mounted-at
-mount src/lib/app/AppShell.svelte:248 RailNoteList -> src/lib/features/rail-shell/RailNoteList.svelte
+mount src/lib/app/AppShell.svelte:250 RailNoteList -> src/lib/features/rail-shell/RailNoteList.svelte
 ## calls
 call src/lib/features/rail-shell/RailNoteList.svelte:128 in $effect@126 -> src/lib/features/event-calendar/event-calendar.service.ts:acquireCalendarClock call
 call src/lib/features/rail-shell/RailNoteList.svelte:135 in shownLens=$derived -> src/lib/features/rail-shell/lens.logic.ts:todayLens call

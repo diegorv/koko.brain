@@ -1,8 +1,9 @@
 # module card src/lib/core/layout
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/core/layout ' codemap/modules
-module src/lib/core/layout core files 3 in-modules 5 out-modules 4 pub 8/10 ipc 0/0 card ~1k
+module src/lib/core/layout core files 3 in-modules 6 out-modules 4 pub 8/10 ipc 0/0 card ~1.1k
 ## neighbors
 dep src/lib/app -> src/lib/core/layout 4
+dep src/lib/core/markdown-editor -> src/lib/core/layout 1
 dep src/lib/features/backlinks -> src/lib/core/layout 1
 dep src/lib/features/outgoing-links -> src/lib/core/layout 1
 dep src/lib/features/properties -> src/lib/core/layout 1
@@ -16,10 +17,10 @@ out2 src/lib/core/layout 1 modules: src/lib/utils(2)
 ## entry files
 entry src/lib/core/layout/SidebarSection.svelte ext-in4 src/lib/features/backlinks/BacklinksPanel.svelte src/lib/features/outgoing-links/OutgoingLinksPanel.svelte src/lib/features/properties/PropertiesView.svelte src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte
 entry src/lib/core/layout/layout.service.ts ext-in3 src/lib/app/AppShell.svelte src/lib/app/commands.ts src/lib/app/global-keybindings.ts
-entry src/lib/core/layout/layout.logic.ts ext-in1 src/lib/app/AppShell.svelte
+entry src/lib/core/layout/layout.logic.ts ext-in2 src/lib/app/AppShell.svelte src/lib/core/markdown-editor/EditorTabs.svelte
 ## files
 file src/lib/core/layout/SidebarSection.svelte component L72 module src/lib/core/layout in4 t1
-file src/lib/core/layout/layout.logic.ts logic L38 module src/lib/core/layout in2 t1
+file src/lib/core/layout/layout.logic.ts logic L38 module src/lib/core/layout in3 t1
 file src/lib/core/layout/layout.service.ts service L62 module src/lib/core/layout in3 t1
 ## public
 sym src/lib/core/layout/SidebarSection.svelte:1 component SidebarSection props:title,open=$bindable,onOpenChange,children L72

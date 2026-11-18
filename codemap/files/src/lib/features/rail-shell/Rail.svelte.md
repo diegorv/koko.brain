@@ -29,7 +29,7 @@ test src/tests/lib/features/rail-shell/LayoutSection.test.ts imports src/lib/fea
 test src/tests/lib/plugins/mods/mod-rail-icon.test.ts imports src/lib/features/rail-shell/Rail.svelte
 ## symbols
 sym src/lib/features/rail-shell/Rail.svelte:1 component Rail props:activeItem,onSelect L380
-by src/lib/features/rail-shell/Rail.svelte:default <- src/lib/app/AppShell.svelte:201 in (markup) mount
+by src/lib/features/rail-shell/Rail.svelte:default <- src/lib/app/AppShell.svelte:203 in (markup) mount
 ## locals
 local src/lib/features/rail-shell/Rail.svelte:151 fn itemRow(item: RailItem): Row L11
 local src/lib/features/rail-shell/Rail.svelte:163 fn pinRow(pin: RailPin): Row L12
@@ -43,7 +43,7 @@ local src/lib/features/rail-shell/Rail.svelte:237 fn blockDragWhileResizing(even
 mount src/lib/features/rail-shell/Rail.svelte:341 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/rail-shell/Rail.svelte:348 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 ## mounted-at
-mount src/lib/app/AppShell.svelte:201 Rail -> src/lib/features/rail-shell/Rail.svelte
+mount src/lib/app/AppShell.svelte:203 Rail -> src/lib/features/rail-shell/Rail.svelte
 ## calls
 call src/lib/features/rail-shell/Rail.svelte:61 in inboxCount=$derived -> src/lib/features/type-definitions/inbox-workflow.logic.ts:getInboxCount call
 call src/lib/features/rail-shell/Rail.svelte:62 in inboxCount=$derived -> src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder call

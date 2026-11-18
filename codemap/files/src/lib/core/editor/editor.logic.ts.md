@@ -13,7 +13,7 @@ imp src/lib/core/editor/open-note-at.service.ts:3 -> src/lib/core/editor/editor.
 imp src/lib/core/filesystem/link-updater.service.ts:5 -> src/lib/core/editor/editor.logic.ts isTabDirty
 imp src/lib/core/filesystem/path-change.service.ts:9 -> src/lib/core/editor/editor.logic.ts isTabDirty,isVirtualTab
 imp src/lib/core/layout/layout.logic.ts:1 -> src/lib/core/editor/editor.logic.ts EVENT_CALENDAR_VIRTUAL_PATH,getFileName,GRAPH_VIRTUAL_PATH,TAGS_VIRTUAL_PATH,TASKS_VIRTUAL_PATH
-imp src/lib/core/markdown-editor/EditorTabs.svelte:13 -> src/lib/core/editor/editor.logic.ts isTabDirty,isTabPinned,isVirtualTab
+imp src/lib/core/markdown-editor/EditorTabs.svelte:15 -> src/lib/core/editor/editor.logic.ts isTabDirty,isTabPinned,isVirtualTab
 imp src/lib/core/markdown-editor/MarkdownEditor.svelte:23 -> src/lib/core/editor/editor.logic.ts findTabIndex,getPositionAfterFrontmatter
 imp src/lib/core/status-bar/SaveStatus.svelte:5 -> src/lib/core/editor/editor.logic.ts isTabDirty,isVirtualTab
 imp src/lib/features/auto-organize/auto-organize.service.ts:6 -> src/lib/core/editor/editor.logic.ts isTabDirty
@@ -67,7 +67,7 @@ sym src/lib/core/editor/editor.logic.ts:18 fn isVirtualTab(tab: Pick<EditorTab, 
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/app/EditorView.svelte:44 in isVirtual=$derived call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/editor/editor.service.ts:238 in writeTab call +4
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/filesystem/path-change.service.ts:67 in saveDirtyTabsUnder call
-by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/markdown-editor/EditorTabs.svelte:64 in (markup) markup
+by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/markdown-editor/EditorTabs.svelte:147 in (markup) markup +1
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/status-bar/SaveStatus.svelte:9 in status=$derived call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/features/search/SemanticIndexStatus.svelte:31 in $effect@29 call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/plugins/word-count/WordCount.svelte:13 in isMarkdown=$derived call
@@ -90,7 +90,7 @@ sym src/lib/core/editor/editor.logic.ts:45 fn isTabDirty(tab: Pick<EditorTab, 'c
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/editor/editor.service.ts:238 in writeTab call +4
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/filesystem/link-updater.service.ts:53 in updateLinksAfterRename call
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/filesystem/path-change.service.ts:67 in saveDirtyTabsUnder call
-by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/markdown-editor/EditorTabs.svelte:64 in (markup) markup
+by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/markdown-editor/EditorTabs.svelte:147 in (markup) markup +1
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/status-bar/SaveStatus.svelte:10 in status=$derived call
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/features/auto-organize/auto-organize.service.ts:482 in applyRename call
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/features/tasks/tasks.service.ts:344 in preflightTaskWrite call
@@ -98,7 +98,7 @@ by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/features/type-defin
 more by 1 not shown: src/lib/plugins/mods(1): q importers src/lib/core/editor/editor.logic.ts:isTabDirty
 sym src/lib/core/editor/editor.logic.ts:50 fn isTabPinned(tab: Pick<EditorTab, 'pinned'>): boolean L3 | Returns whether a tab is pinned
 by src/lib/core/editor/editor.logic.ts:isTabPinned <- src/lib/core/editor/editor.service.ts:365 in closeTab call
-by src/lib/core/editor/editor.logic.ts:isTabPinned <- src/lib/core/markdown-editor/EditorTabs.svelte:48 in (markup) markup
+by src/lib/core/editor/editor.logic.ts:isTabPinned <- src/lib/core/markdown-editor/EditorTabs.svelte:130 in (markup) markup +1
 sym src/lib/core/editor/editor.logic.ts:58 fn getPinnedBoundary(tabs: Pick<EditorTab, 'pinned'>[]): number L8 | Returns the boundary index between pinned and unpinned tabs.
 by src/lib/core/editor/editor.logic.ts:getPinnedBoundary <- src/lib/core/editor/editor.store.svelte.ts:54 in editorStore.addTab call
 sym src/lib/core/editor/editor.logic.ts:73 fn reorderTabsAfterPinChange(tabs: EditorTab[], tabIndex: number, activeIndex: number, pin: boolean): { tabs: EditorTab[]; activeIndex: number } L31 | Computes the new active index after pinning/unpinning a tab.

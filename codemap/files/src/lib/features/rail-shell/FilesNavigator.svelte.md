@@ -42,7 +42,7 @@ test src/tests/lib/features/rail-shell/FilesNavigator.test.ts imports src/lib/fe
 test src/tests/lib/app/commands.new-commands.test.ts imports src/lib/features/rail-shell/FilesNavigator.svelte
 ## symbols
 sym src/lib/features/rail-shell/FilesNavigator.svelte:1 component FilesNavigator props:picked,expanded,onPick,onToggle,onPickView L579
-by src/lib/features/rail-shell/FilesNavigator.svelte:default <- src/lib/app/AppShell.svelte:223 in (markup) mount
+by src/lib/features/rail-shell/FilesNavigator.svelte:default <- src/lib/app/AppShell.svelte:225 in (markup) mount
 ## locals
 local src/lib/features/rail-shell/FilesNavigator.svelte:149 fn lensFor(dir: string): Lens L3
 local src/lib/features/rail-shell/FilesNavigator.svelte:154 fn runOrToast<T>(verb: string, name: string, op: () => Promise<T>): Promise<T | null> L9
@@ -73,7 +73,7 @@ mount src/lib/features/rail-shell/FilesNavigator.svelte:478 ViewDialog -> src/li
 mount src/lib/features/rail-shell/FilesNavigator.svelte:486 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/rail-shell/FilesNavigator.svelte:560 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 ## mounted-at
-mount src/lib/app/AppShell.svelte:223 FilesNavigator -> src/lib/features/rail-shell/FilesNavigator.svelte
+mount src/lib/app/AppShell.svelte:225 FilesNavigator -> src/lib/features/rail-shell/FilesNavigator.svelte
 ## calls
 call src/lib/features/rail-shell/FilesNavigator.svelte:90 in isSystem=$derived -> src/lib/features/rail-shell/lens.logic.ts:systemFolderPredicate call
 call src/lib/features/rail-shell/FilesNavigator.svelte:98 in topFolders=$derived -> src/lib/features/rail-shell/lens.logic.ts:navigatorFolders call

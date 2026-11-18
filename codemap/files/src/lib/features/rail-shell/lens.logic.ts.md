@@ -92,7 +92,7 @@ by src/lib/features/rail-shell/lens.logic.ts:FAVORITES_LENS <- src/lib/features/
 sym src/lib/features/rail-shell/lens.logic.ts:91 const ARCHIVE_LENS: Lens L1 | The Archive rail item's lens.
 by src/lib/features/rail-shell/lens.logic.ts:ARCHIVE_LENS <- src/lib/features/rail-shell/list-empty.logic.ts:134 in explainEmptyList member
 sym src/lib/features/rail-shell/lens.logic.ts:97 const SEARCH_LENS: Lens L1 | The Search rail item's lens.
-by src/lib/features/rail-shell/lens.logic.ts:SEARCH_LENS <- src/lib/app/AppShell.svelte:245 in (markup) markup
+by src/lib/features/rail-shell/lens.logic.ts:SEARCH_LENS <- src/lib/app/AppShell.svelte:247 in (markup) markup
 sym src/lib/features/rail-shell/lens.logic.ts:100 const UNTYPED_LENS: Lens L1 | The Untyped row of the Types navigator: notes with no type.
 by src/lib/features/rail-shell/lens.logic.ts:UNTYPED_LENS <- src/lib/features/rail-shell/list-empty.logic.ts:136 in explainEmptyList member
 sym src/lib/features/rail-shell/lens.logic.ts:106 const TYPES_LENS: Lens L1 | The Types rail item's lens before a navigator row is picked.
@@ -216,11 +216,11 @@ by src/lib/features/rail-shell/lens.logic.ts:systemFoldersLast <- src/lib/featur
 sym src/lib/features/rail-shell/lens.logic.ts:1045 fn pickedFolderLens(saved: unknown): Lens L3 | The Files navigator's pick saved in `layout.railFolder` as a lens; anything but a non-empty string is the vault root.
 by src/lib/features/rail-shell/lens.logic.ts:pickedFolderLens <- src/lib/app/AppShell.svelte:150 in railLens=$derived call
 sym src/lib/features/rail-shell/lens.logic.ts:1050 fn parseExpandedFolders(saved: unknown): string[] L3 | The expanded folders saved in `layout.railExpandedFolders`; a hand-edited non-array reads as none, non-strings are dropped.
-by src/lib/features/rail-shell/lens.logic.ts:parseExpandedFolders <- src/lib/app/AppShell.svelte:225 in (markup) markup
+by src/lib/features/rail-shell/lens.logic.ts:parseExpandedFolders <- src/lib/app/AppShell.svelte:227 in (markup) markup
 sym src/lib/features/rail-shell/lens.logic.ts:1063 fn staleFolderPickFix(railItem: unknown, savedPick: unknown, savedExpanded: unknown, tree: readonly FileTreeNode[], vaultPath: string): Pick… L19 | The layout change that drops what the Files navigator saved but the tree no longer holds: a picked folder that is gone clears the pick and, when Files is the a…
 by src/lib/features/rail-shell/lens.logic.ts:staleFolderPickFix <- src/lib/app/AppShell.svelte:175 in $effect@161 call
 sym src/lib/features/rail-shell/lens.logic.ts:1084 fn toggleExpandedFolder(savedExpanded: unknown, path: string): string[] L4 | The expanded folder list after a chevron click on `path`: added when collapsed, removed when expanded.
-by src/lib/features/rail-shell/lens.logic.ts:toggleExpandedFolder <- src/lib/app/AppShell.svelte:229 in (markup) markup
+by src/lib/features/rail-shell/lens.logic.ts:toggleExpandedFolder <- src/lib/app/AppShell.svelte:231 in (markup) markup
 sym src/lib/features/rail-shell/lens.logic.ts:1096 fn followTypesPickPathChange(saved: unknown, from: string, to: string | null): Pick<Partial<LayoutSettings>, 'railTypesLens'> | null L11 | The layout change that makes a saved Types pick follow a path change: a view pick whose `.view`, or a folder holding it, was renamed or moved takes the new pat…
 by src/lib/features/rail-shell/lens.logic.ts:followTypesPickPathChange <- src/lib/features/rail-shell/types-navigator.service.ts:17 in registerTypesNavigatorPathChangeConsumer call
 sym src/lib/features/rail-shell/lens.logic.ts:1115 fn followRailPinPathChange(railItem: unknown, from: string, to: string | null): Pick<Partial<LayoutSettings>, 'railItem'> | null L7 | The layout change that makes the rail follow a path change: a pinned view the rail shows whose `.view`, or a folder holding it, was renamed or moved stays on t…

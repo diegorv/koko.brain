@@ -13,6 +13,6 @@ out2 src/lib/features/search/SearchStatus.svelte 4 files in 2 modules: src/lib/c
 test src/tests/lib/features/search/SearchStatus.test.ts imports src/lib/features/search/SearchStatus.svelte mirror
 ## symbols
 sym src/lib/features/search/SearchStatus.svelte:1 component SearchStatus L29
-by src/lib/features/search/SearchStatus.svelte:default <- src/lib/app/AppShell.svelte:304 in (markup) mount
+by src/lib/features/search/SearchStatus.svelte:default <- src/lib/app/AppShell.svelte:306 in (markup) mount
 ## mounted-at
-mount src/lib/app/AppShell.svelte:304 SearchStatus -> src/lib/features/search/SearchStatus.svelte
+mount src/lib/app/AppShell.svelte:306 SearchStatus -> src/lib/features/search/SearchStatus.svelte
