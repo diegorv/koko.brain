@@ -6,7 +6,7 @@ imp src/lib/features/collection/toolbar/properties.logic.ts:1 -> src/lib/core/fi
 imp src/lib/features/collection/toolbar/properties.logic.ts:2 -> src/lib/features/collection/collection.types.ts type:CollectionDefinition,type:PropertyIndexRecord
 ## imported-by
 imp src/lib/features/collection/CollectionView.svelte:29 -> src/lib/features/collection/toolbar/properties.logic.ts getAllAvailableColumns
-imp src/lib/features/collection/toolbar/PropertiesPanel.svelte:4 -> src/lib/features/collection/toolbar/properties.logic.ts toggleColumn
+imp src/lib/features/collection/toolbar/PropertiesPanel.svelte:5 -> src/lib/features/collection/toolbar/properties.logic.ts toggleColumn
 ## reach
 in2 src/lib/features/collection/toolbar/properties.logic.ts 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/collection/toolbar/properties.logic.ts 3 files in 3 modules: src/lib/core/filesystem(1) src/lib/features/collection(1) src/lib/utils(1)
@@ -17,6 +17,6 @@ test src/tests/lib/features/collection/toolbar/suggestions-skip-views.test.ts im
 sym src/lib/features/collection/toolbar/properties.logic.ts:8 fn getAllAvailableColumns(index: Map<string, PropertyIndexRecord>, definition: CollectionDefinition): string[] L34 | Returns all possible columns: file.*, the notes' frontmatter properties, formula.* Sorted: file.name first, then frontmatter (alphabetical), then formulas (alp…
 by src/lib/features/collection/toolbar/properties.logic.ts:getAllAvailableColumns <- src/lib/features/collection/CollectionView.svelte:230 in allColumns=$derived call
 sym src/lib/features/collection/toolbar/properties.logic.ts:47 fn toggleColumn(currentOrder: string[], column: string, visible: boolean, allColumns: string[]): string[] L34 | Toggles a column's visibility by adding or removing it from the order array.
-by src/lib/features/collection/toolbar/properties.logic.ts:toggleColumn <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:62 in handleToggle call
+by src/lib/features/collection/toolbar/properties.logic.ts:toggleColumn <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:63 in handleToggle call
 ## calls
 call src/lib/features/collection/toolbar/properties.logic.ts:24 in getAllAvailableColumns -> src/lib/core/filesystem/fs.logic.ts:isViewFile call

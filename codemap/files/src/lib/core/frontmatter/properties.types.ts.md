@@ -21,7 +21,7 @@ imp src/lib/features/properties/properties.store.svelte.ts:1 -> src/lib/core/fro
 imp src/lib/features/rail-shell/list-prefs.service.ts:3 -> src/lib/core/frontmatter/properties.types.ts type:Property
 imp src/lib/features/todoist-sync/sync-now.service.ts:23 -> src/lib/core/frontmatter/properties.types.ts type:Property
 ## reach
-in2 src/lib/core/frontmatter/properties.types.ts 53 files in 17 modules: src/lib/features/event-calendar(10) src/lib/core/markdown-editor(8) src/lib/app(5) src/lib/features/collection(5) src/lib/features/auto-organize(4) +12 modules: q impact src/lib/core/frontmatter/properties.types.ts --depth 2
+in2 src/lib/core/frontmatter/properties.types.ts 54 files in 17 modules: src/lib/features/event-calendar(10) src/lib/core/markdown-editor(8) src/lib/features/collection(6) src/lib/app(5) src/lib/features/auto-organize(4) +12 modules: q impact src/lib/core/frontmatter/properties.types.ts --depth 2
 out2 src/lib/core/frontmatter/properties.types.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/core/frontmatter/frontmatter-write.service.test.ts imports-type src/lib/core/frontmatter/properties.types.ts

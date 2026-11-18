@@ -4,13 +4,13 @@ file src/lib/utils/tag-extraction.ts other L152 module src/lib/utils in7 t4
 ## imported-by
 imp src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts:4 -> src/lib/utils/tag-extraction.ts findInlineTags
 imp src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/tag-handler.ts:2 -> src/lib/utils/tag-extraction.ts findInlineTags
-imp src/lib/features/collection/collection.logic.ts:14 -> src/lib/utils/tag-extraction.ts extractAllTags
+imp src/lib/features/collection/collection.logic.ts:15 -> src/lib/utils/tag-extraction.ts extractAllTags
 imp src/lib/features/search/search.logic.ts:3 -> src/lib/utils/tag-extraction.ts extractFrontmatterTags
 imp src/lib/features/tasks/task-headings.logic.ts:1 -> src/lib/utils/tag-extraction.ts findInlineTags
 imp src/lib/features/tasks/task-query.logic.ts:4 -> src/lib/utils/tag-extraction.ts findInlineTags
 imp src/lib/features/todoist-sync/task-line.logic.ts:12 -> src/lib/utils/tag-extraction.ts findInlineTags,INLINE_TAG_NAME_SOURCE
 ## reach
-in2 src/lib/utils/tag-extraction.ts 28 files in 8 modules: src/lib/features/collection(6) src/lib/features/tasks(6) src/lib/features/todoist-sync(6) src/lib/features/auto-organize(3) src/lib/features/search(3) +3 modules: q impact src/lib/utils/tag-extraction.ts --depth 2
+in2 src/lib/utils/tag-extraction.ts 30 files in 8 modules: src/lib/features/collection(8) src/lib/features/tasks(6) src/lib/features/todoist-sync(6) src/lib/features/auto-organize(3) src/lib/features/search(3) +3 modules: q impact src/lib/utils/tag-extraction.ts --depth 2
 out2 src/lib/utils/tag-extraction.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/utils/tag-extraction.test.ts imports src/lib/utils/tag-extraction.ts mirror
@@ -31,7 +31,7 @@ by src/lib/utils/tag-extraction.ts:findInlineTags <- src/lib/features/tasks/task
 by src/lib/utils/tag-extraction.ts:findInlineTags <- src/lib/features/tasks/task-query.logic.ts:713 in sourceSuggestions call
 by src/lib/utils/tag-extraction.ts:findInlineTags <- src/lib/features/todoist-sync/task-line.logic.ts:165 in isTaskTagName call +1
 sym src/lib/utils/tag-extraction.ts:137 fn extractAllTags(content: string): string[] L16
-by src/lib/utils/tag-extraction.ts:extractAllTags <- src/lib/features/collection/collection.logic.ts:69 in projectDerivedProperties call
+by src/lib/utils/tag-extraction.ts:extractAllTags <- src/lib/features/collection/collection.logic.ts:70 in projectDerivedProperties call
 ## locals
 local src/lib/utils/tag-extraction.ts:14 fn findTopLevelKey(lines: string[], key: string): number L34
 ## calls

@@ -13,10 +13,10 @@ imp src/lib/features/collection/expression/evaluator.ts:7 -> src/lib/utils/color
 imp src/lib/features/collection/expression/evaluator.ts:8 -> src/lib/utils/clamp.ts clamp
 ## imported-by
 imp src/lib/features/auto-organize/auto-organize.logic.ts:13 -> src/lib/features/collection/expression/evaluator.ts evaluateExpression,validateExpression,type:EvalContext
-imp src/lib/features/collection/collection.logic.ts:10 -> src/lib/features/collection/expression/evaluator.ts evaluate,validateExpression,type:EvalContext
+imp src/lib/features/collection/collection.logic.ts:11 -> src/lib/features/collection/expression/evaluator.ts evaluate,validateExpression,type:EvalContext
 imp src/lib/features/collection/toolbar/FilterRow.svelte:17 -> src/lib/features/collection/expression/evaluator.ts validateExpression
 ## reach
-in2 src/lib/features/collection/expression/evaluator.ts 13 files in 4 modules: src/lib/features/collection(7) src/lib/features/auto-organize(4) src/lib/features/rail-shell(1) src/lib/plugins/mods(1)
+in2 src/lib/features/collection/expression/evaluator.ts 15 files in 4 modules: src/lib/features/collection(9) src/lib/features/auto-organize(4) src/lib/features/rail-shell(1) src/lib/plugins/mods(1)
 out2 src/lib/features/collection/expression/evaluator.ts 2 files in 1 modules: src/lib/features/collection(2)
 ## tests
 test src/tests/lib/features/collection/expression/evaluator.test.ts imports src/lib/features/collection/expression/evaluator.ts mirror
@@ -26,15 +26,15 @@ test src/tests/lib/features/collection/expression/methods.test.ts imports src/li
 ## symbols
 sym src/lib/features/collection/expression/evaluator.ts:11 interface EvalContext L8 | Context provided to the evaluator for resolving properties and formulas
 by src/lib/features/collection/expression/evaluator.ts:EvalContext <- src/lib/features/auto-organize/auto-organize.logic.ts:16 in (module) import
-by src/lib/features/collection/expression/evaluator.ts:EvalContext <- src/lib/features/collection/collection.logic.ts:10 in (module) import
+by src/lib/features/collection/expression/evaluator.ts:EvalContext <- src/lib/features/collection/collection.logic.ts:11 in (module) import
 sym src/lib/features/collection/expression/evaluator.ts:40 fn evaluate(node: ASTNode, ctx: EvalContext, formulaDepth = 0): unknown L32 | Evaluates a parsed AST node against a context.
-by src/lib/features/collection/expression/evaluator.ts:evaluate <- src/lib/features/collection/collection.logic.ts:190 in executeQuery call +2
+by src/lib/features/collection/expression/evaluator.ts:evaluate <- src/lib/features/collection/collection.logic.ts:191 in executeQuery call +2
 sym src/lib/features/collection/expression/evaluator.ts:77 fn evaluateExpression(expression: string, ctx: EvalContext): unknown L4 | Parses and evaluates an expression string in one call.
 by src/lib/features/collection/expression/evaluator.ts:evaluateExpression <- src/lib/features/auto-organize/auto-organize.logic.ts:75 in ruleMatches call +2
 sym src/lib/features/collection/expression/evaluator.ts:296 const PLAIN_FUNCTIONS: ReadonlySet<string> L5 | The plain (dot-free) function names `evaluateCall` handles.
 sym src/lib/features/collection/expression/evaluator.ts:308 fn validateExpression(expression: string): string | undefined L10 | Checks an expression without running it: it must parse and every plain function it calls must be one the evaluator handles.
 by src/lib/features/collection/expression/evaluator.ts:validateExpression <- src/lib/features/auto-organize/auto-organize.logic.ts:39 in filterProblem call +2
-by src/lib/features/collection/expression/evaluator.ts:validateExpression <- src/lib/features/collection/collection.logic.ts:238 in findItemError call
+by src/lib/features/collection/expression/evaluator.ts:validateExpression <- src/lib/features/collection/collection.logic.ts:239 in findItemError call
 by src/lib/features/collection/expression/evaluator.ts:validateExpression <- src/lib/features/collection/toolbar/FilterRow.svelte:44 in rawError=$derived call
 ## locals
 local src/lib/features/collection/expression/evaluator.ts:23 fn escapeForHtml(str: string): string L12

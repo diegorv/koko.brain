@@ -1,7 +1,7 @@
 # module card src/lib/features/collection
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/features/collection ' codemap/modules
 sections: neighbors, entry files, files, public, stores, effects, debt
-module src/lib/features/collection features files 32 in-modules 6 out-modules 9 pub 49/157 ipc 1/0 card ~6.4k
+module src/lib/features/collection features files 32 in-modules 6 out-modules 9 pub 49/161 ipc 1/0 card ~6.4k
 ## neighbors
 dep src/lib/app -> src/lib/features/collection 8
 dep src/lib/features/auto-organize -> src/lib/features/collection 18
@@ -40,11 +40,11 @@ entry src/lib/features/collection/toolbar/SortPanel.svelte ext-in1 src/lib/featu
 ## files
 file src/lib/features/collection/CollectionCalendarView.svelte component L172 module src/lib/features/collection in1 t0
 file src/lib/features/collection/CollectionLinearCalendarView.svelte component L219 module src/lib/features/collection in1 t0
-file src/lib/features/collection/CollectionTableView.svelte component L97 module src/lib/features/collection in1 t1
+file src/lib/features/collection/CollectionTableView.svelte component L108 module src/lib/features/collection in1 t1
 file src/lib/features/collection/CollectionView.svelte component L736 module src/lib/features/collection in1 t4
 file src/lib/features/collection/calendar.logic.ts logic L179 module src/lib/features/collection in3 t2
 file src/lib/features/collection/collection-block-widget.ts other L507 module src/lib/features/collection in2 t6
-file src/lib/features/collection/collection.logic.ts logic L505 module src/lib/features/collection in11 t32
+file src/lib/features/collection/collection.logic.ts logic L541 module src/lib/features/collection in13 t32
 file src/lib/features/collection/collection.service.ts service L220 module src/lib/features/collection in4 t22
 file src/lib/features/collection/collection.store.svelte.ts store L83 module src/lib/features/collection in13 t45
 file src/lib/features/collection/collection.types.ts types L117 module src/lib/features/collection in37 t0
@@ -61,12 +61,12 @@ file src/lib/features/collection/toolbar/CalendarConfigPanel.svelte component L1
 file src/lib/features/collection/toolbar/FilterPanel.svelte component L216 module src/lib/features/collection in4 t1
 file src/lib/features/collection/toolbar/FilterRow.svelte component L188 module src/lib/features/collection in1 t1
 file src/lib/features/collection/toolbar/FormulaRow.svelte component L91 module src/lib/features/collection in1 t1
-file src/lib/features/collection/toolbar/PropertiesPanel.svelte component L168 module src/lib/features/collection in1 t0
-file src/lib/features/collection/toolbar/SortPanel.svelte component L159 module src/lib/features/collection in2 t0
+file src/lib/features/collection/toolbar/PropertiesPanel.svelte component L169 module src/lib/features/collection in1 t1
+file src/lib/features/collection/toolbar/SortPanel.svelte component L160 module src/lib/features/collection in2 t1
 file src/lib/features/collection/toolbar/filter.logic.ts logic L560 module src/lib/features/collection in9 t9
 file src/lib/features/collection/toolbar/formula.logic.ts logic L144 module src/lib/features/collection in3 t2
 file src/lib/features/collection/toolbar/properties.logic.ts logic L80 module src/lib/features/collection in2 t2
-file src/lib/features/collection/toolbar/sort.logic.ts logic L54 module src/lib/features/collection in1 t1
+file src/lib/features/collection/toolbar/sort.logic.ts logic L72 module src/lib/features/collection in2 t1
 file src/lib/features/collection/toolbar/toolbar.types.ts types L106 module src/lib/features/collection in13 t1
 file src/lib/features/collection/view-row-set.port.ts other L65 module src/lib/features/collection in4 t2
 file src/lib/features/collection/yaml-parser.ts other L430 module src/lib/features/collection in11 t18
@@ -74,10 +74,10 @@ file src/lib/features/collection/yaml-parser.ts other L430 module src/lib/featur
 sym src/lib/features/collection/CollectionView.svelte:1 component CollectionView props:path,yamlContent,onYamlChange,rewriteView L736
 sym src/lib/features/collection/collection-block-widget.ts:68 fn clearCollectionCache(): void L3 | Drops all cached renders.
 sym src/lib/features/collection/collection-block-widget.ts:418 const collectionBlockRenderer: FencedBlockRenderer L7 | Renders `` ```collection `` blocks; the app installs it in the editor's `fencedBlockRenderers`.
-sym src/lib/features/collection/collection.logic.ts:22 fn buildNoteRecord(filePath: string, content: string, mtime = 0, ctime = 0, size = 0): PropertyIndexRecord L22 | Builds a PropertyIndexRecord from a file path and its content.
-sym src/lib/features/collection/collection.logic.ts:132 fn executeQuery(definition: CollectionDefinition, view: CollectionViewDef, index: Map<string, PropertyIndexRecord>, vaultPath: string … L91 | Executes a query against the property index using a collection definition and view.
-sym src/lib/features/collection/collection.logic.ts:270 fn filterCitesArchived(filter: FilterItem | undefined): boolean L15 | Whether a filter cites the archived flag, which hands the archived rows of a `.view` to the filter instead of the default exclusion.
-sym src/lib/features/collection/collection.logic.ts:326 fn evaluateFilter(filter: FilterItem, ctx: EvalContext, onLeafError?: (err: unknown) => void): boolean L26 | Evaluates a filter item (string expression or recursive filter object) against a note record.
+sym src/lib/features/collection/collection.logic.ts:23 fn buildNoteRecord(filePath: string, content: string, mtime = 0, ctime = 0, size = 0): PropertyIndexRecord L22 | Builds a PropertyIndexRecord from a file path and its content.
+sym src/lib/features/collection/collection.logic.ts:133 fn executeQuery(definition: CollectionDefinition, view: CollectionViewDef, index: Map<string, PropertyIndexRecord>, vaultPath: string … L91 | Executes a query against the property index using a collection definition and view.
+sym src/lib/features/collection/collection.logic.ts:271 fn filterCitesArchived(filter: FilterItem | undefined): boolean L15 | Whether a filter cites the archived flag, which hands the archived rows of a `.view` to the filter instead of the default exclusion.
+sym src/lib/features/collection/collection.logic.ts:327 fn evaluateFilter(filter: FilterItem, ctx: EvalContext, onLeafError?: (err: unknown) => void): boolean L26 | Evaluates a filter item (string expression or recursive filter object) against a note record.
 sym src/lib/features/collection/collection.service.ts:30 fn createCollectionFile(parentPath: string): Promise<string> L6 | Creates the `Untitled.view` of New table in `parentPath` (`Untitled 1.view` when taken) with `NEW_TABLE_TEMPLATE`.
 sym src/lib/features/collection/collection.service.ts:90 fn buildPropertyIndex(): Promise<void> L22 | Builds the property index from the Rust `VaultIndex`.
 sym src/lib/features/collection/collection.service.ts:118 fn propertyIndexNeedsWholeRead(): boolean L3 | Whether the property index needs a whole read before per-path deltas can keep it current: it was never built, or the latest whole read failed (a failed full-re…
@@ -100,7 +100,7 @@ sym src/lib/features/collection/expression/expression.types.ts:74 type ASTNode L
 sym src/lib/features/collection/expression/parser.ts:8 fn parse(expression: string): ASTNode L203 | Parses an expression string into an AST using recursive descent.
 sym src/lib/features/collection/key-edit.logic.ts:34 fn sortedJson(value: unknown): string L7 | JSON with the keys of every object sorted, so key order never makes two values differ.
 sym src/lib/features/collection/toolbar/FilterPanel.svelte:1 component FilterPanel props:globalFilters,viewFilters,availableProperties,propertyIndex,onGlobalFiltersChange,onViewFiltersChange,showGlobal= L216
-sym src/lib/features/collection/toolbar/SortPanel.svelte:1 component SortPanel props:sorts,availableProperties,propertyConfigs,propertyIndex,onSortsChange,emptyText= L159
+sym src/lib/features/collection/toolbar/SortPanel.svelte:1 component SortPanel props:sorts,availableProperties,propertyConfigs,propertyIndex,onSortsChange,emptyText= L160
 sym src/lib/features/collection/toolbar/filter.logic.ts:22 fn parseExpressionToRow(expr: string): FilterRow L10 | Tries to parse a simple expression into a visual FilterRow.
 sym src/lib/features/collection/toolbar/filter.logic.ts:38 fn filterRowToExpression(row: FilterRow): string L51 | Converts a FilterRow back into an expression string for YAML serialization.
 sym src/lib/features/collection/toolbar/filter.logic.ts:94 fn parseFilterToGroups(filter: CollectionFilter | string | undefined): FilterGroup[] L47 | Converts a CollectionFilter or string (from YAML) into FilterGroup[] for the visual UI.

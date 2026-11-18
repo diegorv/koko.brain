@@ -6,7 +6,7 @@ imp src/lib/features/collection/expression/parser.ts:1 -> src/lib/features/colle
 imp src/lib/features/collection/expression/parser.ts:2 -> src/lib/features/collection/expression/tokenizer.ts tokenize,type:Token
 ## imported-by
 imp src/lib/features/auto-organize/auto-organize.logic.ts:19 -> src/lib/features/collection/expression/parser.ts parse
-imp src/lib/features/collection/collection.logic.ts:11 -> src/lib/features/collection/expression/parser.ts parse
+imp src/lib/features/collection/collection.logic.ts:12 -> src/lib/features/collection/expression/parser.ts parse
 imp src/lib/features/collection/expression/evaluator.ts:2 -> src/lib/features/collection/expression/parser.ts parse
 imp src/lib/features/collection/toolbar/filter.logic.ts:3 -> src/lib/features/collection/expression/parser.ts parse
 imp src/lib/features/collection/toolbar/formula.logic.ts:2 -> src/lib/features/collection/expression/parser.ts parse
@@ -18,7 +18,7 @@ test src/tests/lib/features/collection/expression/parser.test.ts imports src/lib
 ## symbols
 sym src/lib/features/collection/expression/parser.ts:8 fn parse(expression: string): ASTNode L203 | Parses an expression string into an AST using recursive descent.
 by src/lib/features/collection/expression/parser.ts:parse <- src/lib/features/auto-organize/auto-organize.logic.ts:460 in inputsRead call +1
-by src/lib/features/collection/expression/parser.ts:parse <- src/lib/features/collection/collection.logic.ts:156 in executeQuery call +3
+by src/lib/features/collection/expression/parser.ts:parse <- src/lib/features/collection/collection.logic.ts:157 in executeQuery call +3
 by src/lib/features/collection/expression/parser.ts:parse <- src/lib/features/collection/expression/evaluator.ts:78 in evaluateExpression call +2
 by src/lib/features/collection/expression/parser.ts:parse <- src/lib/features/collection/toolbar/filter.logic.ts:24 in parseExpressionToRow call
 by src/lib/features/collection/expression/parser.ts:parse <- src/lib/features/collection/toolbar/formula.logic.ts:103 in validateFormulaExpression call
