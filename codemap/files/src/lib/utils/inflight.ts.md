@@ -18,7 +18,7 @@ by src/lib/utils/inflight.ts:dedupeInflight <- src/lib/features/backlinks/backli
 by src/lib/utils/inflight.ts:dedupeInflight <- src/lib/features/outgoing-links/outgoing-links.service.ts:91 in fetchOutgoingLinksV2 call
 sym src/lib/utils/inflight.ts:65 fn serializeWithRerun(task: () => Promise<void>): () => Promise<void> L23 | Wraps an async task so runs never overlap.
 by src/lib/utils/inflight.ts:serializeWithRerun <- src/lib/app/lifecycle/app-lifecycle.service.ts:506 in initializeVault call
-by src/lib/utils/inflight.ts:serializeWithRerun <- src/lib/plugins/mods/mods-host.service.ts:1030 in requestReload call
+by src/lib/utils/inflight.ts:serializeWithRerun <- src/lib/plugins/mods/mods-host.service.ts:1038 in requestReload call
 sym src/lib/utils/inflight.ts:90 interface VersionGated L13 | A memoized async read whose cache entry is keyed on a caller-supplied version.
 sym src/lib/utils/inflight.ts:124 fn versionGated<T>(fn: () => Promise<T>, versionOf: () => number): VersionGated<T> L32 | Memoizes a single-value async read, keyed on a monotonic version the caller supplies.
 by src/lib/utils/inflight.ts:versionGated <- src/lib/core/vault/vault-entries.service.ts:26 in vaultEntriesMemo call

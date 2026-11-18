@@ -39,7 +39,7 @@ store src/lib/plugins/mods/mod-dialogs.store.svelte.ts:73 modDialogsStore get 2 
 store src/lib/plugins/mods/mod-picker.store.svelte.ts:31 modPickerStore get 6 set 0 do 6 readers 1 writers 2 card codemap/files/src/lib/plugins/mods/mod-picker.store.svelte.ts.md
 store src/lib/plugins/mods/mods-enabled.store.svelte.ts:46 modsEnabledStore get 2 set 0 do 3 readers 3 writers 2 card codemap/files/src/lib/plugins/mods/mods-enabled.store.svelte.ts.md
 store src/lib/plugins/mods/mods-runs.store.svelte.ts:59 modsRunsStore get 1 set 0 do 11 readers 0 writers 3 card codemap/files/src/lib/plugins/mods/mods-runs.store.svelte.ts.md
-store src/lib/plugins/mods/mods.store.svelte.ts:52 modsStore get 1 set 0 do 7 readers 2 writers 2 card codemap/files/src/lib/plugins/mods/mods.store.svelte.ts.md
+store src/lib/plugins/mods/mods.store.svelte.ts:54 modsStore get 1 set 0 do 7 readers 2 writers 2 card codemap/files/src/lib/plugins/mods/mods.store.svelte.ts.md
 store src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:12 oneOnOneStore get 3 set 0 do 5 readers 1 writers 2 card codemap/files/src/lib/plugins/one-on-one/one-on-one.store.svelte.ts.md
 store src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:72 queryjsSessionStore get 3 set 0 do 12 readers 0 writers 4 card codemap/files/src/lib/plugins/queryjs/queryjs-session.store.svelte.ts.md
 store src/lib/plugins/table-of-contents/toc.store.svelte.ts:14 tocStore get 2 set 0 do 3 readers 1 writers 2 card codemap/files/src/lib/plugins/table-of-contents/toc.store.svelte.ts.md

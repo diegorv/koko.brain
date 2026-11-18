@@ -27,7 +27,7 @@ test src/tests/lib/plugins/mods/mods-host.service.test.ts mocks src/lib/core/fil
 sym src/lib/core/filesystem/fs.watcher.ts:47 fn getWatcherCounters() L3 | Returns a snapshot of the current watcher counters (for testing)
 sym src/lib/core/filesystem/fs.watcher.ts:67 fn onFileChange(listener: (paths: string[]) => void): () => void L6 | Registers a callback that fires whenever the vault's files change.
 by src/lib/core/filesystem/fs.watcher.ts:onFileChange <- src/lib/app/lifecycle/app-lifecycle.service.ts:519 in initializeVault call
-by src/lib/core/filesystem/fs.watcher.ts:onFileChange <- src/lib/plugins/mods/mods-host.service.ts:1077 in startModsHost call
+by src/lib/core/filesystem/fs.watcher.ts:onFileChange <- src/lib/plugins/mods/mods-host.service.ts:1085 in startModsHost call
 sym src/lib/core/filesystem/fs.watcher.ts:90 fn patchSubtree(tree: FileTreeNode[], parentPath: string, newChildren: FileTreeNode[], vaultPath: string | null = currentVaultPath): F… L27 | Replaces a subtree in the file tree by finding the parent node and swapping its children with the newly scanned ones.
 sym src/lib/core/filesystem/fs.watcher.ts:268 fn startWatching(vaultPath: string) L21 | Starts the Rust-native vault watcher and subscribes to its events.
 by src/lib/core/filesystem/fs.watcher.ts:startWatching <- src/lib/app/lifecycle/app-lifecycle.service.ts:524 in initializeVault call

@@ -27,7 +27,7 @@ sym src/lib/plugins/mods/mods.logic.ts:11 const MOD_DATA_DIR L1 | Vault-relative
 by src/lib/plugins/mods/mods.logic.ts:MOD_DATA_DIR <- src/lib/plugins/mods/mod-vault.service.ts:209 in createModData ref
 sym src/lib/plugins/mods/mods.logic.ts:17 interface ModChanges L6 | What a watcher batch asks of the mods host
 sym src/lib/plugins/mods/mods.logic.ts:35 fn mapModChanges(paths: string[], vaultPath: string): ModChanges L16 | Maps the absolute paths of a watcher batch to the mods to reload.
-by src/lib/plugins/mods/mods.logic.ts:mapModChanges <- src/lib/plugins/mods/mods-host.service.ts:1050 in onModFilesChanged call
+by src/lib/plugins/mods/mods.logic.ts:mapModChanges <- src/lib/plugins/mods/mods-host.service.ts:1058 in onModFilesChanged call
 sym src/lib/plugins/mods/mods.logic.ts:58 fn isModCodePath(path: string, vaultPath: string | null): boolean L4 | Whether an absolute watcher path is mod code: a file under the vault's mods folder that is not a note (`.md`, `.markdown`) or a view (`.view`).
 by src/lib/plugins/mods/mods.logic.ts:isModCodePath <- src/lib/app/lifecycle/watcher-handler.service.ts:44 in rebuildAllIndexes call
 by src/lib/plugins/mods/mods.logic.ts:isModCodePath <- src/lib/plugins/mods/mod-vault.service.ts:165 in createModVault call
@@ -36,16 +36,16 @@ by src/lib/plugins/mods/mods.logic.ts:assertVaultPath <- src/lib/plugins/mods/mo
 by src/lib/plugins/mods/mods.logic.ts:assertVaultPath <- src/lib/plugins/mods/mod-vault.service.ts:71 in createModVault call +2
 sym src/lib/plugins/mods/mods.logic.ts:91 fn serializeModData(value: unknown): string L13 | A mod's data as readable JSON with a final newline.
 by src/lib/plugins/mods/mods.logic.ts:serializeModData <- src/lib/plugins/mods/mod-vault.service.ts:270 in createModData call
-by src/lib/plugins/mods/mods.logic.ts:serializeModData <- src/lib/plugins/mods/mods-host.service.ts:983 in writePendingSettings call
+by src/lib/plugins/mods/mods.logic.ts:serializeModData <- src/lib/plugins/mods/mods-host.service.ts:991 in writePendingSettings call
 sym src/lib/plugins/mods/mods.logic.ts:110 fn parseModData(bytes: number[]): { ok: true; value: unknown } | { ok: false } L7 | The bytes of a mod's `data.json` as a value.
 by src/lib/plugins/mods/mods.logic.ts:parseModData <- src/lib/plugins/mods/mod-vault.service.ts:248 in createModData call
-by src/lib/plugins/mods/mods.logic.ts:parseModData <- src/lib/plugins/mods/mods-host.service.ts:958 in readModData call
+by src/lib/plugins/mods/mods.logic.ts:parseModData <- src/lib/plugins/mods/mods-host.service.ts:966 in readModData call
 sym src/lib/plugins/mods/mods.logic.ts:123 fn errorText(err: unknown): string L4 | A thrown value as one string for `debug()`: the message, then the stack.
 by src/lib/plugins/mods/mods.logic.ts:errorText <- src/lib/plugins/mods/mod-vault.service.ts:83 in createModVault call +2
 by src/lib/plugins/mods/mods.logic.ts:errorText <- src/lib/plugins/mods/mod-watch.svelte.ts:20 in watchModValue call +1
 by src/lib/plugins/mods/mods.logic.ts:errorText <- src/lib/plugins/mods/mods-host.service.ts:165 in createModContext call +4
 sym src/lib/plugins/mods/mods.logic.ts:133 fn closesWhenDone(run: { status: string; lines: readonly string[]; progress: unknown }): boolean L3 | Whether the run view closes by itself: a run that ended done without a log line or a progress call left nothing to read.
-by src/lib/plugins/mods/mods.logic.ts:closesWhenDone <- src/lib/plugins/mods/ModActionPicker.svelte:51 in $effect@50 call
+by src/lib/plugins/mods/mods.logic.ts:closesWhenDone <- src/lib/plugins/mods/ModActionPicker.svelte:58 in $effect@57 call
 sym src/lib/plugins/mods/mods.logic.ts:138 interface ModManifest L23 | A validated `manifest.json`; unknown keys are dropped
 by src/lib/plugins/mods/mods.logic.ts:ModManifest <- src/lib/plugins/mods/mods-host.service.ts:40 in (module) import
 sym src/lib/plugins/mods/mods.logic.ts:166 interface ModSettingField L10 | One setting a mod declares in its manifest.
@@ -53,11 +53,11 @@ by src/lib/plugins/mods/mods.logic.ts:ModSettingField <- src/lib/plugins/mods/Mo
 by src/lib/plugins/mods/mods.logic.ts:ModSettingField <- src/lib/plugins/mods/mods.store.svelte.ts:1 in (module) import
 sym src/lib/plugins/mods/mods.logic.ts:178 type ModManifestResult L1 | Result of `parseModManifest`: the manifest, or an error naming the folder and the field
 sym src/lib/plugins/mods/mods.logic.ts:192 fn parseModManifest(text: string, folder: string): ModManifestResult L73 | Validates the text of `_system/mods/<folder>/manifest.json`.
-by src/lib/plugins/mods/mods.logic.ts:parseModManifest <- src/lib/plugins/mods/mods-host.service.ts:797 in loadMod call +1
+by src/lib/plugins/mods/mods.logic.ts:parseModManifest <- src/lib/plugins/mods/mods-host.service.ts:803 in loadMod call +1
 sym src/lib/plugins/mods/mods.logic.ts:271 fn mergeModSettings(stored: unknown, patch: Record<string, boolean | string>): { ok: true; value: Record<string, unknown> } | { ok: false;… L8 | The mod's stored data with Labs setting values applied: no data (`null`) becomes an object, and an object keeps every key the mod saved.
-by src/lib/plugins/mods/mods.logic.ts:mergeModSettings <- src/lib/plugins/mods/mods-host.service.ts:980 in writePendingSettings call +1
+by src/lib/plugins/mods/mods.logic.ts:mergeModSettings <- src/lib/plugins/mods/mods-host.service.ts:988 in writePendingSettings call +1
 sym src/lib/plugins/mods/mods.logic.ts:300 fn evaluateModSource(source: string, id: string): ModV1 L25 | Evaluates a mod's `main.js` and returns its default export (PRD P3).
-by src/lib/plugins/mods/mods.logic.ts:evaluateModSource <- src/lib/plugins/mods/mods-host.service.ts:813 in loadMod call
+by src/lib/plugins/mods/mods.logic.ts:evaluateModSource <- src/lib/plugins/mods/mods-host.service.ts:819 in loadMod call
 ## locals
 local src/lib/plugins/mods/mods.logic.ts:76 fn unrepresentable(value: unknown, inArray: boolean): string | null L8
 ## calls

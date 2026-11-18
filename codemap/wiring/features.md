@@ -44,7 +44,7 @@ reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerAction read-by src/lib/features/rail-shell/rail-registry.store.svelte.ts:58 railRegistryStore.actions
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerAction fired-by src/lib/features/rail-shell/Rail.svelte:205 in actionRows=$derived
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerAction registered-at src/lib/plugins/mods/mods-host.service.ts:600 in createModContext args={ key, label: title, icon: button.icon, color: manifest.color, busy: () => (lis… -> src/lib/plugins/mods/mods-host.service.ts:createModContext
-reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerAction invoked-at src/lib/plugins/mods/mods-host.service.ts:830 in loadMod
+reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerAction invoked-at src/lib/plugins/mods/mods-host.service.ts:836 in loadMod
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerFolderCreator sink src/lib/features/rail-shell/rail-registry.store.svelte.ts:87 | stores folderCreators assign | doc Adds a folder menu creator, replacing one with the same id.
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerFolderCreator read-by src/lib/features/rail-shell/rail-registry.store.svelte.ts:54 railRegistryStore.folderCreators
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerFolderCreator fired-by src/lib/features/rail-shell/FilesNavigator.svelte:119 in fileCreators=$derived
@@ -64,7 +64,7 @@ reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerMenuItem fired-by src/lib/features/rail-shell/FilesNavigator.svelte:433 in (markup)
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerMenuItem fired-by src/lib/features/rail-shell/RailNoteList.svelte:889 in (markup)
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerMenuItem registered-at src/lib/plugins/mods/mods-host.service.ts:221 in createModContext args={ id: actionKey(actionId), label: `${manifest.name}: ${action.title}`, on: [...… -> src/lib/plugins/mods/mods-host.service.ts:createModContext
-reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerMenuItem invoked-at src/lib/plugins/mods/mods-host.service.ts:830 in loadMod
+reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerMenuItem invoked-at src/lib/plugins/mods/mods-host.service.ts:836 in loadMod
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerNavigator sink src/lib/features/rail-shell/rail-registry.store.svelte.ts:63 | stores navigators assign | doc Adds a navigator, replacing one with the same id.
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerNavigator read-by src/lib/features/rail-shell/rail-registry.store.svelte.ts:42 railRegistryStore.navigators
 reg src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerNavigator fired-by src/lib/app/AppShell.svelte:108 in railItem=$derived
