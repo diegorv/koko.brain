@@ -118,6 +118,18 @@
 		applyChange(archiveItem(board, laneId, itemId));
 	}
 
+	/**
+	 * The card menu's "Move to": appends the card to the target lane. The index
+	 * is the target's length in the stored board, not in `displayBoard`, so with
+	 * a filter on the card lands after the cards it hides. Unlike a drop it needs
+	 * no index among the shown cards, so it works in every sort and filter state.
+	 */
+	function handleMoveItem(fromLaneId: string, itemId: string, toLaneId: string) {
+		const target = board.lanes.find((l) => l.id === toLaneId);
+		if (!target) return;
+		applyChange(moveItem(board, fromLaneId, itemId, toLaneId, target.items.length, isLaneAutoComplete(board, target.title)));
+	}
+
 	function handleArchiveCompleted(laneId: string) {
 		applyChange(archiveCompletedItems(board, laneId));
 	}
@@ -570,6 +582,15 @@
 				</Select.Content>
 			</Select.Root>
 		</div>
+		{#if !canReorder && currentViewMode === 'board'}
+			<span
+				class="rounded-xs border border-border px-1.5 py-0.5 text-xs text-muted-foreground"
+				title="Drag is off while the board is sorted or filtered. To move a card to another lane, use Move to in the card menu."
+				data-manual-order-paused
+			>
+				Manual order paused
+			</span>
+		{/if}
 		<div class="flex items-center gap-1.5">
 			<Search class="size-3.5 text-muted-foreground" />
 			<div class="relative">
@@ -634,6 +655,8 @@
 			onUpdateItem={handleUpdateItem}
 			onDeleteItem={handleDeleteItem}
 			onArchiveItem={handleArchiveItem}
+			moveTargets={board.lanes.filter((l) => l.id !== lane.id)}
+			onMoveItem={handleMoveItem}
 			onArchiveCompleted={handleArchiveCompleted}
 			onRenameLane={handleRenameLane}
 			onDeleteLane={handleDeleteLane}

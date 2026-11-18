@@ -40,6 +40,9 @@
 		onUpdateItem: (laneId: string, itemId: string, text: string) => void;
 		onDeleteItem: (laneId: string, itemId: string) => void;
 		onArchiveItem: (laneId: string, itemId: string) => void;
+		/** The lanes a card of this lane can move to from its menu: every lane but this one */
+		moveTargets: { id: string; title: string }[];
+		onMoveItem: (laneId: string, itemId: string, toLaneId: string) => void;
 		onArchiveCompleted: (laneId: string) => void;
 		onRenameLane: (laneId: string, title: string) => void;
 		onDeleteLane: (laneId: string) => void;
@@ -84,6 +87,8 @@
 		onUpdateItem,
 		onDeleteItem,
 		onArchiveItem,
+		moveTargets,
+		onMoveItem,
 		onArchiveCompleted,
 		onRenameLane,
 		onDeleteLane,
@@ -379,6 +384,8 @@
 					onUpdate={(text) => onUpdateItem(lane.id, item.id, text)}
 					onDelete={() => onDeleteItem(lane.id, item.id)}
 					onArchive={() => onArchiveItem(lane.id, item.id)}
+					{moveTargets}
+					onMove={(toLaneId) => onMoveItem(lane.id, item.id, toLaneId)}
 					onStartEdit={() => onStartEditItem(item.id)}
 					onStopEdit={onStopEditItem}
 					onDragStart={(e) => onItemDragStart(e, lane.id, item.id)}

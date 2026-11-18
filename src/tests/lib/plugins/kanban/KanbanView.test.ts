@@ -34,7 +34,7 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { kanbanStore } from '#lib/plugins/kanban/kanban.store.svelte.js';
 import { DEFAULT_LANE_WIDTH, isLaneCollapsed, parseKanbanBoard, serializeKanbanBoard, setLaneAutoComplete, setLaneMaxItems, setSortMode, setTagColor, setViewMode, toggleLaneCollapsed } from '#lib/plugins/kanban/kanban.logic.js';
-import type { KanbanSortMode, KanbanViewMode } from '#lib/plugins/kanban/kanban.types.js';
+import type { KanbanBoard, KanbanSortMode, KanbanViewMode } from '#lib/plugins/kanban/kanban.types.js';
 
 interface HarnessApi {
 	setMarkdown: (markdown: string) => void;
@@ -260,12 +260,12 @@ describe('KanbanView: card and lane menus', () => {
 
 	it('lists the card actions as one group, in sentence case', async () => {
 		const card = document.querySelector('[data-item-id]')!;
-		expect(await openMenu(card)).toEqual(['Edit', 'Archive', 'Card color', 'Delete']);
+		expect(await openMenu(card)).toEqual(['Edit', 'Archive', 'Move to', 'Card color', 'Delete']);
 	});
 
 	it('adds "Tag color" only on a card with tags', async () => {
 		const tagged = [...document.querySelectorAll('[data-item-id]')].find((el) => el.textContent?.includes('tagged'))!;
-		expect(await openMenu(tagged)).toEqual(['Edit', 'Archive', 'Card color', 'Tag color', 'Delete']);
+		expect(await openMenu(tagged)).toEqual(['Edit', 'Archive', 'Move to', 'Card color', 'Tag color', 'Delete']);
 	});
 
 	it('lists the lane actions as one group, in sentence case', async () => {
@@ -1441,6 +1441,216 @@ describe('KanbanView: list, table and archive', () => {
 			const board = parseKanbanBoard(api!.getMarkdown());
 			expect(board.archive).toHaveLength(0);
 			expect(board.lanes[0].items.map((i) => i.text)).toContain('Pay rent {2026-11-20} {color:red}');
+		});
+	});
+});
+
+describe('KanbanView: Move to and the manual order chip', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+	let api: HarnessApi | undefined;
+
+	const SOURCE = '## To Do\n\n- [ ] first card\n- [ ] second card #x\n\n## Done\n\n- [ ] done one\n- [ ] done two #x\n\n';
+
+	beforeEach(() => {
+		kanbanStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		api = undefined;
+		kanbanStore.reset();
+		document.body.innerHTML = '';
+	});
+
+	function mountBoard(source = SOURCE, edit: (board: KanbanBoard) => KanbanBoard = (b) => b): void {
+		component = mount(KanbanViewHarness, {
+			target,
+			props: {
+				initialMarkdown: serializeKanbanBoard(edit(setViewMode(parseKanbanBoard(source), 'board'))),
+				register: (a: HarnessApi) => { api = a; },
+			},
+		});
+		flushSync();
+	}
+
+	async function settle(): Promise<void> {
+		for (let i = 0; i < 5; i++) await Promise.resolve();
+		flushSync();
+	}
+
+	function card(text: string): HTMLElement {
+		const found = [...target.querySelectorAll<HTMLElement>('[data-item-id]')].find((el) => el.textContent?.includes(text));
+		if (!found) throw new Error(`card "${text}" not found`);
+		return found;
+	}
+
+	/** Opens the card's context menu and returns its "Move to" submenu trigger. */
+	async function moveToTrigger(text: string): Promise<HTMLElement> {
+		card(text).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 1, clientY: 1 }));
+		await settle();
+		const trigger = [...document.querySelectorAll<HTMLElement>('[data-slot="context-menu-sub-trigger"]')].find((el) => el.textContent?.includes('Move to'));
+		if (!trigger) throw new Error('no "Move to" submenu');
+		return trigger;
+	}
+
+	/** Opens "Move to" on the card and returns the lane titles it lists. */
+	async function openMoveTo(text: string): Promise<HTMLElement[]> {
+		const trigger = await moveToTrigger(text);
+		trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+		await settle();
+		const sub = document.querySelector<HTMLElement>('[data-slot="context-menu-sub-content"]');
+		if (!sub) throw new Error('"Move to" submenu did not open');
+		return [...sub.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+	}
+
+	async function moveTo(text: string, lane: string): Promise<void> {
+		const item = (await openMoveTo(text)).find((el) => el.textContent?.trim() === lane);
+		if (!item) throw new Error(`"Move to" does not list ${lane}`);
+		item.click();
+		flushSync();
+	}
+
+	/** Each lane's card texts in the persisted markdown, by lane title. */
+	function persistedLanes(): Record<string, string[]> {
+		return Object.fromEntries(parseKanbanBoard(api!.getMarkdown()).lanes.map((l) => [l.title, l.items.map((i) => i.text)]));
+	}
+
+	describe('Move to', () => {
+		it('"Move to" > "Done" on a To Do card puts it last in Done and removes it from To Do', async () => {
+			mountBoard();
+			await moveTo('first card', 'Done');
+
+			expect(persistedLanes()).toEqual({
+				'To Do': ['second card #x'],
+				Done: ['done one', 'done two #x', 'first card'],
+			});
+		});
+
+		it('moving into an auto-complete lane checks the card', async () => {
+			mountBoard(SOURCE, (b) => setLaneAutoComplete(b, 'Done', true));
+			await moveTo('first card', 'Done');
+
+			const done = parseKanbanBoard(api!.getMarkdown()).lanes.find((l) => l.title === 'Done')!;
+			expect(done.items.at(-1)).toMatchObject({ text: 'first card', checked: true });
+		});
+
+		it('moving into a lane without auto-complete keeps the card unchecked', async () => {
+			mountBoard();
+			await moveTo('first card', 'Done');
+
+			const done = parseKanbanBoard(api!.getMarkdown()).lanes.find((l) => l.title === 'Done')!;
+			expect(done.items.at(-1)).toMatchObject({ text: 'first card', checked: false });
+		});
+
+		it('with a filter hiding cards in the target lane, the card lands after the hidden ones', async () => {
+			mountBoard();
+			kanbanStore.setFilterQuery('#x');
+			flushSync();
+			await moveTo('second card', 'Done');
+
+			// The filter shows one Done card; an index among the shown cards would put the moved card before "done two #x".
+			expect(persistedLanes()).toEqual({
+				'To Do': ['first card'],
+				Done: ['done one', 'done two #x', 'second card #x'],
+			});
+		});
+
+		it('works while the board is sorted', async () => {
+			mountBoard(SOURCE, (b) => setSortMode(b, 'text-desc'));
+			await moveTo('first card', 'Done');
+
+			expect(persistedLanes()).toEqual({
+				'To Do': ['second card #x'],
+				Done: ['done one', 'done two #x', 'first card'],
+			});
+		});
+
+		it('lists the other lanes by title, not the card\'s own lane', async () => {
+			mountBoard('## To Do\n\n- [ ] first card\n\n## Doing\n\n## Done\n\n');
+			const entries = (await openMoveTo('first card')).map((el) => el.textContent?.trim());
+			expect(entries).toEqual(['Doing', 'Done']);
+		});
+
+		it('with a single lane the "Move to" trigger is disabled', async () => {
+			mountBoard('## To Do\n\n- [ ] first card\n\n');
+			const trigger = await moveToTrigger('first card');
+			expect(trigger.hasAttribute('data-disabled')).toBe(true);
+			expect(trigger.getAttribute('aria-disabled')).toBe('true');
+		});
+	});
+
+	describe('"Manual order paused" chip', () => {
+		function chip(): HTMLElement | null {
+			return [...target.querySelectorAll<HTMLElement>('[data-manual-order-paused]')][0] ?? null;
+		}
+
+		it('is absent in manual order with no filter', () => {
+			mountBoard();
+			expect(chip()).toBeNull();
+		});
+
+		it('shows with a sort other than manual, and its title names the card menu', () => {
+			mountBoard(SOURCE, (b) => setSortMode(b, 'date-asc'));
+			expect(chip()?.textContent?.trim()).toBe('Manual order paused');
+			expect(chip()?.title).toContain('card menu');
+			expect(chip()?.title).toContain('Move to');
+		});
+
+		it('shows with a filter and goes away when the filter clears', () => {
+			mountBoard();
+			kanbanStore.setFilterQuery('#x');
+			flushSync();
+			expect(chip()?.textContent?.trim()).toBe('Manual order paused');
+
+			kanbanStore.setFilterQuery('');
+			flushSync();
+			expect(chip()).toBeNull();
+		});
+
+		it('is absent in list view, which has no drag and no card menu', () => {
+			mountBoard(SOURCE, (b) => setViewMode(setSortMode(b, 'date-asc'), 'list'));
+			expect(chip()).toBeNull();
+		});
+	});
+
+	describe('card drag', () => {
+		function laneList(title: string): HTMLElement {
+			const list = target.querySelector<HTMLElement>(`[role="group"][aria-label="${title}"] [role="list"]`);
+			if (!list) throw new Error(`no lane "${title}"`);
+			return list;
+		}
+
+		it('in manual order with no filter, cards are draggable and a drop into another lane moves the card', () => {
+			mountBoard();
+			const dragged = card('first card');
+			expect(dragged.getAttribute('draggable')).toBe('true');
+
+			dragged.dispatchEvent(new MouseEvent('dragstart', { bubbles: true }));
+			flushSync();
+			// jsdom lays every card out at y=0, so a drop below that appends.
+			laneList('Done').dispatchEvent(new MouseEvent('drop', { bubbles: true, cancelable: true, clientY: 100 }));
+			flushSync();
+
+			expect(persistedLanes()).toEqual({
+				'To Do': ['second card #x'],
+				Done: ['done one', 'done two #x', 'first card'],
+			});
+		});
+
+		it('cards are not draggable while sorted or filtered', () => {
+			mountBoard(SOURCE, (b) => setSortMode(b, 'text-asc'));
+			expect(card('first card').getAttribute('draggable')).toBe('false');
+			unmount(component!);
+			component = null;
+			kanbanStore.reset();
+
+			mountBoard();
+			kanbanStore.setFilterQuery('#x');
+			flushSync();
+			expect(card('second card').getAttribute('draggable')).toBe('false');
 		});
 	});
 });
