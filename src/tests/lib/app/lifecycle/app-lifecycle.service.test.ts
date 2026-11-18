@@ -886,13 +886,13 @@ describe('note-change consumer wiring', () => {
 		expect(railRegistryStore.todaySections).toEqual([]);
 	});
 
-	it('registers New Kanban Board into the Files navigator folder menu during initializeVault and unregisters it on teardown', async () => {
+	it('registers New kanban board into the Files navigator folder menu during initializeVault and unregisters it on teardown', async () => {
 		// The kanban plugin is not mocked: the real registration lands in the
 		// real rail registry, which is what the folder menu renders from.
 		expect(railRegistryStore.folderCreators).toEqual([]);
 
 		await initializeVault('/vault');
-		expect(railRegistryStore.folderCreators.map((c) => c.label)).toEqual(['New Kanban Board']);
+		expect(railRegistryStore.folderCreators.map((c) => c.label)).toEqual(['New kanban board']);
 
 		teardownVault();
 		expect(railRegistryStore.folderCreators).toEqual([]);

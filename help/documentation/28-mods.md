@@ -203,7 +203,7 @@ A folder is reported once, for the folder: every path under `from + '/'` is now 
 
 ### `ctx.onNoteCreated`: reacting to new notes
 
-`ctx.onNoteCreated(callback)` calls `callback({ path })` with the **vault-relative** path of a note the app's note creators made: the file explorer's New menu, the note list's **+ New here**, the command palette's **New File**, the quick switcher's **Create**, a wikilink to a missing note, periodic notes, **New note from template**, the Cmd+N note composer, **New \<Type\>**, one-on-one notes, and a deep link's default create. It runs through `setTimeout(0)` once the creator is done, its note tab already open, so a `ctx.vault.write` from the callback lands in that tab and is not lost to its next autosave.
+`ctx.onNoteCreated(callback)` calls `callback({ path })` with the **vault-relative** path of a note the app's note creators made: the file explorer's New menus (a folder's right-click menu and the header **+**), the note list's **+ New here**, the command palette's **New note**, the quick switcher's **Create**, a wikilink to a missing note, periodic notes, **New note from template**, the Cmd+N note composer, **New \<Type\>**, one-on-one notes, and a deep link's default create. It runs through `setTimeout(0)` once the creator is done, its note tab already open, so a `ctx.vault.write` from the callback lands in that tab and is not lost to its next autosave.
 
 ```javascript
 ctx.onNoteCreated(({ path }) => ctx.log('Created:', path));

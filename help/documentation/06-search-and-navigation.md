@@ -51,10 +51,10 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Copy Block Link | `Cmd+Shift+L` |
 | | Copy Block Embed | — |
 | | View File History | `Cmd+Shift+H` |
-| **File Explorer** | New File | — |
-| | New Folder | — |
-| **Canvas** | New Canvas | — |
-| **Kanban** | New Kanban Board | — |
+| **File Explorer** | New note | — |
+| | New folder | — |
+| **Canvas** | New canvas | — |
+| **Kanban** | New kanban board | — |
 | **Navigation** | Open Quick Switcher | `Cmd+O` |
 | | Search in Vault | `Cmd+Shift+F` |
 | | Toggle Graph View | `Cmd+G` |

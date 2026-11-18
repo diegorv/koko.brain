@@ -12,10 +12,13 @@
 	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 	import Palette from '@lucide/svelte/icons/palette';
 	import Pencil from '@lucide/svelte/icons/pencil';
+	import Plus from '@lucide/svelte/icons/plus';
 	import Table from '@lucide/svelte/icons/table';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import Vault from '@lucide/svelte/icons/vault';
+	import type { Component } from 'svelte';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
+	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import { notifyNoteCreated } from '#lib/core/editor/editor.hooks.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
@@ -76,7 +79,12 @@
 	let rootPicked = $derived(!picked.target || picked.target === vaultRoot);
 	let topFolders = $derived(navigatorFolders(fsStore.fileTree));
 
-	/** The menu's "New <file>" items, plugin-registered ones (New Kanban Board) after the built-in ones. */
+	/** The folder the header "+" creates in: the picked folder, or the vault root */
+	let pickedDir = $derived(picked.target || vaultRoot);
+	/** Where the header "+" creates, as the note list words it: `Work/projects/` or `the vault root` */
+	let pickedPlace = $derived(rootPicked ? 'the vault root' : `${getRelativePath(vaultRoot, pickedDir)}/`);
+
+	/** The menus' "New <file>" items, plugin-registered ones (New kanban board) after the built-in ones. */
 	let fileCreators = $derived<RailFolderCreator[]>([
 		{
 			id: 'builtin:note',
@@ -85,9 +93,21 @@
 			fileName: 'Untitled.md',
 			create: (dir) => createFile(dir, 'Untitled.md', applyExplicitOrganization('', settingsStore.explicitOrganization)),
 		},
-		{ id: 'builtin:canvas', label: 'New Canvas', icon: LayoutDashboard, fileName: 'Untitled.canvas', create: createCanvasFile },
+		{ id: 'builtin:canvas', label: 'New canvas', icon: LayoutDashboard, fileName: 'Untitled.canvas', create: createCanvasFile },
 		{ id: 'builtin:table', label: 'New table', icon: Database, fileName: 'Untitled.view', create: createCollectionFile },
 		...railRegistryStore.folderCreators,
+	]);
+
+	/** Every "New <kind>" item, in the order both the header "+" menu and the folder context menu list them. */
+	let createItems = $derived<{ id: string; label: string; icon: Component; run: (dir: string) => void }[]>([
+		...fileCreators.map((creator) => ({
+			id: creator.id,
+			label: creator.label,
+			icon: creator.icon,
+			run: (dir: string) => handleNewFile(dir, creator),
+		})),
+		{ id: 'builtin:view', label: 'New view', icon: Table, run: handleNewView },
+		{ id: 'builtin:folder', label: 'New folder', icon: FolderPlus, run: handleNewFolder },
 	]);
 
 	/** The folder under the context menu (the vault root for a right-click outside the folder rows); null before any right-click */
@@ -149,12 +169,23 @@
 		renamingPath = path;
 	}
 
-	/** Focuses and selects the rename input once the context menu has given focus back */
+	/** Focuses and selects the rename input once the menu has given focus back */
 	function focusRenameInput(input: HTMLInputElement) {
 		requestAnimationFrame(() => {
 			input.focus();
 			input.select();
 		});
+	}
+
+	/**
+	 * The header dropdown stays mounted for its exit animation, and bits-ui still handles
+	 * the pointer there: a second click runs the creator again, and a press pulls focus off
+	 * the New folder rename input. Same guard as `context-menu-content.svelte`.
+	 */
+	function absorbWhileClosing(e: Event) {
+		if ((e.currentTarget as HTMLElement).dataset.state !== 'closed') return;
+		e.stopPropagation();
+		e.preventDefault();
 	}
 
 	/**
@@ -307,6 +338,32 @@
 		data-tauri-drag-region
 	>
 		<span class="truncate text-title text-tab-text-active" data-files-navigator-title>Files</span>
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger
+				class="ml-auto flex shrink-0 cursor-default items-center rounded-md p-1 text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+				title="New in {pickedPlace}"
+				aria-label="New in folder"
+				data-files-navigator-new
+			>
+				<Plus class="size-3.5" />
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content
+				align="end"
+				class="w-56"
+				onpointermovecapture={absorbWhileClosing}
+				onpointerleavecapture={absorbWhileClosing}
+				onmousedowncapture={absorbWhileClosing}
+				onclickcapture={absorbWhileClosing}
+			>
+				<DropdownMenu.Label>Create in {pickedPlace}</DropdownMenu.Label>
+				{#each createItems as item (item.id)}
+					<DropdownMenu.Item onclick={() => item.run(pickedDir)}>
+						<item.icon class="size-4" />
+						<span>{item.label}</span>
+					</DropdownMenu.Item>
+				{/each}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
 	</div>
 
 	<ContextMenu.Root>
@@ -346,20 +403,12 @@
 		<ContextMenu.Content class="w-56">
 			{#if menuTarget}
 				{@const target = menuTarget}
-				{#each fileCreators as creator (creator.id)}
-					<ContextMenu.Item onclick={() => handleNewFile(target.path, creator)}>
-						<creator.icon class="size-4" />
-						<span>{creator.label}</span>
+				{#each createItems as item (item.id)}
+					<ContextMenu.Item onclick={() => item.run(target.path)}>
+						<item.icon class="size-4" />
+						<span>{item.label}</span>
 					</ContextMenu.Item>
 				{/each}
-				<ContextMenu.Item onclick={() => handleNewView(target.path)}>
-					<Table class="size-4" />
-					<span>New view</span>
-				</ContextMenu.Item>
-				<ContextMenu.Item onclick={() => handleNewFolder(target.path)}>
-					<FolderPlus class="size-4" />
-					<span>New folder</span>
-				</ContextMenu.Item>
 				{#each railRegistryStore.menuItems.filter((item) => item.on.includes('folder')) as item (item.id)}
 					<ContextMenu.Item inset onclick={() => item.run({ on: 'folder', path: target.isRoot ? '' : getRelativePath(vaultRoot, target.path) })}>
 						<span>{item.label}</span>

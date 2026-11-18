@@ -17,10 +17,11 @@ Canvas is great for:
 
 ## Creating a Canvas
 
-There are two ways to create a new canvas:
+There are three ways to create a new canvas:
 
-1. **Right-click** a folder in the Files navigator and select "New Canvas".
-2. **Command Palette** (`Cmd+P`) -- Search for "New Canvas".
+1. **Right-click** a folder in the Files navigator and select "New canvas".
+2. The **+** in the Files navigator header, then "New canvas": creates it in the picked folder.
+3. **Command Palette** (`Cmd+P`) -- Search for "New canvas". The palette creates it at the vault root.
 
 This creates a new `.canvas` file and opens it in the canvas editor.
 

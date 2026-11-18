@@ -293,7 +293,7 @@ The switch marks notes created by:
 - **Cmd+N** and Quick Capture (the composer, the clipboard shortcut and `kokobrain://capture`)
 - **+ New here** in the note list, and **New \<Type\>** in the Types navigator
 - Clicking a link to a note that does not exist yet, and a meta-bind `createNote` button
-- **New note** in the Files navigator's folder menu, the palette's **New File**, and **Create** in the Quick Switcher
+- **New note** in the Files navigator's folder menu and **+** header menu, the palette's **New note**, and **Create** in the Quick Switcher
 - **New File from Template**, **New 1:1**, **New linked note** and a new event in the Calendar
 - `kokobrain://new` when it creates the note (not with `overwrite=true`)
 

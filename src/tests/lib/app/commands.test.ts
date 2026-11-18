@@ -151,6 +151,17 @@ describe('getBuiltInCommands', () => {
 		expect(commands).toHaveLength(46);
 	});
 
+	it('names the creators "New <kind>" in sentence case, under their unchanged ids', () => {
+		const labels = new Map(getBuiltInCommands().map((c) => [c.id, c.label]));
+
+		expect(['file-explorer:new-file', 'file-explorer:new-folder', 'canvas:new', 'kanban:new'].map((id) => labels.get(id))).toEqual([
+			'New note',
+			'New folder',
+			'New canvas',
+			'New kanban board',
+		]);
+	});
+
 	it('includes Toggle Favorite (Cmd+D) and Toggle Organized (Cmd+E) acting on the active note', () => {
 		const commands = getBuiltInCommands();
 		const favorite = commands.find((c) => c.id === 'note:toggle-favorite');

@@ -436,9 +436,9 @@ const stop = ctx.onNoteCreated(({ path }) => ctx.log('Created:', path));
 
 | Creator | Fires |
 |---------|-------|
-| File explorer: the New menu of a folder or the vault root (note, canvas, table, plugin file types) | yes |
+| File explorer: the New menu of a folder or the vault root, and the header **+** menu (note, canvas, table, plugin file types) | yes |
 | Note list: **+ New here** (plain and typed rules) | yes |
-| Command palette: **New File** | yes |
+| Command palette: **New note** | yes |
 | Quick switcher: **Create** | yes |
 | Clicking a wikilink to a missing note | yes |
 | Periodic notes (daily, weekly, monthly, quarterly, yearly), when the note did not exist | yes |

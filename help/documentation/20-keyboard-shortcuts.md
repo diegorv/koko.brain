@@ -104,10 +104,10 @@ These commands are available via the Command Palette (`Cmd+P`) but don't have ke
 
 | Command | Description |
 |---------|-------------|
-| New File | Create a new markdown file |
-| New Folder | Create a new folder |
-| New Canvas | Create a new canvas file |
-| New Kanban Board | Create a new `.kanban` board file |
+| New note | Create a new markdown file at the vault root |
+| New folder | Create a new folder at the vault root |
+| New canvas | Create a new canvas file at the vault root |
+| New kanban board | Create a new `.kanban` board file at the vault root |
 | New File from Template | Create a note from a template |
 | Open Daily Note | Open or create today's daily note |
 | Pin/Unpin Tab | Pin or unpin the active tab |

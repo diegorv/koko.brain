@@ -3,7 +3,7 @@
 // stores and rail registry: every item, the inline rename, the failure toasts,
 // drag to move and folder notes. Only the Tauri boundary (invoke, plugin-fs, dialog, opener, trash)
 // and the editor are mocked.
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, onTestFinished } from 'vitest';
 import { setupLocalStorage } from '../../../fixtures/localStorage.fixture';
 
 setupLocalStorage();
@@ -199,9 +199,9 @@ describe('FilesNavigator folder menu', () => {
 		render();
 		expect(await openMenu(row(WORK))).toEqual([
 			'New note',
-			'New Canvas',
+			'New canvas',
 			'New table',
-			'New Kanban Board',
+			'New kanban board',
 			'New view',
 			'New folder',
 			'Change icon',
@@ -215,7 +215,7 @@ describe('FilesNavigator folder menu', () => {
 
 	it('offers only the create items on the vault root, which cannot be renamed or trashed', async () => {
 		render();
-		expect(await openMenu(root())).toEqual(['New note', 'New Canvas', 'New table', 'New Kanban Board', 'New view', 'New folder']);
+		expect(await openMenu(root())).toEqual(['New note', 'New canvas', 'New table', 'New kanban board', 'New view', 'New folder']);
 		expect(document.querySelectorAll('[data-slot="context-menu-separator"]')).toHaveLength(0);
 	});
 
@@ -271,9 +271,9 @@ describe('FilesNavigator folder menu', () => {
 	});
 
 	it.each([
-		['New Canvas', 'Untitled.canvas'],
+		['New canvas', 'Untitled.canvas'],
 		['New table', 'Untitled.view'],
-		['New Kanban Board', 'Untitled.kanban'],
+		['New kanban board', 'Untitled.kanban'],
 	])('"%s" creates %s in the folder and opens it', async (label, fileName) => {
 		render();
 		await choose(row(PERSONAL), label);
@@ -323,9 +323,9 @@ describe('FilesNavigator folder menu', () => {
 
 	it.each([
 		['New note', 'Untitled.md'],
-		['New Canvas', 'Untitled.canvas'],
+		['New canvas', 'Untitled.canvas'],
 		['New table', 'Untitled.view'],
-		['New Kanban Board', 'Untitled.kanban'],
+		['New kanban board', 'Untitled.kanban'],
 		['New folder', 'Untitled'],
 	])('toasts when "%s" fails, and opens and picks nothing', async (label, fileName) => {
 		vi.mocked(invoke).mockRejectedValue('Permission denied (os error 13)');
@@ -662,6 +662,182 @@ function drag(el: Element, type: 'dragstart' | 'dragover' | 'dragleave' | 'drop'
 	flushSync();
 	return { event, data };
 }
+
+describe('FilesNavigator header "+" menu', () => {
+	const PROJECTS_DIR = `${VAULT}/Projects`;
+	const AREAS = `${VAULT}/Areas`;
+
+	const plus = () => target.querySelector<HTMLButtonElement>('button[aria-label="New in folder"]');
+	const headerItems = () => [...document.querySelectorAll<HTMLElement>('[data-slot="dropdown-menu-item"]')];
+	const heading = () => document.querySelector('[data-slot="dropdown-menu-label"]')?.textContent?.trim();
+
+	/** Opens the header menu from the keyboard and returns its item labels. */
+	async function openHeaderMenu(): Promise<string[]> {
+		const trigger = plus()!;
+		trigger.focus();
+		trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		await tick();
+		return vi.waitFor(() => {
+			const labels = headerItems().map((n) => n.textContent?.trim() ?? '');
+			if (labels.length === 0) throw new Error('header menu not rendered');
+			return labels;
+		});
+	}
+
+	/** Opens the header menu and clicks its item labelled `label`. */
+	async function chooseFromHeader(label: string) {
+		await openHeaderMenu();
+		const item = headerItems().find((n) => n.textContent?.trim() === label);
+		if (!item) throw new Error(`header menu item "${label}" not rendered`);
+		item.click();
+		await tick();
+	}
+
+	beforeEach(() => {
+		diskTree = [dir(PROJECTS_DIR), dir(AREAS)];
+		fsStore.setFileTree(diskTree);
+	});
+
+	it('is a "+" named New in folder whose menu lists the folder menu\'s create items, mod items left out', async () => {
+		railRegistryStore.registerMenuItem({ id: 'tag', label: 'Tag here', on: ['folder'], run: () => {} });
+		render();
+		expect(plus()).not.toBeNull();
+		const contextLabels = await openMenu(root());
+		expect(contextLabels).toContain('Tag here');
+		document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		await tick();
+
+		const labels = await openHeaderMenu();
+		expect(labels).toEqual(['New note', 'New canvas', 'New table', 'New kanban board', 'New view', 'New folder']);
+		expect(labels).toEqual(contextLabels.filter((l) => l !== 'Tag here'));
+	});
+
+	it('with Projects picked, New note creates Projects/Untitled.md, opens it and keeps Projects picked', async () => {
+		settingsStore.updateLayout({ railFolder: PROJECTS_DIR });
+		render();
+		expect(plus()!.title).toBe('New in Projects/');
+		await chooseFromHeader('New note');
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith(`${PROJECTS_DIR}/Untitled.md`));
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: `${PROJECTS_DIR}/Untitled.md`, content: '' });
+		expect(settingsStore.layout.railFolder).toBe(PROJECTS_DIR);
+	});
+
+	it('with the vault root picked, New note creates the note at the root', async () => {
+		render();
+		expect(plus()!.title).toBe('New in the vault root');
+		await openHeaderMenu();
+		expect(heading()).toBe('Create in the vault root');
+		const item = headerItems().find((n) => n.textContent?.trim() === 'New note')!;
+		item.click();
+		await tick();
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith(`${VAULT}/Untitled.md`));
+		expect(settingsStore.layout.railFolder).toBeNull();
+	});
+
+	it('New folder creates Untitled in the picked folder and starts its inline rename', async () => {
+		settingsStore.updateLayout({ railFolder: PROJECTS_DIR });
+		render();
+		await chooseFromHeader('New folder');
+		diskTree = [dir(PROJECTS_DIR, [dir(`${PROJECTS_DIR}/Untitled`)]), dir(AREAS)];
+
+		await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('create_folder', { path: `${PROJECTS_DIR}/Untitled` }));
+		await vi.waitFor(() => expect(renameInput(`${PROJECTS_DIR}/Untitled`)?.value).toBe('Untitled'));
+	});
+
+	/**
+	 * jsdom runs no CSS animations, so bits-ui unmounts a closing menu within a frame.
+	 * A never-finishing animation keeps it mounted, the way the exit fade does in the app.
+	 */
+	function holdExitAnimation() {
+		Object.defineProperty(HTMLElement.prototype, 'getAnimations', {
+			configurable: true,
+			value: () => [{ finished: new Promise(() => {}) }],
+		});
+		onTestFinished(() => {
+			delete (HTMLElement.prototype as { getAnimations?: unknown }).getAnimations;
+		});
+	}
+
+	const closingMenu = () =>
+		document.querySelector<HTMLElement>('[data-slot="dropdown-menu-content"][data-state="closed"]');
+
+	it('runs an item once when its second click lands during the exit animation', async () => {
+		settingsStore.updateLayout({ railFolder: PROJECTS_DIR });
+		holdExitAnimation();
+		render();
+		await chooseFromHeader('New note');
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalled());
+
+		expect(closingMenu()).not.toBeNull();
+		headerItems().find((n) => n.textContent?.trim() === 'New note')!.click();
+		await tick();
+		await new Promise((r) => setTimeout(r, 0));
+
+		const creates = vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'create_note');
+		expect(creates).toHaveLength(1);
+	});
+
+	it('keeps the New folder rename input focused on a press over the closing menu', async () => {
+		settingsStore.updateLayout({ railFolder: PROJECTS_DIR });
+		holdExitAnimation();
+		render();
+		await chooseFromHeader('New folder');
+		diskTree = [dir(PROJECTS_DIR, [dir(`${PROJECTS_DIR}/Untitled`)]), dir(AREAS)];
+		const input = await vi.waitFor(() => {
+			const el = renameInput(`${PROJECTS_DIR}/Untitled`);
+			if (!el) throw new Error('rename input not rendered');
+			return el;
+		});
+		input.focus();
+
+		const menu = closingMenu()!;
+		expect(menu).not.toBeNull();
+		const item = headerItems().find((n) => n.textContent?.trim() === 'New folder')!;
+		item.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerType: 'mouse' }));
+		item.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+		await tick();
+
+		expect(document.activeElement).toBe(input);
+		expect(renameInput(`${PROJECTS_DIR}/Untitled`)).not.toBeNull();
+	});
+
+	it('follows the pick: title, menu heading and target move from Projects to Areas', async () => {
+		settingsStore.updateLayout({ railFolder: PROJECTS_DIR });
+		render();
+		expect(plus()!.title).toBe('New in Projects/');
+
+		settingsStore.updateLayout({ railFolder: AREAS });
+		flushSync();
+		expect(plus()!.title).toBe('New in Areas/');
+		await openHeaderMenu();
+		expect(heading()).toBe('Create in Areas/');
+		headerItems().find((n) => n.textContent?.trim() === 'New note')!.click();
+		await tick();
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith(`${AREAS}/Untitled.md`));
+		expect(settingsStore.layout.railFolder).toBe(AREAS);
+	});
+
+	it('a picked folder deleted outside the app: New note toasts the failure and does not re-create the folder', async () => {
+		settingsStore.updateLayout({ railFolder: PROJECTS_DIR });
+		vi.mocked(readDir).mockImplementation(async (path) => {
+			if (path === PROJECTS_DIR) throw 'No such file or directory (os error 2)';
+			return [];
+		});
+		render();
+		await chooseFromHeader('New note');
+
+		await vi.waitFor(() =>
+			expect(toast.error).toHaveBeenCalledWith('Could not create "Untitled.md": No such file or directory (os error 2)'),
+		);
+		const commands = vi.mocked(invoke).mock.calls.map(([cmd]) => cmd);
+		expect(commands).not.toContain('create_note');
+		expect(commands).not.toContain('create_folder');
+		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+});
 
 describe('FilesNavigator drag to move', () => {
 	const NOTE = `${PERSONAL}/Note.md`;

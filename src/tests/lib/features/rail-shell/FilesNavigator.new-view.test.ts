@@ -108,7 +108,7 @@ describe('FilesNavigator: New view', () => {
 	it('puts New view after the file creators and before New folder, with the view row icon', async () => {
 		await openMenu(row(WORK));
 		const labels = [...document.querySelectorAll('[role="menuitem"]')].map((n) => n.textContent?.trim());
-		expect(labels.slice(0, 5)).toEqual(['New note', 'New Canvas', 'New table', 'New view', 'New folder']);
+		expect(labels.slice(0, 5)).toEqual(['New note', 'New canvas', 'New table', 'New view', 'New folder']);
 		expect(menuItem('New view')!.querySelector('svg')!.getAttribute('class')).toContain('lucide-table');
 	});
 

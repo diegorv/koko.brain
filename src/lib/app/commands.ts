@@ -148,7 +148,7 @@ export function getBuiltInCommands(): AppCommand[] {
 		},
 		{
 			id: 'file-explorer:new-file',
-			label: 'New File',
+			label: 'New note',
 			category: 'File Explorer',
 			action: async () => {
 				const path = vaultStore.path;
@@ -160,7 +160,7 @@ export function getBuiltInCommands(): AppCommand[] {
 		},
 		{
 			id: 'file-explorer:new-folder',
-			label: 'New Folder',
+			label: 'New folder',
 			category: 'File Explorer',
 			action: async () => {
 				const path = vaultStore.path;
@@ -171,7 +171,7 @@ export function getBuiltInCommands(): AppCommand[] {
 		},
 		{
 			id: 'canvas:new',
-			label: 'New Canvas',
+			label: 'New canvas',
 			category: 'Canvas',
 			action: async () => {
 				const path = vaultStore.path;
@@ -182,7 +182,7 @@ export function getBuiltInCommands(): AppCommand[] {
 		},
 		{
 			id: 'kanban:new',
-			label: 'New Kanban Board',
+			label: 'New kanban board',
 			category: 'Kanban',
 			action: async () => {
 				const path = vaultStore.path;

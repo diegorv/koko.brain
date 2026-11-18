@@ -13,18 +13,18 @@ Not in this ticket: a "+" menu in the note-list header (the prototype keeps that
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, `src/tests/lib/features/rail-shell/FilesNavigator.menu.test.ts`: the header has a "+" named "New in folder"; its menu lists exactly the folder context menu's labels minus mod items, in the same order, with New kanban board registered through the real `railRegistryStore`.
-- [ ] With `Projects` picked, New note from the header creates `Projects/Untitled.md` (`fs.service` and Tauri mocked, nothing else), opens it and keeps `Projects` picked; with the root picked it creates at the root; New folder starts the inline rename of the created folder.
-- [ ] After the pick moves from `Projects` to `Areas`, the header `title`, the menu heading and the target follow.
-- [ ] A picked folder deleted outside the app: New note from the header toasts the create failure and does not re-create the folder (`createFile` reads the parent first, `fs.service.ts:198-223`).
-- [ ] Label pins updated on purpose: `FilesNavigator.menu.test.ts:202,218,274,326`, `FilesNavigator.new-view.test.ts:111`, `kanban.service.test.ts:41`, `app-lifecycle.service.test.ts:895` (`['New Kanban Board']`), `commands.test.ts`; `commands.new-commands.test.ts` still creates at `${VAULT}/Untitled.*` for every id.
-- [ ] `menu-item-anatomy`, `chrome-state-styles` and `rail-shell.boundary` tests pass; E2E `rail-shell.spec.ts:836-880` and `file-operations.spec.ts:5-9` pass untouched (no e2e looks up the renamed labels; the Files-menu lookups are "New note" and "New table").
-- [ ] The help pages above use the new labels.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/features/rail-shell/FilesNavigator.menu.test.ts`: the header has a "+" named "New in folder"; its menu lists exactly the folder context menu's labels minus mod items, in the same order, with New kanban board registered through the real `railRegistryStore`.
+- [x] With `Projects` picked, New note from the header creates `Projects/Untitled.md` (`fs.service` and Tauri mocked, nothing else), opens it and keeps `Projects` picked; with the root picked it creates at the root; New folder starts the inline rename of the created folder.
+- [x] After the pick moves from `Projects` to `Areas`, the header `title`, the menu heading and the target follow.
+- [x] A picked folder deleted outside the app: New note from the header toasts the create failure and does not re-create the folder (`createFile` reads the parent first, `fs.service.ts:198-223`).
+- [x] Label pins updated on purpose: `FilesNavigator.menu.test.ts:202,218,274,326`, `FilesNavigator.new-view.test.ts:111`, `kanban.service.test.ts:41`, `app-lifecycle.service.test.ts:895` (`['New Kanban Board']`), `commands.test.ts`; `commands.new-commands.test.ts` still creates at `${VAULT}/Untitled.*` for every id.
+- [x] `menu-item-anatomy`, `chrome-state-styles` and `rail-shell.boundary` tests pass; E2E `rail-shell.spec.ts:836-880` and `file-operations.spec.ts:5-9` pass untouched (no e2e looks up the renamed labels; the Files-menu lookups are "New note" and "New table").
+- [x] The help pages above use the new labels.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -54,3 +54,4 @@ Checked at `ab143a411`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided by the owner: granularity of 34 consolidated tickets (this is old ticket 21 unchanged). Defaults (not individually answered): 13.1 (old 21.1) palette creators keep the vault root (finders-ux 02 precedent); 13.2 (old 21.2) "New kanban board", not "New board" (the palette matches labels only).
+- 2026-11-18, deliver (branch issue/13-files-plus-menu-new-kind): Files header "+" menu ("New in folder") mirrors the folder context menu and targets the picked folder; creator labels unified to "New <kind>"; help pages updated. Full suite: 649 files, 17179 passed, 54 skipped, exit 0. Reviews: round 1 CHANGES_REQUESTED, fix round ran, round 2 APPROVED (no findings).

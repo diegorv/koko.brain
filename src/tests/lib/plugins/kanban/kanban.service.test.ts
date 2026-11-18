@@ -34,11 +34,11 @@ describe('registerKanbanFolderCreator', () => {
 		railRegistryStore.reset();
 	});
 
-	it('adds New Kanban Board to the Files navigator folder menu, which creates an empty board', async () => {
+	it('adds New kanban board to the Files navigator folder menu, which creates an empty board', async () => {
 		vi.mocked(createFile).mockResolvedValue('/vault/Work/Untitled.kanban');
 		const off = registerKanbanFolderCreator();
 
-		expect(railRegistryStore.folderCreators.map((c) => [c.label, c.fileName])).toEqual([['New Kanban Board', 'Untitled.kanban']]);
+		expect(railRegistryStore.folderCreators.map((c) => [c.label, c.fileName])).toEqual([['New kanban board', 'Untitled.kanban']]);
 		await expect(railRegistryStore.folderCreators[0].create('/vault/Work')).resolves.toBe('/vault/Work/Untitled.kanban');
 		expect(createFile).toHaveBeenCalledWith('/vault/Work', 'Untitled.kanban', serializeKanbanBoard(createEmptyKanbanBoard()));
 
