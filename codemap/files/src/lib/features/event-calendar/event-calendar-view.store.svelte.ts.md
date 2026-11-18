@@ -27,7 +27,7 @@ imp src/lib/features/event-calendar/event-calendar.service.ts:42 -> src/lib/feat
 imp src/lib/features/rail-shell/RailNoteList.svelte:53 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
 imp src/lib/plugins/calendar/CalendarNavigator.svelte:11 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
 imp src/lib/plugins/calendar/calendar-rail.service.ts:4 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
-imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:9 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
+imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:11 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
 ## reach
 in2 src/lib/features/event-calendar/event-calendar-view.store.svelte.ts 9 files in 3 modules: src/lib/app(6) src/lib/features/event-calendar(2) src/lib/plugins/one-on-one(1)
 out2 src/lib/features/event-calendar/event-calendar-view.store.svelte.ts 4 files in 2 modules: src/lib/core/settings(3) src/lib/features/event-calendar(1)

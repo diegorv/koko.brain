@@ -18,7 +18,7 @@ imp src/lib/app/commands.ts:49 -> src/lib/plugins/one-on-one/one-on-one.service.
 imp src/lib/app/global-keybindings.ts:18 -> src/lib/plugins/one-on-one/one-on-one.service.ts openOneOnOnePicker
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:67 -> src/lib/plugins/one-on-one/one-on-one.service.ts registerOneOnOneActionBarAction
 imp src/lib/plugins/mods/mod-app.service.ts:17 -> src/lib/plugins/one-on-one/one-on-one.service.ts createOneOnOneNote,openOneOnOnePicker
-imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:13 -> src/lib/plugins/one-on-one/one-on-one.service.ts createOneOnOneNote
+imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:15 -> src/lib/plugins/one-on-one/one-on-one.service.ts createOneOnOneNote
 imp src/lib/plugins/one-on-one/OneOnOnePicker.svelte:5 -> src/lib/plugins/one-on-one/one-on-one.service.ts createOneOnOneNote
 ## reach
 in2 src/lib/plugins/one-on-one/one-on-one.service.ts 4 files in 4 modules: src/lib/app(1) src/lib/plugins/mods(1) src/lib/plugins/one-on-one(1) src/routes(1)
@@ -36,7 +36,7 @@ test src/tests/lib/plugins/one-on-one/OneOnOnePicker.test.ts mocks src/lib/plugi
 sym src/lib/plugins/one-on-one/one-on-one.service.ts:43 fn loadPeople(): Promise<void> L17 | Scans both the work and personal people folders in the vault and populates the store.
 sym src/lib/plugins/one-on-one/one-on-one.service.ts:69 fn createOneOnOneNote(personName: string): Promise<void> L32 | Creates and opens a new 1:1 note for the given person, or opens the one that already exists at the same path.
 by src/lib/plugins/one-on-one/one-on-one.service.ts:createOneOnOneNote <- src/lib/plugins/mods/mod-app.service.ts:38 in MOD_APP ref
-by src/lib/plugins/one-on-one/one-on-one.service.ts:createOneOnOneNote <- src/lib/plugins/one-on-one/MyPeopleSection.svelte:27 in newOneOnOne call
+by src/lib/plugins/one-on-one/one-on-one.service.ts:createOneOnOneNote <- src/lib/plugins/one-on-one/MyPeopleSection.svelte:29 in newOneOnOne call
 by src/lib/plugins/one-on-one/one-on-one.service.ts:createOneOnOneNote <- src/lib/plugins/one-on-one/OneOnOnePicker.svelte:45 in selectPerson call
 sym src/lib/plugins/one-on-one/one-on-one.service.ts:107 fn registerOneOnOneActionBarAction(): () => void L15 | Registers "New 1:1" into the note action bar for Person notes; the person is the note's file name.
 by src/lib/plugins/one-on-one/one-on-one.service.ts:registerOneOnOneActionBarAction <- src/lib/app/lifecycle/app-lifecycle.service.ts:271 in initializeVault call

@@ -86,7 +86,7 @@ layer features -> utils 98
 layer lib-root -> utils 1
 layer plugins -> components 21
 layer plugins -> contracts 7
-layer plugins -> core 106
+layer plugins -> core 107
 layer plugins -> features 35
 layer plugins -> plugins 141
 layer plugins -> types 4

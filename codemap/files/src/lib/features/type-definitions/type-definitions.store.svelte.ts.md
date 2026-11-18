@@ -27,7 +27,7 @@ imp src/lib/features/rail-shell/TypesNavigator.svelte:48 -> src/lib/features/typ
 imp src/lib/features/type-definitions/type-definitions.service.ts:21 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/plugins/calendar/CalendarNavigator.svelte:12 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/plugins/mods/mod-app.service.ts:12 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
-imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:10 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
+imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:12 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 ## reach
 in2 src/lib/features/type-definitions/type-definitions.store.svelte.ts 18 files in 9 modules: src/lib/features/event-calendar(7) src/lib/app(4) src/lib/features/auto-organize(1) src/lib/features/rail-shell(1) src/lib/features/type-definitions(1) +4 modules: q impact src/lib/features/type-definitions/type-definitions.store.svelte.ts --depth 2
 out2 src/lib/features/type-definitions/type-definitions.store.svelte.ts 8 files in 6 modules: src/lib/core/filesystem(2) src/lib/features/collection(2) src/lib/contracts(1) src/lib/core/frontmatter(1) src/lib/features/file-icons(1) +1 modules
