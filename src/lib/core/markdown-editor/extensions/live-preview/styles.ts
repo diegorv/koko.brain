@@ -615,6 +615,21 @@ export const livePreviewStyles = EditorView.baseTheme({
 		paddingBottom: '6px',
 		borderBottom: '1px solid var(--lp-collection-header-border)',
 	},
+	// "1 of N views" after the header text: the block renders only the first view.
+	'.cm-lp-collection-views-hint': {
+		color: 'var(--lp-collection-null)',
+		fontSize: '0.9em',
+		fontWeight: '400',
+		marginLeft: '8px',
+	},
+	// A text cell's inner span: max-width on the `td` is unreliable in auto table layout.
+	'.cm-lp-collection-text': {
+		display: 'block',
+		maxWidth: '20em',
+		overflow: 'hidden',
+		textOverflow: 'ellipsis',
+		whiteSpace: 'nowrap',
+	},
 	'.cm-lp-collection-table': {
 		width: '100%',
 		borderCollapse: 'collapse',
@@ -987,16 +1002,24 @@ export const livePreviewStyles = EditorView.baseTheme({
 		margin: '0',
 		paddingLeft: '20px',
 	},
-	// Holds a QueryJS result table so a wide one scrolls inside the note instead of overflowing it.
+	// Holds a QueryJS or collection block result table so a wide one scrolls inside the note
+	// instead of overflowing it. Resets the editor's `overflow-wrap: anywhere` (CodeMirror line
+	// wrapping), which would split words and dates mid-value instead of widening the table.
 	'.cm-lp-table-scroll': {
 		overflowX: 'auto',
+		overflowWrap: 'normal',
+		wordBreak: 'normal',
+	},
+	'.cm-lp-table-scroll th': {
+		whiteSpace: 'nowrap',
 	},
 	'.cm-lp-qjs-table': {
 		width: '100%',
 		borderCollapse: 'collapse',
 		fontSize: '0.95em',
 	},
-	// Date and number values from `renderValue`: never split mid-value across lines.
+	// Date and number values from QueryJS `renderValue` and collection block cells: never split
+	// mid-value across lines.
 	'.cm-lp-qjs-nowrap': {
 		whiteSpace: 'nowrap',
 	},

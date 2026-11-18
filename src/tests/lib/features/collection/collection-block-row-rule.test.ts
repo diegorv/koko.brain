@@ -68,7 +68,7 @@ function blockDoc(yaml: string): string {
 	return '# C\n\n```collection\n' + yaml + '```\n\nend\n';
 }
 
-/** The `file.name` cell of every drawn row, in order. */
+/** The `file.name` cell of every drawn row, in order (shown without `.md`). */
 function rowNames(view: EditorView): string[] {
 	return [...view.contentDOM.querySelectorAll('.cm-lp-collection-table tbody tr')].map((tr) => tr.querySelector('td')?.textContent ?? '');
 }
@@ -78,7 +78,7 @@ function header(view: EditorView): string | null | undefined {
 	return view.contentDOM.querySelector('.cm-lp-collection-header')?.textContent;
 }
 
-const PLAIN = ['n1.md', 'n2.md', 'n3.md', 'n4.md', 'n5.md'];
+const PLAIN = ['n1', 'n2', 'n3', 'n4', 'n5'];
 
 describe('inline collection block row rule', () => {
 	it('leaves out an archived note, a system-folder note, a type definition and a .view', () => {
@@ -89,18 +89,18 @@ describe('inline collection block row rule', () => {
 
 	it('lists the archived note when the block cites archived', () => {
 		const view = mount(blockDoc("filters: 'archived == true'\nviews:\n  - type: table\n    name: Archive\n"));
-		expect(rowNames(view)).toEqual(['old.md']);
+		expect(rowNames(view)).toEqual(['old']);
 	});
 
 	it('keeps a record that has no entry', () => {
 		expect(typeDefinitionsStore.entries).toEqual([]);
 		const view = mount(blockDoc("filters: 'file.name == \"n3.md\"'\nviews:\n  - type: table\n    name: One\n"));
-		expect(rowNames(view)).toEqual(['n3.md']);
+		expect(rowNames(view)).toEqual(['n3']);
 	});
 
 	it('counts limit after the rule', () => {
 		const view = mount(blockDoc('views:\n  - type: table\n    name: Two\n    limit: 2\n'));
-		expect(rowNames(view)).toEqual(['n1.md', 'n2.md']);
+		expect(rowNames(view)).toEqual(['n1', 'n2']);
 		expect(header(view)).toBe('Two (2)');
 	});
 

@@ -8,7 +8,7 @@ imp src/lib/app/editor-host.ts:11 -> src/lib/core/filesystem/wikilink-resolution
 imp src/lib/core/filesystem/link-updater.logic.ts:2 -> src/lib/core/filesystem/wikilink-resolution.logic.ts buildResolutionCache,resolveWikilinkCached,type:WikilinkResolutionCache
 imp src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:2 -> src/lib/core/filesystem/wikilink-resolution.logic.ts getNoteName
 imp src/lib/core/markdown-editor/extensions/wikilink/completion.ts:2 -> src/lib/core/filesystem/wikilink-resolution.logic.ts getNoteName
-imp src/lib/features/collection/collection.logic.ts:16 -> src/lib/core/filesystem/wikilink-resolution.logic.ts parseWikilinks
+imp src/lib/features/collection/collection.logic.ts:17 -> src/lib/core/filesystem/wikilink-resolution.logic.ts parseWikilinks
 imp src/lib/features/note-list/NoteRow.svelte:11 -> src/lib/core/filesystem/wikilink-resolution.logic.ts resolveWikilink
 imp src/lib/features/properties/PropertiesView.svelte:15 -> src/lib/core/filesystem/wikilink-resolution.logic.ts resolveWikilink
 imp src/lib/features/properties/RelationshipSearch.svelte:8 -> src/lib/core/filesystem/wikilink-resolution.logic.ts isLinkTargetFile
@@ -20,7 +20,7 @@ imp src/lib/plugins/queryjs/kb-api.ts:9 -> src/lib/core/filesystem/wikilink-reso
 imp src/lib/plugins/queryjs/queryjs.logic.ts:5 -> src/lib/core/filesystem/wikilink-resolution.logic.ts isLinkTargetFile,resolveWikilinkCached,type:WikilinkResolutionCache
 imp src/lib/plugins/quick-capture/composer-editor-host.service.ts:3 -> src/lib/core/filesystem/wikilink-resolution.logic.ts getNoteName,isLinkTargetFile
 ## reach
-in2 src/lib/core/filesystem/wikilink-resolution.logic.ts 45 files in 17 modules: src/lib/features/rail-shell(12) src/lib/app(6) src/lib/features/collection(6) src/lib/features/auto-organize(3) src/lib/plugins/graph-view(3) +12 modules: q impact src/lib/core/filesystem/wikilink-resolution.logic.ts --depth 2
+in2 src/lib/core/filesystem/wikilink-resolution.logic.ts 47 files in 17 modules: src/lib/features/rail-shell(12) src/lib/features/collection(8) src/lib/app(6) src/lib/features/auto-organize(3) src/lib/plugins/graph-view(3) +12 modules: q impact src/lib/core/filesystem/wikilink-resolution.logic.ts --depth 2
 out2 src/lib/core/filesystem/wikilink-resolution.logic.ts 52 files in 1 modules: src/lib/contracts(52)
 ## tests
 test src/tests/lib/core/filesystem/wikilink-resolution.logic.test.ts imports src/lib/core/filesystem/wikilink-resolution.logic.ts mirror
@@ -65,7 +65,7 @@ by src/lib/core/filesystem/wikilink-resolution.logic.ts:resolveWikilinkCached <-
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:resolveWikilinkCached <- src/lib/plugins/kanban/kanban.service.ts:74 in loadLinkedFileContent call
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:resolveWikilinkCached <- src/lib/plugins/queryjs/queryjs.logic.ts:141 in buildKBPage call
 sym src/lib/core/filesystem/wikilink-resolution.logic.ts:154 fn parseWikilinks(content: string): WikiLink[] L31 | Lists every `[[target|alias#heading]]` wikilink in `content`, in order, with its offset.
-by src/lib/core/filesystem/wikilink-resolution.logic.ts:parseWikilinks <- src/lib/features/collection/collection.logic.ts:88 in wikilinkTargets call
+by src/lib/core/filesystem/wikilink-resolution.logic.ts:parseWikilinks <- src/lib/features/collection/collection.logic.ts:89 in wikilinkTargets call
 ## locals
 local src/lib/core/filesystem/wikilink-resolution.logic.ts:27 fn exactTarget(target: string): string | null L4
 local src/lib/core/filesystem/wikilink-resolution.logic.ts:36 fn isExactFile(filePathLower: string, exact: string): boolean L4

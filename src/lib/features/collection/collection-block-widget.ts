@@ -1,7 +1,7 @@
 import { WidgetType } from '@codemirror/view';
 import type { FencedBlockRenderer } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
-import { executeQuery, formatCellValue, type QueryRowSet } from '#lib/features/collection/collection.logic.js';
+import { executeQuery, formatColumnCell, type QueryRowSet } from '#lib/features/collection/collection.logic.js';
 import { getViewRowSetPort } from '#lib/features/collection/view-row-set.port.js';
 import { isDisplayValue } from '#lib/features/collection/expression/expression.types.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
@@ -31,6 +31,8 @@ interface CollectionCacheEntry {
 	view: CollectionViewDef;
 	/** Query result the cached renders are built from. */
 	result: QueryResult;
+	/** Names of every view the block defines, in order; the first is the rendered one. */
+	viewNames: string[];
 }
 
 /** Query cache: yamlContent -> view + result DATA queried at a given store
@@ -86,7 +88,7 @@ export class CollectionBlockWidget extends WidgetType {
 
 		const cached = collectionCache.get(this.yamlContent);
 		if (cached && cached.version === this.version) {
-			this.renderView(container, cached.view, cached.result);
+			this.renderView(container, cached.view, cached.result, cached.viewNames);
 			return container;
 		}
 
@@ -122,9 +124,10 @@ export class CollectionBlockWidget extends WidgetType {
 			? (records, v, d) => port.blockRows(records, v, d)
 			: undefined;
 		const result = executeQuery(definition, viewWithDefaults, collectionStore.propertyIndex, vaultStore.path, rowSet);
-		collectionCache.set(this.yamlContent, { version: this.version, view: viewWithDefaults, result });
+		const viewNames = definition.views.map((v) => v.name);
+		collectionCache.set(this.yamlContent, { version: this.version, view: viewWithDefaults, result, viewNames });
 
-		this.renderView(container, viewWithDefaults, result);
+		this.renderView(container, viewWithDefaults, result, viewNames);
 		return container;
 	}
 
@@ -132,11 +135,19 @@ export class CollectionBlockWidget extends WidgetType {
 	 *  linear-calendar / empty / table) from a query result. Runs on every
 	 *  toDOM(), including cache hits, so each widget owns its DOM and click
 	 *  handlers stay live. */
-	private renderView(container: HTMLElement, view: CollectionViewDef, result: QueryResult): void {
+	private renderView(container: HTMLElement, view: CollectionViewDef, result: QueryResult, viewNames: string[]): void {
 		// View name header
 		const header = document.createElement('div');
 		header.className = 'cm-lp-collection-header';
 		header.textContent = `${view.name} (${result.records.length})`;
+		if (viewNames.length > 1) {
+			// The block always renders the first view; the hint says the others exist.
+			const hint = document.createElement('span');
+			hint.className = 'cm-lp-collection-views-hint';
+			hint.textContent = `1 of ${viewNames.length} views`;
+			hint.title = `Other views: ${viewNames.slice(1).join(', ')}`;
+			header.appendChild(hint);
+		}
 		container.appendChild(header);
 
 		if (result.filterError) {
@@ -165,8 +176,11 @@ export class CollectionBlockWidget extends WidgetType {
 			return;
 		}
 
-		// Build table
-		container.appendChild(buildCollectionTable(result));
+		// The scroll div lets a wide table scroll sideways inside the note.
+		const scroll = document.createElement('div');
+		scroll.className = 'cm-lp-table-scroll';
+		scroll.appendChild(buildCollectionTable(result));
+		container.appendChild(scroll);
 
 		if (result.records.length > COLLECTION_ROW_CAP) {
 			const footer = document.createElement('div');
@@ -424,10 +438,24 @@ export const collectionBlockRenderer: FencedBlockRenderer = {
 };
 
 /**
+ * A frontmatter date arrives as a string, so a whole `YYYY-MM-DD` date or
+ * datetime marks a date cell. Anchored at both ends so a date-prefixed title
+ * (`2026-11-18 Weekly review ...`) stays a text cell with an ellipsis.
+ */
+const DATE_TEXT = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
+
+/** True for a value that must not split across lines: a date or a number. */
+function isNowrapValue(value: unknown): boolean {
+	return value instanceof Date || typeof value === 'number' || (typeof value === 'string' && DATE_TEXT.test(value));
+}
+
+/**
  * Builds the `<table>` for a collection table view from a query result,
  * rendering at most `COLLECTION_ROW_CAP` body rows.
- * Pure DOM construction: DisplayHTML cells render as sanitized innerHTML, plain
- * values as textContent, and null/undefined as the null-class dash cell.
+ * Pure DOM construction: DisplayHTML cells render as sanitized innerHTML,
+ * null/undefined as the null-class dash cell, dates and numbers as nowrap
+ * text, and other values as a titled span that ends in an ellipsis when long
+ * (a `max-width` on the `td` itself is unreliable in auto table layout).
  */
 export function buildCollectionTable(result: QueryResult): HTMLTableElement {
 	const table = document.createElement('table');
@@ -439,6 +467,7 @@ export function buildCollectionTable(result: QueryResult): HTMLTableElement {
 	for (const col of result.columns) {
 		const th = document.createElement('th');
 		th.textContent = col.displayName;
+		if (col.displayName !== col.key) th.title = col.key;
 		headerRow.appendChild(th);
 	}
 	thead.appendChild(headerRow);
@@ -456,11 +485,19 @@ export function buildCollectionTable(result: QueryResult): HTMLTableElement {
 			const value = getCellValue(record, col.key);
 			if (isDisplayValue(value) && value.__display === 'html') {
 				td.innerHTML = sanitizeHtml(value.html);
-			} else {
-				td.textContent = formatCellValue(value);
-			}
-			if (value === null || value === undefined) {
+			} else if (value === null || value === undefined) {
+				td.textContent = formatColumnCell(col.key, value);
 				td.className = 'cm-lp-collection-null';
+			} else if (isNowrapValue(value)) {
+				td.textContent = formatColumnCell(col.key, value);
+				td.className = 'cm-lp-qjs-nowrap';
+			} else {
+				const text = formatColumnCell(col.key, value);
+				const span = document.createElement('span');
+				span.className = 'cm-lp-collection-text';
+				span.textContent = text;
+				span.title = text;
+				td.appendChild(span);
 			}
 			tr.appendChild(td);
 		}

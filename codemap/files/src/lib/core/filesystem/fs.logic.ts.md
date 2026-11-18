@@ -23,7 +23,7 @@ imp src/lib/core/trash/trash.service.ts:14 -> src/lib/core/filesystem/fs.logic.t
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:15 -> src/lib/core/filesystem/fs.logic.ts isMarkdownFile
 imp src/lib/features/auto-organize/auto-organize.logic.ts:3 -> src/lib/core/filesystem/fs.logic.ts isMarkdownFile,isViewFile
 imp src/lib/features/auto-organize/auto-organize.service.ts:4 -> src/lib/core/filesystem/fs.logic.ts fileOperationErrorMessage,isViewFile,TargetExistsError
-imp src/lib/features/collection/collection.logic.ts:15 -> src/lib/core/filesystem/fs.logic.ts getFileExtension,getFileName
+imp src/lib/features/collection/collection.logic.ts:16 -> src/lib/core/filesystem/fs.logic.ts getFileExtension,getFileName
 imp src/lib/features/collection/collection.service.ts:4 -> src/lib/core/filesystem/fs.logic.ts isMarkdownFile
 imp src/lib/features/collection/toolbar/filter.logic.ts:4 -> src/lib/core/filesystem/fs.logic.ts isViewFile
 imp src/lib/features/collection/toolbar/properties.logic.ts:1 -> src/lib/core/filesystem/fs.logic.ts isViewFile
@@ -85,14 +85,14 @@ by src/lib/core/filesystem/fs.logic.ts:renamedPath <- src/lib/features/event-cal
 sym src/lib/core/filesystem/fs.logic.ts:54 fn getFileName(filePath: string): string L3 | Extracts the file name from a full path (e.g. "/vault/note.md" → "note.md")
 by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/core/filesystem/fs.service.ts:163 in addToTree call +3
 by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/core/filesystem/path-change.service.ts:201 in applyPathChange call
-by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/features/collection/collection.logic.ts:29 in buildNoteRecord call
+by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/features/collection/collection.logic.ts:30 in buildNoteRecord call
 by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/features/event-calendar/event-calendar.service.ts:531 in fileBase call
 by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/features/note-list/NoteRowMenu.svelte:80 in runOrToast call +1
 by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/features/rail-shell/FilesNavigator.svelte:189 in startRename call +4
 by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/features/rail-shell/lens.logic.ts:226 in pinnedRailItems call +2
 by src/lib/core/filesystem/fs.logic.ts:getFileName <- src/lib/features/type-definitions/ViewDialog.svelte:80 in load call +1
 sym src/lib/core/filesystem/fs.logic.ts:59 fn getFileExtension(fileName: string): string L4 | Returns the file extension including the dot (e.g. "note.md" → ".md")
-by src/lib/core/filesystem/fs.logic.ts:getFileExtension <- src/lib/features/collection/collection.logic.ts:30 in buildNoteRecord call
+by src/lib/core/filesystem/fs.logic.ts:getFileExtension <- src/lib/features/collection/collection.logic.ts:31 in buildNoteRecord call
 by src/lib/core/filesystem/fs.logic.ts:getFileExtension <- src/lib/features/rail-shell/lens.logic.ts:920 in fileKind call
 sym src/lib/core/filesystem/fs.logic.ts:65 fn isMarkdownFile(fileName: string): boolean L4 | Checks whether the file name has a markdown extension (.md or .markdown)
 by src/lib/core/filesystem/fs.logic.ts:isMarkdownFile <- src/lib/core/filesystem/fs.service.ts:215 in createFile call

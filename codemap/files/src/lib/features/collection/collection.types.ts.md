@@ -15,7 +15,7 @@ imp src/lib/features/collection/CollectionTableView.svelte:2 -> src/lib/features
 imp src/lib/features/collection/CollectionView.svelte:19 -> src/lib/features/collection/collection.types.ts type:QueryResult,type:PropertyIndexRecord,type:SortDef,type:CollectionViewDef
 imp src/lib/features/collection/calendar.logic.ts:2 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
 imp src/lib/features/collection/collection-block-widget.ts:11 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord,type:CollectionViewDef,type:QueryResult
-imp src/lib/features/collection/collection.logic.ts:1 -> src/lib/features/collection/collection.types.ts type:CollectionDefinition,type:CollectionFilter,type:CollectionViewDef,type:FilterItem,type:PropertyIndexRecord,type:QueryColumn,type:QueryResult
+imp src/lib/features/collection/collection.logic.ts:1 -> src/lib/features/collection/collection.types.ts type:CollectionDefinition,type:CollectionFilter,type:CollectionViewDef,type:FilterItem,type:PropertyConfig,type:PropertyIndexRecord,type:QueryColumn,type:QueryResult
 imp src/lib/features/collection/collection.service.ts:9 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
 imp src/lib/features/collection/collection.store.svelte.ts:1 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
 imp src/lib/features/collection/expression/evaluator.ts:3 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
@@ -73,6 +73,8 @@ test src/tests/lib/features/collection/expression/methods.test.ts imports-type s
 test src/tests/lib/features/collection/key-edit.logic.test.ts imports-type src/lib/features/collection/collection.types.ts
 test src/tests/lib/features/collection/linear-calendar-logic.test.ts imports-type src/lib/features/collection/collection.types.ts
 test src/tests/lib/features/collection/portent-filters.test.ts imports-type src/lib/features/collection/collection.types.ts
+test src/tests/lib/features/collection/toolbar/PropertiesPanel.svelte.test.ts imports-type src/lib/features/collection/collection.types.ts
+test src/tests/lib/features/collection/toolbar/SortPanel.svelte.test.ts imports-type src/lib/features/collection/collection.types.ts
 test src/tests/lib/features/collection/toolbar/filter-logic.test.ts imports-type src/lib/features/collection/collection.types.ts
 test src/tests/lib/features/collection/toolbar/properties-logic.test.ts imports-type src/lib/features/collection/collection.types.ts
 test src/tests/lib/features/collection/toolbar/sort-logic.test.ts imports-type src/lib/features/collection/collection.types.ts
@@ -85,9 +87,7 @@ test src/tests/lib/features/type-definitions/type-definitions.service.test.ts im
 test src/tests/lib/features/type-definitions/type-note-list.logic.test.ts imports-type src/lib/features/collection/collection.types.ts
 test src/tests/lib/features/type-definitions/type-sidebar.logic.test.ts imports-type src/lib/features/collection/collection.types.ts
 test src/tests/lib/plugins/mods/mod-query.service.test.ts imports-type src/lib/features/collection/collection.types.ts
-test src/tests/lib/plugins/queryjs/kb-api-contract.test.ts imports-type src/lib/features/collection/collection.types.ts
-test src/tests/lib/plugins/queryjs/kb-api.test.ts imports-type src/lib/features/collection/collection.types.ts
-more tests 3 not shown: src/tests/lib/plugins/queryjs(3): q tests src/lib/features/collection/collection.types.ts
+more tests 5 not shown: src/tests/lib/plugins/queryjs(5): q tests src/lib/features/collection/collection.types.ts
 ## symbols
 sym src/lib/features/collection/collection.types.ts:4 type FilterItem L1 | Recursive filter type: an object with conjunctions or a string expression
 by src/lib/features/collection/collection.types.ts:FilterItem <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:24 in (script) import
@@ -113,6 +113,7 @@ by src/lib/features/collection/collection.types.ts:SortDef <- src/lib/features/r
 by src/lib/features/collection/collection.types.ts:SortDef <- src/lib/features/rail-shell/list-view-sort.logic.ts:1 in (module) import
 more by 1 not shown: src/lib/features/type-definitions(1): q importers src/lib/features/collection/collection.types.ts:SortDef
 sym src/lib/features/collection/collection.types.ts:25 interface PropertyConfig L4 | Display configuration for a property
+by src/lib/features/collection/collection.types.ts:PropertyConfig <- src/lib/features/collection/collection.logic.ts:6 in (module) import
 by src/lib/features/collection/collection.types.ts:PropertyConfig <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:2 in (script) import
 by src/lib/features/collection/collection.types.ts:PropertyConfig <- src/lib/features/collection/toolbar/SortPanel.svelte:13 in (script) import
 sym src/lib/features/collection/collection.types.ts:31 interface CollectionViewDef L28 | Definition of a single view within a `.view` file or ` ```collection ` block
@@ -145,12 +146,12 @@ by src/lib/features/collection/collection.types.ts:PropertyIndexRecord <- src/li
 by src/lib/features/collection/collection.types.ts:PropertyIndexRecord <- src/lib/features/collection/collection-block-widget.ts:11 in (module) import
 more by 18 not shown: src/lib/features/collection(11) src/lib/features/rail-shell(4) src/lib/plugins/queryjs(2) src/lib/features/type-definitions(1): q importers src/lib/features/collection/collection.types.ts:PropertyIndexRecord
 sym src/lib/features/collection/collection.types.ts:99 interface QueryColumn L6 | A column entry in a query result, pairing the original key with its display name
-by src/lib/features/collection/collection.types.ts:QueryColumn <- src/lib/features/collection/collection.logic.ts:7 in (module) import
+by src/lib/features/collection/collection.types.ts:QueryColumn <- src/lib/features/collection/collection.logic.ts:8 in (module) import
 sym src/lib/features/collection/collection.types.ts:107 interface QueryResult L11 | Result of executing a query against the property index
 by src/lib/features/collection/collection.types.ts:QueryResult <- src/lib/features/collection/CollectionCalendarView.svelte:2 in (script) import
 by src/lib/features/collection/collection.types.ts:QueryResult <- src/lib/features/collection/CollectionLinearCalendarView.svelte:2 in (script) import
 by src/lib/features/collection/collection.types.ts:QueryResult <- src/lib/features/collection/CollectionTableView.svelte:2 in (script) import
 by src/lib/features/collection/collection.types.ts:QueryResult <- src/lib/features/collection/CollectionView.svelte:19 in (script) import
 by src/lib/features/collection/collection.types.ts:QueryResult <- src/lib/features/collection/collection-block-widget.ts:11 in (module) import
-by src/lib/features/collection/collection.types.ts:QueryResult <- src/lib/features/collection/collection.logic.ts:8 in (module) import
+by src/lib/features/collection/collection.types.ts:QueryResult <- src/lib/features/collection/collection.logic.ts:9 in (module) import
 by src/lib/features/collection/collection.types.ts:QueryResult <- src/lib/plugins/mods/mod-query.service.ts:3 in (module) import

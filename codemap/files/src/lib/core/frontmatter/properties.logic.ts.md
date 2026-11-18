@@ -13,7 +13,7 @@ imp src/lib/core/markdown-editor/extensions/live-preview/plugins/table-field.ts:
 imp src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:10 -> src/lib/core/frontmatter/properties.logic.ts parseFrontmatterProperties,setPropertyByBindTarget,typedOptionValue,extractBody,rebuildContent,detectLossyFrontmatter,LOSSY_FRONTMATTER_MESSAGES
 imp src/lib/features/auto-organize/auto-organize.logic.ts:4 -> src/lib/core/frontmatter/properties.logic.ts detectLossyFrontmatter,extractRawFrontmatter,isEmptyPropertyValue,normalizeTypeCasing,parseFrontmatterProperties
 imp src/lib/features/auto-organize/auto-organize.service.ts:10 -> src/lib/core/frontmatter/properties.logic.ts detectLossyFrontmatter,extractBody,parseFrontmatterProperties,rebuildContent
-imp src/lib/features/collection/collection.logic.ts:13 -> src/lib/core/frontmatter/properties.logic.ts normalizeTypeCasing,parseFrontmatterProperties
+imp src/lib/features/collection/collection.logic.ts:14 -> src/lib/core/frontmatter/properties.logic.ts normalizeTypeCasing,parseFrontmatterProperties
 imp src/lib/features/deep-link/deep-link.logic.ts:1 -> src/lib/core/frontmatter/properties.logic.ts parseFrontmatterProperties,extractBody,rebuildContent
 imp src/lib/features/event-calendar/EventCalendarSection.svelte:14 -> src/lib/core/frontmatter/properties.logic.ts normalizeTypeCasing
 imp src/lib/features/event-calendar/event-calendar-event.logic.ts:16 -> src/lib/core/frontmatter/properties.logic.ts extractBody,parseFrontmatterProperties,rebuildContent
@@ -34,7 +34,7 @@ imp src/lib/plugins/one-on-one/one-on-one.service.ts:8 -> src/lib/core/frontmatt
 imp src/lib/plugins/quick-capture/note-composer.logic.ts:2 -> src/lib/core/frontmatter/properties.logic.ts yamlScalar
 imp src/routes/(app)/+layout.svelte:14 -> src/lib/core/frontmatter/properties.logic.ts configurePropertiesDiagnostics
 ## reach
-in2 src/lib/core/frontmatter/properties.logic.ts 68 files in 19 modules: src/lib/features/event-calendar(13) src/lib/app(9) src/lib/core/markdown-editor(7) src/lib/features/collection(6) src/lib/features/rail-shell(5) +14 modules: q impact src/lib/core/frontmatter/properties.logic.ts --depth 2
+in2 src/lib/core/frontmatter/properties.logic.ts 70 files in 19 modules: src/lib/features/event-calendar(13) src/lib/app(9) src/lib/features/collection(8) src/lib/core/markdown-editor(7) src/lib/features/rail-shell(5) +14 modules: q impact src/lib/core/frontmatter/properties.logic.ts --depth 2
 out2 src/lib/core/frontmatter/properties.logic.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/core/frontmatter/properties.logic.test.ts imports src/lib/core/frontmatter/properties.logic.ts mirror
@@ -88,7 +88,7 @@ by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- sr
 by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:930 in dispatchMetaBindUpdate call
 by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/features/auto-organize/auto-organize.logic.ts:866 in propertyWriteSkipReason call
 by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/features/auto-organize/auto-organize.service.ts:633 in withRuleProperties call +1
-by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/features/collection/collection.logic.ts:36 in buildNoteRecord call
+by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/features/collection/collection.logic.ts:37 in buildNoteRecord call
 by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/features/deep-link/deep-link.logic.ts:389 in injectTitleIntoContent call +1
 more by 6 not shown: src/lib/features/event-calendar(2) src/lib/features/file-icons(1) src/lib/features/note-action-bar(1) src/lib/features/properties(1) src/lib/features/todoist-sync(1): q importers src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties
 sym src/lib/core/frontmatter/properties.logic.ts:357 type LossyFrontmatterReason L7 | Why a parse + re-serialize of a note's frontmatter would lose data: - `unparseable`: YAML errors or warnings (e.g. an unresolved custom tag), a root that is no…
@@ -150,7 +150,7 @@ sym src/lib/core/frontmatter/properties.logic.ts:798 fn computeRemoveRelationshi
 by src/lib/core/frontmatter/properties.logic.ts:computeRemoveRelationshipValue <- src/lib/features/properties/PropertiesView.svelte:83 in removeRelationshipLink call
 sym src/lib/core/frontmatter/properties.logic.ts:812 fn normalizeTypeCasing(s: string): string L3 | First letter uppercase, rest preserved — the casing rule Rust applies to `_type` values when deriving `is_a` (entry.rs::extract_is_a).
 by src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing <- src/lib/features/auto-organize/auto-organize.logic.ts:867 in propertyWriteSkipReason call
-by src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing <- src/lib/features/collection/collection.logic.ts:58 in projectDerivedProperties call
+by src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing <- src/lib/features/collection/collection.logic.ts:59 in projectDerivedProperties call
 by src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing <- src/lib/features/event-calendar/EventCalendarSection.svelte:82 in openEventType call
 by src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing <- src/lib/features/note-action-bar/note-action-bar.logic.ts:31 in getActionBarState call
 by src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing <- src/lib/features/properties/PropertiesView.svelte:93 in typeName=$derived call

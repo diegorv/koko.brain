@@ -6,7 +6,7 @@ imp src/lib/features/collection/toolbar/FormulaRow.svelte:2 -> src/lib/component
 imp src/lib/features/collection/toolbar/FormulaRow.svelte:6 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FormulaEntry
 imp src/lib/features/collection/toolbar/FormulaRow.svelte:7 -> src/lib/features/collection/toolbar/formula.logic.ts validateFormulaExpression
 ## imported-by
-imp src/lib/features/collection/toolbar/PropertiesPanel.svelte:12 -> src/lib/features/collection/toolbar/FormulaRow.svelte default
+imp src/lib/features/collection/toolbar/PropertiesPanel.svelte:13 -> src/lib/features/collection/toolbar/FormulaRow.svelte default
 ## reach
 in2 src/lib/features/collection/toolbar/FormulaRow.svelte 1 files in 1 modules: src/lib/features/collection(1)
 out2 src/lib/features/collection/toolbar/FormulaRow.svelte 3 files in 2 modules: src/lib/features/collection(2) src/lib/components(1)
@@ -14,11 +14,11 @@ out2 src/lib/features/collection/toolbar/FormulaRow.svelte 3 files in 2 modules:
 test src/tests/lib/features/collection/toolbar/FormulaRow.svelte.test.ts imports src/lib/features/collection/toolbar/FormulaRow.svelte mirror
 ## symbols
 sym src/lib/features/collection/toolbar/FormulaRow.svelte:1 component FormulaRow props:entry,onUpdate,onRemove,nameError L91
-by src/lib/features/collection/toolbar/FormulaRow.svelte:default <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:117 in (markup) mount
+by src/lib/features/collection/toolbar/FormulaRow.svelte:default <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:118 in (markup) mount
 ## mounts
 mount src/lib/features/collection/toolbar/FormulaRow.svelte:47 Button -> src/lib/components/ui/button/button.svelte
 mount src/lib/features/collection/toolbar/FormulaRow.svelte:57 Button -> src/lib/components/ui/button/button.svelte
 ## mounted-at
-mount src/lib/features/collection/toolbar/PropertiesPanel.svelte:117 FormulaRow -> src/lib/features/collection/toolbar/FormulaRow.svelte
+mount src/lib/features/collection/toolbar/PropertiesPanel.svelte:118 FormulaRow -> src/lib/features/collection/toolbar/FormulaRow.svelte
 ## calls
 call src/lib/features/collection/toolbar/FormulaRow.svelte:29 in expressionError=$derived -> src/lib/features/collection/toolbar/formula.logic.ts:validateFormulaExpression call

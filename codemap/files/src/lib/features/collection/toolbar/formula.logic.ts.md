@@ -7,7 +7,7 @@ imp src/lib/features/collection/toolbar/formula.logic.ts:2 -> src/lib/features/c
 ## imported-by
 imp src/lib/features/collection/CollectionView.svelte:22 -> src/lib/features/collection/toolbar/formula.logic.ts formulasToEntries,entriesToFormulas
 imp src/lib/features/collection/toolbar/FormulaRow.svelte:7 -> src/lib/features/collection/toolbar/formula.logic.ts validateFormulaExpression
-imp src/lib/features/collection/toolbar/PropertiesPanel.svelte:5 -> src/lib/features/collection/toolbar/formula.logic.ts addFormulaEntry,removeFormulaEntry,updateFormulaEntry,setFormulaEditing,validateFormulaName
+imp src/lib/features/collection/toolbar/PropertiesPanel.svelte:6 -> src/lib/features/collection/toolbar/formula.logic.ts addFormulaEntry,removeFormulaEntry,updateFormulaEntry,setFormulaEditing,validateFormulaName
 ## reach
 in2 src/lib/features/collection/toolbar/formula.logic.ts 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/collection/toolbar/formula.logic.ts 3 files in 1 modules: src/lib/features/collection(3)
@@ -21,17 +21,17 @@ sym src/lib/features/collection/toolbar/formula.logic.ts:31 fn entriesToFormulas
 by src/lib/features/collection/toolbar/formula.logic.ts:entriesToFormulas <- src/lib/features/collection/CollectionView.svelte:211 in activeFormulas=$derived call +1
 sym src/lib/features/collection/toolbar/formula.logic.ts:48 fn createEmptyFormulaEntry(): FormulaEntry L8 | Creates a new empty FormulaEntry for the "Add formula" action.
 sym src/lib/features/collection/toolbar/formula.logic.ts:61 fn addFormulaEntry(entries: FormulaEntry[]): FormulaEntry[] L3 | Adds a new formula entry to the list.
-by src/lib/features/collection/toolbar/formula.logic.ts:addFormulaEntry <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:66 in handleAddFormula call
+by src/lib/features/collection/toolbar/formula.logic.ts:addFormulaEntry <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:67 in handleAddFormula call
 sym src/lib/features/collection/toolbar/formula.logic.ts:68 fn removeFormulaEntry(entries: FormulaEntry[], id: string): FormulaEntry[] L6 | Removes a formula entry by ID.
-by src/lib/features/collection/toolbar/formula.logic.ts:removeFormulaEntry <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:122 in (markup) markup +1
+by src/lib/features/collection/toolbar/formula.logic.ts:removeFormulaEntry <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:123 in (markup) markup +1
 sym src/lib/features/collection/toolbar/formula.logic.ts:79 fn updateFormulaEntry(entries: FormulaEntry[], id: string, updates: Partial<Pick<FormulaEntry, 'name' | 'expression' | 'editing'>>): Formula… L14 | Updates a formula entry's name and/or expression.
-by src/lib/features/collection/toolbar/formula.logic.ts:updateFormulaEntry <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:121 in (markup) markup
+by src/lib/features/collection/toolbar/formula.logic.ts:updateFormulaEntry <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:122 in (markup) markup
 sym src/lib/features/collection/toolbar/formula.logic.ts:98 fn validateFormulaExpression(expression: string): string | undefined L11 | Validates a formula expression by attempting to parse it.
 by src/lib/features/collection/toolbar/formula.logic.ts:validateFormulaExpression <- src/lib/features/collection/toolbar/FormulaRow.svelte:29 in expressionError=$derived call
 sym src/lib/features/collection/toolbar/formula.logic.ts:114 fn validateFormulaName(name: string, existingEntries: FormulaEntry[], currentId: string): string | undefined L17 | Validates a formula name.
-by src/lib/features/collection/toolbar/formula.logic.ts:validateFormulaName <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:119 in (markup) markup
+by src/lib/features/collection/toolbar/formula.logic.ts:validateFormulaName <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:120 in (markup) markup
 sym src/lib/features/collection/toolbar/formula.logic.ts:136 fn setFormulaEditing(entries: FormulaEntry[], id: string): FormulaEntry[] L9 | Sets a formula entry into editing mode, and takes all other entries out of editing mode.
-by src/lib/features/collection/toolbar/formula.logic.ts:setFormulaEditing <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:136 in (markup) markup
+by src/lib/features/collection/toolbar/formula.logic.ts:setFormulaEditing <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:137 in (markup) markup
 ## locals
 local src/lib/features/collection/toolbar/formula.logic.ts:7 fn uid(): string L3
 ## calls

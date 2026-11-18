@@ -65,7 +65,7 @@ describe('buildCollectionTable', () => {
 
 	it('renders plain values as textContent (not innerHTML)', () => {
 		const result: QueryResult = {
-			records: [record(new Map([['status', 'active']]))],
+			records: [record(new Map([['status', '<b>active</b>']]))],
 			columns: [
 				{ key: 'file.name', displayName: 'Name' },
 				{ key: 'status', displayName: 'Status' },
@@ -74,8 +74,86 @@ describe('buildCollectionTable', () => {
 
 		const cells = buildCollectionTable(result).querySelectorAll('td');
 		expect(cells).toHaveLength(2);
-		expect(cells[1].textContent).toBe('active');
-		expect(cells[1].querySelector('span')).toBeNull();
+		expect(cells[1].textContent).toBe('<b>active</b>');
+		expect(cells[1].querySelector('b')).toBeNull();
+	});
+
+	it('gives a header the raw key as title when its label differs', () => {
+		const result: QueryResult = {
+			records: [],
+			columns: [
+				{ key: 'file.name', displayName: 'Name' },
+				{ key: 'status', displayName: 'status' },
+			],
+		};
+
+		const headers = buildCollectionTable(result).querySelectorAll('th');
+		expect(headers[0].textContent).toBe('Name');
+		expect(headers[0].title).toBe('file.name');
+		expect(headers[1].hasAttribute('title')).toBe(false);
+	});
+
+	it('shows a file.name cell without its .md extension', () => {
+		const result: QueryResult = {
+			records: [{ ...record(new Map()), name: 'w.md' }],
+			columns: [{ key: 'file.name', displayName: 'Name' }],
+		};
+
+		expect(buildCollectionTable(result).querySelector('td')?.textContent).toBe('w');
+	});
+
+	it('keeps date and number cells on one line', () => {
+		const result: QueryResult = {
+			records: [
+				record(
+					new Map<string, unknown>([
+						['due', '2026-06-10'],
+						['at', new Date(2026, 5, 10)],
+						['count', 3],
+						['status', 'active'],
+					]),
+				),
+			],
+			columns: ['due', 'at', 'count', 'status'].map((key) => ({ key, displayName: key })),
+		};
+
+		const cells = [...buildCollectionTable(result).querySelectorAll('td')];
+		expect(cells.map((td) => td.classList.contains('cm-lp-qjs-nowrap'))).toEqual([true, true, true, false]);
+		expect(cells.map((td) => td.textContent)).toEqual(['2026-06-10', '2026-06-10', '3', 'active']);
+	});
+
+	it('keeps a datetime string on one line but treats a date-prefixed title as text', () => {
+		const title = '2026-11-18 Weekly review with the platform team';
+		const result: QueryResult = {
+			records: [
+				record(
+					new Map<string, unknown>([
+						['at', '2026-06-10T09:30:00Z'],
+						['summary', title],
+					]),
+				),
+			],
+			columns: ['at', 'summary'].map((key) => ({ key, displayName: key })),
+		};
+
+		const cells = [...buildCollectionTable(result).querySelectorAll('td')];
+		expect(cells.map((td) => td.classList.contains('cm-lp-qjs-nowrap'))).toEqual([true, false]);
+		const span = cells[1].querySelector('span.cm-lp-collection-text') as HTMLElement;
+		expect(span).not.toBeNull();
+		expect(span.title).toBe(title);
+	});
+
+	it('wraps a text cell in a span titled with its full text', () => {
+		const long = 'word '.repeat(24).trim();
+		const result: QueryResult = {
+			records: [record(new Map([['summary', long]]))],
+			columns: [{ key: 'summary', displayName: 'summary' }],
+		};
+
+		const span = buildCollectionTable(result).querySelector('td > span.cm-lp-collection-text') as HTMLElement;
+		expect(span).not.toBeNull();
+		expect(span.textContent).toBe(long);
+		expect(span.title).toBe(long);
 	});
 
 	it('sanitizes DisplayHTML before rendering', () => {
@@ -173,6 +251,21 @@ describe('CollectionBlockWidget — query data cache', () => {
 		expect(dom.querySelectorAll('tbody tr').length).toBe(2);
 	});
 
+	it('renders the table inside a sideways scroll div', () => {
+		const dom = new CollectionBlockWidget(YAML).toDOM();
+
+		const table = dom.querySelector('table.cm-lp-collection-table')!;
+		expect(table.parentElement?.className).toBe('cm-lp-table-scroll');
+		expect(table.parentElement?.parentElement).toBe(dom);
+	});
+
+	it('labels the file.name header Name with the raw key as title', () => {
+		const th = new CollectionBlockWidget(YAML).toDOM().querySelector('thead th') as HTMLElement;
+
+		expect(th.textContent).toBe('Name');
+		expect(th.title).toBe('file.name');
+	});
+
 	it('resolves a relative file.inFolder filter against the open vault', () => {
 		collectionStore.setPropertyIndex(
 			new Map([
@@ -185,7 +278,7 @@ describe('CollectionBlockWidget — query data cache', () => {
 		try {
 			const dom = new CollectionBlockWidget(yaml).toDOM();
 			const names = [...dom.querySelectorAll('tbody tr td:first-child')].map((td) => td.textContent);
-			expect(names).toEqual(['w.md']);
+			expect(names).toEqual(['w']);
 		} finally {
 			vaultStore._reset();
 		}
@@ -235,7 +328,7 @@ describe('CollectionBlockWidget — query data cache', () => {
 		const names = [...second.querySelectorAll('tbody tr td:first-child')].map(
 			(td) => td.textContent,
 		);
-		expect(names).toEqual(['x.md', 'y.md']);
+		expect(names).toEqual(['x', 'y']);
 	});
 
 	it('serves the cached query result while the store version is unchanged', () => {
@@ -251,7 +344,7 @@ describe('CollectionBlockWidget — query data cache', () => {
 		const names = [...second.querySelectorAll('tbody tr td:first-child')].map(
 			(td) => td.textContent,
 		);
-		expect(names).toEqual(['a.md', 'b.md']);
+		expect(names).toEqual(['a', 'b']);
 	});
 
 	/** Replaces the index with `count` records named n0.md, n1.md, ... */
@@ -336,6 +429,27 @@ describe('CollectionBlockWidget — query data cache', () => {
 		expect(collectionStore.propertyIndex.size).toBe(2);
 		expect(before.eq(after)).toBe(false);
 		expect(after.eq(new CollectionBlockWidget(YAML))).toBe(true);
+	});
+
+	it('names the other views in a muted hint, on the first render and on a cache hit', () => {
+		const twoViews = `${YAML}  - type: table\n    name: "Done"\n`;
+
+		for (const dom of [new CollectionBlockWidget(twoViews).toDOM(), new CollectionBlockWidget(twoViews).toDOM()]) {
+			const header = dom.querySelector('.cm-lp-collection-header')!;
+			const hint = header.querySelector('.cm-lp-collection-views-hint') as HTMLElement;
+			expect(header.firstChild?.textContent).toBe('All (2)');
+			expect(hint.textContent).toBe('1 of 2 views');
+			expect(hint.title).toContain('Done');
+			expect(hint.title).not.toContain('All');
+		}
+	});
+
+	it('renders no views hint for a one-view block', () => {
+		new CollectionBlockWidget(YAML).toDOM();
+		const dom = new CollectionBlockWidget(YAML).toDOM();
+
+		expect(dom.querySelector('.cm-lp-collection-views-hint')).toBeNull();
+		expect(dom.querySelector('.cm-lp-collection-header')?.textContent).toBe('All (2)');
 	});
 });
 
@@ -521,6 +635,18 @@ describe('CollectionBlockWidget — text scales with the editor font', () => {
 			expect(px).toBeCloseTo(editorPx === 8 ? 11 : em * parentPx);
 			expect(px).toBeGreaterThanOrEqual(11);
 		}
+	});
+
+	it.each([
+		['calendar', CALENDAR],
+		['linear-calendar', LINEAR],
+	])('keeps the fixed-layout %s table out of the scroll div', (_name, yaml) => {
+		setIndex(1);
+		const dom = new CollectionBlockWidget(yaml).toDOM();
+		const table = dom.querySelector<HTMLElement>('table.cm-lp-collection-table')!;
+		expect(table.style.tableLayout).toBe('fixed');
+		expect(table.parentElement).toBe(dom);
+		expect(dom.querySelector('.cm-lp-table-scroll')).toBeNull();
 	});
 
 	it('styles calendar weekday headers like the calendar view (text-xs font-medium uppercase)', () => {

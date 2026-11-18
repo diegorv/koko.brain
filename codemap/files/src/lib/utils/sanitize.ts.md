@@ -4,7 +4,7 @@ file src/lib/utils/sanitize.ts other L86 module src/lib/utils in6 t1
 ## imported-by
 imp src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts:3 -> src/lib/utils/sanitize.ts sanitizeMermaidSvg
 imp src/lib/features/canvas/canvas-markdown.logic.ts:2 -> src/lib/utils/sanitize.ts sanitizeHtml
-imp src/lib/features/collection/CollectionTableView.svelte:5 -> src/lib/utils/sanitize.ts sanitizeHtml
+imp src/lib/features/collection/CollectionTableView.svelte:6 -> src/lib/utils/sanitize.ts sanitizeHtml
 imp src/lib/features/collection/collection-block-widget.ts:10 -> src/lib/utils/sanitize.ts sanitizeHtml
 imp src/lib/features/file-icons/IconRenderer.svelte:3 -> src/lib/utils/sanitize.ts sanitizeSvgContent
 imp src/lib/features/search/search.logic.ts:78 -> src/lib/utils/sanitize.ts sanitizeSnippetHtml
@@ -16,7 +16,7 @@ test src/tests/lib/utils/sanitize.test.ts imports src/lib/utils/sanitize.ts mirr
 ## symbols
 sym src/lib/utils/sanitize.ts:7 fn sanitizeHtml(html: string): string L25 | Sanitizes arbitrary HTML allowing a safe rich-text subset.
 by src/lib/utils/sanitize.ts:sanitizeHtml <- src/lib/features/canvas/canvas-markdown.logic.ts:17 in renderCanvasMarkdown call
-by src/lib/utils/sanitize.ts:sanitizeHtml <- src/lib/features/collection/CollectionTableView.svelte:74 in (markup) markup
+by src/lib/utils/sanitize.ts:sanitizeHtml <- src/lib/features/collection/CollectionTableView.svelte:84 in (markup) markup
 by src/lib/utils/sanitize.ts:sanitizeHtml <- src/lib/features/collection/collection-block-widget.ts:458 in buildCollectionTable call
 sym src/lib/utils/sanitize.ts:38 fn sanitizeSvgContent(svgInner: string): string L14 | Sanitizes SVG inner content (paths, circles, etc.) for use inside a trusted <svg> element.
 by src/lib/utils/sanitize.ts:sanitizeSvgContent <- src/lib/features/file-icons/IconRenderer.svelte:36 in (markup) markup

@@ -15,16 +15,16 @@ Not in this ticket: ellipsis on QueryJS cells (script output), `file.folder` sta
 
 **Blocked by:** 09, 13
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus `bash scripts/e2e.sh collection-block.spec.ts` and `live-preview/click-reveal/collection-block.spec.ts`.
 
-- [ ] Failing test first (`src/tests/lib/features/collection/collection-block-widget.test.ts`): the table sits inside `.cm-lp-table-scroll`; the month-grid and linear-calendar tables do not; a date-string cell and a `Date` cell carry the nowrap class; a long text cell's span has `title`.
-- [ ] Headers read `Name` with `title="file.name"`; a `file.name` cell reads `w`, not `w.md` (assertions at `:188`, `:238`, `:254` change on purpose in the same commit).
-- [ ] A two-view YAML renders `1 of 2 views` with the second name in `title`, on the first render and again on the cache-hit path; a one-view YAML renders no hint and the header text stays `All (2)`.
-- [ ] `styles.test.ts` passes, plus a check that no new rule targets `.cm-lp-collection-table` alone and the radius ladder is unchanged.
-- [ ] `e2e/specs/collection-block.spec.ts` (`:36,:41,:49,:54,:66` and the row locator `:58`) moves to `'Roadmap | active'` / `'2026-Q2 | active'` and `hasText: 'Roadmap'`; both E2E specs pass.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass. Not covered by jsdom: the widget height re-measure in a real editor; say so in the commit.
+- [x] Failing test first (`src/tests/lib/features/collection/collection-block-widget.test.ts`): the table sits inside `.cm-lp-table-scroll`; the month-grid and linear-calendar tables do not; a date-string cell and a `Date` cell carry the nowrap class; a long text cell's span has `title`.
+- [x] Headers read `Name` with `title="file.name"`; a `file.name` cell reads `w`, not `w.md` (assertions at `:188`, `:238`, `:254` change on purpose in the same commit).
+- [x] A two-view YAML renders `1 of 2 views` with the second name in `title`, on the first render and again on the cache-hit path; a one-view YAML renders no hint and the header text stays `All (2)`.
+- [x] `styles.test.ts` passes, plus a check that no new rule targets `.cm-lp-collection-table` alone and the radius ladder is unchanged.
+- [x] `e2e/specs/collection-block.spec.ts` (`:36,:41,:49,:54,:66` and the row locator `:58`) moves to `'Roadmap | active'` / `'2026-Q2 | active'` and `hasText: 'Roadmap'`; both E2E specs pass.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass. Not covered by jsdom: the widget height re-measure in a real editor; say so in the commit.
 
 ## Original proposal
 
@@ -60,3 +60,4 @@ Checked at 085b23c5d.
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. No owner questions on this ticket.
+- 2026-11-18, deliver: branch issue/14-inline-collection-block-readable-table-builtin. Inline collection block table sits in .cm-lp-table-scroll with nowrap date cells and titled long text, built-in names (Name, file.name without .md), and a "1 of N views" hint. Fix round: DATE_TEXT anchored to whole date/datetime. Review round 1 APPROVED, round 2 APPROVED. Full suite at 410ab9238: 656/656 files, 17456 passed, 56 skipped; pnpm check 0 errors.
