@@ -30,7 +30,7 @@ imp src/lib/features/tasks/TaskLists.svelte:11 -> src/lib/features/tasks/tasks.s
 imp src/lib/features/tasks/TasksView.svelte:26 -> src/lib/features/tasks/tasks.service.ts buildTaskIndex,setTaskSources,setTaskStatusFromMenu,toggleTask,updateTaskFromMenu
 ## reach
 in2 src/lib/features/tasks/tasks.service.ts 3 files in 2 modules: src/lib/app(2) src/routes(1)
-out2 src/lib/features/tasks/tasks.service.ts 23 files in 10 modules: src/lib/utils(6) src/lib/core/settings(4) src/lib/contracts(3) src/lib/core/editor(2) src/lib/core/filesystem(2) +5 modules
+out2 src/lib/features/tasks/tasks.service.ts 24 files in 10 modules: src/lib/utils(7) src/lib/core/settings(4) src/lib/contracts(3) src/lib/core/editor(2) src/lib/core/filesystem(2) +5 modules
 ## tests
 test src/tests/lib/features/tasks/tasks.service.test.ts imports src/lib/features/tasks/tasks.service.ts mirror
 test src/tests/lib/features/tasks/TasksView.collapse.test.ts imports src/lib/features/tasks/tasks.service.ts

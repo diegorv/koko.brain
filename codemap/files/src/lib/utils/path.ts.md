@@ -60,7 +60,7 @@ sym src/lib/utils/path.ts:98 fn relativePath(vaultPath: string, filePath: string
 by src/lib/utils/path.ts:relativePath <- src/lib/core/filesystem/file-entries.logic.ts:39 in entryFolder call
 by src/lib/utils/path.ts:relativePath <- src/lib/core/filesystem/fs.logic.ts:277 in getRelativePath call
 by src/lib/utils/path.ts:relativePath <- src/lib/features/properties/RelationshipSearch.svelte:82 in (markup) markup
-by src/lib/utils/path.ts:relativePath <- src/lib/features/search/SearchResult.svelte:60 in vaultRelPath=$derived call
+by src/lib/utils/path.ts:relativePath <- src/lib/features/search/SearchResult.svelte:63 in vaultRelPath=$derived call
 by src/lib/utils/path.ts:relativePath <- src/lib/features/search/search.logic.ts:224 in performOperatorOnlySearch call +1
 by src/lib/utils/path.ts:relativePath <- src/lib/plugins/mods/mod-query.service.ts:57 in createModQuery call
 by src/lib/utils/path.ts:relativePath <- src/lib/plugins/mods/mod-vault.service.ts:95 in createModVault call +1

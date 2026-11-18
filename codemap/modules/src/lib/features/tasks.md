@@ -13,7 +13,7 @@ dep src/lib/features/tasks -> src/lib/core/vault 3
 dep src/lib/features/tasks -> src/lib/features/file-icons 3
 dep src/lib/features/tasks -> src/lib/features/type-definitions 1
 dep src/lib/features/tasks -> src/lib/types 2
-dep src/lib/features/tasks -> src/lib/utils 16
+dep src/lib/features/tasks -> src/lib/utils 17
 in2 src/lib/features/tasks 1 modules: src/routes(2)
 out2 src/lib/features/tasks 2 modules: src/lib/core/frontmatter(1) src/lib/core/markdown-editor(1)
 ## entry files
@@ -31,7 +31,7 @@ file src/lib/features/tasks/task-query.logic.ts logic L1508 module src/lib/featu
 file src/lib/features/tasks/task-row-edit.logic.ts logic L38 module src/lib/features/tasks in1 t2
 file src/lib/features/tasks/task-status.logic.ts logic L70 module src/lib/features/tasks in6 t4
 file src/lib/features/tasks/task-views.logic.ts logic L355 module src/lib/features/tasks in4 t6
-file src/lib/features/tasks/tasks-keys.logic.ts logic L112 module src/lib/features/tasks in3 t1 | The Tasks view's keyboard model: which action a key on a row maps to, which row stays current when the list changes, and which row holds the tab stop.
+file src/lib/features/tasks/tasks-keys.logic.ts logic L67 module src/lib/features/tasks in3 t1 | The Tasks view's keyboard model: which action a key on a row maps to, which row stays current when the list changes, and which row holds the tab stop.
 file src/lib/features/tasks/tasks.logic.ts logic L207 module src/lib/features/tasks in4 t2
 file src/lib/features/tasks/tasks.service.ts service L595 module src/lib/features/tasks in6 t16
 file src/lib/features/tasks/tasks.store.svelte.ts store L195 module src/lib/features/tasks in5 t15

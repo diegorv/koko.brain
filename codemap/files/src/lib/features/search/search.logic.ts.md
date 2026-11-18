@@ -8,7 +8,7 @@ imp src/lib/features/search/search.logic.ts:3 -> src/lib/utils/tag-extraction.ts
 imp src/lib/features/search/search.logic.ts:4 -> src/lib/utils/path.ts relativePath,stem
 imp src/lib/features/search/search.logic.ts:78 -> src/lib/utils/sanitize.ts sanitizeSnippetHtml
 ## imported-by
-imp src/lib/features/search/SearchPanel.svelte:10 -> src/lib/features/search/search.logic.ts isBelowSemanticMinimum,SEMANTIC_MIN_QUERY_CHARS
+imp src/lib/features/search/SearchPanel.svelte:11 -> src/lib/features/search/search.logic.ts isBelowSemanticMinimum,SEMANTIC_MIN_QUERY_CHARS
 imp src/lib/features/search/SearchResult.svelte:9 -> src/lib/features/search/search.logic.ts sanitizeSnippetHtml
 imp src/lib/features/search/search.service.ts:9 -> src/lib/features/search/search.logic.ts parseSearchQuery,performSearchOverFiles,performOperatorOnlySearch,matchesPathFilter,matchesIndexTag,FTS_MAX_RESULTS,FTS_OPERATOR_CANDIDATE_LIMIT,SEMANTIC_MAX_RESULTS,HYBRID_MAX_RESULTS,OPERATOR_ONLY_MAX_RESULTS,FALLBACK_MAX_RESULTS
 ## reach
@@ -33,9 +33,9 @@ by src/lib/features/search/search.logic.ts:FALLBACK_MAX_RESULTS <- src/lib/featu
 sym src/lib/features/search/search.logic.ts:39 fn parseSearchQuery(raw: string): SearchQuery L18
 by src/lib/features/search/search.logic.ts:parseSearchQuery <- src/lib/features/search/search.service.ts:173 in performSearch call +3
 sym src/lib/features/search/search.logic.ts:63 const SEMANTIC_MIN_QUERY_CHARS L1 | Shortest query, in code points, that Semantic and Hybrid search answer.
-by src/lib/features/search/search.logic.ts:SEMANTIC_MIN_QUERY_CHARS <- src/lib/features/search/SearchPanel.svelte:139 in statusText=$derived ref
+by src/lib/features/search/search.logic.ts:SEMANTIC_MIN_QUERY_CHARS <- src/lib/features/search/SearchPanel.svelte:215 in statusText=$derived ref
 sym src/lib/features/search/search.logic.ts:71 fn isBelowSemanticMinimum(raw: string): boolean L4 | True when Semantic or Hybrid search would return nothing because the query is too short.
-by src/lib/features/search/search.logic.ts:isBelowSemanticMinimum <- src/lib/features/search/SearchPanel.svelte:112 in isShortQuery=$derived call
+by src/lib/features/search/search.logic.ts:isBelowSemanticMinimum <- src/lib/features/search/SearchPanel.svelte:188 in isShortQuery=$derived call
 sym src/lib/features/search/search.logic.ts:78 reexport sanitizeSnippetHtml = src/lib/utils/sanitize.ts:sanitizeSnippetHtml L1
 sym src/lib/features/search/search.logic.ts:80 fn searchFileContent(content: string, query: string): SearchMatch[] L19
 sym src/lib/features/search/search.logic.ts:100 fn searchFileName(fileName: string, query: string): boolean L4

@@ -23,7 +23,7 @@ imp src/lib/features/tasks/tasks.service.ts:11 -> src/lib/features/tasks/task-qu
 imp src/lib/features/tasks/tasks.store.svelte.ts:4 -> src/lib/features/tasks/task-query.logic.ts DEFAULT_QUICK,DEFAULT_TASK_SORT,applyQuickFilters,defaultTaskExcludes,defaultTaskQuery,groupTaskRows,selectSourceRows,type:TaskExcludes,type:TaskGroupKey,type:TaskQuery,type:TaskQuickFilters,type:TaskRow,type:TaskSortKey,type:TaskSource
 ## reach
 in2 src/lib/features/tasks/task-query.logic.ts 4 files in 1 modules: src/lib/app(4)
-out2 src/lib/features/tasks/task-query.logic.ts 3 files in 3 modules: src/lib/contracts(1) src/lib/features/type-definitions(1) src/lib/utils(1)
+out2 src/lib/features/tasks/task-query.logic.ts 4 files in 3 modules: src/lib/utils(2) src/lib/contracts(1) src/lib/features/type-definitions(1)
 ## tests
 test src/tests/lib/features/tasks/task-query.logic.test.ts imports src/lib/features/tasks/task-query.logic.ts mirror
 test src/tests/lib/features/tasks/TasksView.collapse.test.ts imports src/lib/features/tasks/task-query.logic.ts

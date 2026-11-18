@@ -1,7 +1,7 @@
 # module card src/lib/utils
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/utils ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src/lib/utils utils files 30 in-modules 42 out-modules 2 pub 86/105 ipc 3/0 card ~9.4k
+module src/lib/utils utils files 31 in-modules 42 out-modules 2 pub 89/109 ipc 3/0 card ~9.8k
 ## neighbors
 dep src/lib/app -> src/lib/utils 17
 dep src/lib/core/editor -> src/lib/utils 7
@@ -29,9 +29,9 @@ dep src/lib/features/outgoing-links -> src/lib/utils 2
 dep src/lib/features/properties -> src/lib/utils 7
 dep src/lib/features/quick-switcher -> src/lib/utils 1
 dep src/lib/features/rail-shell -> src/lib/utils 11
-dep src/lib/features/search -> src/lib/utils 8
+dep src/lib/features/search -> src/lib/utils 9
 dep src/lib/features/tags -> src/lib/utils 5
-dep src/lib/features/tasks -> src/lib/utils 16
+dep src/lib/features/tasks -> src/lib/utils 17
 dep src/lib/features/todoist-sync -> src/lib/utils 9
 dep src/lib/features/type-definitions -> src/lib/utils 1
 dep src/lib/plugins/calendar -> src/lib/utils 3
@@ -73,6 +73,7 @@ entry src/lib/utils/index-dedupe.ts ext-in3 src/lib/app/lifecycle/index-updater.
 entry src/lib/utils/note-date.ts ext-in3 src/lib/features/rail-shell/lens.logic.ts src/lib/plugins/calendar/day-lens.logic.ts src/lib/plugins/one-on-one/one-on-one.logic.ts
 entry src/lib/utils/task-tokens.ts ext-in3 src/lib/features/tasks/TasksView.svelte src/lib/features/tasks/task-row-edit.logic.ts src/lib/features/todoist-sync/task-line.logic.ts
 entry src/lib/utils/menu-action.types.ts ext-in2 src/lib/features/note-list/NoteRowMenu.svelte src/lib/features/rail-shell/rail-shell.types.ts
+entry src/lib/utils/roving-list.ts ext-in2 src/lib/features/search/SearchPanel.svelte src/lib/features/tasks/tasks-keys.logic.ts
 entry src/lib/utils/template.ts ext-in2 src/lib/core/note-creator/note-creator.service.ts src/lib/plugins/quick-capture/note-composer.logic.ts
 entry src/lib/utils/app-channel.ts ext-in1 src/lib/core/settings/settings.service.ts
 entry src/lib/utils/build-info.js ext-in1 src/lib/core/settings/BuildInfo.svelte
@@ -102,6 +103,7 @@ file src/lib/utils/node-shims/path.js other L4 module src/lib/utils in0 t0
 file src/lib/utils/note-date.ts other L57 module src/lib/utils in3 t1
 file src/lib/utils/path.ts other L123 module src/lib/utils in27 t1
 file src/lib/utils/platform.ts other L40 module src/lib/utils in5 t4
+file src/lib/utils/roving-list.ts other L93 module src/lib/utils in2 t1 | The generic keyboard model of a roving-tabindex list: which row a key focuses, which row stays current when the list changes, and which row holds the list's on…
 file src/lib/utils/sanitize-url.ts other L15 module src/lib/utils in5 t1
 file src/lib/utils/sanitize.ts other L86 module src/lib/utils in6 t1
 file src/lib/utils/tag-colors.ts other L44 module src/lib/utils in4 t1
@@ -175,6 +177,9 @@ sym src/lib/utils/path.ts:120 fn vaultRelativeKey(vaultPath: string, filePath: s
 sym src/lib/utils/platform.ts:23 const IS_MAC = detectMac(…) L1 | True when the app runs on macOS.
 sym src/lib/utils/platform.ts:30 fn isOpenLinkModifier(e: LinkClickModifiers, mac: boolean): boolean L3 | True when a click carries the platform's "open link" modifier: Cmd on macOS, Ctrl on Windows/Linux.
 sym src/lib/utils/platform.ts:38 fn isMacContextClick(e: LinkClickModifiers, mac: boolean): boolean L3 | True for a macOS Ctrl+click.
+sym src/lib/utils/roving-list.ts:34 fn resolveRovingFocus(input: RovingKeyInput): number | null L16 | The index of the row that ArrowUp, ArrowDown, Home or End focuses, or null when the list leaves the key alone: a key on a control inside the row, any modifier …
+sym src/lib/utils/roving-list.ts:57 fn nextCurrentRow(order: string[], prevOrder: string[], current: string | null): string | null L14 | The current row after the list changed from `prevOrder` to `order`: `current` when it is still listed, else the first row after it in `prevOrder` that is still…
+sym src/lib/utils/roving-list.ts:82 fn tabStopRow(rendered: string[], order: string[], current: string | null): string | null L12 | The row that holds the list's tab stop: `current` when it is rendered.
 sym src/lib/utils/sanitize-url.ts:5 fn isSafeUrl(url: string): boolean L11 | Returns true if the URL is safe to open or use as a resource src
 sym src/lib/utils/sanitize.ts:7 fn sanitizeHtml(html: string): string L25 | Sanitizes arbitrary HTML allowing a safe rich-text subset.
 sym src/lib/utils/sanitize.ts:38 fn sanitizeSvgContent(svgInner: string): string L14 | Sanitizes SVG inner content (paths, circles, etc.) for use inside a trusted <svg> element.

@@ -10,7 +10,7 @@ out2 src/lib/utils/markdown-plain-text.ts 0 files in 0 modules: -
 test src/tests/lib/utils/markdown-plain-text.test.ts imports src/lib/utils/markdown-plain-text.ts mirror
 ## symbols
 sym src/lib/utils/markdown-plain-text.ts:39 fn markdownToPlainText(markdown: string): string L19 | Turns a markdown fragment into plain text, keeping `<mark>` tags.
-by src/lib/utils/markdown-plain-text.ts:markdownToPlainText <- src/lib/features/search/SearchResult.svelte:84 in snippet=$derived call
+by src/lib/utils/markdown-plain-text.ts:markdownToPlainText <- src/lib/features/search/SearchResult.svelte:87 in snippet=$derived call
 ## locals
 local src/lib/utils/markdown-plain-text.ts:11 fn stripLineMarkers(line: string): string L10
 local src/lib/utils/markdown-plain-text.ts:23 fn wikilinkText(inner: string): string L6
