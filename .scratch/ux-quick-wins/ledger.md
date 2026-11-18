@@ -64,7 +64,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 27 | [The Tasks toolbar and list say what they do](issues/27-tasks-toolbar-list-say-they-do.md) | none | todo | | |
 | 28 | [The Days mini month works narrow and by screen reader](issues/28-days-mini-month-works-narrow-by.md) | 26 | todo | | |
 | 29 | [The template picker names the template and what Enter will do](issues/29-template-picker-names-template-enter-will.md) | none | done | issue/29-template-picker-names-template-enter-will (e73578399) | 2026-11-18 |
-| 30 | [The type name dialog stays open while it saves](issues/30-type-name-dialog-stays-open-while.md) | none | todo | | |
+| 30 | [The type name dialog stays open while it saves](issues/30-type-name-dialog-stays-open-while.md) | none | in-progress | | |
 | 31 | [Auto Organize section: honest copy, archive-off hint, save-failure toast, excluded folders with feedback, named controls](issues/31-auto-organize-section-honest-copy-archiveoff.md) | 21 | todo | | |
 | 32 | [Auto Organize rule row: stable property rows, template variables, named controls, Off state, focus on what you just added](issues/32-auto-organize-rule-row-stable-property.md) | 15, 31 | todo | | |
 | 33 | [Auto Organize property rows: verb mode labels, errors tied to their fields, the legacy icon only where set](issues/33-auto-organize-property-rows-verb-mode.md) | 32 | todo | | |
@@ -100,3 +100,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 15:03 — 07 — deliver — merged after review 1 APPROVED, fix round (late-reject test pins Saving... and default hint after summon; aria-live rejected for later), re-review 2 APPROVED (claude); full vitest suite passed (17462 tests) — e7eeb2aed
 - 2026-11-18 15:03 — 29 — start — launched by /relay-lite:run — b98cfbb37
 - 2026-11-18 15:15 — 29 — deliver — merged after review 1 APPROVED with findings, fix round (held Backspace stays in naming step, NFC-folded existing-note check; ../ vault escape moved to follow-up Issue 48), re-review 2 APPROVED (claude); full vitest suite passed (17482 tests) — e73578399
+- 2026-11-18 15:16 — 30 — start — launched by /relay-lite:run — 2c78821ba
