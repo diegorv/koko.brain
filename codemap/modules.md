@@ -12,7 +12,7 @@ module src-tauri/src/vault rust files 9 in-modules 2 out-modules 1 pub 46/105 ip
 module src/lib/app app files 15 in-modules 1 out-modules 46 pub 12/27 ipc 11/0 card ~2.4k
 module src/lib/components components files 98 in-modules 31 out-modules 1 pub 1/1 ipc 0/0 card ~6.2k
 module src/lib/contracts contracts files 56 in-modules 26 out-modules 0 pub 45/65 ipc 0/0 card ~4.4k
-module src/lib/core/editor core files 6 in-modules 37 out-modules 3 pub 46/55 ipc 0/0 card ~4.5k
+module src/lib/core/editor core files 6 in-modules 38 out-modules 3 pub 46/55 ipc 0/0 card ~4.5k
 module src/lib/core/filesystem core files 14 in-modules 29 out-modules 7 pub 60/91 ipc 14/0 card ~7k
 module src/lib/core/frontmatter core files 4 in-modules 16 out-modules 3 pub 28/40 ipc 0/0 card ~3.5k
 module src/lib/core/layout core files 3 in-modules 6 out-modules 4 pub 8/10 ipc 0/0 card ~1.1k
@@ -48,7 +48,7 @@ module src/lib/features/todoist-sync features files 27 in-modules 1 out-modules 
 module src/lib/features/type-definitions features files 9 in-modules 13 out-modules 12 pub 63/100 ipc 3/0 card ~7.1k
 module src/lib/plugins/calendar plugins files 7 in-modules 1 out-modules 7 pub 2/21 ipc 0/0 card ~0.9k
 module src/lib/plugins/graph-view plugins files 6 in-modules 1 out-modules 8 pub 4/29 ipc 1/0 card ~0.9k
-module src/lib/plugins/kanban plugins files 12 in-modules 1 out-modules 6 pub 5/75 ipc 0/0 card ~1.2k
+module src/lib/plugins/kanban plugins files 12 in-modules 1 out-modules 7 pub 5/75 ipc 0/0 card ~1.2k
 module src/lib/plugins/mods plugins files 18 in-modules 1 out-modules 17 pub 9/65 ipc 4/0 card ~2.2k
 module src/lib/plugins/one-on-one plugins files 6 in-modules 2 out-modules 14 pub 5/23 ipc 0/0 card ~1.3k
 module src/lib/plugins/periodic-notes plugins files 3 in-modules 5 out-modules 7 pub 10/20 ipc 0/0 card ~1.5k
@@ -86,7 +86,7 @@ layer features -> utils 100
 layer lib-root -> utils 1
 layer plugins -> components 22
 layer plugins -> contracts 7
-layer plugins -> core 110
+layer plugins -> core 111
 layer plugins -> features 35
 layer plugins -> plugins 141
 layer plugins -> types 4

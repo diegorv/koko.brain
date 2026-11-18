@@ -1,5 +1,5 @@
 # Kokobrain code map
-> Generated from the code by scripts/codemap.mjs; no hand-written text. inputs=sha256:c0e634b6731b · check freshness: node scripts/codemap.mjs --stale · written by CI on main only; never edit or stage codemap/.
+> Generated from the code by scripts/codemap.mjs; no hand-written text. inputs=sha256:72ae23b843f6 · check freshness: node scripts/codemap.mjs --stale · written by CI on main only; never edit or stage codemap/.
 
 Use this map to find code, then Read the code at the given path:line. Facts are static; read "Blind spots" before trusting an empty answer. On a branch, cards of files you changed lag the code; q commands read the working tree and are always current.
 Search code with Grep path src or src-tauri; search the map with path codemap. IDs contain regex characters: grep with -F and end the ID with a space.
@@ -83,7 +83,7 @@ hub rust src-tauri/src/utils/fs.rs in8 t2
 hub rust src-tauri/src/db/mod.rs in6 t8
 
 ## Counts
-files 1669 (cards 655) · modules 60 · symbols 3222 · locals 1445 · calls 7011 · ipc 72 · events 9 · dto 51 · stores 44 · registries 27 · effect sites 565
+files 1669 (cards 655) · modules 60 · symbols 3222 · locals 1448 · calls 7020 · ipc 72 · events 9 · dto 51 · stores 44 · registries 27 · effect sites 566
 
 ## Optional
 - Layer rules, layer edge totals, baseline debt: codemap/modules.md

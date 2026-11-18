@@ -8,7 +8,7 @@ imp src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:4 -> src/lib/core/fi
 imp src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:5 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:6 -> src/lib/core/filesystem/wikilink-resolution.logic.ts isLinkTargetFile
 ## imported-by
-imp src/lib/plugins/kanban/KanbanCard.svelte:16 -> src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte default
+imp src/lib/plugins/kanban/KanbanCard.svelte:17 -> src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte default
 imp src/lib/plugins/kanban/KanbanLane.svelte:14 -> src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte default
 ## reach
 in2 src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte 1 files in 1 modules: src/lib/plugins/kanban(1)
@@ -17,14 +17,14 @@ out2 src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte 5 files in 4 module
 test src/tests/lib/plugins/kanban/KanbanWikilinkSuggestions.test.ts imports src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte mirror
 ## symbols
 sym src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:1 component KanbanWikilinkSuggestions props:text,cursorPos,onSelect L91
-by src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:default <- src/lib/plugins/kanban/KanbanCard.svelte:190 in (markup) mount
-by src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:default <- src/lib/plugins/kanban/KanbanLane.svelte:368 in (markup) mount
+by src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:default <- src/lib/plugins/kanban/KanbanCard.svelte:195 in (markup) mount
+by src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:default <- src/lib/plugins/kanban/KanbanLane.svelte:372 in (markup) mount
 sym src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:42 method handleKeydown(e: KeyboardEvent): boolean L27 | Parent calls this on keydown.
 ## locals
 local src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:70 fn selectItem(index: number) L7
 ## mounted-at
-mount src/lib/plugins/kanban/KanbanCard.svelte:190 KanbanWikilinkSuggestions -> src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte
-mount src/lib/plugins/kanban/KanbanLane.svelte:368 KanbanWikilinkSuggestions -> src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte
+mount src/lib/plugins/kanban/KanbanCard.svelte:195 KanbanWikilinkSuggestions -> src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte
+mount src/lib/plugins/kanban/KanbanLane.svelte:372 KanbanWikilinkSuggestions -> src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte
 ## calls
 call src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:23 in context=$derived -> src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:detectWikilinkContext call
 call src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:28 in files=$derived -> src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree call

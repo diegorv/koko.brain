@@ -3,7 +3,7 @@ cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t
 file src/lib/utils/color-presets.ts other L30 module src/lib/utils in6 t1
 ## imported-by
 imp src/lib/features/collection/expression/evaluator.ts:7 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_TEXT
-imp src/lib/plugins/kanban/KanbanCard.svelte:13 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_TEXT
+imp src/lib/plugins/kanban/KanbanCard.svelte:14 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_TEXT
 imp src/lib/plugins/kanban/KanbanCardText.svelte:3 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_TEXT
 imp src/lib/plugins/kanban/KanbanListView.svelte:6 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG
 imp src/lib/plugins/kanban/KanbanTableView.svelte:6 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_TEXT
@@ -16,15 +16,15 @@ test src/tests/lib/utils/color-presets.test.ts imports src/lib/utils/color-prese
 ## symbols
 sym src/lib/utils/color-presets.ts:23 const COLOR_PRESET_BG: Record<string, string> L3 | Named color presets with background (low opacity) variant.
 by src/lib/utils/color-presets.ts:COLOR_PRESET_BG <- src/lib/features/collection/expression/evaluator.ts:447 in evaluateCall ref +1
-by src/lib/utils/color-presets.ts:COLOR_PRESET_BG <- src/lib/plugins/kanban/KanbanCard.svelte:159 in (markup) markup
-by src/lib/utils/color-presets.ts:COLOR_PRESET_BG <- src/lib/plugins/kanban/KanbanCardText.svelte:38 in (markup) markup +1
+by src/lib/utils/color-presets.ts:COLOR_PRESET_BG <- src/lib/plugins/kanban/KanbanCard.svelte:164 in (markup) markup
+by src/lib/utils/color-presets.ts:COLOR_PRESET_BG <- src/lib/plugins/kanban/KanbanCardText.svelte:32 in (markup) markup +1
 by src/lib/utils/color-presets.ts:COLOR_PRESET_BG <- src/lib/plugins/kanban/KanbanListView.svelte:33 in (markup) markup
 by src/lib/utils/color-presets.ts:COLOR_PRESET_BG <- src/lib/plugins/kanban/KanbanTableView.svelte:40 in (markup) markup +1
 by src/lib/utils/color-presets.ts:COLOR_PRESET_BG <- src/lib/plugins/queryjs/kb-ui.ts:921 in KBUI.resolveCardColor ref
 sym src/lib/utils/color-presets.ts:28 const COLOR_PRESET_TEXT: Record<string, string> L3 | Named color presets with full opacity for text/bars.
 by src/lib/utils/color-presets.ts:COLOR_PRESET_TEXT <- src/lib/features/collection/expression/evaluator.ts:448 in evaluateCall ref +5
-by src/lib/utils/color-presets.ts:COLOR_PRESET_TEXT <- src/lib/plugins/kanban/KanbanCard.svelte:244 in (markup) markup
-by src/lib/utils/color-presets.ts:COLOR_PRESET_TEXT <- src/lib/plugins/kanban/KanbanCardText.svelte:38 in (markup) markup +2
+by src/lib/utils/color-presets.ts:COLOR_PRESET_TEXT <- src/lib/plugins/kanban/KanbanCard.svelte:249 in (markup) markup +1
+by src/lib/utils/color-presets.ts:COLOR_PRESET_TEXT <- src/lib/plugins/kanban/KanbanCardText.svelte:32 in (markup) markup +1
 by src/lib/utils/color-presets.ts:COLOR_PRESET_TEXT <- src/lib/plugins/kanban/KanbanTableView.svelte:60 in (markup) markup
 ## locals
 local src/lib/utils/color-presets.ts:13 fn rgba([r, g, b]: [number, number, number], alpha: number): string L3
