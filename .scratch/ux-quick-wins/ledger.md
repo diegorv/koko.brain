@@ -73,7 +73,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 36 | [Periodic Notes and 1:1: live path examples and missing-template marks](issues/36-periodic-notes-11-live-path-examples.md) | 22 | done | issue/36-periodic-notes-11-live-path-examples (632893c70) | 2026-11-18 |
 | 37 | [Mods: each mod says what it does; the run view shows status and progress clearly](issues/37-mods-each-mod-run-view-shows.md) | none | done | issue/37-mods-each-mod-run-view-shows (a52bc3d78) | 2026-11-18 |
 | 38 | [Settings: text you can select, the Todoist root row fits, the update button says it downloads](issues/38-settings-text-you-can-select-todoist.md) | none | todo | | |
-| 39 | [Readable text on coloured fills and faded text in the note list and search](issues/39-readable-chips-faded-text.md) | 12 | in-progress | | |
+| 39 | [Readable text on coloured fills and faded text in the note list and search](issues/39-readable-chips-faded-text.md) | 12 | blocked | | |
 | 40 | [Default theme: a darker tab strip with a visible tab hover, bold and italic off the link blue](issues/40-default-theme-darker-tab-strip-visible.md) | 20, 39 | todo | | |
 | 41 | [Word count and graph stats read correctly for 0 and 1; graph mode buttons show their state](issues/41-word-count-graph-stats-read-correctly.md) | none | todo | | |
 | 42 | [Kanban cards move between lanes from the card menu](issues/42-kanban-cards-move-between-lanes-card.md) | 10, 11, 12 | todo | | |
@@ -135,3 +135,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 19:27 — 37 — start — launched by /relay-lite:run — 8f1ccf14a
 - 2026-11-18 19:38 — 37 — deliver — merged after review 1 APPROVED with three nits (help edits kept, role=log box follow-up, load time tooltip per owner default), no deliver code changes (claude); full vitest suite passed (17690 tests) — a52bc3d78
 - 2026-11-18 19:39 — 39 — start — launched by /relay-lite:run — be1dbc51e
+- 2026-11-18 19:45 — 39 — deliver — blocked: Issue contradicts itself, items 4-5 wait on shell-sidebars-ux 15 and 19 but the criteria need them now; items 1-3 (39a) built in the worktree, owner to split 39a/39b or wait — 5741efb62
