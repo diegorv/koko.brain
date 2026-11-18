@@ -1,7 +1,7 @@
 # file card src/lib/core/settings/settings.types.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/settings/settings.types.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols
-file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in25 t0
+file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in26 t0
 ## imports
 imp src/lib/core/settings/settings.types.ts:1 -> src/lib/core/settings/settings.logic.ts type:EVENT_CALENDAR_COLORS,type:EVENT_CALENDAR_VIEW_MODES,type:TODOIST_SYNC_CONTEXTS
 imp src/lib/core/settings/settings.types.ts:399 -> src/lib/core/settings/theme.types.ts type:AppearanceSettings
@@ -10,11 +10,12 @@ imp src/lib/app/SettingsPanel.svelte:40 -> src/lib/core/settings/settings.types.
 imp src/lib/core/layout/layout.service.ts:3 -> src/lib/core/settings/settings.types.ts type:LayoutSettings
 imp src/lib/core/settings/heading-typography.logic.ts:1 -> src/lib/core/settings/settings.types.ts type:HeadingFontWeight,type:HeadingTypography
 imp src/lib/core/settings/sections/HeadingTypographyEditor.svelte:10 -> src/lib/core/settings/settings.types.ts type:HeadingTypography,type:HeadingFontWeight
+imp src/lib/core/settings/sections/PeriodicNotesSection.svelte:9 -> src/lib/core/settings/settings.types.ts type:PeriodType
 imp src/lib/core/settings/sections/UpdateSection.svelte:13 -> src/lib/core/settings/settings.types.ts type:ReleaseChannel
 imp src/lib/core/settings/sentry.service.ts:3 -> src/lib/core/settings/settings.types.ts type:SentrySettings
 imp src/lib/core/settings/settings-panel.store.svelte.ts:1 -> src/lib/core/settings/settings.types.ts type:SettingsSection
 imp src/lib/core/settings/settings-persistence.svelte.ts:5 -> src/lib/core/settings/settings.types.ts type:SettingsLoadOutcome
-imp src/lib/core/settings/settings.logic.ts:2 -> src/lib/core/settings/settings.types.ts type:AppSettings,type:EditorSettings,type:EventCalendarSettings,type:HeadingLevelSettings,type:HeadingTypography,type:LayoutSettings,type:SettingsSection,type:TodoistSettings
+imp src/lib/core/settings/settings.logic.ts:4 -> src/lib/core/settings/settings.types.ts type:AppSettings,type:EditorSettings,type:EventCalendarSettings,type:HeadingLevelSettings,type:HeadingTypography,type:LayoutSettings,type:SettingsSection,type:TodoistSettings
 imp src/lib/core/settings/settings.service.ts:3 -> src/lib/core/settings/settings.types.ts type:AppSettings,type:SettingsLoadOutcome
 imp src/lib/core/settings/settings.store.svelte.ts:1 -> src/lib/core/settings/settings.types.ts type:AppSettings,type:PeriodicNotesUpdate,type:QuickCaptureUpdate,type:OneOnOneSettings,type:LayoutSettings,type:FolderNotesSettings,type:EditorSettings,type:TemplatesSettings,type:HistorySettings,type:SearchSettings,type:TodoistSettings,type:SentrySettings,type:AutoOrganizeSettings,type:TagColorSettings,type:QueryjsSettings,type:UpdateSettings,type:EventCalendarSettings
 imp src/lib/features/event-calendar/EventCalendarSection.svelte:10 -> src/lib/core/settings/settings.types.ts type:EventCalendarViewMode
@@ -32,8 +33,8 @@ imp src/lib/plugins/queryjs/QueryjsSection.svelte:6 -> src/lib/core/settings/set
 imp src/lib/plugins/quick-capture/note-composer.logic.ts:3 -> src/lib/core/settings/settings.types.ts type:PeriodicNotesSettings
 imp src/lib/utils/app-channel.ts:1 -> src/lib/core/settings/settings.types.ts type:ReleaseChannel
 ## reach
-in2 src/lib/core/settings/settings.types.ts 102 files in 26 modules: src/lib/features/event-calendar(23) src/lib/core/settings(12) src/lib/features/rail-shell(12) src/lib/app(11) src/lib/features/search(5) +21 modules: q impact src/lib/core/settings/settings.types.ts --depth 2
-out2 src/lib/core/settings/settings.types.ts 2 files in 2 modules: src/lib/core/settings(1) src/lib/utils(1)
+in2 src/lib/core/settings/settings.types.ts 101 files in 26 modules: src/lib/features/event-calendar(23) src/lib/features/rail-shell(12) src/lib/app(11) src/lib/core/settings(11) src/lib/features/search(5) +21 modules: q impact src/lib/core/settings/settings.types.ts --depth 2
+out2 src/lib/core/settings/settings.types.ts 4 files in 3 modules: src/lib/core/filesystem(2) src/lib/core/settings(1) src/lib/utils(1)
 ## tests
 test src/tests/lib/core/settings/UpdateSection.channel.test.ts imports-type src/lib/core/settings/settings.types.ts
 test src/tests/lib/core/settings/heading-typography.logic.test.ts imports-type src/lib/core/settings/settings.types.ts
@@ -43,6 +44,7 @@ test src/tests/lib/plugins/periodic-notes/periodic-notes.logic.test.ts imports-t
 test src/tests/lib/plugins/quick-capture/note-composer.logic.test.ts imports-type src/lib/core/settings/settings.types.ts
 ## symbols
 sym src/lib/core/settings/settings.types.ts:4 type PeriodType L1 | Supported periodic note types
+by src/lib/core/settings/settings.types.ts:PeriodType <- src/lib/core/settings/sections/PeriodicNotesSection.svelte:9 in (script) import
 by src/lib/core/settings/settings.types.ts:PeriodType <- src/lib/plugins/calendar/calendar.logic.ts:3 in (module) import
 by src/lib/core/settings/settings.types.ts:PeriodType <- src/lib/plugins/calendar/calendar.service.ts:1 in (module) import
 by src/lib/core/settings/settings.types.ts:PeriodType <- src/lib/plugins/periodic-notes/periodic-notes.logic.ts:3 in (module) import
@@ -56,7 +58,7 @@ sym src/lib/core/settings/settings.types.ts:38 interface PeriodicNotesUpdate L8 
 by src/lib/core/settings/settings.types.ts:PeriodicNotesUpdate <- src/lib/core/settings/settings.store.svelte.ts:1 in (module) import
 sym src/lib/core/settings/settings.types.ts:48 interface LayoutSettings L70 | Configuration for layout visibility preferences
 by src/lib/core/settings/settings.types.ts:LayoutSettings <- src/lib/core/layout/layout.service.ts:3 in (module) import
-by src/lib/core/settings/settings.types.ts:LayoutSettings <- src/lib/core/settings/settings.logic.ts:2 in (module) import
+by src/lib/core/settings/settings.types.ts:LayoutSettings <- src/lib/core/settings/settings.logic.ts:4 in (module) import
 by src/lib/core/settings/settings.types.ts:LayoutSettings <- src/lib/core/settings/settings.store.svelte.ts:1 in (module) import
 by src/lib/core/settings/settings.types.ts:LayoutSettings <- src/lib/features/rail-shell/lens.logic.ts:2 in (module) import
 sym src/lib/core/settings/settings.types.ts:120 interface FolderNotesSettings L4 | Configuration for the folder notes feature
@@ -65,13 +67,13 @@ sym src/lib/core/settings/settings.types.ts:126 type HeadingFontWeight L1 | Font
 by src/lib/core/settings/settings.types.ts:HeadingFontWeight <- src/lib/core/settings/heading-typography.logic.ts:1 in (module) import
 by src/lib/core/settings/settings.types.ts:HeadingFontWeight <- src/lib/core/settings/sections/HeadingTypographyEditor.svelte:10 in (script) import
 sym src/lib/core/settings/settings.types.ts:129 interface HeadingLevelSettings L10 | Typography settings for a single heading level
-by src/lib/core/settings/settings.types.ts:HeadingLevelSettings <- src/lib/core/settings/settings.logic.ts:2 in (module) import
+by src/lib/core/settings/settings.types.ts:HeadingLevelSettings <- src/lib/core/settings/settings.logic.ts:4 in (module) import
 sym src/lib/core/settings/settings.types.ts:141 interface HeadingTypography L8 | Typography configuration for all heading levels (h1–h6)
 by src/lib/core/settings/settings.types.ts:HeadingTypography <- src/lib/core/settings/heading-typography.logic.ts:1 in (module) import
 by src/lib/core/settings/settings.types.ts:HeadingTypography <- src/lib/core/settings/sections/HeadingTypographyEditor.svelte:10 in (script) import
-by src/lib/core/settings/settings.types.ts:HeadingTypography <- src/lib/core/settings/settings.logic.ts:2 in (module) import
+by src/lib/core/settings/settings.types.ts:HeadingTypography <- src/lib/core/settings/settings.logic.ts:4 in (module) import
 sym src/lib/core/settings/settings.types.ts:151 interface EditorSettings L22 | Configuration for the markdown editor appearance
-by src/lib/core/settings/settings.types.ts:EditorSettings <- src/lib/core/settings/settings.logic.ts:2 in (module) import
+by src/lib/core/settings/settings.types.ts:EditorSettings <- src/lib/core/settings/settings.logic.ts:4 in (module) import
 by src/lib/core/settings/settings.types.ts:EditorSettings <- src/lib/core/settings/settings.store.svelte.ts:1 in (module) import
 sym src/lib/core/settings/settings.types.ts:175 interface TemplatesSettings L10 | Configuration for the templates plugin
 by src/lib/core/settings/settings.types.ts:TemplatesSettings <- src/lib/core/settings/settings.store.svelte.ts:1 in (module) import
@@ -86,7 +88,7 @@ by src/lib/core/settings/settings.types.ts:HistorySettings <- src/lib/core/setti
 sym src/lib/core/settings/settings.types.ts:243 interface SearchSettings L4 | Configuration for the search feature
 by src/lib/core/settings/settings.types.ts:SearchSettings <- src/lib/core/settings/settings.store.svelte.ts:1 in (module) import
 sym src/lib/core/settings/settings.types.ts:249 interface TodoistSettings L25 | Configuration for the Todoist integration
-by src/lib/core/settings/settings.types.ts:TodoistSettings <- src/lib/core/settings/settings.logic.ts:2 in (module) import
+by src/lib/core/settings/settings.types.ts:TodoistSettings <- src/lib/core/settings/settings.logic.ts:4 in (module) import
 by src/lib/core/settings/settings.types.ts:TodoistSettings <- src/lib/core/settings/settings.store.svelte.ts:1 in (module) import
 sym src/lib/core/settings/settings.types.ts:276 type TodoistSyncContext L1 | One of the vault contexts in `TODOIST_SYNC_CONTEXTS`
 by src/lib/core/settings/settings.types.ts:TodoistSyncContext <- src/lib/features/todoist-sync/TodoistSection.svelte:10 in (script) import
@@ -109,19 +111,19 @@ by src/lib/core/settings/settings.types.ts:UpdateSettings <- src/lib/core/settin
 sym src/lib/core/settings/settings.types.ts:360 type SettingsSection L1 | Sidebar navigation sections in the settings dialog
 by src/lib/core/settings/settings.types.ts:SettingsSection <- src/lib/app/SettingsPanel.svelte:40 in (module) import
 by src/lib/core/settings/settings.types.ts:SettingsSection <- src/lib/core/settings/settings-panel.store.svelte.ts:1 in (module) import
-by src/lib/core/settings/settings.types.ts:SettingsSection <- src/lib/core/settings/settings.logic.ts:2 in (module) import
+by src/lib/core/settings/settings.types.ts:SettingsSection <- src/lib/core/settings/settings.logic.ts:4 in (module) import
 sym src/lib/core/settings/settings.types.ts:363 type EventCalendarColor L1 | One of the event colors in `EVENT_CALENDAR_COLORS`
 by src/lib/core/settings/settings.types.ts:EventCalendarColor <- src/lib/features/event-calendar/event-calendar.types.ts:11 in (module) import
 sym src/lib/core/settings/settings.types.ts:366 type EventCalendarViewMode L1 | One of the calendar view modes in `EVENT_CALENDAR_VIEW_MODES`
 by src/lib/core/settings/settings.types.ts:EventCalendarViewMode <- src/lib/features/event-calendar/EventCalendarSection.svelte:10 in (script) import
 by src/lib/core/settings/settings.types.ts:EventCalendarViewMode <- src/lib/features/event-calendar/event-calendar.types.ts:11 in (module) import
 sym src/lib/core/settings/settings.types.ts:369 interface EventCalendarSettings L20 | Configuration for the event calendar
-by src/lib/core/settings/settings.types.ts:EventCalendarSettings <- src/lib/core/settings/settings.logic.ts:2 in (module) import
+by src/lib/core/settings/settings.types.ts:EventCalendarSettings <- src/lib/core/settings/settings.logic.ts:4 in (module) import
 by src/lib/core/settings/settings.types.ts:EventCalendarSettings <- src/lib/core/settings/settings.store.svelte.ts:1 in (module) import
 by src/lib/core/settings/settings.types.ts:EventCalendarSettings <- src/lib/features/event-calendar/event-calendar-event.logic.ts:12 in (module) import
 by src/lib/core/settings/settings.types.ts:EventCalendarSettings <- src/lib/features/event-calendar/event-calendar-form.logic.ts:10 in (module) import
 sym src/lib/core/settings/settings.types.ts:391 interface AppSettings L63 | Top-level settings object persisted as `.kokobrain/settings.json` inside the vault
-by src/lib/core/settings/settings.types.ts:AppSettings <- src/lib/core/settings/settings.logic.ts:2 in (module) import
+by src/lib/core/settings/settings.types.ts:AppSettings <- src/lib/core/settings/settings.logic.ts:4 in (module) import
 by src/lib/core/settings/settings.types.ts:AppSettings <- src/lib/core/settings/settings.service.ts:3 in (module) import
 by src/lib/core/settings/settings.types.ts:AppSettings <- src/lib/core/settings/settings.store.svelte.ts:1 in (module) import
 sym src/lib/core/settings/settings.types.ts:462 type SettingsLoadOutcome L1 | How `loadSettings` ended for a vault, which decides whether the session may write settings.json. - `loaded`: the file was read and parsed; its settings are in …

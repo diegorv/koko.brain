@@ -17,7 +17,7 @@ imp src/lib/core/markdown-editor/MarkdownEditor.svelte:26 -> src/lib/core/settin
 imp src/lib/core/settings/settings-persistence.svelte.ts:2 -> src/lib/core/settings/settings.service.ts writeSettingsFile
 ## reach
 in2 src/lib/core/settings/settings.service.ts 3 files in 3 modules: src/lib/app(1) src/lib/core/vault(1) src/routes(1)
-out2 src/lib/core/settings/settings.service.ts 11 files in 3 modules: src/lib/core/settings(6) src/lib/utils(3) src/lib/contracts(2)
+out2 src/lib/core/settings/settings.service.ts 13 files in 4 modules: src/lib/core/settings(6) src/lib/utils(3) src/lib/contracts(2) src/lib/core/filesystem(2)
 ## tests
 test src/tests/lib/core/settings/settings.service.test.ts imports src/lib/core/settings/settings.service.ts mirror
 test src/tests/lib/core/settings/settings-persistence.test.ts imports src/lib/core/settings/settings.service.ts

@@ -104,7 +104,27 @@ describe('ModsStatusList', () => {
 		expect(failed.querySelector('details')).toBeNull();
 	});
 
-	it('shows the load time of a loaded mod, and none on error or disabled rows', () => {
+	it('shows the description under the name, and no empty line when there is none', () => {
+		modsStore.setEntries([
+			{ id: 'hello', folder: 'hello', name: 'Hello', version: '1.0.0', description: 'Says hello on save', state: 'loaded' },
+			{ id: 'plain', folder: 'plain', name: 'Plain', version: '1.0.0', state: 'loaded' },
+			{ id: 'blank', folder: 'blank', name: 'Blank', version: '1.0.0', description: '', state: 'loaded' },
+			{ id: 'off', folder: 'off', name: 'Off', version: '1.0.0', description: 'Switched off', state: 'disabled' },
+			{ id: 'bad', folder: 'bad', name: 'Bad', version: '1.0.0', description: 'Fails', state: 'error', error: { message: 'x' } },
+		]);
+		const root = render();
+
+		const line = row(root, 'hello').querySelector('[data-mod-description]');
+		expect(line?.textContent).toBe('Says hello on save');
+		expect(line?.classList.contains('text-meta')).toBe(true);
+		expect(line?.classList.contains('text-muted-foreground')).toBe(true);
+		expect(row(root, 'plain').querySelector('[data-mod-description]')).toBeNull();
+		expect(row(root, 'blank').querySelector('[data-mod-description]')).toBeNull();
+		expect(row(root, 'off').querySelector('[data-mod-description]')?.textContent).toBe('Switched off');
+		expect(row(root, 'bad').querySelector('[data-mod-description]')?.textContent).toBe('Fails');
+	});
+
+	it('puts the load time of a loaded mod in the state label tooltip, and none on error or disabled rows', () => {
 		modsStore.setEntries([
 			{ id: 'slow', folder: 'slow', name: 'Slow', version: '1.0.0', state: 'loaded', loadMs: 42 },
 			{ id: 'quick', folder: 'quick', name: 'Quick', version: '1.0.0', state: 'loaded', loadMs: 0 },
@@ -113,12 +133,21 @@ describe('ModsStatusList', () => {
 		]);
 		const root = render();
 
-		expect(row(root, 'slow').textContent).toContain('Loaded · 42 ms');
-		expect(row(root, 'slow').querySelector('[data-mod-load-ms]')?.getAttribute('data-mod-load-ms')).toBe('42');
-		expect(row(root, 'quick').textContent).toContain('Loaded · < 1 ms');
-		expect(row(root, 'quick').querySelector('[data-mod-load-ms]')?.getAttribute('data-mod-load-ms')).toBe('0');
+		const slow = row(root, 'slow').querySelector<HTMLElement>('[data-mod-load-ms]')!;
+		expect(slow.getAttribute('data-mod-load-ms')).toBe('42');
+		expect(slow.textContent?.trim()).toBe('Loaded');
+		expect(slow.title).toBe('Loaded in 42 ms');
+		expect(row(root, 'slow').textContent).not.toContain('Loaded · 42 ms');
+		expect(row(root, 'slow').textContent).not.toContain('ms');
+
+		const quick = row(root, 'quick').querySelector<HTMLElement>('[data-mod-load-ms]')!;
+		expect(quick.getAttribute('data-mod-load-ms')).toBe('0');
+		expect(quick.title).toBe('Loaded in < 1 ms');
+		expect(row(root, 'quick').textContent).not.toContain('ms');
+
 		for (const folder of ['bad', 'off']) {
 			expect(row(root, folder).querySelector('[data-mod-load-ms]')).toBeNull();
+			expect(row(root, folder).querySelector('[title]')).toBeNull();
 			expect(row(root, folder).textContent).not.toContain('ms');
 		}
 	});
@@ -130,8 +159,9 @@ describe('ModsStatusList', () => {
 		modsStore.upsertEntry({ id: 'hello', folder: 'hello', name: 'Hello', version: '1.0.0', state: 'loaded', loadMs: 25 });
 		flushSync();
 
-		expect(row(root, 'hello').textContent).toContain('Loaded · 25 ms');
-		expect(row(root, 'hello').textContent).not.toContain('10 ms');
+		const label = row(root, 'hello').querySelector<HTMLElement>('[data-mod-load-ms]')!;
+		expect(label.getAttribute('data-mod-load-ms')).toBe('25');
+		expect(label.title).toBe('Loaded in 25 ms');
 	});
 
 	it('updates when the store changes', () => {

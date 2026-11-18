@@ -97,8 +97,13 @@
 							{#if entry.version}<span class="text-meta text-muted-foreground">{entry.version}</span>{/if}
 						</span>
 						<span class="flex items-center gap-3">
-							<span class="text-meta {entry.state === 'error' ? 'text-destructive' : 'text-muted-foreground'}">
-								{STATE_LABELS[entry.state]}{#if entry.loadMs !== undefined}{' · '}<span data-mod-load-ms={entry.loadMs}>{entry.loadMs === 0 ? '< 1' : entry.loadMs} ms</span>{/if}
+							<!-- loadMs is set only on a loaded entry, so the tooltip always reads "Loaded in". -->
+							<span
+								class="text-meta {entry.state === 'error' ? 'text-destructive' : 'text-muted-foreground'}"
+								title={entry.loadMs === undefined ? undefined : `Loaded in ${entry.loadMs === 0 ? '< 1' : entry.loadMs} ms`}
+								data-mod-load-ms={entry.loadMs}
+							>
+								{STATE_LABELS[entry.state]}
 							</span>
 							<!-- Reads the saved switch, not the load state, which lags until onload settles. -->
 							<Switch
@@ -109,6 +114,9 @@
 							/>
 						</span>
 					</div>
+					{#if entry.description}
+						<p class="text-meta text-muted-foreground break-words" data-mod-description>{entry.description}</p>
+					{/if}
 					{#if entry.error}
 						<p class="text-meta text-destructive break-words">{entry.error.message}</p>
 						{#if entry.error.stack}

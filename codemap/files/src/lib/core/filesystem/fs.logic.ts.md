@@ -1,7 +1,7 @@
 # file card src/lib/core/filesystem/fs.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/filesystem/fs.logic.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls
-file src/lib/core/filesystem/fs.logic.ts logic L642 module src/lib/core/filesystem in45 t15
+file src/lib/core/filesystem/fs.logic.ts logic L642 module src/lib/core/filesystem in46 t15
 ## imports
 imp src/lib/core/filesystem/fs.logic.ts:4 -> src/lib/utils/path.ts basename,relativePath
 imp src/lib/core/filesystem/fs.logic.ts:6 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode,type:FolderOrderMap
@@ -19,6 +19,7 @@ imp src/lib/core/layout/layout.logic.ts:8 -> src/lib/core/filesystem/fs.logic.ts
 imp src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:3 -> src/lib/core/filesystem/fs.logic.ts isBinaryFile
 imp src/lib/core/markdown-editor/highlight-styles.ts:11 -> src/lib/core/filesystem/fs.logic.ts getLanguageForFile
 imp src/lib/core/note-creator/note-creator.service.ts:6 -> src/lib/core/filesystem/fs.logic.ts isMarkdownFile
+imp src/lib/core/settings/settings.logic.ts:2 -> src/lib/core/filesystem/fs.logic.ts findFileNode
 imp src/lib/core/trash/trash.service.ts:14 -> src/lib/core/filesystem/fs.logic.ts collectFilePathsUnder,findNodeByPath,getRelativePath,isViewFile
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:15 -> src/lib/core/filesystem/fs.logic.ts isMarkdownFile
 imp src/lib/features/auto-organize/auto-organize.logic.ts:3 -> src/lib/core/filesystem/fs.logic.ts isMarkdownFile,isViewFile
@@ -45,10 +46,9 @@ imp src/lib/features/search/search.service.ts:5 -> src/lib/core/filesystem/fs.lo
 imp src/lib/features/type-definitions/ViewDialog.svelte:6 -> src/lib/core/filesystem/fs.logic.ts fileOperationErrorMessage,getFileName
 imp src/lib/features/type-definitions/type-definitions.logic.ts:2 -> src/lib/core/filesystem/fs.logic.ts getFileNameError,isValidFileName
 imp src/lib/features/type-definitions/type-definitions.service.ts:15 -> src/lib/core/filesystem/fs.logic.ts generateUniqueName
-imp src/lib/features/type-definitions/type-note-list.logic.ts:6 -> src/lib/core/filesystem/fs.logic.ts getFileNameError
-more imported-by 5 not shown: src/lib/features/type-definitions(1) src/lib/plugins/graph-view(1) src/lib/plugins/mods(1) src/lib/plugins/one-on-one(1) src/lib/plugins/queryjs(1): q importers src/lib/core/filesystem/fs.logic.ts
+more imported-by 6 not shown: src/lib/features/type-definitions(2) src/lib/plugins/graph-view(1) src/lib/plugins/mods(1) src/lib/plugins/one-on-one(1) src/lib/plugins/queryjs(1): q importers src/lib/core/filesystem/fs.logic.ts
 ## reach
-in2 src/lib/core/filesystem/fs.logic.ts 99 files in 34 modules: src/lib/features/rail-shell(13) src/lib/features/event-calendar(10) src/lib/features/collection(9) src/lib/app(8) src/lib/core/markdown-editor(5) +29 modules: q impact src/lib/core/filesystem/fs.logic.ts --depth 2
+in2 src/lib/core/filesystem/fs.logic.ts 109 files in 34 modules: src/lib/features/rail-shell(13) src/lib/features/event-calendar(11) src/lib/app(9) src/lib/features/collection(9) src/lib/core/settings(8) +29 modules: q impact src/lib/core/filesystem/fs.logic.ts --depth 2
 out2 src/lib/core/filesystem/fs.logic.ts 1 files in 1 modules: src/lib/contracts(1)
 ## tests
 test src/tests/lib/core/filesystem/fs.logic.test.ts imports src/lib/core/filesystem/fs.logic.ts mirror
@@ -75,6 +75,7 @@ by src/lib/core/filesystem/fs.logic.ts:findNodeByPath <- src/lib/features/rail-s
 by src/lib/core/filesystem/fs.logic.ts:findNodeByPath <- src/lib/features/rail-shell/RailNoteList.svelte:217 in viewInTree=$derived call
 sym src/lib/core/filesystem/fs.logic.ts:25 fn findFileNode(tree: FileTreeNode[], vaultPath: string, path: string): FileTreeNode | null L15 | The file node at `path`, found by walking the path's segments down from the root (O(depth x siblings), not a whole-tree scan).
 by src/lib/core/filesystem/fs.logic.ts:findFileNode <- src/lib/core/filesystem/fs.watcher.ts:185 in handleChangedPaths call
+by src/lib/core/filesystem/fs.logic.ts:findFileNode <- src/lib/core/settings/settings.logic.ts:322 in isTemplateMissing call
 sym src/lib/core/filesystem/fs.logic.ts:42 fn getParentPath(filePath: string): string L5 | Returns the parent directory path (e.g. "/vault/docs/note.md" → "/vault/docs")
 by src/lib/core/filesystem/fs.logic.ts:getParentPath <- src/lib/core/filesystem/fs.service.ts:344 in duplicateItem call
 by src/lib/core/filesystem/fs.logic.ts:getParentPath <- src/lib/features/event-calendar/event-calendar.service.ts:693 in writeEvent call +1

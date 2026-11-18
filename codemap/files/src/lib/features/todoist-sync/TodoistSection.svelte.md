@@ -18,7 +18,7 @@ imp src/lib/features/todoist-sync/TodoistSection.svelte:13 -> src/lib/features/t
 imp src/lib/app/SettingsPanel.svelte:14 -> src/lib/features/todoist-sync/TodoistSection.svelte default
 ## reach
 in2 src/lib/features/todoist-sync/TodoistSection.svelte 1 files in 1 modules: src/lib/app(1)
-out2 src/lib/features/todoist-sync/TodoistSection.svelte 24 files in 6 modules: src/lib/components(14) src/lib/core/settings(3) src/lib/contracts(2) src/lib/features/todoist-sync(2) src/lib/utils(2) +1 modules
+out2 src/lib/features/todoist-sync/TodoistSection.svelte 26 files in 7 modules: src/lib/components(14) src/lib/core/settings(3) src/lib/contracts(2) src/lib/core/filesystem(2) src/lib/features/todoist-sync(2) +2 modules
 ## tests
 test src/tests/lib/features/todoist-sync/TodoistSection.test.ts imports src/lib/features/todoist-sync/TodoistSection.svelte mirror
 ## symbols

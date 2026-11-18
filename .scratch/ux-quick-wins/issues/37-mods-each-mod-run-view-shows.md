@@ -16,15 +16,15 @@ Not in this ticket: a "Stopping..." state on Stop (dropped: the abort listener c
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh vault-mods.spec.ts (it reads the run status text).
 
-- [ ] Failing test first, `src/tests/lib/plugins/mods/mods-host.service.test.ts` and `ModsStatusList.test.ts` (real host, only fs mocked): a manifest `description` shows in the row after load; none gives no empty line; it survives `disableMod` and a load error that had a manifest.
-- [ ] The row no longer contains "Loaded · 42 ms"; the state label `title` is "Loaded in 42 ms"; `data-mod-load-ms="42"` is intact (`ModsStatusList.test.ts:116-133` updated on purpose).
-- [ ] `ModActionPicker.test.ts`: the progressbar name contains the run title and "<done> of <total>"; `[data-mod-run-status]` has the destructive class on Failed and the success class on Done with the same text; the log has `role="log"`.
-- [ ] Stop, focus and Enter tests unchanged.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass; `bash scripts/e2e.sh vault-mods.spec.ts` passes.
+- [x] Failing test first, `src/tests/lib/plugins/mods/mods-host.service.test.ts` and `ModsStatusList.test.ts` (real host, only fs mocked): a manifest `description` shows in the row after load; none gives no empty line; it survives `disableMod` and a load error that had a manifest.
+- [x] The row no longer contains "Loaded · 42 ms"; the state label `title` is "Loaded in 42 ms"; `data-mod-load-ms="42"` is intact (`ModsStatusList.test.ts:116-133` updated on purpose).
+- [x] `ModActionPicker.test.ts`: the progressbar name contains the run title and "<done> of <total>"; `[data-mod-run-status]` has the destructive class on Failed and the success class on Done with the same text; the log has `role="log"`.
+- [x] Stop, focus and Enter tests unchanged.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass; `bash scripts/e2e.sh vault-mods.spec.ts` passes.
 
 ## Original proposal
 
@@ -51,3 +51,4 @@ Ticket 22 calls `startModsHost` and `stopModsHost` from `LabsSection.svelte` and
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): 37.1 (old 36.1) move the load time into a tooltip, as the validated P169 says; if the owner wants it inline, the ticket keeps only the description line (items 1, 3, 4 and 5) and item 2 is dropped.
+- 2026-11-18, deliver (branch issue/37-mods-each-mod-run-view-shows): Labs mod rows show the manifest description under the name and the load time moves to a `title` tooltip ("Loaded in N ms"); the run view colours Done/Failed, names the progress bar ("<title>, <done> of <total>") and gives the log `role="log"`. Help docs updated (also 01-anatomy-and-loading.md and 15-errors-and-debugging.md, which quoted the removed "Loaded · 42 ms"). Review round 1: APPROVED, three nits, no source change (nit 2, always mounting the log live region, left as a follow-up). Full suite: 661 files, 17690 passed, 56 skipped, 1 todo, exit 0. E2E not run in this step.

@@ -9,7 +9,7 @@ dep src/lib/core/filesystem -> src/lib/utils 13
 dep src/lib/core/frontmatter -> src/lib/utils 2
 dep src/lib/core/markdown-editor -> src/lib/utils 23
 dep src/lib/core/note-creator -> src/lib/utils 3
-dep src/lib/core/settings -> src/lib/utils 16
+dep src/lib/core/settings -> src/lib/utils 17
 dep src/lib/core/trash -> src/lib/utils 1
 dep src/lib/core/vault -> src/lib/utils 4
 dep src/lib/core/zoom -> src/lib/utils 1
@@ -53,7 +53,7 @@ out2 src/lib/utils 0 modules: -
 ## entry files
 entry src/lib/utils/debug.ts ext-in74 src/lib/app/LabsSection.svelte src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/app/global-keybindings.ts src/lib/app/lifecycle/app-lifecycle.service.ts more importers 69 not shown: src/lib/features/todoist-sync(7) src/lib/core/settings(6) src/lib/core/filesystem(5) +31 modules: q importers src/lib/utils/debug.ts
 entry src/lib/utils/path.ts ext-in28 src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/core/editor/editor.logic.ts src/lib/core/filesystem/delete-note.service.ts src/lib/core/filesystem/file-entries.logic.ts more importers 23 not shown: src/lib/core/filesystem(4) src/lib/features/search(3) src/lib/features/tasks(3) +9 modules: q importers src/lib/utils/path.ts
-entry src/lib/utils/date.ts ext-in15 src/lib/core/markdown-editor/extensions/date-shortcut/completion.logic.ts src/lib/features/collection/calendar.logic.ts src/lib/features/file-history/file-history.logic.ts src/lib/features/tasks/TaskLists.svelte src/lib/features/tasks/TasksView.svelte more importers 10 not shown: src/lib/features/tasks(4) src/lib/plugins/kanban(3) src/lib/plugins/calendar(1) +2 modules: q importers src/lib/utils/date.ts
+entry src/lib/utils/date.ts ext-in16 src/lib/core/markdown-editor/extensions/date-shortcut/completion.logic.ts src/lib/core/settings/sections/PeriodicNotesSection.svelte src/lib/features/collection/calendar.logic.ts src/lib/features/file-history/file-history.logic.ts src/lib/features/tasks/TaskLists.svelte more importers 11 not shown: src/lib/features/tasks(5) src/lib/plugins/kanban(3) src/lib/plugins/calendar(1) +2 modules: q importers src/lib/utils/date.ts
 entry src/lib/utils/log.service.ts ext-in13 src/lib/app/AppShell.svelte src/lib/app/boot.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/core/editor/editor.service.ts src/lib/core/note-creator/note-creator.service.ts more importers 8 not shown: src/lib/features/rail-shell(2) src/lib/plugins/queryjs(2) src/lib/core/settings(1) +3 modules: q importers src/lib/utils/log.service.ts
 entry src/lib/utils/clamp.ts ext-in10 src/lib/core/editor/open-note-at.service.ts src/lib/core/settings/sections/FileHistorySection.svelte src/lib/core/settings/settings.logic.ts src/lib/features/auto-organize/AutoOrganizeSection.svelte src/lib/features/collection/expression/evaluator.ts more importers 5 not shown: src/lib/plugins/kanban(2) src/lib/plugins/queryjs(2) src/lib/features/rail-shell(1): q importers src/lib/utils/clamp.ts
 entry src/lib/utils/color.ts ext-in7 src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts src/lib/core/settings/sections/ThemePreview.svelte src/lib/core/settings/theme-builder.logic.ts src/lib/core/settings/theme.logic.ts src/lib/core/settings/theme.service.ts more importers 2 not shown: src/lib/features/collection(1) src/lib/plugins/graph-view(1): q importers src/lib/utils/color.ts
@@ -87,7 +87,7 @@ file src/lib/utils/capture-path.ts other L14 module src/lib/utils in3 t1
 file src/lib/utils/clamp.ts other L9 module src/lib/utils in10 t1
 file src/lib/utils/color-presets.ts other L30 module src/lib/utils in6 t1
 file src/lib/utils/color.ts other L159 module src/lib/utils in7 t6
-file src/lib/utils/date.ts other L170 module src/lib/utils in16 t3
+file src/lib/utils/date.ts other L170 module src/lib/utils in17 t3
 file src/lib/utils/debounce.ts other L55 module src/lib/utils in4 t4
 file src/lib/utils/debug.ts other L166 module src/lib/utils in74 t53
 file src/lib/utils/font-stacks.ts other L56 module src/lib/utils in5 t5 | Font stacks shared by every place that sets a `font-family` from TypeScript, so code and app text render in one face per role on every machine.

@@ -13,6 +13,13 @@
 		cancelled: 'Cancelled',
 	};
 
+	const STATUS_CLASSES: Record<ModRunStatus, string> = {
+		running: 'text-muted-foreground',
+		done: 'text-success',
+		failed: 'text-destructive',
+		cancelled: 'text-muted-foreground',
+	};
+
 	/** Text of the input step's field */
 	let text = $state('');
 
@@ -105,12 +112,13 @@
 		<div class="flex max-h-[calc(82dvh-1rem)] flex-col gap-3 overflow-y-auto p-4" data-mod-run={run.status} onkeydown={handleRunKeydown}>
 			<div class="flex items-center justify-between gap-2">
 				<span class="truncate font-medium">{run.title}</span>
-				<span class="text-xs text-muted-foreground" data-mod-run-status>{STATUS_LABELS[run.status]}</span>
+				<span class="text-xs {STATUS_CLASSES[run.status]}" data-mod-run-status>{STATUS_LABELS[run.status]}</span>
 			</div>
 			{#if run.progress}
 				<div
 					class="h-1.5 w-full overflow-hidden rounded-full bg-muted"
 					role="progressbar"
+					aria-label="{run.title}, {run.progress.done} of {run.progress.total}"
 					aria-valuemin={0}
 					aria-valuemax={run.progress.total}
 					aria-valuenow={run.progress.done}
@@ -125,7 +133,7 @@
 				<span class="text-xs text-muted-foreground" data-mod-reload-pending>Reload pending</span>
 			{/if}
 			{#if run.lines.length > 0}
-				<div class="max-h-64 overflow-y-auto rounded-md bg-muted/50 p-2 font-mono text-xs whitespace-pre-wrap" data-mod-run-log bind:this={logBox} onscroll={handleLogScroll}>
+				<div class="max-h-64 overflow-y-auto rounded-md bg-muted/50 p-2 font-mono text-xs whitespace-pre-wrap" role="log" data-mod-run-log bind:this={logBox} onscroll={handleLogScroll}>
 					{#each run.lines as line, i (i)}
 						<div>{line}</div>
 					{/each}

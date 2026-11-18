@@ -12,7 +12,7 @@ imp src/lib/app/lifecycle/app-lifecycle.service.ts:38 -> src/lib/core/settings/s
 imp src/lib/core/vault/exit.service.ts:3 -> src/lib/core/settings/settings-persistence.svelte.ts flushSettingsPersistence
 ## reach
 in2 src/lib/core/settings/settings-persistence.svelte.ts 4 files in 4 modules: src/lib/app(1) src/lib/core/settings(1) src/lib/core/vault(1) src/routes(1)
-out2 src/lib/core/settings/settings-persistence.svelte.ts 11 files in 3 modules: src/lib/core/settings(6) src/lib/utils(3) src/lib/contracts(2)
+out2 src/lib/core/settings/settings-persistence.svelte.ts 13 files in 4 modules: src/lib/core/settings(6) src/lib/utils(3) src/lib/contracts(2) src/lib/core/filesystem(2)
 ## tests
 test src/tests/lib/core/settings/settings-persistence.test.ts imports src/lib/core/settings/settings-persistence.svelte.ts mirror
 test src/tests/lib/app/global-keybindings.test.ts imports src/lib/core/settings/settings-persistence.svelte.ts

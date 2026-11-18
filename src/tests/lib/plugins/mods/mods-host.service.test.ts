@@ -2465,6 +2465,70 @@ describe('mods host', () => {
 		});
 	});
 
+	describe('manifest description', () => {
+		const descriptionOf = (folder: string) => modsStore.entries.find((e) => e.folder === folder)?.description;
+
+		it('lists a loaded mod with its manifest description, and a mod without one with no description', async () => {
+			writeMod('alpha', recordingMod('alpha'), { description: 'Says hello on save' });
+			writeMod('beta', recordingMod('beta'));
+
+			await startModsHost(VAULT);
+
+			expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([
+				['alpha', 'loaded'],
+				['beta', 'loaded'],
+			]);
+			expect(descriptionOf('alpha')).toBe('Says hello on save');
+			expect(modsStore.entries.find((e) => e.folder === 'beta')).not.toHaveProperty('description');
+		});
+
+		it('keeps the description when disableMod switches a loaded mod off', async () => {
+			writeMod('alpha', recordingMod('alpha'), { description: 'Says hello on save' });
+			await startModsHost(VAULT);
+
+			modsEnabledStore.setModEnabled('alpha', false);
+			disableMod('alpha');
+
+			expect(modsStore.entries).toEqual([
+				{ id: 'alpha', folder: 'alpha', name: 'Mod alpha', version: '1.0.0', description: 'Says hello on save', state: 'disabled' },
+			]);
+		});
+
+		it('lists a mod switched off at start with its manifest description', async () => {
+			writeMod('alpha', recordingMod('alpha'), { description: 'Says hello on save' });
+			modsEnabledStore.setModEnabled('alpha', false);
+
+			await startModsHost(VAULT);
+
+			expect(modsStore.entries).toEqual([
+				{ id: 'alpha', folder: 'alpha', name: 'Mod alpha', version: '1.0.0', description: 'Says hello on save', state: 'disabled' },
+			]);
+		});
+
+		it('keeps the description on a load error after the manifest was read, and through disableMod', async () => {
+			writeMod('broken', 'export default {};', { description: 'Never loads' });
+			await startModsHost(VAULT);
+
+			expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([['broken', 'error']]);
+			expect(descriptionOf('broken')).toBe('Never loads');
+
+			modsEnabledStore.setModEnabled('broken', false);
+			disableMod('broken');
+
+			expect(modsStore.entries).toEqual([
+				{ id: 'broken', folder: 'broken', name: 'Mod broken', version: '1.0.0', description: 'Never loads', state: 'disabled' },
+			]);
+		});
+
+		it('has no description when the manifest cannot be parsed', async () => {
+			fsFiles.set(`${VAULT}/_system/mods/bad/manifest.json`, '{not json');
+			await startModsHost(VAULT);
+
+			expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([['bad', 'error']]);
+			expect(modsStore.entries[0]).not.toHaveProperty('description');
+		});
+	});
+
 	describe('load time', () => {
 		const MODS = `${VAULT}/_system/mods`;
 

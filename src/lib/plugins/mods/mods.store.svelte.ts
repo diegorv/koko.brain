@@ -10,6 +10,8 @@ export interface ModStatusEntry {
 	name: string;
 	/** Manifest version; empty when the manifest could not be read */
 	version: string;
+	/** Manifest description; absent when the manifest has none or could not be read */
+	description?: string;
 	/** Whether `onload` completed, the mod failed to load, or it is switched off in Labs */
 	state: 'loaded' | 'error' | 'disabled';
 	/** Set when `state` is `'error'`; the message starts with `_system/mods/<folder>: ` */

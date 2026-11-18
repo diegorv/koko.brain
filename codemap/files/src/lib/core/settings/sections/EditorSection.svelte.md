@@ -16,7 +16,7 @@ imp src/lib/core/settings/sections/EditorSection.svelte:12 -> src/lib/core/setti
 imp src/lib/app/SettingsPanel.svelte:3 -> src/lib/core/settings/sections/EditorSection.svelte default
 ## reach
 in2 src/lib/core/settings/sections/EditorSection.svelte 1 files in 1 modules: src/lib/app(1)
-out2 src/lib/core/settings/sections/EditorSection.svelte 21 files in 4 modules: src/lib/components(15) src/lib/core/settings(3) src/lib/contracts(2) src/lib/utils(1)
+out2 src/lib/core/settings/sections/EditorSection.svelte 23 files in 5 modules: src/lib/components(15) src/lib/core/settings(3) src/lib/contracts(2) src/lib/core/filesystem(2) src/lib/utils(1)
 ## tests
 test src/tests/lib/core/settings/EditorSection.test.ts imports src/lib/core/settings/sections/EditorSection.svelte
 test src/tests/lib/core/settings/settings-copy.test.ts imports src/lib/core/settings/sections/EditorSection.svelte
