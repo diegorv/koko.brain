@@ -61,7 +61,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 24 | [Calendar events say what you can do; the new-event form opens without an error](issues/24-calendar-events-say-you-can-do.md) | none | done | issue/24-calendar-events-say-you-can-do (bd8d1575b) | 2026-11-18 |
 | 25 | [Calendar time grid shows what is now and what is hidden](issues/25-calendar-time-grid-shows-now-hidden.md) | 24 | todo | | |
 | 26 | [Calendar month grid reads at a glance](issues/26-calendar-month-grid-reads-at-glance.md) | 24, 25 | todo | | |
-| 27 | [The Tasks toolbar and list say what they do](issues/27-tasks-toolbar-list-say-they-do.md) | none | in-progress | | |
+| 27 | [The Tasks toolbar and list say what they do](issues/27-tasks-toolbar-list-say-they-do.md) | none | done | issue/27-tasks-toolbar-list-say-they-do (765d89506) | 2026-11-18 |
 | 28 | [The Days mini month works narrow and by screen reader](issues/28-days-mini-month-works-narrow-by.md) | 26 | todo | | |
 | 29 | [The template picker names the template and what Enter will do](issues/29-template-picker-names-template-enter-will.md) | none | done | issue/29-template-picker-names-template-enter-will (e73578399) | 2026-11-18 |
 | 30 | [The type name dialog stays open while it saves](issues/30-type-name-dialog-stays-open-while.md) | none | done | issue/30-type-name-dialog-stays-open-while (b544a38d9) | 2026-11-18 |
@@ -105,3 +105,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 15:28 — 24 — start — launched by /relay-lite:run — 9a3957add
 - 2026-11-18 15:53 — 24 — deliver — merged after review 1 APPROVED with findings, fix round (read-only events, reserved title-message row in the event form), re-review 2 APPROVED (claude), one nit accepted as intended; full vitest suite passed (17503 tests), event-calendar E2E passed — bd8d1575b
 - 2026-11-18 15:53 — 27 — start — launched by /relay-lite:run — a6d1691de
+- 2026-11-18 16:16 — 27 — deliver — merged after review 1 CHANGES_REQUESTED, fix round (note header truncates folder first, context-row left rule test), re-review 2 APPROVED (claude); full vitest suite passed (17511 tests); by-eye check at 420 and 800 px still open — 765d89506
