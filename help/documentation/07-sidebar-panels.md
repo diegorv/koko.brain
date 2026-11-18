@@ -95,9 +95,10 @@ Like Backlinks, the Outgoing Links panel is **collapsed by default** and fetches
 
 ## Tags
 
-The Tags view is a **virtual tab**, not a right sidebar panel. Open it from the Command Palette:
-`Cmd+P` then **Toggle Tags View**. It fills the main editor area, and it is the only place the tags
-browser is shown.
+The Tags view is a **virtual tab**, not a right sidebar panel. Open it with **Tags** on the rail
+(see [The Rail](01-getting-started.md#the-rail)), or from the Command Palette: `Cmd+P` then
+**Toggle Tags View**. It fills the main editor area, and it is the only place the tags browser is
+shown.
 
 It lists the tags used across your vault, organized in a hierarchical tree. Nested tags create a
 tree structure: `#work/meetings` shows as **work** > **meetings**. Both inline `#tags` in the note

@@ -91,6 +91,7 @@ import { toKey } from '#lib/features/event-calendar/event-calendar-dates.logic.j
 import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
 import CalendarDays from '@lucide/svelte/icons/calendar-days';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
+import { registerCalendarRail } from '#lib/plugins/calendar/calendar-rail.service.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
@@ -687,6 +688,17 @@ describe('getBuiltInCommands rail commands', () => {
 			['rail:go-to:archive', 'Go to Archive'],
 		]);
 		expect(goTo().every((c) => c.category === 'Navigation')).toBe(true);
+	});
+
+	it('names the registered day navigator "Go to Days", keeps "Toggle Calendar View", and has no Go to for the Tabs items', () => {
+		const unregister = registerCalendarRail();
+		const labels = getBuiltInCommands().map((c) => c.label);
+
+		expect(labels).toContain('Go to Days');
+		expect(labels).toContain('Toggle Calendar View');
+		for (const label of ['Go to Calendar', 'Go to Tasks', 'Go to Graph', 'Go to Tags']) expect(labels).not.toContain(label);
+		expect(goTo().map((c) => c.id)).toEqual(expect.not.arrayContaining(['rail:go-to:tab:tasks', 'rail:go-to:tab:graph', 'rail:go-to:tab:tags']));
+		unregister();
 	});
 
 	it('adds a navigator registered and a pin added after the first build the next time the list is built', () => {

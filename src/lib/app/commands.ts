@@ -56,7 +56,8 @@ import { openRailView, selectRailItem } from '#lib/app/rail-navigation.js';
 
 /**
  * A "Go to <item>" command per rail item, from the same list as the rail, so a
- * hidden item has none. The stores are read here, while the list is built, so
+ * hidden item has none. The Tabs items have none either: their tabs already
+ * have Toggle commands. The stores are read here, while the list is built, so
  * the palette's prop expression re-runs when a navigator registers, a pin is
  * added or Settings > Layout hides or moves an item.
  */
@@ -64,7 +65,8 @@ function railGoToCommands(): AppCommand[] {
 	void typeDefinitionsStore.entriesVersion;
 	const pins = pinnedRailItems(typeDefinitionsStore.entries, typeDefinitionsStore.typeMetadataMap);
 	const { railHidden, railOrder } = settingsStore.layout;
-	return railItems(railRegistryStore.navigators, pins, parseRailHidden(railHidden), parseRailOrder(railOrder)).map((item) => ({
+	const items = railItems(railRegistryStore.navigators, pins, parseRailHidden(railHidden), parseRailOrder(railOrder));
+	return items.filter((item) => item.group !== 'tabs').map((item) => ({
 		id: `rail:go-to:${item.key}`,
 		label: `Go to ${item.label}`,
 		category: 'Navigation',
@@ -250,8 +252,9 @@ export function getBuiltInCommands(): AppCommand[] {
 				eventCalendarViewStore.goToToday();
 			},
 		},
-		// Listed only when they can act: an idle Undo or Redo would outrank
-		// "Go to Calendar" for "cal" and only toast "Nothing to undo".
+		// Listed only when they can act: an idle Undo or Redo would crowd the
+		// Calendar commands that do something for "cal" and only toast
+		// "Nothing to undo".
 		...(eventCalendarStore.canUndo
 			? [{
 				id: 'event-calendar:undo',

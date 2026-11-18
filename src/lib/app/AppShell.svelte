@@ -112,7 +112,7 @@
 	);
 	let showsTypesNavigator = $derived(railItem.item === TYPES_RAIL_ITEM);
 	let showsFilesNavigator = $derived(railItem.item === FILES_RAIL_ITEM);
-	/** The plugin-registered navigator (Calendar) of the active rail item, if any; its lens is `railItem.lens` */
+	/** The plugin-registered navigator (Days) of the active rail item, if any; its lens is `railItem.lens` */
 	let registeredNavigator = $derived(railRegistryStore.navigators.find((n) => n.id === railItem.item) ?? null);
 	/** Whether a navigator pane sits between the rail and the note list */
 	let showsNavigator = $derived(showsTypesNavigator || showsFilesNavigator || registeredNavigator !== null);

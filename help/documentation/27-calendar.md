@@ -12,7 +12,7 @@ The Calendar tab shows your Event notes on a day, week or month grid. Every even
 | Command Palette: **Toggle Calendar View** | Same as `Cmd+Shift+C` |
 | Command Palette: **New Calendar Event** | Opens the Calendar tab and the new-event dialog |
 | Command Palette: **Calendar: Go to Today** | Opens the Calendar tab on today |
-| Calendar navigator (the **Calendar** rail item): **Open Calendar tab** | Opens the Calendar tab on the picked day (or today) |
+| Days navigator (the **Days** rail item): **Open Calendar tab** | Opens the Calendar tab on the picked day (or today) |
 
 The Calendar opens as a tab in the editor area, next to your notes. Only one Calendar tab exists at a time.
 
@@ -214,13 +214,13 @@ These work while the Calendar tab has focus, not while you type in a field or wh
 
   Use your event type's name if you changed it in Settings.
 
-## Calendar Tab vs. the Calendar Navigator
+## Calendar Tab vs. the Days Navigator
 
-| | Calendar tab | Calendar navigator |
+| | Calendar tab | Days navigator |
 |---|---|---|
 | Shows | Event notes, placed by `date`, `start` and `end` | A month grid of days, with dots for the notes dated each day (by `date`, else `created`, else disk creation date) |
 | Used for | Planning and editing events | Opening periodic notes (daily, weekly, monthly, quarterly, yearly) and listing the notes dated a day |
-| Lives in | An editor tab | The **Calendar** rail item, beside the note list |
+| Lives in | An editor tab | The **Days** rail item, beside the note list |
 
 The navigator's **Open Calendar tab** button opens the Calendar tab on the picked day. See [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md).
 
@@ -233,6 +233,6 @@ The navigator's **Open Calendar tab** button opens the Calendar tab on the picke
 ## Next Steps
 
 - [Types & Relationships](25-types-and-relationships.md): the type system Event notes use
-- [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md): the Calendar navigator and periodic notes
+- [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md): the Days navigator and periodic notes
 - [Settings](19-settings.md#calendar): the Calendar settings
 - [Keyboard Shortcuts](20-keyboard-shortcuts.md): all shortcuts

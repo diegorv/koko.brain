@@ -16,7 +16,7 @@ async function openDailyNoteForLens(lens: Lens): Promise<void> {
 }
 
 /**
- * Adds the Calendar navigator and the Day lens to the rail shell, which may
+ * Adds the Days navigator and the Day lens to the rail shell, which may
  * not import plugins (ADR 0003). The navigator's pick is `layout.railDay`
  * (today when unset); the lens's header offers the day's daily note. Returns
  * one unregister function for both; `initializeVault` registers them and
@@ -25,7 +25,7 @@ async function openDailyNoteForLens(lens: Lens): Promise<void> {
 export function registerCalendarRail(): () => void {
 	const offNavigator = railRegistryStore.registerNavigator({
 		id: CALENDAR_RAIL_ITEM,
-		label: 'Calendar',
+		label: 'Days',
 		icon: CalendarDays,
 		component: CalendarNavigator,
 		lens: () => pickedDayLens(settingsStore.layout.railDay, eventCalendarViewStore.todayKey),

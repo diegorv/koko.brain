@@ -31,10 +31,10 @@ The feature folder was removed when it closed; read it with
 ## Decision
 
 **Use an always-visible icon rail whose every pick is a lens, and one note list column that every
-lens fills; Types, Calendar and Files become navigators that set the lens instead of modes that
-replace the sidebar.**
+lens fills; Types, Days (the day navigator, named Calendar until the 2026-11-18 amendment) and Files
+become navigators that set the lens instead of modes that replace the sidebar.**
 
-- The rail lists Search, Inbox, Today, Favorites, then Types, Calendar, Files, with Archive at the
+- The rail lists Search, Inbox, Today, Favorites, then Types, Days, Files, with Archive at the
   bottom. A lens resolves to a label, a plain-language rule and the notes to list, and it decides
   what "+ New here" writes (folder, type, date, `_organized: false`, `_favorite: true`).
 - The day a note belongs to has one owner, a pure function in `utils/`: frontmatter `date`, else
@@ -218,5 +218,27 @@ replace the sidebar.**
 > panes to size on each monitor, and a new vault opens with its panes too narrow to read until then. Saved
 > sizes still win, per vault and not per monitor. The E2E fixtures save working sizes; `Default pane sizes`
 > in `e2e/specs/sidebars.spec.ts` drops them and checks the minimums.
+> **Amendment (2026-11-18): Days, and a Tabs section.** Two changes from design review P36. First, the
+> Calendar plugin's navigator is labeled "Days" (`calendar-rail.service.ts`, and the `CalendarNavigator`
+> header), so "Calendar" names only the Calendar tab of events. Its keys stay `calendar`
+> (`data-rail-item`, `rail:go-to:calendar`, `RAIL_ITEM_COLORS`), so saved layouts and usage ids do not
+> change; its palette command reads "Go to Days". Second, this amendment meets the re-evaluation trigger
+> below, "a new top-level area needs a rail slot that does not fit the lens model": Tasks, Graph and Tags
+> are top-level areas that live in an editor tab, with a palette command but no rail entry. Rather than
+> give them lenses, the rail gains a **Tabs** section (not "Views", which already names the `.view` files
+> in the Types navigator and the palette's Open view commands) after Browse and before Pinned, in its own
+> `RailItemGroup` `tabs` with the keys `tab:tasks`, `tab:graph` and `tab:tags`, which no pin prefix or
+> navigator id uses. These are the first built-in rail items that are not lenses: a click goes through
+> `selectRailItem` (`src/lib/app/rail-navigation.ts`), which calls `openTasksTab`, `openGraphTab` or
+> `openTagsTab` (the Graph opener is a plugin's, so the branch stays in `app/`), opens or focuses the tab
+> and never closes it, and writes neither `layout.railItem` nor `railPanelsVisible`. A Tabs row is current
+> while `editorStore.activeTabPath` is its tab's virtual path (`RailItem.tabPath`), never through the
+> rail item. The items are on by default, hideable and reorderable in Settings > Layout ("Rail tabs"),
+> through the existing `layout.railHidden` and `layout.railOrder`, so a vault that saved `railHidden`
+> before them still shows them. They have no Go to commands (their tabs have Toggle commands) and no
+> shortcut of their own. Colors: Tasks `#22c55e`, Graph `#6366f1`, Tags `#ec4899`. Code:
+> `features/rail-shell/rail-items.logic.ts`, `Rail.svelte`, `LayoutSection.svelte`,
+> `src/lib/app/rail-navigation.ts`, `src/lib/app/commands.ts`. The user documentation is
+> `help/documentation/01-getting-started.md` § The Rail and `19-settings.md` § Layout.
 - Re-evaluation trigger: the editor becomes too narrow to use with the panels open at common window
   sizes, or a new top-level area needs a rail slot that does not fit the lens model.

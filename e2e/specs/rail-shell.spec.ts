@@ -355,6 +355,26 @@ test.describe('Rail shell', () => {
 		await expect(page.locator('[data-right-sidebar]')).toHaveCount(0);
 	});
 
+	test('the Tabs rail entries open Tasks, Graph and Tags, and a second click keeps the tab and the rail item', async ({ vaultPage: page }) => {
+		await openInbox(page);
+		await listRow(page, 'Welcome').click();
+		await expectTabActive(page, 'Welcome');
+		const inbox = page.locator('[data-rail-item="inbox"]');
+
+		for (const [key, tab] of [['tab:tasks', 'Tasks'], ['tab:graph', 'Graph View'], ['tab:tags', 'Tags']] as const) {
+			const item = page.locator(`[data-rail-tabs] [data-rail-item="${key}"]`);
+			await item.click();
+			await expectTabActive(page, tab);
+			await expect(item).toHaveAttribute('aria-current', 'page');
+			await item.click();
+			await expectTabActive(page, tab);
+			await expect(page.locator('[role="tab"]', { hasText: tab })).toHaveCount(1);
+			await expect(inbox).toHaveAttribute('aria-current', 'page');
+			await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Inbox');
+		}
+		await expect(page.locator('[data-rail-item="tab:tasks"]')).not.toHaveAttribute('aria-current', 'page');
+	});
+
 	test('Cmd+1 hides the note list, Cmd+2 shows it, Cmd+Shift+B toggles it; the rail stays and the state is saved', async ({ vaultPage: page }) => {
 		await openInbox(page);
 		await listRow(page, 'Welcome').click();

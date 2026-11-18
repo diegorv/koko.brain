@@ -31,7 +31,7 @@ The rail on the left, the inbox badges and the right sidebar.
 
 ### Rail
 
-Pick the rail's style, collapse it, hide the buttons you do not use and change their order. The page lists the rail's items in its three groups: **Rail top** (Search, Inbox, Today, Favorites), **Rail navigators** (Types, plugin navigators such as Calendar, Files) and **Rail bottom** (Archive). Pinned views and types are not listed; they follow their own `_order`.
+Pick the rail's style, collapse it, hide the buttons you do not use and change their order. The page lists the rail's items in its four groups: **Rail top** (Search, Inbox, Today, Favorites), **Rail navigators** (Types, plugin navigators such as Days, Files), **Rail tabs** (Tasks, Graph, Tags) and **Rail bottom** (Archive). Pinned views and types are not listed; they follow their own `_order`.
 
 | Setting | Description | Default |
 |---------|-------------|---------|
@@ -42,7 +42,7 @@ Pick the rail's style, collapse it, hide the buttons you do not use and change t
 
 `layout.railWidth` (default `140`) is the width in pixels of the labeled rail. It has no control other than dragging the rail's right edge, between 140 and 320; double-clicking the edge returns it to 140.
 
-If you hide the item the rail is showing, the rail switches to Today. Showing the item again brings it back. Hiding Calendar hides its rail button only; the Calendar plugin keeps working.
+If you hide the item the rail is showing, the rail switches to Today. Showing the item again brings it back. Hiding Days hides its rail button only; the Calendar plugin keeps working. Tasks, Graph and Tags are never the item the rail is showing, and hiding one leaves its tab and its Toggle command as they are.
 
 ### Inbox badges
 

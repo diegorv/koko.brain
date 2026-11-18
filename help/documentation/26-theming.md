@@ -126,7 +126,7 @@ These apply to shared surfaces (popovers, dialogs) and act as fallback defaults 
 
 ### Rail and Panels
 
-Controls the panels next to the rail (the Files, Types and Calendar navigators, the note list and Search) and part of the rail itself. On the rail, `fileExplorerFg` colors the item titles and, at 25 % opacity, the dividers; `fileExplorerBorder` colors only the right edge; `fileExplorerFg` at 10 % opacity is also the hover background; `fileExplorerPrimary` colors the resize handle on hover and the busy mark.
+Controls the panels next to the rail (the Files, Types and Days navigators, the note list and Search) and part of the rail itself. On the rail, `fileExplorerFg` colors the item titles and, at 25 % opacity, the dividers; `fileExplorerBorder` colors only the right edge; `fileExplorerFg` at 10 % opacity is also the hover background; `fileExplorerPrimary` colors the resize handle on hover and the busy mark.
 
 The rail, the navigators and the note list have different tones, all derived from `fileExplorerBg`. On a light theme the rail is darker than `fileExplorerBg`, the navigators use it as is, and the note list and Search sit halfway to `editorBg`. On a dark theme the note list and Search use `fileExplorerBg` as is, and the navigators and the rail are one and two steps darker. The theme is light or dark according to `editorBg` (a value the app cannot read, such as `hsl()`, counts as dark), so keep `fileExplorerBg` below `editorBg` on a light theme to keep this order, and avoid dark panels with a light editor, where the note list turns into a mid tone.
 

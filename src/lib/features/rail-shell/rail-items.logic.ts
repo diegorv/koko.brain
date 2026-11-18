@@ -1,9 +1,20 @@
 import { clamp } from '#lib/utils/clamp.js';
+import { GRAPH_VIRTUAL_PATH, TAGS_VIRTUAL_PATH, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { FILES_RAIL_ITEM, SEARCH_RAIL_ITEM, TODAY_RAIL_ITEM, TYPES_RAIL_ITEM } from './lens.logic';
 import type { RailAction, RailNavigator, RailPin } from './rail-shell.types';
 
-/** Where a rail item sits: above the divider, among the navigators, among the pins, or at the bottom. */
-export type RailItemGroup = 'top' | 'navigator' | 'pinned' | 'bottom';
+/** Where a rail item sits: above the divider, among the navigators, among the tab openers, among the pins, or at the bottom. */
+export type RailItemGroup = 'top' | 'navigator' | 'tabs' | 'pinned' | 'bottom';
+
+// The Tabs items open a tab instead of picking a lens, so their keys are never
+// saved as `layout.railItem`. The `tab:` prefix is neither a pin prefix
+// (`view:`, `type:`) nor a navigator id.
+/** Key of the Tabs item that opens the Tasks tab */
+export const TASKS_TAB_RAIL_ITEM = 'tab:tasks';
+/** Key of the Tabs item that opens the Graph View tab */
+export const GRAPH_TAB_RAIL_ITEM = 'tab:graph';
+/** Key of the Tabs item that opens the Tags tab */
+export const TAGS_TAB_RAIL_ITEM = 'tab:tags';
 
 /** A rail button: what it saves as `layout.railItem` and what it is called. */
 export interface RailItem {
@@ -17,14 +28,17 @@ export interface RailItem {
 	navigator?: RailNavigator;
 	/** The pin, for a pinned item; it brings the icon and the `_open_in_editor` rule */
 	pin?: RailPin;
+	/** The virtual path of the tab a Tabs item opens; the item is current while that tab is active */
+	tabPath?: string;
 }
 
 /**
  * Every rail button in rail order: Search, Inbox, Today, Favorites; Types, the
- * registered navigators (Calendar), Files; the pins; Archive. The Neighbourhood
- * lens has no button, so no item. The rail and the palette's Go to commands
- * both build from this list, so a hidden item has neither a button nor a
- * command. `hidden` and `order` are the parsed `layout.railHidden` /
+ * registered navigators (Days), Files; Tasks, Graph, Tags (the Tabs items);
+ * the pins; Archive. The Neighbourhood lens has no button, so no item. The
+ * rail and the palette's Go to commands both build from this list, so a hidden
+ * item has neither a button nor a command (the Tabs items have no Go to
+ * command at all). `hidden` and `order` are the parsed `layout.railHidden` /
  * `layout.railOrder`, applied by `arrangeRailGroups` to every group but the
  * pins, which go by their own `_order`.
  */
@@ -45,9 +59,14 @@ export function railItems(
 		...navigators.map((navigator): RailItem => ({ key: navigator.id, label: navigator.label, group: 'navigator', navigator })),
 		{ key: FILES_RAIL_ITEM, label: 'Files', group: 'navigator' },
 	];
+	const tabItems: RailItem[] = [
+		{ key: TASKS_TAB_RAIL_ITEM, label: 'Tasks', group: 'tabs', tabPath: TASKS_VIRTUAL_PATH },
+		{ key: GRAPH_TAB_RAIL_ITEM, label: 'Graph', group: 'tabs', tabPath: GRAPH_VIRTUAL_PATH },
+		{ key: TAGS_TAB_RAIL_ITEM, label: 'Tags', group: 'tabs', tabPath: TAGS_VIRTUAL_PATH },
+	];
 	const bottom: RailItem[] = [{ key: 'archive', label: 'Archive', group: 'bottom' }];
-	const groups = [top, navigatorItems, bottom];
-	const [arrangedTop, arrangedNavigators, arrangedBottom] = arrangeRailGroups(
+	const groups = [top, navigatorItems, tabItems, bottom];
+	const [arrangedTop, arrangedNavigators, arrangedTabs, arrangedBottom] = arrangeRailGroups(
 		groups.map((group) => group.map((item) => item.key)),
 		hidden,
 		order,
@@ -55,6 +74,7 @@ export function railItems(
 	return [
 		...arrangedTop,
 		...arrangedNavigators,
+		...arrangedTabs,
 		...pins.map((pin): RailItem => ({ key: pin.key, label: pin.label, group: 'pinned', pin })),
 		...arrangedBottom,
 	];
@@ -129,6 +149,9 @@ const RAIL_ITEM_COLORS = new Map([
 	['calendar', '#f43f5e'],
 	['files', '#14b8a6'],
 	['archive', '#78716c'],
+	[TASKS_TAB_RAIL_ITEM, '#22c55e'],
+	[GRAPH_TAB_RAIL_ITEM, '#6366f1'],
+	[TAGS_TAB_RAIL_ITEM, '#ec4899'],
 ]);
 
 /** The color of any other registered navigator. */

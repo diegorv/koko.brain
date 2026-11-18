@@ -18,18 +18,18 @@ Not in this ticket: the palette half of P36 (a Calendar category, gated Undo/Red
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh e2e/specs/rail-shell.spec.ts` and `bash scripts/e2e.sh e2e/specs/calendar-plugin.spec.ts`
 
-- [ ] Failing test first, `src/tests/lib/plugins/calendar/calendar-rail.service.test.ts:45`: the registered navigator is `['calendar', 'Days']`.
-- [ ] Failing test first, `src/tests/lib/features/rail-shell/rail-items.logic.test.ts`: the tab items form their own group after the navigators, honour `railHidden` and `railOrder`, and `moveRailItem` keeps them in the group.
-- [ ] Failing test first, `src/tests/lib/app/rail-navigation.test.ts` (real `editorStore` and `settingsStore`): selecting Tasks makes the Tasks tab active; a second select keeps it open and active; `layout.railItem` and `railPanelsVisible` are unchanged. Same for Graph and Tags.
-- [ ] `Rail.test.ts`: the three rows render in every rail form; Tasks is `aria-current` only while its tab is active. `LayoutSection.test.ts`: the group is listed with show/hide and move.
-- [ ] `commands.test.ts` over the real registration: "Go to Days" and "Toggle Calendar View" exist; "Go to Calendar", "Go to Tasks", "Go to Graph" and "Go to Tags" do not; finders-ux 06's gating and categories are unchanged; count literals change on purpose. The `commands.ts:253-254` comment no longer names "Go to Calendar".
-- [ ] `rail-shell.boundary.test.ts` passes; E2E `rail-shell.spec.ts:328-346` and `:949-1011` and `calendar-plugin.spec.ts` pass; the E2E rail-shell spec gains a click on each tab entry.
-- [ ] The ADR amendment and the help pages above are updated.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/plugins/calendar/calendar-rail.service.test.ts:45`: the registered navigator is `['calendar', 'Days']`.
+- [x] Failing test first, `src/tests/lib/features/rail-shell/rail-items.logic.test.ts`: the tab items form their own group after the navigators, honour `railHidden` and `railOrder`, and `moveRailItem` keeps them in the group.
+- [x] Failing test first, `src/tests/lib/app/rail-navigation.test.ts` (real `editorStore` and `settingsStore`): selecting Tasks makes the Tasks tab active; a second select keeps it open and active; `layout.railItem` and `railPanelsVisible` are unchanged. Same for Graph and Tags.
+- [x] `Rail.test.ts`: the three rows render in every rail form; Tasks is `aria-current` only while its tab is active. `LayoutSection.test.ts`: the group is listed with show/hide and move.
+- [x] `commands.test.ts` over the real registration: "Go to Days" and "Toggle Calendar View" exist; "Go to Calendar", "Go to Tasks", "Go to Graph" and "Go to Tags" do not; finders-ux 06's gating and categories are unchanged; count literals change on purpose. The `commands.ts:253-254` comment no longer names "Go to Calendar".
+- [x] `rail-shell.boundary.test.ts` passes; E2E `rail-shell.spec.ts:328-346` and `:949-1011` and `calendar-plugin.spec.ts` pass; the E2E rail-shell spec gains a click on each tab entry.
+- [x] The ADR amendment and the help pages above are updated.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -60,3 +60,4 @@ Checked at `ab143a411`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided by the owner: the 34-ticket split; the Tasks, Graph and Tags rail entries are on by default and hideable (old question 39.1), and there are no direct rail shortcuts for now (ticket 30 stays needs-info). Defaults (not individually answered): 29.1 (old 07.1) the navigator's name is "Days" ("Periodic notes" collides with the panel's own section, "Journal" suggests journal notes only); 29.2 (old 39.2) no Tags shortcut.
+- 2026-11-18, deliver (branch issue/29-days-rename-rail-entries): the day navigator is named "Days" and Tasks, Graph and Tags get rail entries that open their tab (own group, hideable and movable); "Go to Days" replaces "Go to Calendar"; ADR-0033 amendment and help pages updated. Review round 1 APPROVED with fixes applied (Graph/Tasks help pages name the rail entries; AppShell and calendar-plugin.spec comments and title say Days); round 2 APPROVED, no findings. Tests: pnpm check exit 0; full suite at 751266d2f exit 0 (653 files, 17369 passed, 56 skipped, 1 todo). E2E not run.

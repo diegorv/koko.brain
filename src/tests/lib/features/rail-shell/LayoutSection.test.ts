@@ -73,6 +73,7 @@ describe('LayoutSection', () => {
 		expect(groupKeys()).toEqual([
 			['Rail top', ['search', 'inbox', 'today', 'favorites']],
 			['Rail navigators', ['types', 'calendar', 'files']],
+			['Rail tabs', ['tab:tasks', 'tab:graph', 'tab:tags']],
 			['Rail bottom', ['archive']],
 			['Inbox badges', []],
 			['Right sidebar', []],
@@ -124,13 +125,36 @@ describe('LayoutSection', () => {
 		mountBoth();
 		moveButton('files', 'up')!.click();
 		flushSync();
-		expect(settingsStore.layout.railOrder).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'calendar', 'archive']);
-		expect(railKeys()).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'calendar', 'archive']);
+		expect(settingsStore.layout.railOrder).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'calendar', 'tab:tasks', 'tab:graph', 'tab:tags', 'archive']);
+		expect(railKeys()).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'calendar', 'tab:tasks', 'tab:graph', 'tab:tags', 'archive']);
 		expect(groupKeys()[1]).toEqual(['Rail navigators', ['types', 'files', 'calendar']]);
 
 		moveButton('today', 'up')!.click();
 		flushSync();
 		expect(railKeys().slice(0, 4)).toEqual(['search', 'today', 'inbox', 'favorites']);
+	});
+
+	it('shows, hides and moves a Tabs item within the Rail tabs group, and the rail follows', () => {
+		mountBoth();
+		expect(toggle('tab:graph')?.getAttribute('aria-label')).toBe('Show Graph');
+		expect(toggle('tab:graph')?.getAttribute('aria-checked')).toBe('true');
+		expect(moveButton('tab:tasks', 'up')!.disabled).toBe(true);
+		expect(moveButton('tab:tags', 'down')!.disabled).toBe(true);
+
+		toggle('tab:graph')!.click();
+		flushSync();
+		expect(settingsStore.layout.railHidden).toEqual(['tab:graph']);
+		expect(railKeys()).not.toContain('tab:graph');
+		expect(groupKeys()[2]).toEqual(['Rail tabs', ['tab:tasks', 'tab:graph', 'tab:tags']]);
+
+		moveButton('tab:tags', 'up')!.click();
+		flushSync();
+		expect(groupKeys()[2]).toEqual(['Rail tabs', ['tab:tasks', 'tab:tags', 'tab:graph']]);
+		expect(railKeys().filter((key) => key!.startsWith('tab:'))).toEqual(['tab:tasks', 'tab:tags']);
+
+		toggle('tab:graph')!.click();
+		flushSync();
+		expect(railKeys().filter((key) => key!.startsWith('tab:'))).toEqual(['tab:tasks', 'tab:tags', 'tab:graph']);
 	});
 
 	it('turns the rail Inbox badge off and on, leaving the dock badge switch alone', () => {
@@ -217,8 +241,11 @@ describe('LayoutSection', () => {
 
 	it('names only the right-sidebar panels the page can toggle', () => {
 		mountBoth();
-		const text = page.textContent ?? '';
+		const heading = [...page.querySelectorAll('h3')].find((h) => h.textContent?.trim() === 'Right sidebar')!;
+		let text = '';
+		for (let el = heading.nextElementSibling; el && el.tagName !== 'H3'; el = el.nextElementSibling) text += el.textContent ?? '';
 		expect(text).toContain('Show the right sidebar (Properties, Backlinks, Outgoing links, Table of contents)');
+		// Tags is a tab (and a Rail tabs row), not a right sidebar panel.
 		expect(text).not.toContain('Tags');
 	});
 

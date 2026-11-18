@@ -60,7 +60,7 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Toggle Graph View | `Cmd+G` |
 | | Toggle Tasks View | `Cmd+Shift+T` |
 | | Toggle Tags View | — |
-| | Go to *item* (one per rail item: Search, Inbox, Today, Favorites, Types, Calendar, Files, Archive and each pin) | — |
+| | Go to *item* (one per rail item: Search, Inbox, Today, Favorites, Types, Days, Files, Archive and each pin; none for Tasks, Graph and Tags) | — |
 | | Open view: *view* (one per `.view` file, except a view hidden with `_visible: false`) | — |
 | **Calendar** | New Calendar Event | — |
 | | Calendar: Go to Today | — |
