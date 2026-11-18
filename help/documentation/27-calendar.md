@@ -32,13 +32,13 @@ In the month view, click a day number to select the day; click the selected day'
 
 **Narrow panes**: each day column keeps a minimum width. When the pane is too narrow for every column (for example a week view in a split pane), the grid scrolls sideways while the time axis stays in place. Events in a narrow column show only their title.
 
-The grid scrolls to the **Day starts at** hour (Settings > Calendar) when it opens.
+The grid scrolls to the **Day starts at** hour (Settings > Calendar) when it opens. When today is on screen and the current time line would start below the view, the grid opens with that line a third of the way down instead.
 
 ## Dated Tasks
 
 Tasks with a due date (`- [ ] Pay rent 📅 2026-11-12`) show on their due day, from the same task index the Tasks view reads. They are outlined, not colored, with a circle, or a struck-through check mark once done (`[x]`) or cancelled (`[-]`):
 
-- **Week and day views**: a **Tasks** row under the **All day** lane, shown when a visible day has a task. A busy day scrolls inside its cell.
+- **Week and day views**: a **Tasks** row under the **All day** lane, shown when a visible day has a task. In the week view, a day with more than three tasks shows two and a **+N** button that opens that day in the day view. The day view shows every task, scrolls inside its cell, and the label shows the count (**Tasks 5**).
 - **Month view**: after the event chips, in the slots the events leave. **+N more** counts the tasks that do not fit.
 
 Click a task to open its note with the cursor on the task line. Tasks are not events: they cannot be dragged and have no popover. Only the due date (📅) places a task; scheduled and start dates do not. Turn the overlay off with **Show dated tasks** in Settings > Calendar.

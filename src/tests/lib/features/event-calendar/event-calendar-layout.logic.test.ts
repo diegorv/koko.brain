@@ -8,6 +8,7 @@ import {
 	MIN_COLUMN_PX,
 	MIN_EVENT_MINUTES,
 	minutesToPx,
+	mountScrollTop,
 	pxToMinutes,
 	SNAP_MINUTES,
 	snap,
@@ -219,5 +220,41 @@ describe('clampMinutes', () => {
 		const start = 1430;
 		const pointer = snap(1500);
 		expect(clampMinutes(pointer, start + MIN_EVENT_MINUTES, 1440)).toBe(1440);
+	});
+});
+
+describe('mountScrollTop', () => {
+	const WEEK = ['2026-11-09', '2026-11-10', '2026-11-11'];
+	/** Inputs of the Issue's example: 600 px viewport, 90 px header, start hour 8, today 2026-11-10 at `h:m`. */
+	const at = (h: number, m: number, days = WEEK) => ({
+		nowMs: new Date(2026, 10, 10, h, m).getTime(),
+		days,
+		viewportHeight: 600,
+		headerHeight: 90,
+		dayStartHour: 8,
+	});
+
+	it('puts a now-line below the visible body a third of the way down', () => {
+		// 17:40 sits at 1130.7 px, below 512 + 510 = 1022 px; a third of 510 is 170.
+		expect(minutesToPx(17 * 60 + 40)).toBeCloseTo(1130.67, 1);
+		expect(mountScrollTop(at(17, 40))).toBeCloseTo(1130.67 - 170, 1);
+	});
+
+	it('keeps the start-hour scroll when the now-line is already visible', () => {
+		expect(mountScrollTop(at(9, 30))).toBe(8 * HOUR_HEIGHT);
+		expect(mountScrollTop(at(15, 40))).toBe(8 * HOUR_HEIGHT);
+	});
+
+	it('keeps the start-hour scroll for a now before the start hour', () => {
+		expect(mountScrollTop(at(6, 15))).toBe(8 * HOUR_HEIGHT);
+	});
+
+	it('keeps the start-hour scroll when today is not visible', () => {
+		expect(mountScrollTop(at(22, 15, ['2026-11-16', '2026-11-17']))).toBe(8 * HOUR_HEIGHT);
+		expect(mountScrollTop(at(22, 15, []))).toBe(8 * HOUR_HEIGHT);
+	});
+
+	it('treats a header taller than the viewport as an empty body', () => {
+		expect(mountScrollTop({ ...at(22, 15), viewportHeight: 50, headerHeight: 90 })).toBe(minutesToPx(22 * 60 + 15));
 	});
 });

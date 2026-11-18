@@ -307,8 +307,60 @@ describe('EventTimeGrid: layout', () => {
 	});
 
 	it('scrolls to dayStartHour on mount', () => {
+		// The mount reads Date.now(): pin a morning on the shown week so the
+		// result does not depend on the real date. jsdom has no layout, so the
+		// clock sits before the start hour to keep the line out of the way.
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(new Date(2026, 10, 10, 7, 30));
+		try {
+			settingsStore.updateEventCalendar({ dayStartHour: 8 });
+			mountGrid();
+
+			expect(q('[data-time-grid]')!.scrollTop).toBe(512);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});
+
+describe('EventTimeGrid: mount scroll to the now-line', () => {
+	// jsdom has no layout: give the scroller a 600 px viewport and the sticky
+	// header 90 px, so the visible body is 510 px.
+	beforeEach(() => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.spyOn(Element.prototype, 'clientHeight', 'get').mockImplementation(function (this: Element) {
+			return this.hasAttribute('data-time-grid') ? 600 : 0;
+		});
+		vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+			return this.hasAttribute('data-time-grid-header') ? 90 : 0;
+		});
 		settingsStore.updateEventCalendar({ dayStartHour: 8 });
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+		vi.useRealTimers();
+	});
+
+	it('reads the instant at mount, not a stale store clock, and opens with a late line a third down', () => {
+		eventCalendarViewStore.setNow(new Date(2026, 10, 10, 8, 0).getTime());
+		vi.setSystemTime(new Date(2026, 10, 10, 22, 15));
 		mountGrid();
+
+		// 22:15 is 1424 px down; a third of the 510 px body above it is 170 px.
+		expect(q('[data-time-grid]')!.scrollTop).toBe(1424 - 170);
+	});
+
+	it('keeps the start-hour scroll at a morning clock', () => {
+		vi.setSystemTime(new Date(2026, 10, 10, 9, 30));
+		mountGrid();
+
+		expect(q('[data-time-grid]')!.scrollTop).toBe(512);
+	});
+
+	it('keeps the start-hour scroll late in the evening when today is not visible', () => {
+		vi.setSystemTime(new Date(2026, 10, 10, 22, 15));
+		mountGrid(weekDays('2026-11-17', 1));
 
 		expect(q('[data-time-grid]')!.scrollTop).toBe(512);
 	});

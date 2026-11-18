@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { monthCellSlots, tasksByDay, tasksFromGroups, type CalendarTask } from '#lib/features/event-calendar/event-calendar-tasks.logic.js';
+import {
+	monthCellSlots,
+	taskLaneCells,
+	tasksByDay,
+	tasksFromGroups,
+	type CalendarTask,
+} from '#lib/features/event-calendar/event-calendar-tasks.logic.js';
 import { MONTH_MAX_CHIPS } from '#lib/features/event-calendar/event-calendar-view.logic.js';
 import type { FileTaskGroupV2, TaskV2 } from '#lib/types/vault-v2.types.js';
 
@@ -95,6 +101,43 @@ describe('tasksByDay', () => {
 	it('returns an empty map for no tasks or no days', () => {
 		expect(tasksByDay([], ['2026-11-10']).size).toBe(0);
 		expect(tasksByDay([calendarTask({ date: '2026-11-10' })], []).size).toBe(0);
+	});
+});
+
+describe('taskLaneCells', () => {
+	const WEEK = ['2026-11-10', '2026-11-11', '2026-11-12'];
+	/** `n` tasks due on `date`, on lines 1..n. */
+	const onDay = (date: string, n: number) => Array.from({ length: n }, (_, i) => calendarTask({ date, line: i + 1 }));
+
+	it('caps a busy day of several visible days at 2 chips and counts the rest', () => {
+		const tasks = onDay('2026-11-11', 5);
+
+		const cells = taskLaneCells(tasks, WEEK);
+
+		expect(cells.map((c) => c.day)).toEqual(WEEK);
+		expect(cells[1].chips).toEqual(tasks.slice(0, 2));
+		expect(cells[1].overflow).toBe(3);
+		expect(cells[0]).toEqual({ day: '2026-11-10', chips: [], overflow: 0 });
+	});
+
+	it('shows all of a day with exactly 3 tasks', () => {
+		const tasks = onDay('2026-11-10', 3);
+
+		const [cell] = taskLaneCells(tasks, WEEK);
+
+		expect(cell.chips).toEqual(tasks);
+		expect(cell.overflow).toBe(0);
+	});
+
+	it('never caps with one visible day', () => {
+		const tasks = onDay('2026-11-10', 5);
+
+		expect(taskLaneCells(tasks, ['2026-11-10'])).toEqual([{ day: '2026-11-10', chips: tasks, overflow: 0 }]);
+	});
+
+	it('drops tasks outside the visible days and returns no cells for no days', () => {
+		expect(taskLaneCells([calendarTask({ date: '2026-12-01' })], WEEK).every((c) => c.chips.length === 0)).toBe(true);
+		expect(taskLaneCells([calendarTask({ date: '2026-11-10' })], [])).toEqual([]);
 	});
 });
 

@@ -15,16 +15,16 @@ Not in this ticket: in-place expansion of the day-view task lane (needs a max-he
 
 **Blocked by:** 24
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`; `e2e/specs/event-calendar-tasks.spec.ts` uses one task per day and is untouched, run it once with `bash scripts/e2e.sh event-calendar-tasks.spec.ts`
 
-- [ ] Failing test first, `src/tests/lib/features/event-calendar/event-calendar-tasks.logic.test.ts`: `taskLaneCells` with 5 tasks on one day of several visible days returns 2 chips and overflow 3; with 3 tasks returns 3 and 0; with one visible day and 5 tasks returns all 5 and 0.
-- [ ] `EventTaskLane.test.ts`: week view, 5 tasks on a day: 2 `[data-calendar-task]` and one `[data-task-lane-more]` reading "+3" named "3 more tasks, open day view"; clicking it sets that date and the `day` view through the real `eventCalendarViewStore`. Day view: no "+N", the label shows the count and every task renders.
-- [ ] `event-calendar-layout.logic.test.ts`: with viewport 600, header 90 and start hour 8, a now of 17:40 (line at 1130.7 px of body, below the 1022 px bottom after the start-hour scroll) returns the scroll that puts the line a third of the 510 px visible body down; a now of 09:30 and a now of 15:40 (both visible) return `8 * HOUR_HEIGHT`; a now before the start hour, or no visible today, returns the start-hour scroll.
-- [ ] `EventTimeGrid.test.ts`: with the store clock at a stale 08:00 and `vi.setSystemTime` at 22:15, the mounted scroller's `scrollTop` equals the 22:15 value (the mount read the instant itself); `:287` ("scrolls to dayStartHour on mount") still passes at a morning clock.
-- [ ] Tests use the real `eventCalendarViewStore` and `settingsStore`; nothing mocks `event-calendar-*.logic.ts`. The real pixel result is checked by eye once: a late-evening Today opens with the line visible, a morning one at the start hour (jsdom has no layout).
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/features/event-calendar/event-calendar-tasks.logic.test.ts`: `taskLaneCells` with 5 tasks on one day of several visible days returns 2 chips and overflow 3; with 3 tasks returns 3 and 0; with one visible day and 5 tasks returns all 5 and 0.
+- [x] `EventTaskLane.test.ts`: week view, 5 tasks on a day: 2 `[data-calendar-task]` and one `[data-task-lane-more]` reading "+3" named "3 more tasks, open day view"; clicking it sets that date and the `day` view through the real `eventCalendarViewStore`. Day view: no "+N", the label shows the count and every task renders.
+- [x] `event-calendar-layout.logic.test.ts`: with viewport 600, header 90 and start hour 8, a now of 17:40 (line at 1130.7 px of body, below the 1022 px bottom after the start-hour scroll) returns the scroll that puts the line a third of the 510 px visible body down; a now of 09:30 and a now of 15:40 (both visible) return `8 * HOUR_HEIGHT`; a now before the start hour, or no visible today, returns the start-hour scroll.
+- [x] `EventTimeGrid.test.ts`: with the store clock at a stale 08:00 and `vi.setSystemTime` at 22:15, the mounted scroller's `scrollTop` equals the 22:15 value (the mount read the instant itself); `:287` ("scrolls to dayStartHour on mount") still passes at a morning clock.
+- [x] Tests use the real `eventCalendarViewStore` and `settingsStore`; nothing mocks `event-calendar-*.logic.ts`. The real pixel result is checked by eye once: a late-evening Today opens with the line visible, a morning one at the start hour (jsdom has no layout).
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -57,3 +57,4 @@ Ticket 26 (month grid) edits `event-calendar-tasks.logic.ts` and its test, `even
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): this ticket had no owner question in the old breakdown. The old ticket's `mountScrollTop` example used a 15:40 now, which is still visible under its own rule; the acceptance above uses 17:40 for the scrolled case.
+- 2026-11-18, deliver (branch issue/25-calendar-time-grid-shows-now-hidden): the time grid opens with the now-line visible when it would sit below the view (`mountScrollTop`), and a busy week day's Tasks lane caps at 2 chips plus "+N" that opens the day view; docs updated. Review round 1 APPROVED with one nit (start-hour mount test now pins a 07:30 clock), fixed; round 2 APPROVED, no findings. Tests: EventTimeGrid.test.ts exit 0 (64 tests), pnpm check exit 0; full suite at 123be47e5 exit 0, 661 files, 17649 passed, 56 skipped, 0 failed.
