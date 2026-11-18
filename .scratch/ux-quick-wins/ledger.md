@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Canvas file and link cards: a plain click selects, an open button opens, previews skip frontmatter](issues/04-canvas-file-link-cards-plain-click.md) | none | todo | | |
 | 05 | [Kanban filter clears, resets per board, and a tag click filters](issues/05-kanban-filter-clears-resets-per-board.md) | 02 | todo | | |
 | 06 | [Canvas surfaces and overlays draw from theme tokens](issues/06-canvas-surfaces-overlays-draw-theme-tokens.md) | 04 | todo | | |
-| 07 | [Quick Capture says what it does and shows Saving (copy and state only)](issues/07-quick-capture-copy-saving-state.md) | none | todo | | |
+| 07 | [Quick Capture says what it does and shows Saving (copy and state only)](issues/07-quick-capture-copy-saving-state.md) | none | in-progress | | |
 | 08 | [Live-preview widgets show failure and progress](issues/08-livepreview-widgets-show-failure-progress.md) | 03 | done | issue/08-livepreview-widgets-show-failure-progress (e118671bf) | 2026-11-18 |
 | 09 | [Collection table: readable names, visible sort order, sticky header](issues/09-collection-table-readable-names-visible-sort.md) | none | done | issue/09-collection-table-readable-names-visible-sort (8611869b7) | 2026-11-18 |
 | 10 | [Kanban cards: no empty date row, clamped preview, growing editor](issues/10-kanban-cards-no-empty-date-row.md) | 05 | todo | | |
@@ -96,3 +96,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 14:38 — 09 — deliver — merged after review 1 APPROVED, fix round (sortState computed once per header), re-review 2 APPROVED (claude); full vitest suite passed (17440 tests); manual sticky-header check with 60+ rows still open — 8611869b7
 - 2026-11-18 14:38 — 14 — start — launched by /relay-lite:run — 1476dbf87
 - 2026-11-18 14:53 — 14 — deliver — merged after review 1 APPROVED with findings, fix round (DATE_TEXT matches only a whole date or datetime; selector pin loosening rejected), re-review 2 APPROVED (claude); full vitest suite passed (17456 tests) — 7bf8332b1
+- 2026-11-18 14:53 — 07 — start — launched by /relay-lite:run — 72c8352db
