@@ -112,14 +112,51 @@ export function taskLaneCells(tasks: CalendarTask[], days: string[]): TaskLaneCe
 	});
 }
 
+/** How many chips fit in a month cell. */
+export interface MonthChipCapacity {
+	/** Chips that fit when the cell needs no "+N more" footer. */
+	all: number;
+	/** Chips that fit beside the "+N more" footer. */
+	withFooter: number;
+}
+
+// Heights in px of the parts of a month cell in `EventMonthGrid.svelte`:
+// `p-1.5` plus the `border-b`, the `h-6` day row, a 22 px chip and the
+// `py-1 text-xs` footer. Each chip and the footer follow a `gap-1`.
+const MONTH_CELL_CHROME = 6 * 2 + 1 + 24;
+const MONTH_GAP = 4;
+const MONTH_CHIP = 22;
+const MONTH_FOOTER = 4 * 2 + 16;
+
 /**
- * Splits a month cell's `MONTH_MAX_CHIPS` slots: events first, tasks fill
- * what is left, and everything else is counted behind "+N more".
+ * Chips a month cell of `rowHeightPx` holds, with and without the "+N more"
+ * footer, from the cell's layout.
+ * @param rowHeightPx - measured height of one week row
+ * @returns at least one chip in each case, even when the row is too short
+ */
+export function monthChipCapacity(rowHeightPx: number): MonthChipCapacity {
+	const room = rowHeightPx - MONTH_CELL_CHROME;
+	const fit = (px: number) => Math.max(1, Math.floor(px / (MONTH_GAP + MONTH_CHIP)));
+	return { all: fit(room), withFooter: fit(room - MONTH_GAP - MONTH_FOOTER) };
+}
+
+/**
+ * Splits a month cell's chip slots: events first, tasks fill what is left,
+ * and everything else is counted behind "+N more". A day that fits in
+ * `capacity.all` shows everything; a busier day shows `capacity.withFooter`
+ * chips and leaves the rest of the cell to the footer.
  * @param eventCount - events on the day
  * @param taskCount - dated tasks on the day
+ * @param capacity - the measured capacity; without it the cell shows
+ *   `MONTH_MAX_CHIPS` chips with or without the footer
  */
-export function monthCellSlots(eventCount: number, taskCount: number): MonthCellSlots {
-	const events = Math.min(eventCount, MONTH_MAX_CHIPS);
-	const tasks = Math.min(taskCount, MONTH_MAX_CHIPS - events);
+export function monthCellSlots(
+	eventCount: number,
+	taskCount: number,
+	capacity: MonthChipCapacity = { all: MONTH_MAX_CHIPS, withFooter: MONTH_MAX_CHIPS },
+): MonthCellSlots {
+	const slots = eventCount + taskCount <= capacity.all ? capacity.all : capacity.withFooter;
+	const events = Math.min(eventCount, slots);
+	const tasks = Math.min(taskCount, slots - events);
 	return { events, tasks, hidden: eventCount + taskCount - events - tasks };
 }

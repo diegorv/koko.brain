@@ -17,19 +17,19 @@ Not in this ticket: the permanent today mark in the month grid (a primary ring e
 
 **Blocked by:** 24, 25
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh event-calendar.spec.ts`, `bash scripts/e2e.sh event-calendar-focus.spec.ts`, `bash scripts/e2e.sh calendar-plugin.spec.ts` and `bash scripts/e2e.sh event-calendar-daily-note.spec.ts`
 
-- [ ] Failing test first, `event-calendar-tasks.logic.test.ts`: `monthCellSlots` with capacity `{ all: 3, withFooter: 2 }` and 4 items shows 2 and hides 2; 3 items shows 3 and hides 0; no capacity with 5 items shows 3 and hides 2 (the existing cases at `:100-115` stay green). `monthChipCapacity(125)` is `{ 3, 2 }`; `monthChipCapacity(40)` gives at least 1 and never 0 or negative.
-- [ ] `EventMonthGrid.test.ts`: with the cells element's `clientHeight` stubbed to 750 (125 per row), a day with 4 events shows 2 chips and "+2 more".
-- [ ] New E2E case in `e2e/specs/event-calendar.spec.ts` at the default viewport (seed with the `seedEvents` helper at `:78-84`): a day with 5 events has its `[data-month-more]` bottom at or above its `[data-month-cell]` bottom (jsdom cannot prove the clip is gone).
-- [ ] `focusViewFor` is unchanged; `event-calendar-view.logic.test.ts:434` and `:675` stay green.
-- [ ] `rangeLabel(...).title` is `November 2026` for month, week and day. Pins updated on purpose: `event-calendar-view.logic.test.ts:164-232`, `event-calendar-view.store.test.ts:119-133`, `EventCalendarView.test.ts:117`, `e2e/specs/event-calendar.spec.ts:110`, `e2e/specs/event-calendar-focus.spec.ts:34` and `e2e/specs/calendar-plugin.spec.ts:66`.
-- [ ] Out-of-month cells have no `bg-muted/40`, their numbers keep `text-muted-foreground`; `EventMonthGrid.test.ts:101-109` changes on purpose.
-- [ ] A non-today daily-note button has `opacity-0` plus hover and `focus-visible` reveal classes, today's does not; `aria-label` and `data-daily-note` are kept and no `title` remains. The six bare-mount sites (`EventMonthGrid.test.ts:62`, `EventTimeGrid.test.ts:62,811`, `EventPopover.test.ts:65`, `EventDialog.test.ts:87`, `event-calendar-gestures.characterization.test.ts:89`) and `event-calendar-daily-note.spec.ts` pass unchanged.
-- [ ] Tests use the real stores; nothing mocks `event-calendar-*.logic.ts`. Hover visuals and the light and dark look are checked by eye.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `event-calendar-tasks.logic.test.ts`: `monthCellSlots` with capacity `{ all: 3, withFooter: 2 }` and 4 items shows 2 and hides 2; 3 items shows 3 and hides 0; no capacity with 5 items shows 3 and hides 2 (the existing cases at `:100-115` stay green). `monthChipCapacity(125)` is `{ 3, 2 }`; `monthChipCapacity(40)` gives at least 1 and never 0 or negative.
+- [x] `EventMonthGrid.test.ts`: with the cells element's `clientHeight` stubbed to 750 (125 per row), a day with 4 events shows 2 chips and "+2 more".
+- [x] New E2E case in `e2e/specs/event-calendar.spec.ts` at the default viewport (seed with the `seedEvents` helper at `:78-84`): a day with 5 events has its `[data-month-more]` bottom at or above its `[data-month-cell]` bottom (jsdom cannot prove the clip is gone).
+- [x] `focusViewFor` is unchanged; `event-calendar-view.logic.test.ts:434` and `:675` stay green.
+- [x] `rangeLabel(...).title` is `November 2026` for month, week and day. Pins updated on purpose: `event-calendar-view.logic.test.ts:164-232`, `event-calendar-view.store.test.ts:119-133`, `EventCalendarView.test.ts:117`, `e2e/specs/event-calendar.spec.ts:110`, `e2e/specs/event-calendar-focus.spec.ts:34` and `e2e/specs/calendar-plugin.spec.ts:66`.
+- [x] Out-of-month cells have no `bg-muted/40`, their numbers keep `text-muted-foreground`; `EventMonthGrid.test.ts:101-109` changes on purpose.
+- [x] A non-today daily-note button has `opacity-0` plus hover and `focus-visible` reveal classes, today's does not; `aria-label` and `data-daily-note` are kept and no `title` remains. The six bare-mount sites (`EventMonthGrid.test.ts:62`, `EventTimeGrid.test.ts:62,811`, `EventPopover.test.ts:65`, `EventDialog.test.ts:87`, `event-calendar-gestures.characterization.test.ts:89`) and `event-calendar-daily-note.spec.ts` pass unchanged.
+- [x] Tests use the real stores; nothing mocks `event-calendar-*.logic.ts`. Hover visuals and the light and dark look are checked by eye.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -63,3 +63,4 @@ Ticket 28 edits `e2e/specs/calendar-plugin.spec.ts` on other lines (`:25,28-41`;
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): this ticket had no owner question in the old breakdown; the deferred today-mark decision (ring or fill) is not blocking.
+- 2026-11-18, deliver (branch issue/26-calendar-month-grid-reads-at-glance): month chips fit the measured cell height with a "+N more" footer, the header title is the month for all views, out-of-month cells lose the fill, and the daily-note button shows on hover, focus and today. Deliver fix: added `focus-within:opacity-100` to the daily-note button so the chrome focus-rule test passes. Full suite run 1 at 633bf2d8c: 1 failed (chrome-state-styles.test.ts); run 2 at efea57f4b: 661/661 files, 17658 passed, 56 skipped. Reviews: round 1 APPROVED, round 2 APPROVED (one optional comment nit, not applied).

@@ -161,7 +161,7 @@ describe('rangeLabel', () => {
 	it('labels a Monday-first week by the ISO week of its Monday', () => {
 		const days = visibleDays('week', '2026-11-10', 1, true);
 		expect(rangeLabel('week', '2026-11-10', days)).toEqual({
-			title: 'November, 2026',
+			title: 'November 2026',
 			subtitle: 'Week 46 · Nov 9 – 15',
 		});
 	});
@@ -170,7 +170,7 @@ describe('rangeLabel', () => {
 		// Sunday 2026-11-08 is still ISO week 45; Monday 2026-11-09 starts week 46.
 		const days = visibleDays('week', '2026-11-10', 0, true);
 		expect(rangeLabel('week', '2026-11-10', days)).toEqual({
-			title: 'November, 2026',
+			title: 'November 2026',
 			subtitle: 'Week 46 · Nov 8 – 14',
 		});
 	});
@@ -178,7 +178,7 @@ describe('rangeLabel', () => {
 	it('titles a week by its first visible day, not by the anchor month', () => {
 		const days = visibleDays('week', '2026-12-03', 1, true);
 		expect(rangeLabel('week', '2026-12-03', days)).toEqual({
-			title: 'November, 2026',
+			title: 'November 2026',
 			subtitle: 'Week 49 · Nov 30 – Dec 6',
 		});
 	});
@@ -188,7 +188,7 @@ describe('rangeLabel', () => {
 		expect(days[0]).toBe('2026-12-28');
 		expect(days[6]).toBe('2027-01-03');
 		expect(rangeLabel('week', '2027-01-02', days)).toEqual({
-			title: 'December, 2026',
+			title: 'December 2026',
 			subtitle: 'Week 53 · Dec 28 – Jan 3',
 		});
 	});
@@ -196,7 +196,7 @@ describe('rangeLabel', () => {
 	it('uses the Monday of a Sunday-first week at the year boundary', () => {
 		const days = visibleDays('week', '2027-01-02', 0, true);
 		expect(rangeLabel('week', '2027-01-02', days)).toEqual({
-			title: 'December, 2026',
+			title: 'December 2026',
 			subtitle: 'Week 53 · Dec 27 – Jan 2',
 		});
 	});
@@ -204,19 +204,19 @@ describe('rangeLabel', () => {
 	it('spans only the visible weekdays when weekends are hidden', () => {
 		const days = visibleDays('week', '2026-11-10', 0, false);
 		expect(rangeLabel('week', '2026-11-10', days)).toEqual({
-			title: 'November, 2026',
+			title: 'November 2026',
 			subtitle: 'Week 46 · Nov 9 – 13',
 		});
 	});
 
 	it('labels day view with the ISO week, weekday and short date', () => {
 		expect(rangeLabel('day', '2026-11-10', ['2026-11-10'])).toEqual({
-			title: 'November, 2026',
+			title: 'November 2026',
 			subtitle: 'Week 46 · Tuesday, Nov 10',
 		});
 		// A Sunday belongs to the ISO week that started the Monday before.
 		expect(rangeLabel('day', '2027-01-03', ['2027-01-03'])).toEqual({
-			title: 'January, 2027',
+			title: 'January 2027',
 			subtitle: 'Week 53 · Sunday, Jan 3',
 		});
 	});
@@ -225,11 +225,11 @@ describe('rangeLabel', () => {
 		// 2026-11-01 is a Sunday, so with weekends hidden the first visible day is Nov 2.
 		const days = visibleDays('month', '2026-11-20', 1, false);
 		expect(rangeLabel('month', '2026-11-20', days)).toEqual({
-			title: 'November, 2026',
+			title: 'November 2026',
 			subtitle: 'Nov 1 – 30',
 		});
 		expect(rangeLabel('month', '2026-02-10', visibleDays('month', '2026-02-10', 1, true))).toEqual({
-			title: 'February, 2026',
+			title: 'February 2026',
 			subtitle: 'Feb 1 – 28',
 		});
 	});

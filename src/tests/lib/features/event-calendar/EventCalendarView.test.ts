@@ -114,7 +114,7 @@ describe('EventCalendarView: header', () => {
 		mountView();
 		await settle();
 
-		expect(text('[data-calendar-title]')).toBe('November, 2026');
+		expect(text('[data-calendar-title]')).toBe('November 2026');
 		expect(text('[data-calendar-subtitle]')).toContain('Week 46');
 	});
 

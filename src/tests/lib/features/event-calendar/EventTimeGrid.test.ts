@@ -435,6 +435,21 @@ describe('EventTimeGrid: daily note action', () => {
 		expect(eventCalendarViewStore.view).toBe('week');
 	});
 
+	it('hides the action off today until its header is hovered or the button focused', () => {
+		unregister = eventCalendarDailyNoteStore.register(() => Promise.resolve());
+		mountGrid();
+
+		const other = q<HTMLButtonElement>('[data-daily-note="2026-11-12"]')!;
+		expect(other.classList.contains('opacity-0')).toBe(true);
+		expect(other.classList.contains('group-hover/day:opacity-100')).toBe(true);
+		expect(other.classList.contains('focus-visible:opacity-100')).toBe(true);
+		expect(other.closest('.group\\/day')?.contains(q('[data-day-header="2026-11-12"]'))).toBe(true);
+		expect(other.hasAttribute('title')).toBe(false);
+
+		const today = q<HTMLButtonElement>('[data-daily-note="2026-11-10"]')!;
+		expect(today.classList.contains('opacity-0')).toBe(false);
+	});
+
 	it('drops the action when the opener is unregistered', () => {
 		unregister = eventCalendarDailyNoteStore.register(() => Promise.resolve());
 		mountGrid();

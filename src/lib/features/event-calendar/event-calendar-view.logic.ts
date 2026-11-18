@@ -47,7 +47,7 @@ export const ALL_DAY_MAX_ROWS = 3;
 
 /** Header labels of the current range. */
 export interface RangeLabel {
-	/** `"<Month>, <year>"` of the first visible day. */
+	/** `"<Month> <year>"` of the first visible day. */
 	title: string;
 	/** Week number and span (week, day) or the month span (month). */
 	subtitle: string;
@@ -162,7 +162,7 @@ export function stepDate(view: CalendarViewMode, date: string, dir: 1 | -1): str
  */
 export function rangeLabel(view: CalendarViewMode, date: string, days: string[]): RangeLabel {
 	const first = days[0] ?? date;
-	const title = `${monthName(first)}, ${fromKey(first).getFullYear()}`;
+	const title = `${monthName(first)} ${fromKey(first).getFullYear()}`;
 	if (view === 'month') {
 		const start = startOfMonth(date);
 		return { title, subtitle: formatRange(start, addDays(start, daysInMonth(date) - 1)) };
@@ -250,6 +250,11 @@ export function focusViewFor(
 	if (view !== 'month') return view;
 	// The label format does not change the order.
 	const index = itemsForDay(events, event.date, '24h').findIndex((item) => item.event.path === event.path);
+	// The month grid sizes its chips from the measured row height
+	// (`monthChipCapacity`), which this pure check cannot know. When the cell
+	// holds fewer than `MONTH_MAX_CHIPS`, an event this lets through lands
+	// behind "+N more", and the focus request in `EventCalendarView.svelte`
+	// falls back to focusing that `[data-month-more]` button.
 	return index >= MONTH_MAX_CHIPS ? 'day' : view;
 }
 

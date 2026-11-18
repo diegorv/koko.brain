@@ -63,7 +63,7 @@ test.describe('Calendar plugin', () => {
 		await calendar(page).locator('button[data-date="2026-11-24"]').click();
 		await calendar(page).getByRole('button', { name: 'Open Calendar tab' }).click();
 		await expectTabActive(page, 'Calendar');
-		await expect(page.locator('[data-calendar-title]')).toHaveText('November, 2026');
+		await expect(page.locator('[data-calendar-title]')).toHaveText('November 2026');
 		await expect(page.locator('[data-calendar-subtitle]')).toContainText('Week 48');
 		await expect(page.locator('[data-day-column="2026-11-24"]')).toBeVisible();
 	});

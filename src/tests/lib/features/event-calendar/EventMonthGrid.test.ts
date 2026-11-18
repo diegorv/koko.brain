@@ -4,6 +4,15 @@ import { clearLocalStorage, setupLocalStorage } from '../../../fixtures/localSto
 
 setupLocalStorage();
 
+// The grid measures its rows through `bind:clientHeight`, which observes
+// with a ResizeObserver; jsdom has none.
+class ResizeObserverStub {
+	observe() {}
+	unobserve() {}
+	disconnect() {}
+}
+globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
+
 // Opening a note is the editor's side effect; the stores stay real (CLAUDE.md rule 1).
 vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
@@ -99,11 +108,11 @@ describe('EventMonthGrid: cells and headers', () => {
 		expect(cell('2026-11-01').getAttribute('data-in-month')).toBe('true');
 	});
 
-	it('dims out-of-month cells and their day numbers', () => {
+	it('dims the day numbers of out-of-month cells, not the cells', () => {
 		mountGrid();
 		const dayNumber = (day: string) => cell(day).querySelector('[data-month-day]')!;
 
-		expect(cell('2026-10-26').classList.contains('bg-muted/40')).toBe(true);
+		expect(cell('2026-10-26').classList.contains('bg-muted/40')).toBe(false);
 		expect(dayNumber('2026-10-26').classList.contains('text-muted-foreground')).toBe(true);
 		expect(cell('2026-11-20').classList.contains('bg-muted/40')).toBe(false);
 		expect(dayNumber('2026-11-20').classList.contains('text-muted-foreground')).toBe(false);
@@ -203,6 +212,27 @@ describe('EventMonthGrid: chips', () => {
 		flushSync();
 		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-12');
 		expect(eventCalendarViewStore.view).toBe('day');
+	});
+
+	it('sizes the chip slots from the measured row height and keeps room for "+N more"', () => {
+		// jsdom has no layout: six 125 px rows hold 3 chips, or 2 beside the footer.
+		const height = vi.spyOn(Element.prototype, 'clientHeight', 'get').mockImplementation(function (this: Element) {
+			return this.hasAttribute('data-month-cells') ? 750 : 0;
+		});
+		try {
+			seed([
+				...['A', 'B', 'C', 'D'].map((t, i) => event({ path: P(t), title: t, date: '2026-11-12', start: 480 + i * 60 })),
+				...['E', 'F', 'G'].map((t, i) => event({ path: P(t), title: t, date: '2026-11-13', start: 480 + i * 60 })),
+			]);
+			mountGrid();
+
+			expect(qa('[data-month-cell="2026-11-12"] [data-event-path]')).toHaveLength(2);
+			expect(q('[data-month-cell="2026-11-12"] [data-month-more]')!.textContent?.trim()).toBe('+2 more');
+			expect(qa('[data-month-cell="2026-11-13"] [data-event-path]')).toHaveLength(3);
+			expect(q('[data-month-cell="2026-11-13"] [data-month-more]')).toBeNull();
+		} finally {
+			height.mockRestore();
+		}
 	});
 
 	it('has no "+N more" at three events or fewer', () => {
@@ -368,6 +398,27 @@ describe('EventMonthGrid: daily note action', () => {
 		expect(opener).toHaveBeenCalledWith('2026-11-20');
 		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
 		expect(eventCalendarViewStore.view).toBe('month');
+	});
+
+	it('hides the action off today until its cell is hovered or the button focused, and keeps it a named Tab stop', () => {
+		unregister = eventCalendarDailyNoteStore.register(() => Promise.resolve());
+		mountGrid();
+		const button = (day: string) => cell(day).querySelector<HTMLButtonElement>('[data-daily-note]')!;
+
+		const other = button('2026-11-20');
+		expect(other.classList.contains('opacity-0')).toBe(true);
+		expect(other.classList.contains('group-hover/day:opacity-100')).toBe(true);
+		expect(other.classList.contains('focus-visible:opacity-100')).toBe(true);
+		expect(other.classList.contains('focus-within:opacity-100')).toBe(true);
+		expect(other.closest('.group\\/day')).toBe(cell('2026-11-20'));
+		expect(other.getAttribute('aria-label')).toBe('Open daily note for November 20, 2026');
+		expect(other.hasAttribute('title')).toBe(false);
+		expect(other.hidden).toBe(false);
+		expect(other.tabIndex).toBe(0);
+
+		const today = button('2026-11-10');
+		expect(today.classList.contains('opacity-0')).toBe(false);
+		expect(today.hasAttribute('title')).toBe(false);
 	});
 
 	it('ignores clicks while an open is in flight and accepts one after it settles', async () => {

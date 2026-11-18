@@ -1,11 +1,12 @@
 <script lang="ts">
 	import Lock from '@lucide/svelte/icons/lock';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { dayOfWeek, formatLong, formatWeekday, fromKey, WEEKDAYS_SHORT } from './event-calendar-dates.logic';
 	import { DayDrag } from './event-calendar-day-drag.svelte';
 	import { previewDayMove } from './event-calendar-drag.logic';
 	import { eventColorStyle } from './event-calendar-event.logic';
-	import { monthCellSlots, tasksByDay } from './event-calendar-tasks.logic';
+	import { monthCellSlots, monthChipCapacity, tasksByDay } from './event-calendar-tasks.logic';
 	import { itemsByDay } from './event-calendar-view.logic';
 	import { eventCalendarStore } from './event-calendar.store.svelte';
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
@@ -21,6 +22,9 @@
 	/** The six week rows of cells: pointer target of a chip drag and the rect it reads. */
 	let cellsEl: HTMLDivElement | undefined = $state();
 	const drag = new DayDrag({ area: () => cellsEl, days: () => days, rows: 6, events: () => events });
+	/** Height of the six rows; 0 until measured. The rows are `minmax(0, 1fr)`, so content cannot change it. */
+	let cellsHeight = $state(0);
+	let chipCapacity = $derived(cellsHeight > 0 ? monthChipCapacity(cellsHeight / 6) : undefined);
 	let chipsByDay = $derived(itemsByDay(previewDayMove(events, drag.preview, days), days, timeFormat));
 	// Every settings write replaces the whole settings object; a separate
 	// `$derived` notifies only when the flag itself changes.
@@ -64,97 +68,100 @@
 	}
 </script>
 
-<div class="flex h-full min-h-0 flex-col" data-month-grid>
-	<div class="grid h-10 shrink-0 border-b border-border" style={gridColumns}>
-		{#each headers as header, i (header)}
-			<div class="flex items-center px-3 text-xs text-muted-foreground {i > 0 ? 'border-l border-border' : ''}" data-month-weekday>
-				{header}
-			</div>
-		{/each}
-	</div>
-	<div
-		bind:this={cellsEl}
-		class="grid min-h-0 flex-1 select-none"
-		style="{gridColumns}; grid-template-rows: repeat(6, minmax(0, 1fr))"
-		role="presentation"
-		data-month-cells
-		onpointerdown={drag.pointerdown}
-		onclickcapture={drag.clickcapture}
-	>
-		{#each cells as cell, i (cell.day)}
-			{@const items = chipsByDay.get(cell.day) ?? []}
-			{@const tasks = dayTasks.get(cell.day) ?? []}
-			{@const slots = monthCellSlots(items.length, tasks.length)}
-			{@const selected = cell.day === eventCalendarViewStore.focusedDate}
-			{@const today = cell.day === eventCalendarViewStore.todayKey}
-			<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-			<!-- Keyboard users select the day through its day-number button. -->
-			<div
-				class="flex min-h-0 flex-col gap-1 overflow-hidden border-b border-border p-1.5
-					{i % cols > 0 ? 'border-l' : ''}
-					{cell.inMonth ? '' : 'bg-muted/40'}"
-				data-month-cell={cell.day}
-				data-in-month={cell.inMonth}
-				onclick={(e) => handleCellClick(e, cell.day)}
-				ondblclick={(e) => handleCellDoubleClick(e, cell.day)}
-			>
-				<!-- Clicks between the two buttons fall through to the cell, which selects the day. -->
-				<div class="pointer-events-none flex shrink-0 items-center justify-between *:pointer-events-auto">
-					<button
-						type="button"
-						class="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md px-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring
-							{selected
-							? 'bg-primary font-semibold text-primary-foreground'
-							: today
-								? 'text-primary hover:bg-muted'
-								: cell.inMonth
-									? 'hover:bg-muted'
-									: 'text-muted-foreground hover:bg-muted'}"
-						aria-pressed={selected}
-						aria-label="{formatWeekday(cell.day)}, {formatLong(cell.day)}{selected ? ', selected, open day view' : ''}"
-						data-month-day
-						data-today={today || undefined}
-						onclick={() => handleDayClick(cell.day)}
-					>
-						{fromKey(cell.day).getDate()}
-					</button>
-					<EventDailyNoteButton day={cell.day} class="size-6" />
+<!-- bits-ui throws on a Tooltip without a provider, and this grid can mount outside EventCalendarView. -->
+<Tooltip.Provider delayDuration={400}>
+	<div class="flex h-full min-h-0 flex-col" data-month-grid>
+		<div class="grid h-10 shrink-0 border-b border-border" style={gridColumns}>
+			{#each headers as header, i (header)}
+				<div class="flex items-center px-3 text-xs text-muted-foreground {i > 0 ? 'border-l border-border' : ''}" data-month-weekday>
+					{header}
 				</div>
-				{#each items.slice(0, slots.events) as item (item.event.path)}
-					<button
-						type="button"
-						class="flex h-[22px] w-full shrink-0 items-center overflow-hidden rounded-md px-1.5 text-left text-xs font-medium outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring
-							{item.event.pending ? 'border border-dashed border-current' : ''}
-							{selectedPath === item.event.path ? 'ring-2 ring-primary/70' : ''}
-							{item.event.archived ? 'opacity-50' : ''}"
-						style={eventColorStyle(item.event.color)}
-						data-event-path={item.event.path}
-						data-pending={item.event.pending || undefined}
-						data-readonly={item.event.readOnly || undefined}
-						data-archived={item.event.archived || undefined}
-						onclick={(e) => eventCalendarViewStore.openPopover(item.event.path, e.currentTarget.getBoundingClientRect())}
-					>
-						<!-- The chip's name is its text, so the read-only suffix is sr-only text, with no space before it. -->
-						<span class="min-w-0 flex-1 truncate">{item.label}</span>{#if item.event.readOnly}<span class="sr-only"
-								>, read-only</span
-							><Lock class="ml-1 size-3 shrink-0 opacity-70" aria-hidden="true" data-readonly-lock />{/if}
-					</button>
-				{/each}
-				{#each tasks.slice(0, slots.tasks) as task (`${task.path}:${task.line}`)}
-					<EventTaskChip {task} class="h-[22px]" />
-				{/each}
-				{#if slots.hidden > 0}
-					<button
-						type="button"
-						class="shrink-0 self-start rounded-md px-1.5 py-1 text-xs text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-						aria-label="{slots.hidden} more items, open day view"
-						data-month-more
-						onclick={() => openDay(cell.day)}
-					>
-						+{slots.hidden} more
-					</button>
-				{/if}
-			</div>
-		{/each}
+			{/each}
+		</div>
+		<div
+			bind:this={cellsEl}
+			bind:clientHeight={cellsHeight}
+			class="grid min-h-0 flex-1 select-none"
+			style="{gridColumns}; grid-template-rows: repeat(6, minmax(0, 1fr))"
+			role="presentation"
+			data-month-cells
+			onpointerdown={drag.pointerdown}
+			onclickcapture={drag.clickcapture}
+		>
+			{#each cells as cell, i (cell.day)}
+				{@const items = chipsByDay.get(cell.day) ?? []}
+				{@const tasks = dayTasks.get(cell.day) ?? []}
+				{@const slots = monthCellSlots(items.length, tasks.length, chipCapacity)}
+				{@const selected = cell.day === eventCalendarViewStore.focusedDate}
+				{@const today = cell.day === eventCalendarViewStore.todayKey}
+				<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+				<!-- Keyboard users select the day through its day-number button. -->
+				<div
+					class="group/day flex min-h-0 flex-col gap-1 overflow-hidden border-b border-border p-1.5
+						{i % cols > 0 ? 'border-l' : ''}"
+					data-month-cell={cell.day}
+					data-in-month={cell.inMonth}
+					onclick={(e) => handleCellClick(e, cell.day)}
+					ondblclick={(e) => handleCellDoubleClick(e, cell.day)}
+				>
+					<!-- Clicks between the two buttons fall through to the cell, which selects the day. -->
+					<div class="pointer-events-none flex shrink-0 items-center justify-between *:pointer-events-auto">
+						<button
+							type="button"
+							class="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md px-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring
+								{selected
+								? 'bg-primary font-semibold text-primary-foreground'
+								: today
+									? 'text-primary hover:bg-muted'
+									: cell.inMonth
+										? 'hover:bg-muted'
+										: 'text-muted-foreground hover:bg-muted'}"
+							aria-pressed={selected}
+							aria-label="{formatWeekday(cell.day)}, {formatLong(cell.day)}{selected ? ', selected, open day view' : ''}"
+							data-month-day
+							data-today={today || undefined}
+							onclick={() => handleDayClick(cell.day)}
+						>
+							{fromKey(cell.day).getDate()}
+						</button>
+						<EventDailyNoteButton day={cell.day} class="size-6" />
+					</div>
+					{#each items.slice(0, slots.events) as item (item.event.path)}
+						<button
+							type="button"
+							class="flex h-[22px] w-full shrink-0 items-center overflow-hidden rounded-md px-1.5 text-left text-xs font-medium outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring
+								{item.event.pending ? 'border border-dashed border-current' : ''}
+								{selectedPath === item.event.path ? 'ring-2 ring-primary/70' : ''}
+								{item.event.archived ? 'opacity-50' : ''}"
+							style={eventColorStyle(item.event.color)}
+							data-event-path={item.event.path}
+							data-pending={item.event.pending || undefined}
+							data-readonly={item.event.readOnly || undefined}
+							data-archived={item.event.archived || undefined}
+							onclick={(e) => eventCalendarViewStore.openPopover(item.event.path, e.currentTarget.getBoundingClientRect())}
+						>
+							<!-- The chip's name is its text, so the read-only suffix is sr-only text, with no space before it. -->
+							<span class="min-w-0 flex-1 truncate">{item.label}</span>{#if item.event.readOnly}<span class="sr-only"
+									>, read-only</span
+								><Lock class="ml-1 size-3 shrink-0 opacity-70" aria-hidden="true" data-readonly-lock />{/if}
+						</button>
+					{/each}
+					{#each tasks.slice(0, slots.tasks) as task (`${task.path}:${task.line}`)}
+						<EventTaskChip {task} class="h-[22px]" />
+					{/each}
+					{#if slots.hidden > 0}
+						<button
+							type="button"
+							class="shrink-0 self-start rounded-md px-1.5 py-1 text-xs text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+							aria-label="{slots.hidden} more items, open day view"
+							data-month-more
+							onclick={() => openDay(cell.day)}
+						>
+							+{slots.hidden} more
+						</button>
+					{/if}
+				</div>
+			{/each}
+		</div>
 	</div>
-</div>
+</Tooltip.Provider>
