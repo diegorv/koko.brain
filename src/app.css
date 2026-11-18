@@ -492,7 +492,7 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 
 @layer base {
 	* {
-		@apply border-border outline-ring/50;
+		@apply border-border outline-ring;
 	}
 
 	html {
@@ -505,5 +505,21 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 		height: 100%;
 		overflow: hidden;
 		user-select: none;
+	}
+}
+
+/*
+ * Reduce motion. Unlayered on purpose: Tailwind's `animate-*` utilities sit in
+ * `@layer utilities`, and only an unlayered rule beats them whatever their
+ * specificity. Pulses stop; spinners slow down instead of stopping, because
+ * many carry no label and must still read as busy.
+ */
+@media (prefers-reduced-motion: reduce) {
+	.animate-pulse {
+		animation: none;
+	}
+
+	.animate-spin {
+		animation-duration: 1.5s;
 	}
 }

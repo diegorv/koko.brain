@@ -16,16 +16,16 @@ Not in this ticket: a `--focus-ring` token and utility, the feature-site sweep (
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus `bash scripts/e2e.sh focus-ring.spec.ts`.
 
-- [ ] Failing test first (new `src/tests/lib/focus-ring-styles.test.ts`, a source scan in the style of `chrome-type-scale.test.ts`): `button.svelte`, `dialog-content.svelte` and `app.css` contain no `ring-ring/NN` or `ring-destructive/NN` on a `focus-visible:` variant, no `focus:ring`, and no `outline-ring/NN` in the base layer. Its self-test: `focus-visible:ring-ring/50` and `dark:focus-visible:ring-destructive/40` match; `focus-visible:ring-ring`, `ring-offset-2` and `aria-invalid:ring-destructive/20` do not.
-- [ ] The dialog close button's class has `focus-visible:ring-2` and no `focus:ring-2` (extend `src/tests/lib/components/ui/dialog/dialog-content.test.ts`).
-- [ ] Failing test first (new `src/tests/lib/reduced-motion-css.test.ts`): `app.css` has an unlayered `prefers-reduced-motion: reduce` block that names `.animate-pulse` and `.animate-spin`.
-- [ ] `e2e/specs/focus-ring.spec.ts`: the raw-button probe (`:49`) and `ringToken()` (`:173`) move to `var(--ring)` at full strength on purpose; the folder-row checks (`:84,:92`) keep a 50% probe under its own name because `FilesNavigator.svelte` still uses `ring-ring/50`; the first test (`:10-35`, a dialog focused as a whole) stays green.
-- [ ] If a spec can reach the Rail busy dot (`Rail.svelte:399`) or a spinner, `page.emulateMedia({ reducedMotion: 'reduce' })` gives `animation-name: none` for the dot and the slowed duration for the spinner; otherwise the commit body records a macOS Reduce motion check. A source scan proves the rule exists, not that it applies.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first (new `src/tests/lib/focus-ring-styles.test.ts`, a source scan in the style of `chrome-type-scale.test.ts`): `button.svelte`, `dialog-content.svelte` and `app.css` contain no `ring-ring/NN` or `ring-destructive/NN` on a `focus-visible:` variant, no `focus:ring`, and no `outline-ring/NN` in the base layer. Its self-test: `focus-visible:ring-ring/50` and `dark:focus-visible:ring-destructive/40` match; `focus-visible:ring-ring`, `ring-offset-2` and `aria-invalid:ring-destructive/20` do not.
+- [x] The dialog close button's class has `focus-visible:ring-2` and no `focus:ring-2` (extend `src/tests/lib/components/ui/dialog/dialog-content.test.ts`).
+- [x] Failing test first (new `src/tests/lib/reduced-motion-css.test.ts`): `app.css` has an unlayered `prefers-reduced-motion: reduce` block that names `.animate-pulse` and `.animate-spin`.
+- [x] `e2e/specs/focus-ring.spec.ts`: the raw-button probe (`:49`) and `ringToken()` (`:173`) move to `var(--ring)` at full strength on purpose; the folder-row checks (`:84,:92`) keep a 50% probe under its own name because `FilesNavigator.svelte` still uses `ring-ring/50`; the first test (`:10-35`, a dialog focused as a whole) stays green.
+- [x] If a spec can reach the Rail busy dot (`Rail.svelte:399`) or a spinner, `page.emulateMedia({ reducedMotion: 'reduce' })` gives `animation-name: none` for the dot and the slowed duration for the spinner; otherwise the commit body records a macOS Reduce motion check. A source scan proves the rule exists, not that it applies.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -55,3 +55,5 @@ Checked at 085b23c5d.
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): 20.1 (old 10.1) reduced-motion treatment: spinners slow to 1.5 s, pulses stop; flip in review if wanted.
+
+- 2026-11-18, branch `issue/20-keyboard-focus-shows-at-full-strength`: focus-visible rings use the full-strength `--ring` token (button, dialog content and close button, base `outline-ring`); an unlayered `prefers-reduced-motion: reduce` block stops `.animate-pulse` and slows `.animate-spin`; E2E focus-ring and Reduce motion specs updated. Review round 1 APPROVED (fixes: reduced-motion test doc comment points at the vault-mods E2E test; `topLevelBlocks` notes its quoted-string/`url()` limit; E2E pointer corrected), round 2 APPROVED with no findings. Tests: `pnpm check` exit 0; targeted vitest files exit 0; full suite at fedf78512: 659 files, 17609 passed, 56 skipped, 1 todo, exit=0.

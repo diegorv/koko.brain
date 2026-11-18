@@ -60,6 +60,19 @@ describe('Dialog.Content', () => {
 		expect(buttons).toContain('Close');
 	});
 
+	it('rings its close button on keyboard focus only', async () => {
+		const content = await renderDialog(true);
+		expect(content).not.toBeNull();
+		const close = [...content!.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Close');
+		expect(close).toBeDefined();
+		const classes = close!.classList;
+		expect(classes.contains('focus-visible:ring-2')).toBe(true);
+		expect(classes.contains('focus-visible:ring-ring')).toBe(true);
+		expect(classes.contains('focus:ring-2')).toBe(false);
+		expect(classes.contains('focus:ring-ring')).toBe(false);
+		expect(classes.contains('focus:outline-hidden')).toBe(true);
+	});
+
 	it('renders no content while closed', async () => {
 		expect(await renderDialog(false)).toBeNull();
 	});
