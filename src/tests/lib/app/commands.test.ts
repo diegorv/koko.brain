@@ -145,10 +145,10 @@ describe('getBuiltInCommands', () => {
 		expect(modCommandsStore.list).toEqual([]);
 	});
 
-	it('returns 43 built-in commands with no navigator, no pin, no view and no calendar history', () => {
+	it('returns 46 built-in commands with no vault, no navigator, no pin, no view and no calendar history', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(43);
+		expect(commands).toHaveLength(46);
 	});
 
 	it('includes Toggle Favorite (Cmd+D) and Toggle Organized (Cmd+E) acting on the active note', () => {
@@ -559,6 +559,72 @@ describe('getBuiltInCommands', () => {
 		expect(settingsPanelStore.isOpen).toBe(false);
 		settings!.action();
 		expect(settingsPanelStore.isOpen).toBe(true);
+	});
+
+	describe('right panel toggles', () => {
+		/** The four panel flags, to assert that a toggle moves only its own */
+		function panelFlags() {
+			const { propertiesVisible, backlinksVisible, outgoingLinksVisible, tableOfContentsVisible } = settingsStore.layout;
+			return { propertiesVisible, backlinksVisible, outgoingLinksVisible, tableOfContentsVisible };
+		}
+
+		it.each([
+			['layout:toggle-properties', 'Toggle Properties Panel', 'propertiesVisible'],
+			['layout:toggle-backlinks', 'Toggle Backlinks Panel', 'backlinksVisible'],
+			['layout:toggle-outgoing-links', 'Toggle Outgoing Links Panel', 'outgoingLinksVisible'],
+		] as const)('%s is "%s" in Layout and flips only %s, twice back to the start', (id, label, flag) => {
+			vaultStore.open('/vault');
+			const command = getBuiltInCommands().find((c) => c.id === id);
+			expect(command).toMatchObject({ label, category: 'Layout' });
+			const before = panelFlags();
+
+			command!.action();
+			expect(panelFlags()).toEqual({ ...before, [flag]: !before[flag] });
+			command!.action();
+			expect(panelFlags()).toEqual(before);
+		});
+
+		it('turning a panel on from the palette shows a hidden right sidebar', () => {
+			vaultStore.open('/vault');
+			settingsStore.updateLayout({ rightSidebarVisible: false, backlinksVisible: false });
+
+			getBuiltInCommands().find((c) => c.id === 'layout:toggle-backlinks')!.action();
+
+			expect(settingsStore.layout.backlinksVisible).toBe(true);
+			expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+		});
+	});
+
+	describe('Open Trash', () => {
+		const openTrash = () => getBuiltInCommands().find((c) => c.id === 'settings:open-trash');
+
+		it('is "Open Trash" in Settings and opens the Settings sheet on Trash; a second run keeps it there', () => {
+			vaultStore.open('/vault');
+			expect(openTrash()).toMatchObject({ label: 'Open Trash', category: 'Settings' });
+
+			openTrash()!.action();
+			expect(settingsPanelStore.isOpen).toBe(true);
+			expect(settingsPanelStore.activeSection).toBe('trash');
+
+			openTrash()!.action();
+			expect(settingsPanelStore.isOpen).toBe(true);
+			expect(settingsPanelStore.activeSection).toBe('trash');
+		});
+
+		it('moves an open Settings sheet from another section to Trash', () => {
+			vaultStore.open('/vault');
+			settingsPanelStore.open('editor');
+
+			openTrash()!.action();
+
+			expect(settingsPanelStore.isOpen).toBe(true);
+			expect(settingsPanelStore.activeSection).toBe('trash');
+		});
+
+		it('does not exist while no vault is open', () => {
+			expect(vaultStore.isOpen).toBe(false);
+			expect(openTrash()).toBeUndefined();
+		});
 	});
 
 });

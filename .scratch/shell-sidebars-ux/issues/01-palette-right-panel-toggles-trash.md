@@ -14,17 +14,17 @@ Not in this ticket: Configure links on Backlinks, Outgoing links and TOC (their 
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh settings.spec.ts`
 
-- [ ] Failing test first, `src/tests/lib/core/layout/layout.service.test.ts` (real `settingsStore`, `editorStore`): `toggleRightPanel('backlinks')` flips `backlinksVisible` and no other flag; from `rightSidebarVisible: false` on a note tab, turning Backlinks on sets `rightSidebarVisible` true; with a `.kanban` tab active it stays false; turning a panel off leaves `rightSidebarVisible` as it was.
-- [ ] Failing test first, `src/tests/lib/app/commands.test.ts`: the three new ids exist with label and category Layout; running one twice returns its flag to the start and changes no other panel flag. The existing TOC test (`:527-540`) passes unchanged.
-- [ ] Failing test first, `commands.test.ts` (real `settingsPanelStore`): with a vault open, Open Trash sets `isOpen` and `activeSection === 'trash'`; a second run keeps both; with Settings open on `'editor'` it moves to `'trash'`; with no vault open the command does not exist.
-- [ ] The count pin at `commands.test.ts:151` (43) changes on purpose to the new fixed total.
-- [ ] E2E `e2e/specs/settings.spec.ts`: the palette command "Open Trash" shows the Trash section heading.
-- [ ] Help pages above updated.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/core/layout/layout.service.test.ts` (real `settingsStore`, `editorStore`): `toggleRightPanel('backlinks')` flips `backlinksVisible` and no other flag; from `rightSidebarVisible: false` on a note tab, turning Backlinks on sets `rightSidebarVisible` true; with a `.kanban` tab active it stays false; turning a panel off leaves `rightSidebarVisible` as it was.
+- [x] Failing test first, `src/tests/lib/app/commands.test.ts`: the three new ids exist with label and category Layout; running one twice returns its flag to the start and changes no other panel flag. The existing TOC test (`:527-540`) passes unchanged.
+- [x] Failing test first, `commands.test.ts` (real `settingsPanelStore`): with a vault open, Open Trash sets `isOpen` and `activeSection === 'trash'`; a second run keeps both; with Settings open on `'editor'` it moves to `'trash'`; with no vault open the command does not exist.
+- [x] The count pin at `commands.test.ts:151` (43) changes on purpose to the new fixed total.
+- [x] E2E `e2e/specs/settings.spec.ts`: the palette command "Open Trash" shows the Trash section heading.
+- [x] Help pages above updated.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -53,3 +53,4 @@ Same `commands.ts` list and the count pin `commands.test.ts:151`, each ticket ch
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided by the owner: the consolidated 34-ticket numbering and granularity. Defaults (not individually answered): 01.1 turning a panel on shows a hidden sidebar except on canvas, kanban and view tabs; 01.2 no Open Trash command while no vault is open.
+- 2026-11-18, deliver (branch issue/01-palette-right-panel-toggles-trash): palette commands toggle Backlinks, Outgoing links and Properties panels (turning one on shows a hidden sidebar except on canvas, kanban, view and virtual tabs) and Open Trash opens Settings on the Trash section when a vault is open. Fix round after review 1: help pages 20-keyboard-shortcuts.md and 07-sidebar-panels.md aligned. Full suite `pnpm vitest run` at c42b443b6: exit 0, 646 files, 17122 passed, 54 skipped, 1 todo. Reviews: round 1 APPROVED, round 2 APPROVED (no findings).

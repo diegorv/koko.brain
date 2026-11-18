@@ -71,11 +71,15 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Hide Rail Panels | `Cmd+1` |
 | | Show Rail Panels | `Cmd+2` |
 | | Toggle Table of Contents | — |
+| | Toggle Properties Panel | — |
+| | Toggle Backlinks Panel | — |
+| | Toggle Outgoing Links Panel | — |
 | **Daily Notes** | Open Daily Note | — |
 | **Quick Capture** | Create Quick Capture Note | `Cmd+N` |
 | **1:1 Notes** | Create 1:1 Note | `Cmd+Shift+N` |
 | **Templates** | New File from Template | — |
 | **Settings** | Open Settings | `Cmd+,` |
+| | Open Trash (only while a vault is open) | — |
 
 ---
 

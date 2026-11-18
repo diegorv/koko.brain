@@ -12,7 +12,7 @@ The file disappears from the rail's lists but remains safely stored inside `.kok
 
 ## Viewing the Trash
 
-Open **Settings** (`Cmd+,`) and choose **Trash** in the Settings navigation list. You'll see a list of all trashed items, each showing:
+Open **Settings** (`Cmd+,`) and choose **Trash** in the Settings navigation list, or run **Open Trash** from the Command Palette (`Cmd+P`), which opens Settings straight on Trash. You'll see a list of all trashed items, each showing:
 
 - **File/folder icon** — indicates whether the trashed item is a file or directory
 - **File name** — the original name of the deleted item
