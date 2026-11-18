@@ -12,6 +12,7 @@ import type { PropertyIndexRecord, CollectionViewDef, QueryResult } from '#lib/f
 import {
 	getCalendarGrid,
 	groupRecordsByDate,
+	countUndated,
 	formatMonthYear,
 	getWeekDayLabels,
 	formatDateKey,
@@ -33,6 +34,9 @@ interface CollectionCacheEntry {
 	result: QueryResult;
 	/** Names of every view the block defines, in order; the first is the rendered one. */
 	viewNames: string[];
+	/** Records a calendar or linear-calendar view cannot place (no parseable
+	 *  `dateProperty`); 0 for a table view or a calendar without a `dateProperty`. */
+	undatedCount: number;
 }
 
 /** Query cache: yamlContent -> view + result DATA queried at a given store
@@ -88,7 +92,7 @@ export class CollectionBlockWidget extends WidgetType {
 
 		const cached = collectionCache.get(this.yamlContent);
 		if (cached && cached.version === this.version) {
-			this.renderView(container, cached.view, cached.result, cached.viewNames);
+			this.renderView(container, cached.view, cached.result, cached.viewNames, cached.undatedCount);
 			return container;
 		}
 
@@ -125,21 +129,32 @@ export class CollectionBlockWidget extends WidgetType {
 			: undefined;
 		const result = executeQuery(definition, viewWithDefaults, collectionStore.propertyIndex, vaultStore.path, rowSet);
 		const viewNames = definition.views.map((v) => v.name);
-		collectionCache.set(this.yamlContent, { version: this.version, view: viewWithDefaults, result, viewNames });
+		const isCalendar = viewWithDefaults.type === 'calendar' || viewWithDefaults.type === 'linear-calendar';
+		const undatedCount =
+			isCalendar && viewWithDefaults.dateProperty ? countUndated(result.records, viewWithDefaults.dateProperty) : 0;
+		collectionCache.set(this.yamlContent, { version: this.version, view: viewWithDefaults, result, viewNames, undatedCount });
 
-		this.renderView(container, viewWithDefaults, result, viewNames);
+		this.renderView(container, viewWithDefaults, result, viewNames, undatedCount);
 		return container;
 	}
 
-	/** Renders the header + view body (filter error / calendar /
-	 *  linear-calendar / empty / table) from a query result. Runs on every
-	 *  toDOM(), including cache hits, so each widget owns its DOM and click
-	 *  handlers stay live. */
-	private renderView(container: HTMLElement, view: CollectionViewDef, result: QueryResult, viewNames: string[]): void {
+	/** Renders the header + view body (filter error / no dated entries /
+	 *  calendar / linear-calendar / empty / table) from a query result. Runs on
+	 *  every toDOM(), including cache hits, so each widget owns its DOM and click
+	 *  handlers stay live; `undatedCount` comes from the cache entry, so a cache
+	 *  hit never rescans the records. */
+	private renderView(
+		container: HTMLElement,
+		view: CollectionViewDef,
+		result: QueryResult,
+		viewNames: string[],
+		undatedCount: number,
+	): void {
 		// View name header
 		const header = document.createElement('div');
 		header.className = 'cm-lp-collection-header';
-		header.textContent = `${view.name} (${result.records.length})`;
+		const undated = undatedCount > 0 ? `, ${undatedCount} without date` : '';
+		header.textContent = `${view.name} (${result.records.length}${undated})`;
 		if (viewNames.length > 1) {
 			// The block always renders the first view; the hint says the others exist.
 			const hint = document.createElement('span');
@@ -155,6 +170,15 @@ export class CollectionBlockWidget extends WidgetType {
 			error.className = 'cm-lp-collection-error';
 			error.textContent = result.filterError;
 			container.appendChild(error);
+			return;
+		}
+
+		// Only a calendar view with a date property has a non-zero count.
+		if (undatedCount > 0 && undatedCount === result.records.length) {
+			const empty = document.createElement('div');
+			empty.className = 'cm-lp-collection-empty';
+			empty.textContent = 'No dated entries';
+			container.appendChild(empty);
 			return;
 		}
 

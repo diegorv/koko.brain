@@ -451,6 +451,104 @@ describe('CollectionBlockWidget — query data cache', () => {
 		expect(dom.querySelector('.cm-lp-collection-views-hint')).toBeNull();
 		expect(dom.querySelector('.cm-lp-collection-header')?.textContent).toBe('All (2)');
 	});
+
+	describe('undated records', () => {
+		const CALENDAR = 'views:\n  - type: calendar\n    name: "Cal"\n    dateProperty: due\n';
+		const LINEAR = 'views:\n  - type: linear-calendar\n    name: "Year"\n    dateProperty: due\n';
+
+		/** A record at `path`, dated by `due` when given. */
+		function dated(path: string, due?: string) {
+			const r = recordAt(path, path.split('/').pop()!);
+			if (due) r.properties.set('due', due);
+			return r;
+		}
+
+		/** Indexes a.md and b.md dated, c.md without `due`. */
+		function setOneUndated() {
+			collectionStore.setPropertyIndex(
+				new Map([
+					['/vault/a.md', dated('/vault/a.md', '2026-06-10')],
+					['/vault/b.md', dated('/vault/b.md', '2026-06-11')],
+					['/vault/c.md', dated('/vault/c.md')],
+				]),
+			);
+		}
+
+		it('counts the undated record in a calendar header, on the first render and on a cache hit', () => {
+			setOneUndated();
+
+			for (const dom of [new CollectionBlockWidget(CALENDAR).toDOM(), new CollectionBlockWidget(CALENDAR).toDOM()]) {
+				expect(dom.querySelector('.cm-lp-collection-header')?.textContent).toBe('Cal (3, 1 without date)');
+				expect(dom.querySelector('table.cm-lp-collection-table')).not.toBeNull();
+			}
+		});
+
+		it('counts the undated record in a linear-calendar header', () => {
+			setOneUndated();
+
+			const dom = new CollectionBlockWidget(LINEAR).toDOM();
+			expect(dom.querySelector('.cm-lp-collection-header')?.textContent).toBe('Year (3, 1 without date)');
+		});
+
+		it('keeps the views hint after the undated count', () => {
+			setOneUndated();
+			const twoViews = `${CALENDAR}  - type: table\n    name: "All"\n`;
+
+			const header = new CollectionBlockWidget(twoViews).toDOM().querySelector('.cm-lp-collection-header')!;
+			expect(header.firstChild?.textContent).toBe('Cal (3, 1 without date)');
+			expect(header.querySelector('.cm-lp-collection-views-hint')?.textContent).toBe('1 of 2 views');
+		});
+
+		it('serves the undated count from the cache entry while the store version is unchanged', () => {
+			setOneUndated();
+			new CollectionBlockWidget(CALENDAR).toDOM();
+
+			// Same style as the cached-result test above: no store method runs, so
+			// no version bump. Dropping a's date in place also changes the record
+			// the cached result holds, so a count recomputed per toDOM() would read 2.
+			collectionStore.propertyIndex.get('/vault/a.md')!.properties.delete('due');
+			collectionStore.propertyIndex.set('/vault/d.md', dated('/vault/d.md'));
+
+			const second = new CollectionBlockWidget(CALENDAR).toDOM();
+			expect(second.querySelector('.cm-lp-collection-header')?.textContent).toBe('Cal (3, 1 without date)');
+		});
+
+		it('shows no undated text on a table block', () => {
+			setOneUndated();
+
+			const dom = new CollectionBlockWidget(YAML).toDOM();
+			expect(dom.querySelector('.cm-lp-collection-header')?.textContent).toBe('All (3)');
+			expect(dom.textContent).not.toContain('without date');
+		});
+
+		it('shows no undated text when every record is dated', () => {
+			collectionStore.setPropertyIndex(new Map([['/vault/a.md', dated('/vault/a.md', '2026-06-10')]]));
+
+			const dom = new CollectionBlockWidget(CALENDAR).toDOM();
+			expect(dom.querySelector('.cm-lp-collection-header')?.textContent).toBe('Cal (1)');
+		});
+
+		it.each([
+			['calendar', CALENDAR, 'Cal'],
+			['linear-calendar', LINEAR, 'Year'],
+		])('shows "No dated entries" in place of the %s grid when no record is dated', (_type, yaml, name) => {
+			// The beforeEach index: a.md and b.md, neither has `due`.
+			for (const dom of [new CollectionBlockWidget(yaml).toDOM(), new CollectionBlockWidget(yaml).toDOM()]) {
+				expect(dom.querySelector('.cm-lp-collection-header')?.textContent).toBe(`${name} (2, 2 without date)`);
+				expect(dom.querySelector('.cm-lp-collection-empty')?.textContent).toBe('No dated entries');
+				expect(dom.querySelector('table')).toBeNull();
+			}
+		});
+
+		it('keeps the empty grid when the calendar has no records at all', () => {
+			collectionStore.setPropertyIndex(new Map());
+
+			const dom = new CollectionBlockWidget(CALENDAR).toDOM();
+			expect(dom.querySelector('.cm-lp-collection-header')?.textContent).toBe('Cal (0)');
+			expect(dom.querySelector('table.cm-lp-collection-table')).not.toBeNull();
+			expect(dom.textContent).not.toContain('No dated entries');
+		});
+	});
 });
 
 describe('CollectionBlockWidget — linear-calendar lane cap', () => {

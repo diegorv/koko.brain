@@ -17,7 +17,7 @@ test src/tests/lib/core/markdown-editor/editor-host.test.ts imports src/lib/core
 test src/tests/lib/plugins/quick-capture/composer-editor-host.service.test.ts imports src/lib/core/markdown-editor/extensions/tag/completion.ts
 ## symbols
 sym src/lib/core/markdown-editor/extensions/tag/completion.ts:14 fn tagCompletionSource(context: CompletionContext): Promise<CompletionResult | null> L28 | Completion source for `#tags`: the vault's tags (through `editorHost`) that the prefix typed after `#` fuzzy-matches, most-used first among equal matches.
-by src/lib/core/markdown-editor/extensions/tag/completion.ts:tagCompletionSource <- src/lib/core/markdown-editor/setup/editor-extensions.ts:143 in createExtensions ref
+by src/lib/core/markdown-editor/extensions/tag/completion.ts:tagCompletionSource <- src/lib/core/markdown-editor/setup/editor-extensions.ts:147 in createExtensions ref
 by src/lib/core/markdown-editor/extensions/tag/completion.ts:tagCompletionSource <- src/lib/plugins/quick-capture/composer-editor.ts:112 in createComposerEditor ref
 ## calls
 call src/lib/core/markdown-editor/extensions/tag/completion.ts:21 in tagCompletionSource -> src/lib/core/markdown-editor/extensions/tag/completion.logic.ts:detectTagContext call

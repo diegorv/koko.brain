@@ -10,7 +10,7 @@ in2 src/lib/core/markdown-editor/extensions/date-shortcut/completion.ts 3 files 
 out2 src/lib/core/markdown-editor/extensions/date-shortcut/completion.ts 1 files in 1 modules: src/lib/utils(1)
 ## symbols
 sym src/lib/core/markdown-editor/extensions/date-shortcut/completion.ts:18 fn dateShortcutCompletionSource(context: CompletionContext): CompletionResult | null L18 | Completion source for `@today` / `@tomorrow` / `@yesterday` date shortcuts.
-by src/lib/core/markdown-editor/extensions/date-shortcut/completion.ts:dateShortcutCompletionSource <- src/lib/core/markdown-editor/setup/editor-extensions.ts:143 in createExtensions ref
+by src/lib/core/markdown-editor/extensions/date-shortcut/completion.ts:dateShortcutCompletionSource <- src/lib/core/markdown-editor/setup/editor-extensions.ts:147 in createExtensions ref
 ## calls
 call src/lib/core/markdown-editor/extensions/date-shortcut/completion.ts:21 in dateShortcutCompletionSource -> src/lib/core/markdown-editor/extensions/date-shortcut/completion.logic.ts:detectDateShortcut call
 call src/lib/core/markdown-editor/extensions/date-shortcut/completion.ts:25 in dateShortcutCompletionSource -> src/lib/core/markdown-editor/extensions/date-shortcut/completion.logic.ts:dateForToken call

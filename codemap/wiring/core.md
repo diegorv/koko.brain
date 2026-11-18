@@ -89,12 +89,12 @@ reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer in
 reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer invoked-at src/lib/plugins/mods/mods-host.service.ts:836 in loadMod
 reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer invoked-at src/routes/(app)/+layout.svelte:29 in (script)
 reg src/lib/core/markdown-editor/editor-host.ts:editorHost facet src/lib/core/markdown-editor/editor-host.ts:104 | doc The editor's host.
-reg src/lib/core/markdown-editor/editor-host.ts:editorHost registered-at src/lib/core/markdown-editor/setup/editor-extensions.ts:129 in createExtensions args=opts.host -> src/lib/core/markdown-editor/setup/editor-extensions.ts:createExtensions
+reg src/lib/core/markdown-editor/editor-host.ts:editorHost registered-at src/lib/core/markdown-editor/setup/editor-extensions.ts:133 in createExtensions args=opts.host -> src/lib/core/markdown-editor/setup/editor-extensions.ts:createExtensions
 reg src/lib/core/markdown-editor/editor-host.ts:editorHost registered-at src/lib/plugins/quick-capture/composer-editor.ts:108 in createComposerEditor args=opts.host -> src/lib/plugins/quick-capture/composer-editor.ts:createComposerEditor
 reg src/lib/core/markdown-editor/editor-host.ts:editorHost invoked-at src/lib/core/markdown-editor/MarkdownEditor.svelte:112 in freshState
 reg src/lib/core/markdown-editor/editor-host.ts:editorHost invoked-at src/routes/composer/+page.svelte:203 in (script)
 reg src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:fencedBlockRenderers facet src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:34 | doc The registered renderers by language.
-reg src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:fencedBlockRenderers registered-at src/lib/core/markdown-editor/setup/editor-extensions.ts:130 in createExtensions args=renderer -> src/lib/core/markdown-editor/setup/editor-extensions.ts:createExtensions
+reg src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:fencedBlockRenderers registered-at src/lib/core/markdown-editor/setup/editor-extensions.ts:134 in createExtensions args=renderer -> src/lib/core/markdown-editor/setup/editor-extensions.ts:createExtensions
 reg src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:fencedBlockRenderers invoked-at src/lib/core/markdown-editor/MarkdownEditor.svelte:112 in freshState
 reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling sink src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:20 | stores port assign | doc Installs the app's profiling toggle and log writer.
 reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling read-by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:28 editorLog

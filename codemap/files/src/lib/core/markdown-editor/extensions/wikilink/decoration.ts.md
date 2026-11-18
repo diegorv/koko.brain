@@ -12,7 +12,7 @@ out2 src/lib/core/markdown-editor/extensions/wikilink/decoration.ts 0 files in 0
 test src/tests/lib/core/markdown-editor/extensions/wikilink/decoration.test.ts imports src/lib/core/markdown-editor/extensions/wikilink/decoration.ts mirror
 ## symbols
 sym src/lib/core/markdown-editor/extensions/wikilink/decoration.ts:90 fn wikilinkDecoration(): Extension L3
-by src/lib/core/markdown-editor/extensions/wikilink/decoration.ts:wikilinkDecoration <- src/lib/core/markdown-editor/setup/editor-extensions.ts:103 in sourceModeExtensions call
+by src/lib/core/markdown-editor/extensions/wikilink/decoration.ts:wikilinkDecoration <- src/lib/core/markdown-editor/setup/editor-extensions.ts:106 in sourceModeExtensions call
 ## locals
 local src/lib/core/markdown-editor/extensions/wikilink/decoration.ts:17 fn buildDecorations(view: EditorView): DecorationSet L30
 ## calls

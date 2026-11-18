@@ -20,7 +20,7 @@ test src/tests/lib/core/markdown-editor/editor-host.test.ts imports src/lib/core
 test src/tests/lib/plugins/quick-capture/composer-editor-host.service.test.ts imports src/lib/core/markdown-editor/extensions/wikilink/completion.ts
 ## symbols
 sym src/lib/core/markdown-editor/extensions/wikilink/completion.ts:43 fn wikilinkCompletionSource(context: CompletionContext): Promise<CompletionResult | null> L17 | Completion source for `[[wikilinks]]` (files, aliases, headings, block IDs).
-by src/lib/core/markdown-editor/extensions/wikilink/completion.ts:wikilinkCompletionSource <- src/lib/core/markdown-editor/setup/editor-extensions.ts:143 in createExtensions ref
+by src/lib/core/markdown-editor/extensions/wikilink/completion.ts:wikilinkCompletionSource <- src/lib/core/markdown-editor/setup/editor-extensions.ts:147 in createExtensions ref
 by src/lib/core/markdown-editor/extensions/wikilink/completion.ts:wikilinkCompletionSource <- src/lib/plugins/quick-capture/composer-editor.ts:112 in createComposerEditor ref
 ## locals
 local src/lib/core/markdown-editor/extensions/wikilink/completion.ts:15 fn resolveTargetContent(host: EditorHost, target: string): Promise<string | null> L10

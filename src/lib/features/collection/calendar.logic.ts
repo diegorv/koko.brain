@@ -95,6 +95,19 @@ export function extractDateFromRecord(record: PropertyIndexRecord, dateProperty:
 }
 
 /**
+ * Counts the records a calendar cannot place: those whose `dateProperty` is
+ * missing or does not parse, the ones `groupRecordsByDate` skips. The end
+ * date plays no part, since a record without a start date is never shown.
+ */
+export function countUndated(records: PropertyIndexRecord[], dateProperty: string): number {
+	let count = 0;
+	for (const record of records) {
+		if (!extractDateFromRecord(record, dateProperty)) count++;
+	}
+	return count;
+}
+
+/**
  * Groups note records by date for calendar display.
  * Records with a start date are placed on each day they span.
  * Returns a map of date key (YYYY-MM-DD) to arrays of CalendarEvent.

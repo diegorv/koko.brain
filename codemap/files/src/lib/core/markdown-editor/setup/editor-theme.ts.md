@@ -4,7 +4,7 @@ file src/lib/core/markdown-editor/setup/editor-theme.ts other L93 module src/lib
 ## imports
 imp src/lib/core/markdown-editor/setup/editor-theme.ts:4 -> src/lib/utils/font-stacks.ts editorFontFamily
 ## imported-by
-imp src/lib/core/markdown-editor/setup/editor-extensions.ts:29 -> src/lib/core/markdown-editor/setup/editor-theme.ts buildEditorTheme
+imp src/lib/core/markdown-editor/setup/editor-extensions.ts:30 -> src/lib/core/markdown-editor/setup/editor-theme.ts buildEditorTheme
 imp src/lib/core/markdown-editor/setup/index.ts:1 -> src/lib/core/markdown-editor/setup/editor-theme.ts buildEditorTheme
 imp src/lib/plugins/quick-capture/composer-editor.ts:8 -> src/lib/core/markdown-editor/setup/editor-theme.ts buildEditorTheme
 ## reach
@@ -15,7 +15,7 @@ test src/tests/lib/core/markdown-editor/setup/editor-theme.test.ts imports src/l
 ## symbols
 sym src/lib/core/markdown-editor/setup/editor-theme.ts:12 fn buildEditorTheme(fontFamily: string, fontSize: number, lineHeight: number, contentWidth: number, paragraphSpacing: number, dark: boolea… L82 | Builds a CodeMirror theme from the current editor settings.
 by src/lib/core/markdown-editor/setup/editor-theme.ts:buildEditorTheme <- src/lib/core/markdown-editor/MarkdownEditor.svelte:235 in showTabState call +1
-by src/lib/core/markdown-editor/setup/editor-theme.ts:buildEditorTheme <- src/lib/core/markdown-editor/setup/editor-extensions.ts:169 in createExtensions call
+by src/lib/core/markdown-editor/setup/editor-theme.ts:buildEditorTheme <- src/lib/core/markdown-editor/setup/editor-extensions.ts:173 in createExtensions call
 by src/lib/core/markdown-editor/setup/editor-theme.ts:buildEditorTheme <- src/lib/plugins/quick-capture/composer-editor.ts:60 in composerThemes call +1
 ## calls
 call src/lib/core/markdown-editor/setup/editor-theme.ts:33 in buildEditorTheme -> src/lib/utils/font-stacks.ts:editorFontFamily call
