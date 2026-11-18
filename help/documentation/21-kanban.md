@@ -68,7 +68,7 @@ Each card is a Markdown task item inside a lane:
 
 You can:
 - **Add a card** — type in the **Add a card...** input at the bottom of a lane and press `Enter` (or click the **+** button).
-- **Edit a card** — double-click the card text to edit inline.
+- **Edit a card** — double-click the card text to edit inline. The editor grows with the text. `Enter` saves and `Escape` cancels; either one returns focus to the board, so the arrow keys keep working.
 - **Check/uncheck a card** — click the checkbox on the card.
 - **Move a card** — drag it to a different lane or position within the same lane.
 - **Delete a card** — right-click the card and choose Delete.
@@ -91,7 +91,7 @@ You can also click a suggestion to insert it. While the dropdown is open, `Enter
 
 ### Linked File Preview
 
-When a card contains a `[[wikilink]]`, the linked file's content (without frontmatter) is loaded and displayed as a preview below the card text.
+When a card contains a `[[wikilink]]`, the linked file's content (without frontmatter) is loaded and displayed as a preview below the card text, cut to its first three lines.
 
 ### Keyboard Navigation
 
@@ -130,7 +130,7 @@ The card shows a color-coded date badge:
 | Blue | Due within 3 days |
 | Gray | Future date |
 
-Click the date badge to change or remove the date via a date picker.
+Click the date badge to change or remove the date via a date picker. A card without a date shows a calendar icon at the end of its text when you hover over or focus the card; click it to set a date.
 
 ### Card Colors
 

@@ -17,16 +17,16 @@ Not in this ticket: editing without the `{date}` and `{color}` tokens (rewrites 
 
 **Blocked by:** 05
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes (`e2e/specs/kanban-view.spec.ts` only checks the board renders and the source toggle).
 
-- [ ] Failing test first, `src/tests/lib/plugins/kanban/KanbanView.test.ts` (harness `src/tests/fixtures/KanbanViewHarness.svelte`, real stores and logic, only `kanban.service.js` mocked): an undated card has a "Set date" button and no separate date row element.
-- [ ] A dated card keeps its badge; the preview element has `line-clamp-3`; the card has `rounded-md`.
-- [ ] With a stubbed `scrollHeight`, typing in the edit textarea sets its height to it.
-- [ ] After Enter, `document.activeElement` is the board root and the harness persisted exactly once (`getPersistCount`); after Escape, focus is the board root and nothing persisted; after a click elsewhere (blur), the commit persists once and focus is not moved to the root.
-- [ ] A source assertion that the "Set date" wrapper carries `has-[[data-state=open]]:opacity-100` and sits outside the `ondblclick` span; `chrome-state-styles.test.ts` passes.
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, `src/tests/lib/plugins/kanban/KanbanView.test.ts` (harness `src/tests/fixtures/KanbanViewHarness.svelte`, real stores and logic, only `kanban.service.js` mocked): an undated card has a "Set date" button and no separate date row element.
+- [x] A dated card keeps its badge; the preview element has `line-clamp-3`; the card has `rounded-md`.
+- [x] With a stubbed `scrollHeight`, typing in the edit textarea sets its height to it.
+- [x] After Enter, `document.activeElement` is the board root and the harness persisted exactly once (`getPersistCount`); after Escape, focus is the board root and nothing persisted; after a click elsewhere (blur), the commit persists once and focus is not moved to the root.
+- [x] A source assertion that the "Set date" wrapper carries `has-[[data-state=open]]:opacity-100` and sits outside the `ondblclick` span; `chrome-state-styles.test.ts` passes.
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Original proposal
 
@@ -58,3 +58,4 @@ Tickets 11 (lane footer and counts, `KanbanLane.svelte`), 12 (table, list and ar
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): none.
+- 2026-11-18, deliver (branch issue/10-kanban-cards-no-empty-date-row): undated cards show a hover "Set date" trigger instead of an empty date row, preview clamped to 3 lines, edit textarea grows with content, focus returns to the board root after Enter/Escape. Full suite: 657 files, 17569 passed, 56 skipped, 0 failed. Reviews: round 1 CHANGES_REQUESTED (fixed), round 2 APPROVED with no findings.

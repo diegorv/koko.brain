@@ -20,9 +20,13 @@ vi.mock('#lib/plugins/kanban/kanban.service.js', () => ({
 	loadLinkedFileContent: vi.fn(async () => null),
 }));
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { mount, unmount, flushSync, tick } from 'svelte';
+import { loadLinkedFileContent } from '#lib/plugins/kanban/kanban.service.js';
 import KanbanViewHarness from '../../../fixtures/KanbanViewHarness.svelte';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { kanbanStore } from '#lib/plugins/kanban/kanban.store.svelte.js';
 import { parseKanbanBoard, serializeKanbanBoard, setSortMode, setTagColor, setViewMode, toggleLaneCollapsed } from '#lib/plugins/kanban/kanban.logic.js';
 import type { KanbanSortMode, KanbanViewMode } from '#lib/plugins/kanban/kanban.types.js';
@@ -835,6 +839,252 @@ describe('KanbanView: filter clear, per-board reset and tag filter', () => {
 			mountBoard();
 			const sub = await openTagColor('tagged');
 			expect(sub.textContent).not.toContain('Reset to default');
+		});
+	});
+});
+
+describe('KanbanView: card anatomy and inline edit', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+	let api: HarnessApi | undefined;
+
+	const SOURCE = '## To Do\n\n- [ ] plain card\n- [ ] dated card {2026-01-15}\n- [ ] linked card [[Some Note]]\n\n';
+
+	beforeEach(() => {
+		kanbanStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		api = undefined;
+		kanbanStore.reset();
+		fsStore.reset();
+		document.body.innerHTML = '';
+	});
+
+	function mountBoard(source = SOURCE): void {
+		component = mount(KanbanViewHarness, {
+			target,
+			props: { initialMarkdown: serializeKanbanBoard(setViewMode(parseKanbanBoard(source), 'board')), register: (a: HarnessApi) => { api = a; } },
+		});
+		flushSync();
+	}
+
+	/** The view's root, which carries the board keydown handler. */
+	function root(): HTMLElement {
+		return target.firstElementChild as HTMLElement;
+	}
+
+	function card(text: string): HTMLElement {
+		const found = [...target.querySelectorAll<HTMLElement>('[data-item-id]')].find((el) => el.textContent?.includes(text));
+		if (!found) throw new Error(`card "${text}" not found`);
+		return found;
+	}
+
+	async function settle(): Promise<void> {
+		for (let i = 0; i < 10; i++) {
+			await Promise.resolve();
+			await tick();
+		}
+		flushSync();
+	}
+
+	/** Double-clicks the card's text, which opens the inline editor, and returns the textarea. */
+	function startEdit(text: string): HTMLTextAreaElement {
+		const span = [...card(text).querySelectorAll<HTMLElement>('span')].filter((el) => el.textContent?.includes(text)).at(-1)!;
+		span.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+		flushSync();
+		const textarea = target.querySelector<HTMLTextAreaElement>('textarea');
+		if (!textarea) throw new Error('edit textarea did not open');
+		return textarea;
+	}
+
+	function typeInto(textarea: HTMLTextAreaElement, value: string): void {
+		textarea.value = value;
+		textarea.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+	}
+
+	function press(el: Element, key: string): void {
+		el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+		flushSync();
+	}
+
+	describe('card anatomy', () => {
+		it('an undated card has a "Set date" button on its title line and no separate date row', () => {
+			mountBoard();
+			const setDate = card('plain card').querySelector<HTMLElement>('button[aria-label="Set date"]');
+			expect(setDate).not.toBeNull();
+
+			// The first ancestor that also holds the title is the title line, a row, not the card's column.
+			let line = setDate!.parentElement!;
+			while (!line.textContent?.includes('plain card')) line = line.parentElement!;
+			expect(line.className).not.toContain('flex-col');
+			expect(card('plain card').querySelector('.flex-wrap')).toBeNull();
+		});
+
+		it('a dated card keeps its date badge and remove button, and no "Set date" icon', () => {
+			mountBoard();
+			const dated = card('dated card');
+			const badge = [...dated.querySelectorAll<HTMLElement>('button')].filter((b) => b.textContent?.trim() === '2026-01-15');
+			expect(badge.length).toBeGreaterThan(0);
+			expect(dated.querySelector('button[aria-label="Remove date"]')).not.toBeNull();
+			expect(dated.querySelector('button[aria-label="Set date"]')).toBeNull();
+		});
+
+		it('the card is rounded-md', () => {
+			mountBoard();
+			expect(card('plain card').className).toContain('rounded-md');
+			expect(card('plain card').className).not.toContain('rounded-lg');
+		});
+
+		it('the linked-note preview is clamped to three lines, not a scroll box', async () => {
+			vi.mocked(loadLinkedFileContent).mockResolvedValueOnce('first line\nsecond line\nthird line\nfourth line');
+			mountBoard();
+			await settle();
+
+			const preview = [...card('linked card').querySelectorAll<HTMLElement>('div')].find((el) => el.textContent?.trim().startsWith('first line'));
+			expect(preview).toBeDefined();
+			expect(preview!.className).toContain('line-clamp-3');
+			expect(preview!.className).not.toContain('overflow-y-auto');
+			expect(preview!.className).not.toContain('max-h-32');
+		});
+
+		it('double-clicking the "Set date" icon does not start an edit', () => {
+			mountBoard();
+			const setDate = card('plain card').querySelector<HTMLElement>('button[aria-label="Set date"]')!;
+			setDate.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+			flushSync();
+			expect(kanbanStore.editingItemId).toBeNull();
+			expect(target.querySelector('textarea')).toBeNull();
+		});
+
+		it('source: the "Set date" wrapper stays opaque while the popover is open and sits outside the ondblclick span', () => {
+			const source = readFileSync(join(process.cwd(), 'src/lib/plugins/kanban/KanbanCard.svelte'), 'utf8');
+			const wrapper = source.match(/class="([^"]*)"[^>]*>\s*<KanbanDatePicker/g)?.find((m) => m.includes('has-[[data-state=open]]:opacity-100'));
+			expect(wrapper).toBeDefined();
+			expect(wrapper).toContain('group-hover:opacity-100');
+			expect(wrapper).toContain('group-focus-within:opacity-100');
+
+			const dblclickSpan = source.match(/<span[^>]*ondblclick=\{onStartEdit\}[\s\S]*?<\/span>/);
+			expect(dblclickSpan).not.toBeNull();
+			expect(dblclickSpan![0]).not.toContain('KanbanDatePicker');
+		});
+	});
+
+	describe('growing editor', () => {
+		const proto = HTMLTextAreaElement.prototype;
+
+		afterEach(() => {
+			delete (proto as unknown as Record<string, unknown>).scrollHeight;
+		});
+
+		/** A content-dependent height proves the measure runs after the value lands in the DOM. */
+		function stubScrollHeight(): void {
+			Object.defineProperty(proto, 'scrollHeight', {
+				configurable: true,
+				get(this: HTMLTextAreaElement) {
+					return this.value.length > 20 ? 60 : 20;
+				},
+			});
+		}
+
+		it('sets the textarea height to its scrollHeight on every input', async () => {
+			stubScrollHeight();
+			mountBoard();
+			const textarea = startEdit('plain card');
+			await settle();
+			expect(textarea.style.height).toBe('20px');
+
+			typeInto(textarea, 'a much longer card text that wraps');
+			await settle();
+			expect(textarea.style.height).toBe('60px');
+
+			typeInto(textarea, 'short');
+			await settle();
+			expect(textarea.style.height).toBe('20px');
+		});
+
+		it('opens a long card at its full height', async () => {
+			stubScrollHeight();
+			mountBoard('## To Do\n\n- [ ] a very long card text that certainly wraps\n\n');
+			const textarea = startEdit('a very long card text');
+			await settle();
+			expect(textarea.value).toBe('a very long card text that certainly wraps');
+			expect(textarea.style.height).toBe('60px');
+		});
+
+		it('grows when a wikilink suggestion rewrites the text', async () => {
+			stubScrollHeight();
+			fsStore.setFileTree([{ name: 'A very long note name.md', path: '/vault/A very long note name.md', isDirectory: false }]);
+			mountBoard('## To Do\n\n- [ ] short\n\n');
+			const textarea = startEdit('short');
+			typeInto(textarea, 'x [[A ve');
+			await settle();
+			expect(textarea.style.height).toBe('20px');
+
+			press(textarea, 'Enter');
+			await settle();
+			expect(textarea.value).toBe('x [[A very long note name]]');
+			expect(textarea.style.height).toBe('60px');
+		});
+	});
+
+	describe('focus after the edit', () => {
+		it('Enter commits once and focuses the board root after the textarea unmounts', async () => {
+			mountBoard();
+			const textarea = startEdit('plain card');
+			typeInto(textarea, 'renamed card');
+
+			press(textarea, 'Enter');
+			// Focusing before the textarea unmounts would blur it into a second commit.
+			expect(document.activeElement).not.toBe(root());
+			await settle();
+
+			expect(target.querySelector('textarea')).toBeNull();
+			expect(document.activeElement).toBe(root());
+			expect(api!.getPersistCount()).toBe(1);
+			expect(parseKanbanBoard(api!.getMarkdown()).lanes[0].items[0].text).toBe('renamed card');
+		});
+
+		it('Escape persists nothing and focuses the board root', async () => {
+			mountBoard();
+			const textarea = startEdit('plain card');
+			typeInto(textarea, 'discarded text');
+
+			press(textarea, 'Escape');
+			await settle();
+
+			expect(target.querySelector('textarea')).toBeNull();
+			expect(document.activeElement).toBe(root());
+			expect(api!.getPersistCount()).toBe(0);
+		});
+
+		it('the board root draws no focus ring when focused from code', () => {
+			mountBoard();
+			expect(root().className).toContain('outline-none');
+		});
+
+		it('a blur commit persists once and does not move focus to the root', async () => {
+			mountBoard();
+			const textarea = startEdit('plain card');
+			typeInto(textarea, 'blurred card');
+
+			textarea.blur();
+			flushSync();
+			await settle();
+
+			expect(target.querySelector('textarea')).toBeNull();
+			expect(api!.getPersistCount()).toBe(1);
+			expect(document.activeElement).not.toBe(root());
+		});
+
+		it('the textarea holds the raw card text, date and color tokens included', () => {
+			mountBoard('## To Do\n\n- [ ] dated card {2026-01-15} {color:blue}\n\n');
+			const textarea = startEdit('dated card');
+			expect(textarea.value).toBe('dated card {2026-01-15} {color:blue}');
 		});
 	});
 });
