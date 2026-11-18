@@ -56,7 +56,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 19 | [Rail note list: one Tab stop, arrow keys, focus follows removals and rename](issues/19-rail-note-list-keyboard.md) | 12, 15, 18 | todo | | |
 | 20 | [Palette "Go to X" lands focus in the note list, and "New note here" becomes a command](issues/20-palette-go-to-focus-new-note-here.md) | 13, 19 | todo | | |
 | 21 | [The tab strip shows what is off screen, tabs shrink, and the sidebar toggle stops covering them](issues/21-tab-strip-overflow-shrink.md) | none | done | issue/21-tab-strip-overflow-shrink (5787dd24c) | 2026-11-18 |
-| 22 | [Tabs can be dragged to reorder, show their full path on hover, and markdown labels drop .md](issues/22-tab-drag-path-tooltip-no-md.md) | 21 | in-progress | | |
+| 22 | [Tabs can be dragged to reorder, show their full path on hover, and markdown labels drop .md](issues/22-tab-drag-path-tooltip-no-md.md) | 21 | done | issue/22-tab-drag-path-tooltip-no-md (5d766be87) | 2026-11-18 |
 | 23 | [Tab menu: Close others, Close to the right, and the shared note-actions group](issues/23-tab-menu-close-others-note-actions.md) | 15, 22 | todo | | |
 | 24 | [Clickable breadcrumb with type and folder crumbs and no .md, plus Reveal in note list](issues/24-breadcrumb-reveal-in-note-list.md) | none | todo | | |
 | 25 | [Kanban, .view and canvas tabs get a title row with their own controls; source mode is per tab](issues/25-view-title-row-per-tab-source.md) | 16 | todo | | |
@@ -90,3 +90,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 04:18 — 21 — start — launched by /relay-lite:run — 1978c1b33
 - 2026-11-18 04:45 — 21 — deliver — review 1 APPROVED; fixes for dark hover toggle fill and the 11 px badge floor (chrome-type-scale failures); round 2 APPROVED; full suite 17268 passed; squashed and pushed — 5787dd24c
 - 2026-11-18 04:45 — 22 — start — launched by /relay-lite:run — 7c2955220
+- 2026-11-18 05:15 — 22 — deliver — review 1 APPROVED with findings (text/plain drag test), fixed; round 2 APPROVED; full suite 17312 passed; WebKit drag not checked by hand; squashed and pushed — 5d766be87
