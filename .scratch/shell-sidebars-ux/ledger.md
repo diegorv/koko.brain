@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Palette commands toggle each right sidebar panel and open Trash](issues/01-palette-right-panel-toggles-trash.md) | none | done | issue/01-palette-right-panel-toggles-trash (205a3fd9e) | 2026-11-18 |
 | 02 | [Calmer status bar: 24px, no pulse, a save slot that does not shift](issues/02-status-bar-calm-save-slot.md) | none | done | issue/02-status-bar-calm-save-slot (be82c1bf7) | 2026-11-18 |
-| 03 | [My people reads as a feature: setup button, "Nd ago", overdue icon, row ring](issues/03-my-people-setup-ago-overdue.md) | none | in-progress | | |
+| 03 | [My people reads as a feature: setup button, "Nd ago", overdue icon, row ring](issues/03-my-people-setup-ago-overdue.md) | none | done | issue/03-my-people-setup-ago-overdue (a2f120a7a) | 2026-11-18 |
 | 04 | [A refused property rename reverts and says why; list chips edit in place and an empty list shows "+ Add"](issues/04-property-rename-refusal-list-chips.md) | none | todo | | |
 | 05 | [Right sidebar headers stay pinned with a Hide panel menu; Properties collapses and is remembered; Info uses the shared header with short dates](issues/05-right-sidebar-pinned-headers-hide-menu.md) | 01 | todo | | |
 | 06 | [Backlinks and Outgoing links stay open, always show the open note's links, and backlink rows show folder and a plain snippet](issues/06-backlinks-outgoing-stay-open-readable-rows.md) | 05 | todo | | |
@@ -78,3 +78,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 02:34 — 02 — start — launched by /relay-lite:run — f5d93bc87
 - 2026-11-18 02:49 — 02 — deliver — review 1 CHANGES_REQUESTED (save slot E2E with Todoist item), fixed; re-review APPROVED; full suite 17128 passed; squashed and pushed — be82c1bf7
 - 2026-11-18 02:49 — 03 — start — launched by /relay-lite:run — 673e88b1d
+- 2026-11-18 03:01 — 03 — deliver — review 1 APPROVED with findings (sr-only Overdue moved into the open button, settings test fallback), fixed; round 2 APPROVED; full suite 17131 passed; squashed and pushed — a2f120a7a
