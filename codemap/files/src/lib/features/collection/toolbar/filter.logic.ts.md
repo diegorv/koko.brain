@@ -13,7 +13,7 @@ imp src/lib/features/collection/toolbar/filter.logic.ts:6 -> src/lib/features/co
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:17 -> src/lib/features/collection/toolbar/filter.logic.ts createEmptyExpressionRow,filterGroupsToFilter,getAllKnownProperties,parseFilterToGroups
 imp src/lib/features/auto-organize/auto-organize.logic.ts:20 -> src/lib/features/collection/toolbar/filter.logic.ts isFilterObject,isUnaryOperator,parseExpressionToRow
 imp src/lib/features/collection/CollectionView.svelte:21 -> src/lib/features/collection/toolbar/filter.logic.ts parseFilterToGroups,filterGroupsToFilter,getAllKnownProperties
-imp src/lib/features/collection/toolbar/FilterPanel.svelte:19 -> src/lib/features/collection/toolbar/filter.logic.ts createEmptyFilterRow,inferPropertyType
+imp src/lib/features/collection/toolbar/FilterPanel.svelte:20 -> src/lib/features/collection/toolbar/filter.logic.ts createEmptyFilterRow,inferPropertyType
 imp src/lib/features/collection/toolbar/FilterRow.svelte:15 -> src/lib/features/collection/toolbar/filter.logic.ts getOperatorsForType,inferPropertyType,isUnaryOperator
 imp src/lib/features/collection/toolbar/SortPanel.svelte:15 -> src/lib/features/collection/toolbar/filter.logic.ts inferPropertyType
 imp src/lib/features/rail-shell/lens.logic.ts:42 -> src/lib/features/collection/toolbar/filter.logic.ts filterRowToExpression
@@ -59,11 +59,11 @@ by src/lib/features/collection/toolbar/filter.logic.ts:getAllKnownProperties <- 
 by src/lib/features/collection/toolbar/filter.logic.ts:getAllKnownProperties <- src/lib/features/type-definitions/ViewDialog.svelte:58 in availableProperties=$derived call
 by src/lib/features/collection/toolbar/filter.logic.ts:getAllKnownProperties <- src/lib/features/type-definitions/type-note-list.logic.ts:118 in combineAvailableProperties call
 sym src/lib/features/collection/toolbar/filter.logic.ts:244 fn inferPropertyType(property: string, index: Map<string, PropertyIndexRecord>): PropertyType L34 | Infers the PropertyType of a property by sampling the notes' values from the index.
-by src/lib/features/collection/toolbar/filter.logic.ts:inferPropertyType <- src/lib/features/collection/toolbar/FilterPanel.svelte:75 in addFilter call
+by src/lib/features/collection/toolbar/filter.logic.ts:inferPropertyType <- src/lib/features/collection/toolbar/FilterPanel.svelte:76 in addFilter call
 by src/lib/features/collection/toolbar/filter.logic.ts:inferPropertyType <- src/lib/features/collection/toolbar/FilterRow.svelte:36 in propertyType=$derived call +1
 by src/lib/features/collection/toolbar/filter.logic.ts:inferPropertyType <- src/lib/features/collection/toolbar/SortPanel.svelte:80 in (markup) markup
 sym src/lib/features/collection/toolbar/filter.logic.ts:282 fn createEmptyFilterRow(property: string, type: PropertyType): FilterRow L9 | Creates an empty FilterRow with sensible defaults for a given property type.
-by src/lib/features/collection/toolbar/filter.logic.ts:createEmptyFilterRow <- src/lib/features/collection/toolbar/FilterPanel.svelte:76 in addFilter call
+by src/lib/features/collection/toolbar/filter.logic.ts:createEmptyFilterRow <- src/lib/features/collection/toolbar/FilterPanel.svelte:77 in addFilter call
 sym src/lib/features/collection/toolbar/filter.logic.ts:296 fn createEmptyExpressionRow(): FilterRow L3 | Creates an expression row with no text yet.
 by src/lib/features/collection/toolbar/filter.logic.ts:createEmptyExpressionRow <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:163 in addExpression call
 sym src/lib/features/collection/toolbar/filter.logic.ts:328 fn isFilterObject(item: unknown): item is CollectionFilter L5 | True for a non-null object whose `and` / `or` / `not`, where present, are lists.

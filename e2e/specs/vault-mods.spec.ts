@@ -62,6 +62,15 @@ const HELLO_MOD: Record<string, string> = {
 			},
 		});
 		ctx.addAction({
+			id: 'wait',
+			title: 'Wait in a loading dialog',
+			run: async () => {
+				await ctx.ui.loading('Working...', () => new Promise((resolve) => {
+					globalThis.__waitRelease = resolve;
+				}));
+			},
+		});
+		ctx.addAction({
 			id: 'inspect', title: 'Inspect selected note',
 			run: async (_input, run) => {
 				const text = await ctx.vault.read(run.target.path);
@@ -166,6 +175,38 @@ test.describe('Vault mods', () => {
 			await expect(toasts(page).filter({ hasText: 'Hello mod: Hello from the rail' })).toHaveCount(1);
 			await expect(row).toBeHidden();
 			await expect(button).not.toHaveAttribute('aria-current', 'page');
+		});
+
+		test('with Reduce motion the busy rail dot stops pulsing and the loading spinner slows', async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+			await panel.getByRole('switch', { name: 'Vault mods' }).click();
+			await expect(panel.locator('[data-mod-folder="hello"]')).toContainText('Loaded');
+			await page.keyboard.press('Escape');
+			await expect(panel).toBeHidden();
+
+			const button = page.locator('[data-rail-item="mod:hello:main"]');
+			await button.click();
+			await page.locator('[data-mod-action="wait"]').click();
+			await expect(button).toHaveAttribute('aria-busy', 'true');
+			const dot = button.locator('[data-rail-busy]');
+			const spinner = page.locator('[data-mod-dialog="loading"] .animate-spin');
+			await expect(dot).toBeVisible();
+			await expect(spinner).toBeVisible();
+			const motion = async () => ({
+				dot: await dot.evaluate((el) => getComputedStyle(el).animationName),
+				spinner: await spinner.evaluate((el) => `${getComputedStyle(el).animationName} ${getComputedStyle(el).animationDuration}`),
+			});
+
+			// Without the preference both animate at Tailwind's defaults, so the
+			// reduced values below come from the media rule.
+			await page.emulateMedia({ reducedMotion: 'no-preference' });
+			expect(await motion()).toEqual({ dot: 'pulse', spinner: 'spin 1s' });
+
+			await page.emulateMedia({ reducedMotion: 'reduce' });
+			expect(await motion()).toEqual({ dot: 'none', spinner: 'spin 1.5s' });
+
+			await page.evaluate(() => (globalThis as { __waitRelease?: () => void }).__waitRelease?.());
+			await expect(button).not.toHaveAttribute('aria-busy');
 		});
 
 		test('Cmd+P runs a placed action and renders its output', async ({ vaultPage: page }) => {

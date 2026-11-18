@@ -7,8 +7,8 @@ imp src/lib/features/collection/toolbar/toolbar.types.ts:1 -> src/lib/features/c
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:25 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterGroup
 imp src/lib/features/auto-organize/auto-organize.logic.ts:21 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterRow
 imp src/lib/features/collection/CollectionView.svelte:20 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterGroup,type:FormulaEntry
-imp src/lib/features/collection/toolbar/FilterPanel.svelte:17 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterConjunction,type:FilterGroup,type:FilterRow
-imp src/lib/features/collection/toolbar/FilterPanel.svelte:18 -> src/lib/features/collection/toolbar/toolbar.types.ts CONJUNCTION_LABELS
+imp src/lib/features/collection/toolbar/FilterPanel.svelte:18 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterConjunction,type:FilterGroup,type:FilterRow
+imp src/lib/features/collection/toolbar/FilterPanel.svelte:19 -> src/lib/features/collection/toolbar/toolbar.types.ts CONJUNCTION_LABELS
 imp src/lib/features/collection/toolbar/FilterRow.svelte:13 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterRow,type:FilterOperator
 imp src/lib/features/collection/toolbar/FilterRow.svelte:14 -> src/lib/features/collection/toolbar/toolbar.types.ts OPERATOR_LABELS
 imp src/lib/features/collection/toolbar/FormulaRow.svelte:6 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FormulaEntry
@@ -38,21 +38,21 @@ sym src/lib/features/collection/toolbar/toolbar.types.ts:4 type FilterOperator L
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterOperator <- src/lib/features/collection/toolbar/FilterRow.svelte:13 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterOperator <- src/lib/features/collection/toolbar/filter.logic.ts:6 in (module) import
 sym src/lib/features/collection/toolbar/toolbar.types.ts:32 const OPERATOR_LABELS: Record<FilterOperator, string> L22 | Human-readable labels for filter operators
-by src/lib/features/collection/toolbar/toolbar.types.ts:OPERATOR_LABELS <- src/lib/features/collection/toolbar/FilterRow.svelte:160 in (markup) markup +1
+by src/lib/features/collection/toolbar/toolbar.types.ts:OPERATOR_LABELS <- src/lib/features/collection/toolbar/FilterRow.svelte:170 in (markup) markup +1
 sym src/lib/features/collection/toolbar/toolbar.types.ts:56 type FilterConjunction L1 | Conjunction type for a filter group
-by src/lib/features/collection/toolbar/toolbar.types.ts:FilterConjunction <- src/lib/features/collection/toolbar/FilterPanel.svelte:17 in (script) import
+by src/lib/features/collection/toolbar/toolbar.types.ts:FilterConjunction <- src/lib/features/collection/toolbar/FilterPanel.svelte:18 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterConjunction <- src/lib/features/collection/toolbar/filter.logic.ts:6 in (module) import
 sym src/lib/features/collection/toolbar/toolbar.types.ts:59 const CONJUNCTION_LABELS: Record<FilterConjunction, string> L5 | Human-readable labels for conjunctions
-by src/lib/features/collection/toolbar/toolbar.types.ts:CONJUNCTION_LABELS <- src/lib/features/collection/toolbar/FilterPanel.svelte:114 in (markup) markup +3
+by src/lib/features/collection/toolbar/toolbar.types.ts:CONJUNCTION_LABELS <- src/lib/features/collection/toolbar/FilterPanel.svelte:117 in (markup) markup +3
 sym src/lib/features/collection/toolbar/toolbar.types.ts:66 interface FilterRow L19 | A visual filter row (property + operator + value)
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterRow <- src/lib/features/auto-organize/auto-organize.logic.ts:21 in (module) import
-by src/lib/features/collection/toolbar/toolbar.types.ts:FilterRow <- src/lib/features/collection/toolbar/FilterPanel.svelte:17 in (script) import
+by src/lib/features/collection/toolbar/toolbar.types.ts:FilterRow <- src/lib/features/collection/toolbar/FilterPanel.svelte:18 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterRow <- src/lib/features/collection/toolbar/FilterRow.svelte:13 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterRow <- src/lib/features/collection/toolbar/filter.logic.ts:6 in (module) import
 sym src/lib/features/collection/toolbar/toolbar.types.ts:87 interface FilterGroup L6 | A group of filters with a conjunction
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:25 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/collection/CollectionView.svelte:20 in (script) import
-by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/collection/toolbar/FilterPanel.svelte:17 in (script) import
+by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/collection/toolbar/FilterPanel.svelte:18 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/collection/toolbar/filter.logic.ts:6 in (module) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/rail-shell/RailNoteList.svelte:33 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/rail-shell/lens.logic.ts:44 in (module) import

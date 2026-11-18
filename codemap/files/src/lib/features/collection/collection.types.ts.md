@@ -21,7 +21,7 @@ imp src/lib/features/collection/collection.store.svelte.ts:1 -> src/lib/features
 imp src/lib/features/collection/expression/evaluator.ts:3 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
 imp src/lib/features/collection/key-edit.logic.ts:1 -> src/lib/features/collection/collection.types.ts type:CollectionDefinition,type:CollectionViewDef
 imp src/lib/features/collection/linear-calendar.logic.ts:2 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
-imp src/lib/features/collection/toolbar/FilterPanel.svelte:20 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
+imp src/lib/features/collection/toolbar/FilterPanel.svelte:21 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
 imp src/lib/features/collection/toolbar/FilterRow.svelte:16 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
 imp src/lib/features/collection/toolbar/PropertiesPanel.svelte:2 -> src/lib/features/collection/collection.types.ts type:PropertyConfig
 imp src/lib/features/collection/toolbar/SortPanel.svelte:13 -> src/lib/features/collection/collection.types.ts type:SortDef,type:PropertyConfig,type:PropertyIndexRecord

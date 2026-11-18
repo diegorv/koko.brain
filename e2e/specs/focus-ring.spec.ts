@@ -35,7 +35,7 @@ test.describe('Focus ring', () => {
 		expect(await content.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe('none');
 	});
 
-	test('a raw button without its own focus style uses the theme ring color', async ({ vaultPage: page }) => {
+	test('a raw button without its own focus style uses the theme ring color at full strength', async ({ vaultPage: page }) => {
 		await page.locator('[data-rail-item="files"]').click();
 		const navigator = page.locator('[data-files-navigator]');
 		await expect(navigator).toBeVisible();
@@ -44,17 +44,12 @@ test.describe('Focus ring', () => {
 		const toggle = await tabUntil(page, () => navigator.locator('[data-files-navigator-title]').click(), '[data-files-navigator-toggle]');
 		expect(await toggle.evaluate((el) => el.matches(':focus-visible'))).toBe(true);
 
-		const { outlineColor, outlineStyle, ringColor } = await toggle.evaluate((el) => {
-			const probe = document.createElement('div');
-			probe.style.color = 'color-mix(in oklab, var(--ring) 50%, transparent)';
-			document.body.appendChild(probe);
-			const ring = getComputedStyle(probe).color;
-			probe.remove();
+		const { outlineColor, outlineStyle } = await toggle.evaluate((el) => {
 			const style = getComputedStyle(el);
-			return { outlineColor: style.outlineColor, outlineStyle: style.outlineStyle, ringColor: ring };
+			return { outlineColor: style.outlineColor, outlineStyle: style.outlineStyle };
 		});
 		expect(outlineStyle).not.toBe('none');
-		expect(outlineColor).toBe(ringColor);
+		expect(outlineColor).toBe(await ringToken(page));
 	});
 
 	test('a rail item focused by keyboard shows the ring', async ({ vaultPage: page }) => {
@@ -80,7 +75,7 @@ test.describe('Focus ring', () => {
 		const path = await toggle.getAttribute('data-files-navigator-toggle');
 		expect(await toggle.evaluate((el) => el.matches(':focus-visible'))).toBe(true);
 		const row = page.locator(`[data-files-navigator-row="${path}"]`);
-		const ringColor = await ringToken(page);
+		const ringColor = await halfRingToken(page);
 		expect(await row.evaluate((el) => getComputedStyle(el).boxShadow)).toContain(ringColor);
 
 		await page.keyboard.press('Tab');
@@ -165,16 +160,29 @@ async function tabUntil(page: Page, start: () => Promise<void>, selector: string
 	throw new Error(`Tab never reached ${selector}`);
 }
 
-/** Resolves the `ring-ring/50` color (the ring token at 50%) as the browser computes it. */
-async function ringToken(page: Page): Promise<string> {
-	return page.evaluate(() => {
+/** Resolves a CSS color as the browser computes it. */
+async function computedColor(page: Page, color: string): Promise<string> {
+	return page.evaluate((value) => {
 		const probe = document.createElement('div');
-		probe.style.color = 'color-mix(in oklab, var(--ring) 50%, transparent)';
+		probe.style.color = value;
 		document.body.appendChild(probe);
-		const color = getComputedStyle(probe).color;
+		const computed = getComputedStyle(probe).color;
 		probe.remove();
-		return color;
-	});
+		return computed;
+	}, color);
+}
+
+/** Resolves the ring token at full strength (the base outline and the Button ring). */
+async function ringToken(page: Page): Promise<string> {
+	return computedColor(page, 'var(--ring)');
+}
+
+/**
+ * Resolves the `ring-ring/50` color (the ring token at 50%), which feature
+ * sites such as `FilesNavigator.svelte` still draw.
+ */
+async function halfRingToken(page: Page): Promise<string> {
+	return computedColor(page, 'color-mix(in oklab, var(--ring) 50%, transparent)');
 }
 
 /** Asserts the element is keyboard focused and the ring utilities draw (they paint with box-shadow). */

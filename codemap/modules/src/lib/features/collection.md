@@ -58,9 +58,9 @@ file src/lib/features/collection/expression/tokenizer.ts other L181 module src/l
 file src/lib/features/collection/key-edit.logic.ts logic L100 module src/lib/features/collection in2 t1
 file src/lib/features/collection/linear-calendar.logic.ts logic L322 module src/lib/features/collection in2 t2
 file src/lib/features/collection/toolbar/CalendarConfigPanel.svelte component L144 module src/lib/features/collection in1 t0
-file src/lib/features/collection/toolbar/FilterPanel.svelte component L216 module src/lib/features/collection in4 t1
-file src/lib/features/collection/toolbar/FilterRow.svelte component L188 module src/lib/features/collection in1 t1
-file src/lib/features/collection/toolbar/FormulaRow.svelte component L91 module src/lib/features/collection in1 t1
+file src/lib/features/collection/toolbar/FilterPanel.svelte component L223 module src/lib/features/collection in4 t1
+file src/lib/features/collection/toolbar/FilterRow.svelte component L205 module src/lib/features/collection in1 t1
+file src/lib/features/collection/toolbar/FormulaRow.svelte component L106 module src/lib/features/collection in1 t1
 file src/lib/features/collection/toolbar/PropertiesPanel.svelte component L169 module src/lib/features/collection in1 t1
 file src/lib/features/collection/toolbar/SortPanel.svelte component L160 module src/lib/features/collection in2 t1
 file src/lib/features/collection/toolbar/filter.logic.ts logic L560 module src/lib/features/collection in9 t9
@@ -99,7 +99,7 @@ sym src/lib/features/collection/expression/evaluator.ts:308 fn validateExpressio
 sym src/lib/features/collection/expression/expression.types.ts:74 type ASTNode L11 | Union of all AST node types
 sym src/lib/features/collection/expression/parser.ts:8 fn parse(expression: string): ASTNode L203 | Parses an expression string into an AST using recursive descent.
 sym src/lib/features/collection/key-edit.logic.ts:34 fn sortedJson(value: unknown): string L7 | JSON with the keys of every object sorted, so key order never makes two values differ.
-sym src/lib/features/collection/toolbar/FilterPanel.svelte:1 component FilterPanel props:globalFilters,viewFilters,availableProperties,propertyIndex,onGlobalFiltersChange,onViewFiltersChange,showGlobal= L216
+sym src/lib/features/collection/toolbar/FilterPanel.svelte:1 component FilterPanel props:globalFilters,viewFilters,availableProperties,propertyIndex,onGlobalFiltersChange,onViewFiltersChange,showGlobal= L223
 sym src/lib/features/collection/toolbar/SortPanel.svelte:1 component SortPanel props:sorts,availableProperties,propertyConfigs,propertyIndex,onSortsChange,emptyText= L160
 sym src/lib/features/collection/toolbar/filter.logic.ts:22 fn parseExpressionToRow(expr: string): FilterRow L10 | Tries to parse a simple expression into a visual FilterRow.
 sym src/lib/features/collection/toolbar/filter.logic.ts:38 fn filterRowToExpression(row: FilterRow): string L51 | Converts a FilterRow back into an expression string for YAML serialization.
