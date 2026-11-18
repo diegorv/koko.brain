@@ -61,7 +61,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 24 | [Clickable breadcrumb with type and folder crumbs and no .md, plus Reveal in note list](issues/24-breadcrumb-reveal-in-note-list.md) | none | todo | | |
 | 25 | [Kanban, .view and canvas tabs get a title row with their own controls; source mode is per tab](issues/25-view-title-row-per-tab-source.md) | 16 | todo | | |
 | 26 | [The empty editor becomes a launch point and drops the empty right sidebar](issues/26-empty-editor-launch-point.md) | none | todo | | |
-| 27 | [Zoom shows a chip and is remembered on this machine](issues/27-zoom-chip-remembered.md) | none | todo | | |
+| 27 | [Zoom shows a chip and is remembered on this machine](issues/27-zoom-chip-remembered.md) | none | in-progress | | |
 | 28 | [Switch vaults from inside a vault: palette commands, Cmd+Shift+O and a File menu](issues/28-switch-vaults-menu.md) | none | todo | | |
 | 29 | [The day navigator stops being called Calendar, and Tasks, Graph and Tags get rail entries that open their tab](issues/29-days-rename-rail-entries.md) | none | todo | | |
 | 30 | [Direct keys for rail items](issues/30-rail-direct-keys.md) | 29 | todo | | |
@@ -91,3 +91,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 04:45 — 21 — deliver — review 1 APPROVED; fixes for dark hover toggle fill and the 11 px badge floor (chrome-type-scale failures); round 2 APPROVED; full suite 17268 passed; squashed and pushed — 5787dd24c
 - 2026-11-18 04:45 — 22 — start — launched by /relay-lite:run — 7c2955220
 - 2026-11-18 05:15 — 22 — deliver — review 1 APPROVED with findings (text/plain drag test), fixed; round 2 APPROVED; full suite 17312 passed; WebKit drag not checked by hand; squashed and pushed — 5d766be87
+- 2026-11-18 05:15 — 27 — start — launched by /relay-lite:run — bab56ec9c
