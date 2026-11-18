@@ -27,7 +27,8 @@ test.describe('Table of Contents', () => {
 
 		// TOC collapses on file switch, re-expand
 		await expandToc(page);
-		await expect(page.locator('button[title="Tasks"]')).toBeVisible({ timeout: 5_000 });
+		// The rail's Tasks entry shares the title, so exclude rail items
+		await expect(page.locator('button[title="Tasks"]:not([data-rail-item])')).toBeVisible({ timeout: 5_000 });
 	});
 
 	test('shows "No headings found" for content without headings', async ({ vaultPage: page }) => {
