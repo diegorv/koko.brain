@@ -1030,7 +1030,7 @@ describe('q on the real repo (test 53)', () => {
 				/^call src\/lib\/app\/AppShell\.svelte:192 in \S+ -> src\/lib\/core\/layout\/layout\.service\.ts:toggleRightSidebar /m,
 			);
 			expect(out('callers', 'src/lib/core/settings/settings.store.svelte.ts:settingsStore.updateLayout', '--limit', '500')).toMatch(
-				/^call src\/lib\/app\/AppShell\.svelte:220 in \(markup\) -> src\/lib\/core\/settings\/settings\.store\.svelte\.ts:settingsStore\.updateLayout mcall (?:\+\d+ )?write$/m,
+				/^call src\/lib\/app\/AppShell\.svelte:222 in \(markup\) -> src\/lib\/core\/settings\/settings\.store\.svelte\.ts:settingsStore\.updateLayout mcall (?:\+\d+ )?write$/m,
 			);
 			expect(out('callers', 'src-tauri/src/vault/index.rs:VaultIndex::update_entry', '--limit', '500')).toMatch(
 				/^call src-tauri\/src\/commands\/vault\.rs:343 in \S+ -> src-tauri\/src\/vault\/index\.rs:VaultIndex::update_entry lexical-method/m,

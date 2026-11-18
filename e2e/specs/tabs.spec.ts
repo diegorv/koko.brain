@@ -74,6 +74,41 @@ test.describe('Tabs', () => {
 		await expectActiveInsideStrip();
 	});
 
+	test('unpinned tabs shrink from 220 px toward 100 px before the strip scrolls', async ({ vaultPage: page }) => {
+		// Few enough tabs that the editor pane (about 40 % of the window) fits them at 100 px when wide.
+		for (const name of ['Welcome.md', 'Inbox.md', 'Roadmap.md', '2026-Q2.md']) {
+			await openFile(page, name);
+		}
+		const strip = page.locator('.editor-tabs-bar');
+		// The width of every tab's flex item (the strip's direct children) and whether the strip scrolls.
+		const measure = () =>
+			strip.evaluate((el) => ({
+				overflowing: el.scrollWidth > el.clientWidth,
+				widths: [...el.children].map((child) => child.getBoundingClientRect().width),
+			}));
+
+		// Widest first: tabs sit at 220 px, then shrink as the window narrows, then the strip scrolls.
+		const steps: Awaited<ReturnType<typeof measure>>[] = [];
+		for (let width = 1600; width >= 560; width -= 80) {
+			await page.setViewportSize({ width, height: 800 });
+			steps.push(await measure());
+		}
+
+		// Tab widths are fractional (text and pane percentages); half a pixel absorbs it.
+		const SUBPIXEL = 0.5;
+		for (const step of steps) {
+			for (const w of step.widths) {
+				expect(w).toBeGreaterThanOrEqual(100 - SUBPIXEL);
+				expect(w).toBeLessThanOrEqual(220 + SUBPIXEL);
+			}
+		}
+		// Without these two the bounds above could pass on fixed-width tabs.
+		expect(steps.some((s) => !s.overflowing && Math.max(...s.widths) < 220 - 10)).toBe(true);
+		const overflowing = steps.filter((s) => s.overflowing);
+		expect(overflowing.length).toBeGreaterThan(0);
+		for (const step of overflowing) expect(Math.max(...step.widths)).toBeLessThanOrEqual(100 + SUBPIXEL);
+	});
+
 	test('pinned, inactive and active tabs share one height', async ({ vaultPage: page }) => {
 		await page.evaluate(() => window.__e2e.dialog.setAskResponse(true));
 		await openFile(page, 'Welcome.md');

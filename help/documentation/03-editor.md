@@ -18,6 +18,13 @@ When you have unsaved changes, a filled dot appears next to the tab name. Press 
 - **Next tab**: **Cmd+Shift+]**
 - **Previous tab**: **Cmd+Shift+[**
 
+### Many Open Tabs
+
+As you open more tabs, they shrink to make room (pinned tabs keep their size). Once they are as narrow as they go, the tab bar scrolls sideways, and a fade at either end shows that more tabs sit past it.
+
+- **Scroll the tab bar**: Scroll with the mouse wheel or trackpad over the tabs.
+- **List all tabs**: Click the arrow button at the right end of the tab bar. A menu lists every open tab in order, with its unsaved-changes dot and pin mark; the current tab is highlighted. Click one to switch to it. While some tabs are scrolled out of view, the button shows how many.
+
 ![Editor tabs with dirty indicator](screenshots/editor-tabs.png)
 
 ## Pinning Tabs

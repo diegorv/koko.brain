@@ -17,20 +17,20 @@ Not in this ticket: the prototype's absolute close-button overlay (not in P34's 
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` for `tabs`, `sidebars`, `note-action-bar`, `tasks-view`, `collection-block` and `live-preview/click-reveal` (they select `.editor-tabs-bar`).
 
-- [ ] Failing test first, new `src/tests/lib/core/markdown-editor/editor-tabs.logic.test.ts`: `edgeFades` gives no fade when `scrollWidth <= clientWidth`, left only when `scrollLeft > 2`, right only while `scrollLeft + clientWidth < scrollWidth - 2`; `countHiddenTabs` counts a tab more than 4 px past either edge, not one within 4 px, and 0 for an empty list.
-- [ ] `EditorTabs.test.ts` (real stores, `ResizeObserver` stub as `EventCalendarView.test.ts:8-13`, stubbed geometry): an overflowing scroller scrolled to the middle shows both fades and the badge; nothing overflowing shows neither; opening one more tab without a resize updates the badge.
-- [ ] Every direct child of `.editor-tabs-bar` for an unpinned tab has `flex-[0_1_220px]` and `min-w-[100px]`, a pinned one `shrink-0`, and nothing in the strip has `max-w-40` (asserted on the scroller's children, not on `[role="tab"]`, which would pass without any shrink).
-- [ ] The list menu has one row per tab in order, a dirty dot only on dirty file tabs, pin marks, the active row marked; choosing the third row makes `editorStore.activeIndex` 2 and closes the menu. `menu-item-anatomy.test.ts` stays green. If the DropdownMenu does not open under jsdom by click, follow an existing DropdownMenu test in the repo.
-- [ ] A vertical `WheelEvent` on an overflowing scroller raises `scrollLeft` and is `defaultPrevented`; on a non-overflowing one, or with `|deltaX| > |deltaY|`, it is not.
-- [ ] With a note active and `rightSidebarVisible` false the wrapper has `pr-10`; with it true, or a kanban, canvas, `.view`, tags, tasks, graph or calendar tab active, it does not. Wrapper and `.editor-tabs-bar` both carry `data-tauri-drag-region`; `role="tablist"` is on `.editor-tabs-bar`.
-- [ ] `AppShell.test.ts`: the toggle has `aria-label="Right sidebar"`, `aria-pressed` follows `rightSidebarVisible` both ways, and it has the ring classes; "renders one right-sidebar toggle" passes unchanged.
-- [ ] E2E `tabs.spec.ts`: the existing overflow and reveal test passes unchanged; a new case shows unpinned tabs between 100 and 220 px wide when overflowing, and shrinking below natural width before the strip scrolls.
-- [ ] E2E `sidebars.spec.ts` (hide the sidebar first, as `note-action-bar.spec.ts:16-21`; the E2E vault starts with it visible): with the strip overflowing, the right edges of `.editor-tabs-bar` and of the list button are at or left of the toggle's left edge at both scroll ends.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, new `src/tests/lib/core/markdown-editor/editor-tabs.logic.test.ts`: `edgeFades` gives no fade when `scrollWidth <= clientWidth`, left only when `scrollLeft > 2`, right only while `scrollLeft + clientWidth < scrollWidth - 2`; `countHiddenTabs` counts a tab more than 4 px past either edge, not one within 4 px, and 0 for an empty list.
+- [x] `EditorTabs.test.ts` (real stores, `ResizeObserver` stub as `EventCalendarView.test.ts:8-13`, stubbed geometry): an overflowing scroller scrolled to the middle shows both fades and the badge; nothing overflowing shows neither; opening one more tab without a resize updates the badge.
+- [x] Every direct child of `.editor-tabs-bar` for an unpinned tab has `flex-[0_1_220px]` and `min-w-[100px]`, a pinned one `shrink-0`, and nothing in the strip has `max-w-40` (asserted on the scroller's children, not on `[role="tab"]`, which would pass without any shrink).
+- [x] The list menu has one row per tab in order, a dirty dot only on dirty file tabs, pin marks, the active row marked; choosing the third row makes `editorStore.activeIndex` 2 and closes the menu. `menu-item-anatomy.test.ts` stays green. If the DropdownMenu does not open under jsdom by click, follow an existing DropdownMenu test in the repo.
+- [x] A vertical `WheelEvent` on an overflowing scroller raises `scrollLeft` and is `defaultPrevented`; on a non-overflowing one, or with `|deltaX| > |deltaY|`, it is not.
+- [x] With a note active and `rightSidebarVisible` false the wrapper has `pr-10`; with it true, or a kanban, canvas, `.view`, tags, tasks, graph or calendar tab active, it does not. Wrapper and `.editor-tabs-bar` both carry `data-tauri-drag-region`; `role="tablist"` is on `.editor-tabs-bar`.
+- [x] `AppShell.test.ts`: the toggle has `aria-label="Right sidebar"`, `aria-pressed` follows `rightSidebarVisible` both ways, and it has the ring classes; "renders one right-sidebar toggle" passes unchanged.
+- [x] E2E `tabs.spec.ts`: the existing overflow and reveal test passes unchanged; a new case shows unpinned tabs between 100 and 220 px wide when overflowing, and shrinking below natural width before the strip scrolls.
+- [x] E2E `sidebars.spec.ts` (hide the sidebar first, as `note-action-bar.spec.ts:16-21`; the E2E vault starts with it visible): with the strip overflowing, the right edges of `.editor-tabs-bar` and of the list button are at or left of the toggle's left edge at both scroll ends.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -60,3 +60,4 @@ Checked at `ab143a411`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided by the owner: none for this ticket. Defaults (not individually answered): 21.1 (old 09.1) the "List all tabs" button is always visible (about 28 px of strip) with the badge only while tabs are hidden.
+- 2026-11-18, deliver (branch `issue/21-tab-strip-overflow-shrink`): tab strip gets edge fades, a hidden-tab count badge and a "List all tabs" menu, vertical wheel scrolls it, unpinned tabs shrink between 100 and 220 px, the strip leaves room (`pr-10`) for the right-sidebar toggle, which gains `aria-label`, `aria-pressed` and a focus ring. Deliver fix: the hidden-tab badge's `text-[9px]` raised to the 11 px chrome floor (chrome-type-scale.test.ts). Full suite: run 1 failed 2 tests in chrome-type-scale.test.ts; run 2 at ab41923f1 exit=0, 651 files, 17268 passed, 54 skipped, 1 todo. Reviews: round 1 APPROVED, round 2 APPROVED (after the fix round).
