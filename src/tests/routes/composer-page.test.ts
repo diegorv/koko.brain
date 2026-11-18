@@ -104,8 +104,9 @@ const TAGS = [
 const ENTRIES = [entryV2('/vault/Welcome.md'), entryV2('/vault/Weekly.md')];
 
 describe('composer save', () => {
-	const ERROR_TEXT = 'Could not save. ⌘↩ retries, ESC cancels.';
-	const UNKNOWN_TEXT = 'Save not confirmed. ⌘↩ saves again, ESC cancels.';
+	const DEFAULT_HINT = 'Esc hides (draft kept) · ⌘↩ saves';
+	const ERROR_TEXT = 'Could not save. ⌘↩ retries, Esc hides (draft kept).';
+	const UNKNOWN_TEXT = 'Save not confirmed. ⌘↩ saves again, Esc hides (draft kept).';
 	let target: HTMLElement;
 	let component: ReturnType<typeof mount> | undefined;
 
@@ -230,6 +231,111 @@ describe('composer save', () => {
 		vi.restoreAllMocks();
 	});
 
+	it('says Esc hides and keeps the draft', () => {
+		expect(hint().textContent).toBe(DEFAULT_HINT);
+		expect(alertText()).toBeUndefined();
+	});
+
+	it('does not say cancels in either error hint', async () => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		mockSubmit('fail', 'silent');
+		type('an idea');
+
+		saveKey();
+		await settle();
+		expect(alertText()).toBe(ERROR_TEXT);
+		expect(alertText()).not.toContain('cancels');
+
+		saveKey();
+		await settle();
+		await vi.advanceTimersByTimeAsync(3000);
+		flushSync();
+		expect(alertText()).toBe(UNKNOWN_TEXT);
+		expect(alertText()).not.toContain('cancels');
+	});
+
+	it('reads Saving... while the save waits, and not during the saved flash', async () => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		mockSubmit('silent');
+		type('an idea');
+
+		saveKey();
+		await settle();
+		expect(hint().textContent).toBe('Saving...');
+		expect(alertText()).toBeUndefined();
+
+		resultHandler()({ requestId: lastRequestId(), ok: true });
+		await settle();
+		expect(target.querySelector('.composer-root')!.classList.contains('saved')).toBe(true);
+		expect(hint().textContent).toBe(DEFAULT_HINT);
+
+		// The flash still lasts 180 ms.
+		await vi.advanceTimersByTimeAsync(179);
+		flushSync();
+		expect(commands()).toEqual(['submit_composer_capture']);
+		expect(hint().textContent).toBe(DEFAULT_HINT);
+		await vi.advanceTimersByTimeAsync(1);
+		flushSync();
+		expect(commands()).toEqual(['submit_composer_capture', 'dismiss_composer']);
+		expect(hint().textContent).toBe(DEFAULT_HINT);
+	});
+
+	it('replaces the failed hint with Saving... while a retry waits', async () => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		mockSubmit('silent', 'silent');
+		type('an idea');
+		saveKey();
+		await settle();
+
+		resultHandler()({ requestId: lastRequestId(), ok: false });
+		await settle();
+		expect(alertText()).toBe(ERROR_TEXT);
+
+		saveKey();
+		await settle();
+		expect(alertText()).toBeUndefined();
+		expect(hint().textContent).toBe('Saving...');
+	});
+
+	it('replaces the unconfirmed hint with Saving... while a retry waits', async () => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		mockSubmit('silent', 'silent');
+		type('an idea');
+		saveKey();
+		await settle();
+
+		await vi.advanceTimersByTimeAsync(3000);
+		flushSync();
+		expect(alertText()).toBe(UNKNOWN_TEXT);
+
+		saveKey();
+		await settle();
+		expect(alertText()).toBeUndefined();
+		expect(hint().textContent).toBe('Saving...');
+	});
+
+	it('restores a stored draft with no restored note and no Discard control', async () => {
+		unmount(component!);
+		localStorage.setItem('kokobrain:composer-draft', 'half a thought');
+		await mountComposer();
+
+		expect(editorText()).toBe('half a thought');
+		expect(target.textContent).not.toContain('Draft restored');
+		expect(target.textContent).not.toContain('Discard');
+		expect(target.querySelector('button')).toBeNull();
+		expect(hint().textContent).toBe(DEFAULT_HINT);
+
+		press({ key: 'Escape' });
+		await vi.waitFor(() => expect(commands()).toEqual(['dismiss_composer']));
+		summon();
+
+		expect(editorText()).toBe('half a thought');
+		expect(target.textContent).not.toContain('Draft restored');
+		expect(target.textContent).not.toContain('Discard');
+		expect(target.querySelector('button')).toBeNull();
+		expect(hint().textContent).toBe(DEFAULT_HINT);
+	});
+
 	it('keeps the text and shows an error when the save fails', async () => {
 		mockSubmit('fail');
 		type('idea');
@@ -268,7 +374,7 @@ describe('composer save', () => {
 			text: 'an idea',
 			requestId: expect.any(String),
 		});
-		expect(hint().textContent).toBe('ESC cancels · ⌘↩ saves');
+		expect(hint().textContent).toBe(DEFAULT_HINT);
 
 		summon();
 
@@ -364,8 +470,10 @@ describe('composer save', () => {
 		type('first');
 		saveKey();
 		await settle();
+		expect(hint().textContent).toBe('Saving...');
 		press({ key: 'Escape' });
 		summon();
+		expect(hint().textContent).toBe(DEFAULT_HINT);
 		type('second');
 		saveKey();
 		await settle();
@@ -426,7 +534,7 @@ describe('composer save', () => {
 			expect(commands()).toEqual(['submit_composer_capture', 'submit_composer_capture', 'dismiss_composer']),
 		);
 		expect(alertText()).toBeUndefined();
-		expect(hint().textContent).toBe('ESC cancels · ⌘↩ saves');
+		expect(hint().textContent).toBe(DEFAULT_HINT);
 	});
 
 	it('dismisses an empty composer without saving', async () => {

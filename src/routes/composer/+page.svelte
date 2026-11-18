@@ -23,7 +23,8 @@
 	 * result arrived in time.
 	 */
 	let saveProblem = $state<'failed' | 'unknown' | null>(null);
-	let saving = false;
+	/** A save is in flight: waiting for its result, then through the saved flash. */
+	let saving = $state(false);
 	let dismissing = false;
 	/**
 	 * Counts summons, so a save still waiting when the composer is dismissed
@@ -134,7 +135,7 @@
 		if (ok !== true) {
 			saving = false;
 			// Hiding would leave the user unsure the capture exists. Stay open
-			// with the text so Cmd+Enter retries and Esc cancels.
+			// with the text so Cmd+Enter retries and Esc hides it, the draft kept.
 			saveProblem = ok === false ? 'failed' : 'unknown';
 			return;
 		}
@@ -248,11 +249,13 @@
 		{/if}
 	</div>
 	{#if saveProblem === 'failed'}
-		<div class="hint error" role="alert">Could not save. ⌘↩ retries, ESC cancels.</div>
+		<div class="hint error" role="alert">Could not save. ⌘↩ retries, Esc hides (draft kept).</div>
 	{:else if saveProblem === 'unknown'}
-		<div class="hint error" role="alert">Save not confirmed. ⌘↩ saves again, ESC cancels.</div>
+		<div class="hint error" role="alert">Save not confirmed. ⌘↩ saves again, Esc hides (draft kept).</div>
+	{:else if saving && !saved}
+		<div class="hint">Saving...</div>
 	{:else}
-		<div class="hint">ESC cancels · ⌘↩ saves</div>
+		<div class="hint">Esc hides (draft kept) · ⌘↩ saves</div>
 	{/if}
 </div>
 
