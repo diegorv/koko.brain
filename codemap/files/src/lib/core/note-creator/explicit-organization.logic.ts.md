@@ -27,7 +27,7 @@ by src/lib/core/note-creator/explicit-organization.logic.ts:withUnorganizedFlag 
 by src/lib/core/note-creator/explicit-organization.logic.ts:withUnorganizedFlag <- src/lib/plugins/quick-capture/note-composer.service.ts:52 in createNoteComposer ref
 by src/lib/core/note-creator/explicit-organization.logic.ts:withUnorganizedFlag <- src/lib/plugins/templates/templates.service.ts:67 in createFileFromTemplate ref
 sym src/lib/core/note-creator/explicit-organization.logic.ts:43 fn applyExplicitOrganization(content: string, enabled: boolean): string L3 | The switch: withUnorganizedFlag of `content` when `enabled` (`settingsStore.explicitOrganization`), `content` unchanged otherwise.
-by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/app/commands.ts:156 in getBuiltInCommands call
+by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/app/commands.ts:158 in getBuiltInCommands call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/app/deep-link-actions.ts:210 in executeCaptureAction call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/deep-link/deep-link.service.ts:334 in executeNewAction call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/note-action-bar/note-action-bar.service.ts:79 in createLinkedNote call

@@ -1,7 +1,7 @@
 # module card src/lib/features/rail-shell
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/features/rail-shell ' codemap/modules
 sections: neighbors, entry files, files, public, stores, effects, debt
-module src/lib/features/rail-shell features files 31 in-modules 8 out-modules 17 pub 51/172 ipc 2/0 card ~6.5k
+module src/lib/features/rail-shell features files 31 in-modules 8 out-modules 17 pub 54/175 ipc 2/0 card ~6.6k
 ## neighbors
 dep src/lib/app -> src/lib/features/rail-shell 19
 dep src/lib/features/note-action-bar -> src/lib/features/rail-shell 1
@@ -13,7 +13,7 @@ dep src/lib/plugins/mods -> src/lib/features/rail-shell 2
 dep src/lib/plugins/one-on-one -> src/lib/features/rail-shell 2
 dep src/lib/features/rail-shell -> src/lib/components 12
 dep src/lib/features/rail-shell -> src/lib/contracts 2
-dep src/lib/features/rail-shell -> src/lib/core/editor 9
+dep src/lib/features/rail-shell -> src/lib/core/editor 10
 dep src/lib/features/rail-shell -> src/lib/core/filesystem 22
 dep src/lib/features/rail-shell -> src/lib/core/frontmatter 5
 dep src/lib/features/rail-shell -> src/lib/core/note-creator 2
@@ -47,8 +47,8 @@ entry src/lib/features/rail-shell/kind-icons.ts ext-in1 src/lib/features/quick-s
 entry src/lib/features/rail-shell/types-navigator.service.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 ## files
 file src/lib/features/rail-shell/FilesNavigator.svelte component L579 module src/lib/features/rail-shell in1 t4
-file src/lib/features/rail-shell/LayoutSection.svelte component L201 module src/lib/features/rail-shell in1 t1
-file src/lib/features/rail-shell/Rail.svelte component L380 module src/lib/features/rail-shell in1 t3
+file src/lib/features/rail-shell/LayoutSection.svelte component L202 module src/lib/features/rail-shell in1 t1
+file src/lib/features/rail-shell/Rail.svelte component L402 module src/lib/features/rail-shell in1 t3
 file src/lib/features/rail-shell/RailArchivedMenu.svelte component L67 module src/lib/features/rail-shell in1 t0
 file src/lib/features/rail-shell/RailListSearch.svelte component L119 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/RailNoteList.svelte component L984 module src/lib/features/rail-shell in1 t6
@@ -71,7 +71,7 @@ file src/lib/features/rail-shell/list-view-sort.logic.ts logic L68 module src/li
 file src/lib/features/rail-shell/neighbourhood.service.ts service L36 module src/lib/features/rail-shell in2 t2
 file src/lib/features/rail-shell/neighbourhood.store.svelte.ts store L25 module src/lib/features/rail-shell in3 t4 | The note the rail shell's Neighbourhood lens shows.
 file src/lib/features/rail-shell/new-note.service.ts service L47 module src/lib/features/rail-shell in1 t1
-file src/lib/features/rail-shell/rail-items.logic.ts logic L195 module src/lib/features/rail-shell in5 t5
+file src/lib/features/rail-shell/rail-items.logic.ts logic L218 module src/lib/features/rail-shell in5 t5
 file src/lib/features/rail-shell/rail-registry.store.svelte.ts store L111 module src/lib/features/rail-shell in11 t26
 file src/lib/features/rail-shell/rail-shell.types.ts types L234 module src/lib/features/rail-shell in16 t0
 file src/lib/features/rail-shell/types-navigator.service.ts service L21 module src/lib/features/rail-shell in1 t2
@@ -79,8 +79,8 @@ file src/lib/features/rail-shell/view-lens-seed.logic.ts logic L56 module src/li
 file src/lib/features/rail-shell/view-lens.service.ts service L48 module src/lib/features/rail-shell in1 t2
 ## public
 sym src/lib/features/rail-shell/FilesNavigator.svelte:1 component FilesNavigator props:picked,expanded,onPick,onToggle,onPickView L579
-sym src/lib/features/rail-shell/LayoutSection.svelte:1 component LayoutSection L201
-sym src/lib/features/rail-shell/Rail.svelte:1 component Rail props:activeItem,onSelect L380
+sym src/lib/features/rail-shell/LayoutSection.svelte:1 component LayoutSection L202
+sym src/lib/features/rail-shell/Rail.svelte:1 component Rail props:activeItem,onSelect L402
 sym src/lib/features/rail-shell/RailNoteList.svelte:1 component RailNoteList props:lens,firstPane= L984
 sym src/lib/features/rail-shell/TypesNavigator.svelte:1 component TypesNavigator props:rows,picked,onPick L511
 sym src/lib/features/rail-shell/files-navigator.service.ts:11 fn registerFilesNavigatorPathChangeConsumer(): () => void L10 | Registers the Files navigator as a path-change consumer, so its saved pick and expanded folders follow a folder renamed, moved or deleted anywhere in the app.
@@ -113,15 +113,18 @@ sym src/lib/features/rail-shell/lens.logic.ts:1084 fn toggleExpandedFolder(saved
 sym src/lib/features/rail-shell/neighbourhood.service.ts:10 fn openNeighbourhood(path: string): void L4 | Fills the note list with the neighbourhood of the note at `path`, showing the panels Cmd+1 may have hidden.
 sym src/lib/features/rail-shell/neighbourhood.service.ts:22 fn registerNeighbourhoodPathChangeConsumer(): () => void L15 | Registers the Neighbourhood lens as a path-change consumer, so the open neighbourhood follows its note (or a folder above it) when renamed or moved.
 sym src/lib/features/rail-shell/neighbourhood.store.svelte.ts:10 store neighbourhoodStore L16
-sym src/lib/features/rail-shell/rail-items.logic.ts:9 interface RailItem L12 | A rail button: what it saves as `layout.railItem` and what it is called.
-sym src/lib/features/rail-shell/rail-items.logic.ts:31 fn railItems(navigators: readonly RailNavigator[], pins: readonly RailPin[], hidden: readonly string[] = [], order: readonly string… L31 | Every rail button in rail order: Search, Inbox, Today, Favorites; Types, the registered navigators (Calendar), Files; the pins; Archive.
-sym src/lib/features/rail-shell/rail-items.logic.ts:108 fn parseRailHidden(saved: unknown): string[] L3 | The hidden rail items saved in `layout.railHidden`; a hand-edited non-array reads as none, non-strings are dropped.
-sym src/lib/features/rail-shell/rail-items.logic.ts:113 fn parseRailOrder(saved: unknown): string[] L3 | The rail order saved in `layout.railOrder`; a hand-edited non-array reads as the default order, non-strings are dropped.
-sym src/lib/features/rail-shell/rail-items.logic.ts:153 fn parseRailWidth(saved: unknown): number L4 | The labeled rail's width from `layout.railWidth`: a finite number is rounded and clamped, anything else reads as the default.
-sym src/lib/features/rail-shell/rail-items.logic.ts:168 fn parseRailStyle(saved: unknown): RailStyle L3 | The rail's style from `layout.railStyle`: only `'captioned'` gives captioned, anything else reads as labeled.
-sym src/lib/features/rail-shell/rail-items.logic.ts:173 fn parseRailCollapsed(saved: unknown): boolean L3 | Whether the rail is collapsed, from `layout.railCollapsed`: only the boolean `true` collapses.
-sym src/lib/features/rail-shell/rail-items.logic.ts:178 fn railFormWidth(style: RailStyle, collapsed: boolean, labeledWidth: number): number L4 | The rail's width in px from its parsed style, collapsed state and labeled width.
-sym src/lib/features/rail-shell/rail-items.logic.ts:193 fn railHeaderPad(railWidth: number): number L3 | The left padding, in px, of the header strip beside a rail this wide: the macOS traffic lights and the rail toggle reach 120 px from the window's edge, and pas…
+sym src/lib/features/rail-shell/rail-items.logic.ts:13 const TASKS_TAB_RAIL_ITEM L1 | Key of the Tabs item that opens the Tasks tab
+sym src/lib/features/rail-shell/rail-items.logic.ts:15 const GRAPH_TAB_RAIL_ITEM L1 | Key of the Tabs item that opens the Graph View tab
+sym src/lib/features/rail-shell/rail-items.logic.ts:17 const TAGS_TAB_RAIL_ITEM L1 | Key of the Tabs item that opens the Tags tab
+sym src/lib/features/rail-shell/rail-items.logic.ts:20 interface RailItem L14 | A rail button: what it saves as `layout.railItem` and what it is called.
+sym src/lib/features/rail-shell/rail-items.logic.ts:45 fn railItems(navigators: readonly RailNavigator[], pins: readonly RailPin[], hidden: readonly string[] = [], order: readonly string… L37 | Every rail button in rail order: Search, Inbox, Today, Favorites; Types, the registered navigators (Days), Files; Tasks, Graph, Tags (the Tabs items); the pins…
+sym src/lib/features/rail-shell/rail-items.logic.ts:128 fn parseRailHidden(saved: unknown): string[] L3 | The hidden rail items saved in `layout.railHidden`; a hand-edited non-array reads as none, non-strings are dropped.
+sym src/lib/features/rail-shell/rail-items.logic.ts:133 fn parseRailOrder(saved: unknown): string[] L3 | The rail order saved in `layout.railOrder`; a hand-edited non-array reads as the default order, non-strings are dropped.
+sym src/lib/features/rail-shell/rail-items.logic.ts:176 fn parseRailWidth(saved: unknown): number L4 | The labeled rail's width from `layout.railWidth`: a finite number is rounded and clamped, anything else reads as the default.
+sym src/lib/features/rail-shell/rail-items.logic.ts:191 fn parseRailStyle(saved: unknown): RailStyle L3 | The rail's style from `layout.railStyle`: only `'captioned'` gives captioned, anything else reads as labeled.
+sym src/lib/features/rail-shell/rail-items.logic.ts:196 fn parseRailCollapsed(saved: unknown): boolean L3 | Whether the rail is collapsed, from `layout.railCollapsed`: only the boolean `true` collapses.
+sym src/lib/features/rail-shell/rail-items.logic.ts:201 fn railFormWidth(style: RailStyle, collapsed: boolean, labeledWidth: number): number L4 | The rail's width in px from its parsed style, collapsed state and labeled width.
+sym src/lib/features/rail-shell/rail-items.logic.ts:216 fn railHeaderPad(railWidth: number): number L3 | The left padding, in px, of the header strip beside a rail this wide: the macOS traffic lights and the rail toggle reach 120 px from the window's edge, and pas…
 sym src/lib/features/rail-shell/rail-registry.store.svelte.ts:27 store railRegistryStore L85
 sym src/lib/features/rail-shell/rail-shell.types.ts:12 interface Lens L6 | What the user picked on the left: a rail item, a navigator entry or a note's neighbourhood.
 sym src/lib/features/rail-shell/rail-shell.types.ts:20 interface LensContext L12 | The snapshot a lens resolves against.

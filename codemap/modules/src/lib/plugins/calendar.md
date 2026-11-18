@@ -18,13 +18,13 @@ entry src/lib/plugins/calendar/calendar.service.ts ext-in1 src/lib/app/lifecycle
 ## files
 file src/lib/plugins/calendar/CalendarGrid.svelte component L76 module src/lib/plugins/calendar in1 t1
 file src/lib/plugins/calendar/CalendarNavigator.svelte component L163 module src/lib/plugins/calendar in1 t1
-file src/lib/plugins/calendar/calendar-rail.service.ts service L49 module src/lib/plugins/calendar in1 t1
+file src/lib/plugins/calendar/calendar-rail.service.ts service L49 module src/lib/plugins/calendar in1 t2
 file src/lib/plugins/calendar/calendar.logic.ts logic L156 module src/lib/plugins/calendar in3 t3
 file src/lib/plugins/calendar/calendar.service.ts service L17 module src/lib/plugins/calendar in3 t2
 file src/lib/plugins/calendar/calendar.store.svelte.ts store L56 module src/lib/plugins/calendar in2 t3
 file src/lib/plugins/calendar/day-lens.logic.ts logic L64 module src/lib/plugins/calendar in2 t4
 ## public
-sym src/lib/plugins/calendar/calendar-rail.service.ts:25 fn registerCalendarRail(): () => void L25 | Adds the Calendar navigator and the Day lens to the rail shell, which may not import plugins (ADR 0003).
+sym src/lib/plugins/calendar/calendar-rail.service.ts:25 fn registerCalendarRail(): () => void L25 | Adds the Days navigator and the Day lens to the rail shell, which may not import plugins (ADR 0003).
 sym src/lib/plugins/calendar/calendar.service.ts:15 fn resetCalendar(): void L3 | Resets the calendar store
 ## stores
 store src/lib/plugins/calendar/calendar.store.svelte.ts:7 calendarStore esc:0

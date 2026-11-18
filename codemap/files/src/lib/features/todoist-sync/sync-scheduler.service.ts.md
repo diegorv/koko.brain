@@ -26,7 +26,7 @@ by src/lib/features/todoist-sync/sync-scheduler.service.ts:startAutoSync <- src/
 sym src/lib/features/todoist-sync/sync-scheduler.service.ts:112 fn stopAutoSync(): void L24 | Stops the automatic sync: no trigger fires any more, a queued follow-up is dropped (a waiting "Sync now" resolves as stopped), the persistent failure and over-…
 by src/lib/features/todoist-sync/sync-scheduler.service.ts:stopAutoSync <- src/lib/app/lifecycle/app-lifecycle.service.ts:169 in initializeVault call +1
 sym src/lib/features/todoist-sync/sync-scheduler.service.ts:142 fn syncNowFromUi(): Promise<void> L5 | Palette "Todoist: Sync now": runs a cycle and shows its message in a toast.
-by src/lib/features/todoist-sync/sync-scheduler.service.ts:syncNowFromUi <- src/lib/app/commands.ts:285 in getBuiltInCommands call
+by src/lib/features/todoist-sync/sync-scheduler.service.ts:syncNowFromUi <- src/lib/app/commands.ts:288 in getBuiltInCommands call
 ## locals
 local src/lib/features/todoist-sync/sync-scheduler.service.ts:148 fn requestManualCycle(): Promise<SyncNowOutcome> L9
 local src/lib/features/todoist-sync/sync-scheduler.service.ts:159 fn rateLimitRefusal(): SyncNowOutcome | null L5

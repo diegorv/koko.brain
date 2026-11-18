@@ -49,7 +49,7 @@ imp src/lib/plugins/mods/mod-vault.service.ts:3 -> src/lib/contracts/ipc.ts call
 imp src/lib/plugins/mods/mods-host.service.ts:4 -> src/lib/contracts/ipc.ts call
 more imported-by 6 not shown: src/lib/plugins/quick-capture(2) src/lib/utils(2) src/lib/plugins/templates(1) src/routes(1): q importers src/lib/contracts/ipc.ts
 ## reach
-in2 src/lib/contracts/ipc.ts 82 files in 37 modules: src/lib/app(9) src/lib/features/event-calendar(8) src/lib/features/rail-shell(7) src/lib/core/settings(6) src/lib/features/tasks(4) +32 modules: q impact src/lib/contracts/ipc.ts --depth 2
+in2 src/lib/contracts/ipc.ts 83 files in 37 modules: src/lib/app(10) src/lib/features/event-calendar(8) src/lib/features/rail-shell(7) src/lib/core/settings(6) src/lib/features/tasks(4) +32 modules: q impact src/lib/contracts/ipc.ts --depth 2
 out2 src/lib/contracts/ipc.ts 1 files in 1 modules: src/lib/contracts(1)
 ## tests
 test src/tests/lib/contracts/ipc.test.ts imports src/lib/contracts/ipc.ts mirror

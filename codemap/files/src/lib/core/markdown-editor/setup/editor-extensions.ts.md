@@ -27,7 +27,7 @@ test src/tests/lib/app/global-keybindings.test.ts imports src/lib/core/markdown-
 test src/tests/lib/core/markdown-editor/MarkdownEditor.test.ts imports src/lib/core/markdown-editor/setup/editor-extensions.ts
 ## symbols
 sym src/lib/core/markdown-editor/setup/editor-extensions.ts:37 const COPY_BLOCK_LINK_SHORTCUT L1 | Copy Block Link (Cmd+Shift+L).
-by src/lib/core/markdown-editor/setup/editor-extensions.ts:COPY_BLOCK_LINK_SHORTCUT <- src/lib/app/commands.ts:403 in getBuiltInCommands ref
+by src/lib/core/markdown-editor/setup/editor-extensions.ts:COPY_BLOCK_LINK_SHORTCUT <- src/lib/app/commands.ts:406 in getBuiltInCommands ref
 by src/lib/core/markdown-editor/setup/editor-extensions.ts:COPY_BLOCK_LINK_SHORTCUT <- src/lib/core/markdown-editor/MarkdownEditor.svelte:755 in (markup) markup
 sym src/lib/core/markdown-editor/setup/editor-extensions.ts:40 interface CreateExtensionsOptions L50 | Options for building the CodeMirror extension array
 sym src/lib/core/markdown-editor/setup/editor-extensions.ts:99 fn sourceModeExtensions(): Extension[] L9 | Extensions installed only in source mode.

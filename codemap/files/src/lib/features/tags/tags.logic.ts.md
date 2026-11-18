@@ -7,7 +7,7 @@ imp src/lib/features/tags/tags.logic.ts:1 -> src/lib/features/tags/tags.types.ts
 imp src/lib/features/tags/TagsView.svelte:8 -> src/lib/features/tags/tags.logic.ts countVisibleTags,filterTagTree,filterTagTreeByQuery
 imp src/lib/features/tags/tags.service.ts:7 -> src/lib/features/tags/tags.logic.ts buildTagTree,sortTagTree,tagTreeShape
 ## reach
-in2 src/lib/features/tags/tags.logic.ts 3 files in 1 modules: src/lib/app(3)
+in2 src/lib/features/tags/tags.logic.ts 4 files in 1 modules: src/lib/app(4)
 out2 src/lib/features/tags/tags.logic.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/features/tags/tags.logic.test.ts imports src/lib/features/tags/tags.logic.ts mirror

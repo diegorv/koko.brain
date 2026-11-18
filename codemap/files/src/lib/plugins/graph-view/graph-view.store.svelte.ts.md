@@ -8,7 +8,7 @@ imp src/lib/plugins/graph-view/GraphControls.svelte:11 -> src/lib/plugins/graph-
 imp src/lib/plugins/graph-view/GraphView.svelte:17 -> src/lib/plugins/graph-view/graph-view.store.svelte.ts graphViewStore
 imp src/lib/plugins/graph-view/graph-view.service.ts:6 -> src/lib/plugins/graph-view/graph-view.store.svelte.ts graphViewStore
 ## reach
-in2 src/lib/plugins/graph-view/graph-view.store.svelte.ts 4 files in 1 modules: src/lib/app(4)
+in2 src/lib/plugins/graph-view/graph-view.store.svelte.ts 5 files in 1 modules: src/lib/app(5)
 out2 src/lib/plugins/graph-view/graph-view.store.svelte.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/plugins/graph-view/graph-view.store.test.ts imports src/lib/plugins/graph-view/graph-view.store.svelte.ts mirror

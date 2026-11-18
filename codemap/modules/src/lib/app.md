@@ -34,12 +34,12 @@ dep src/lib/app -> src/lib/features/properties 8
 dep src/lib/app -> src/lib/features/quick-switcher 5
 dep src/lib/app -> src/lib/features/rail-shell 19
 dep src/lib/app -> src/lib/features/search 10
-dep src/lib/app -> src/lib/features/tags 3
-dep src/lib/app -> src/lib/features/tasks 5
+dep src/lib/app -> src/lib/features/tags 4
+dep src/lib/app -> src/lib/features/tasks 6
 dep src/lib/app -> src/lib/features/todoist-sync 8
 dep src/lib/app -> src/lib/features/type-definitions 14
 dep src/lib/app -> src/lib/plugins/calendar 2
-dep src/lib/app -> src/lib/plugins/graph-view 4
+dep src/lib/app -> src/lib/plugins/graph-view 5
 dep src/lib/app -> src/lib/plugins/kanban 4
 dep src/lib/app -> src/lib/plugins/mods 9
 dep src/lib/app -> src/lib/plugins/one-on-one 5
@@ -67,14 +67,14 @@ file src/lib/app/EditorView.svelte component L159 module src/lib/app in1 t3
 file src/lib/app/LabsSection.svelte component L52 module src/lib/app in1 t1
 file src/lib/app/SettingsPanel.svelte component L162 module src/lib/app in1 t1
 file src/lib/app/boot.ts other L97 module src/lib/app in1 t15
-file src/lib/app/commands.ts other L457 module src/lib/app in1 t5
+file src/lib/app/commands.ts other L460 module src/lib/app in1 t5
 file src/lib/app/deep-link-actions.ts other L240 module src/lib/app in1 t2
 file src/lib/app/editor-host.ts other L216 module src/lib/app in1 t8
 file src/lib/app/global-keybindings.ts other L229 module src/lib/app in2 t1
 file src/lib/app/lifecycle/app-lifecycle.service.ts service L686 module src/lib/app in1 t3
 file src/lib/app/lifecycle/index-updater.service.ts service L44 module src/lib/app in1 t1
 file src/lib/app/lifecycle/watcher-handler.service.ts service L126 module src/lib/app in1 t3
-file src/lib/app/rail-navigation.ts other L38 module src/lib/app in3 t1
+file src/lib/app/rail-navigation.ts other L59 module src/lib/app in3 t1
 file src/lib/app/tauri-listeners.service.ts service L346 module src/lib/app in1 t2
 ## public
 sym src/lib/app/AppOverlays.svelte:1 component AppOverlays L27

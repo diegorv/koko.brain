@@ -8,7 +8,7 @@ imp src/lib/plugins/graph-view/graph-view.logic.ts:4 -> src/lib/plugins/graph-vi
 imp src/lib/plugins/graph-view/graph-view.service.ts:7 -> src/lib/plugins/graph-view/graph-view.types.ts type:GraphData
 imp src/lib/plugins/graph-view/graph-view.store.svelte.ts:1 -> src/lib/plugins/graph-view/graph-view.types.ts type:GraphMode,type:GraphFilters,type:GraphDisplay
 ## reach
-in2 src/lib/plugins/graph-view/graph-view.types.ts 4 files in 1 modules: src/lib/app(4)
+in2 src/lib/plugins/graph-view/graph-view.types.ts 5 files in 1 modules: src/lib/app(5)
 out2 src/lib/plugins/graph-view/graph-view.types.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/plugins/graph-view/graph-view.logic.test.ts imports-type src/lib/plugins/graph-view/graph-view.types.ts

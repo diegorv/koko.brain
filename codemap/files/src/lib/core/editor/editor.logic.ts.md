@@ -1,7 +1,7 @@
 # file card src/lib/core/editor/editor.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/editor/editor.logic.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, calls
-file src/lib/core/editor/editor.logic.ts logic L192 module src/lib/core/editor in21 t19
+file src/lib/core/editor/editor.logic.ts logic L192 module src/lib/core/editor in22 t22
 ## imports
 imp src/lib/core/editor/editor.logic.ts:1 -> src/lib/utils/path.ts basename,relativePath
 imp src/lib/core/editor/editor.logic.ts:3 -> src/lib/core/editor/editor.types.ts type:EditorTab
@@ -19,6 +19,7 @@ imp src/lib/core/status-bar/SaveStatus.svelte:5 -> src/lib/core/editor/editor.lo
 imp src/lib/features/auto-organize/auto-organize.service.ts:6 -> src/lib/core/editor/editor.logic.ts isTabDirty
 imp src/lib/features/event-calendar/event-calendar.service.ts:17 -> src/lib/core/editor/editor.logic.ts EVENT_CALENDAR_VIRTUAL_PATH,findTabIndex
 imp src/lib/features/properties/lifecycle.service.ts:2 -> src/lib/core/editor/editor.logic.ts isMarkdownNoteTab
+imp src/lib/features/rail-shell/rail-items.logic.ts:2 -> src/lib/core/editor/editor.logic.ts GRAPH_VIRTUAL_PATH,TAGS_VIRTUAL_PATH,TASKS_VIRTUAL_PATH
 imp src/lib/features/search/SemanticIndexStatus.svelte:8 -> src/lib/core/editor/editor.logic.ts isVirtualTab
 imp src/lib/features/tags/tags.service.ts:5 -> src/lib/core/editor/editor.logic.ts findTabIndex,TAGS_VIRTUAL_PATH
 imp src/lib/features/tasks/tasks.service.ts:5 -> src/lib/core/editor/editor.logic.ts findTabIndex,isTabDirty,TASKS_VIRTUAL_PATH
@@ -28,7 +29,7 @@ imp src/lib/plugins/mods/mod-vault.service.ts:5 -> src/lib/core/editor/editor.lo
 imp src/lib/plugins/word-count/WordCount.svelte:4 -> src/lib/core/editor/editor.logic.ts isVirtualTab
 imp src/routes/(app)/+layout.svelte:21 -> src/lib/core/editor/editor.logic.ts isVirtualTab
 ## reach
-in2 src/lib/core/editor/editor.logic.ts 79 files in 33 modules: src/lib/features/event-calendar(10) src/lib/app(9) src/lib/features/rail-shell(8) src/lib/features/todoist-sync(4) src/lib/features/backlinks(3) +28 modules: q impact src/lib/core/editor/editor.logic.ts --depth 2
+in2 src/lib/core/editor/editor.logic.ts 80 files in 33 modules: src/lib/features/event-calendar(10) src/lib/app(9) src/lib/features/rail-shell(9) src/lib/features/todoist-sync(4) src/lib/features/backlinks(3) +28 modules: q impact src/lib/core/editor/editor.logic.ts --depth 2
 out2 src/lib/core/editor/editor.logic.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/core/editor/editor.logic.test.ts imports src/lib/core/editor/editor.logic.ts mirror
@@ -36,6 +37,7 @@ test src/tests/lib/app/EditorView.test.ts imports src/lib/core/editor/editor.log
 test src/tests/lib/app/commands.new-commands.test.ts imports src/lib/core/editor/editor.logic.ts
 test src/tests/lib/app/commands.test.ts imports src/lib/core/editor/editor.logic.ts
 test src/tests/lib/app/global-keybindings.test.ts imports src/lib/core/editor/editor.logic.ts
+test src/tests/lib/app/rail-navigation.test.ts imports src/lib/core/editor/editor.logic.ts
 test src/tests/lib/core/editor/editor.service.test.ts imports src/lib/core/editor/editor.logic.ts
 test src/tests/lib/core/layout/layout.logic.test.ts imports src/lib/core/editor/editor.logic.ts
 test src/tests/lib/core/layout/layout.service.test.ts imports src/lib/core/editor/editor.logic.ts
@@ -45,6 +47,8 @@ test src/tests/lib/core/markdown-editor/undo-history-across-notes.test.ts import
 test src/tests/lib/features/backlinks/LinkItem.test.ts imports src/lib/core/editor/editor.logic.ts
 test src/tests/lib/features/event-calendar/ShowInCalendarButton.test.ts imports src/lib/core/editor/editor.logic.ts
 test src/tests/lib/features/event-calendar/event-calendar.service.test.ts imports src/lib/core/editor/editor.logic.ts
+test src/tests/lib/features/rail-shell/Rail.test.ts imports src/lib/core/editor/editor.logic.ts
+test src/tests/lib/features/rail-shell/rail-items.logic.test.ts imports src/lib/core/editor/editor.logic.ts
 test src/tests/lib/features/search/SearchResult.test.ts imports src/lib/core/editor/editor.logic.ts
 test src/tests/lib/features/tags/tags.service.test.ts imports src/lib/core/editor/editor.logic.ts
 test src/tests/lib/features/todoist-sync/note-writer.service.test.ts imports src/lib/core/editor/editor.logic.ts
@@ -53,12 +57,15 @@ test src/tests/lib/plugins/graph-view/graph-view.service.test.ts imports src/lib
 ## symbols
 sym src/lib/core/editor/editor.logic.ts:6 const TASKS_VIRTUAL_PATH L1 | Virtual path used for the singleton Tasks tab
 by src/lib/core/editor/editor.logic.ts:TASKS_VIRTUAL_PATH <- src/lib/core/layout/layout.logic.ts:17 in NO_RIGHT_SIDEBAR_PATHS ref
+by src/lib/core/editor/editor.logic.ts:TASKS_VIRTUAL_PATH <- src/lib/features/rail-shell/rail-items.logic.ts:63 in railItems ref
 by src/lib/core/editor/editor.logic.ts:TASKS_VIRTUAL_PATH <- src/lib/features/tasks/tasks.service.ts:548 in openTasksTab ref +3
 sym src/lib/core/editor/editor.logic.ts:9 const GRAPH_VIRTUAL_PATH L1 | Virtual path used for the singleton Graph View tab
 by src/lib/core/editor/editor.logic.ts:GRAPH_VIRTUAL_PATH <- src/lib/core/layout/layout.logic.ts:19 in NO_RIGHT_SIDEBAR_PATHS ref
+by src/lib/core/editor/editor.logic.ts:GRAPH_VIRTUAL_PATH <- src/lib/features/rail-shell/rail-items.logic.ts:64 in railItems ref
 by src/lib/core/editor/editor.logic.ts:GRAPH_VIRTUAL_PATH <- src/lib/plugins/graph-view/graph-view.service.ts:35 in openGraphTab ref +4
 sym src/lib/core/editor/editor.logic.ts:12 const TAGS_VIRTUAL_PATH L1 | Virtual path used for the singleton Tags tab
 by src/lib/core/editor/editor.logic.ts:TAGS_VIRTUAL_PATH <- src/lib/core/layout/layout.logic.ts:18 in NO_RIGHT_SIDEBAR_PATHS ref
+by src/lib/core/editor/editor.logic.ts:TAGS_VIRTUAL_PATH <- src/lib/features/rail-shell/rail-items.logic.ts:65 in railItems ref
 by src/lib/core/editor/editor.logic.ts:TAGS_VIRTUAL_PATH <- src/lib/features/tags/tags.service.ts:127 in openTagsTab ref +3
 sym src/lib/core/editor/editor.logic.ts:15 const EVENT_CALENDAR_VIRTUAL_PATH L1 | Virtual path used for the singleton Calendar tab
 by src/lib/core/editor/editor.logic.ts:EVENT_CALENDAR_VIRTUAL_PATH <- src/lib/core/layout/layout.logic.ts:16 in NO_RIGHT_SIDEBAR_PATHS ref

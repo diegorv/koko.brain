@@ -17,7 +17,7 @@ out2 src/lib/features/todoist-sync/sync-log.service.ts 9 files in 5 modules: src
 test src/tests/lib/features/todoist-sync/sync-log.service.test.ts imports src/lib/features/todoist-sync/sync-log.service.ts mirror
 ## symbols
 sym src/lib/features/todoist-sync/sync-log.service.ts:17 fn showSyncLog(): Promise<void> L13 | Palette "Todoist: Show sync log": reads the newest sync log rows of the open vault (cycle rows, conflict losers, detaches, frozen anchors, skipped lines, termi…
-by src/lib/features/todoist-sync/sync-log.service.ts:showSyncLog <- src/lib/app/commands.ts:291 in getBuiltInCommands call
+by src/lib/features/todoist-sync/sync-log.service.ts:showSyncLog <- src/lib/app/commands.ts:294 in getBuiltInCommands call
 sym src/lib/features/todoist-sync/sync-log.service.ts:36 fn logCycle(vaultPath: string, run: CycleRun): Promise<void> L8 | Writes the `cycle` row of a sync cycle to the log of `vaultPath`, folding a quiet automatic cycle into the newest row (`cycleLogEntry`).
 by src/lib/features/todoist-sync/sync-log.service.ts:logCycle <- src/lib/features/todoist-sync/sync-now.service.ts:247 in syncNow call
 ## calls

@@ -9,7 +9,7 @@ imp src/lib/features/tasks/TasksView.svelte:83 -> src/lib/features/tasks/tasks-k
 imp src/lib/features/tasks/task-query.logic.ts:9 -> src/lib/features/tasks/tasks-keys.logic.ts taskRowKey
 imp src/lib/features/tasks/tasks.service.ts:14 -> src/lib/features/tasks/tasks-keys.logic.ts taskRowKey
 ## reach
-in2 src/lib/features/tasks/tasks-keys.logic.ts 8 files in 2 modules: src/lib/app(4) src/lib/features/tasks(4)
+in2 src/lib/features/tasks/tasks-keys.logic.ts 9 files in 2 modules: src/lib/app(5) src/lib/features/tasks(4)
 out2 src/lib/features/tasks/tasks-keys.logic.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/features/tasks/tasks-keys.logic.test.ts imports src/lib/features/tasks/tasks-keys.logic.ts mirror

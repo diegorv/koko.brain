@@ -38,7 +38,7 @@ imp src/lib/app/editor-host.ts:36 -> src/lib/app/rail-navigation.ts openRailView
 imp src/lib/app/EditorView.svelte:13 -> src/lib/app/editor-host.ts appBlockLinks,appEditorHost,appFencedBlockRenderers,openWikilinkTarget
 ## reach
 in2 src/lib/app/editor-host.ts 1 files in 1 modules: src/lib/app(1)
-out2 src/lib/app/editor-host.ts 45 files in 16 modules: src/lib/features/collection(8) src/lib/utils(7) src/lib/core/markdown-editor(4) src/lib/core/settings(4) src/lib/plugins/queryjs(4) +11 modules
+out2 src/lib/app/editor-host.ts 48 files in 19 modules: src/lib/features/collection(8) src/lib/utils(7) src/lib/core/markdown-editor(4) src/lib/core/settings(4) src/lib/plugins/queryjs(4) +14 modules
 ## tests
 test src/tests/lib/app/editor-host.test.ts imports src/lib/app/editor-host.ts mirror
 test src/tests/lib/app/EditorView.test.ts imports src/lib/app/editor-host.ts

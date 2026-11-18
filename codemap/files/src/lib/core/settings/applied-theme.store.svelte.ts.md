@@ -5,7 +5,7 @@ file src/lib/core/settings/applied-theme.store.svelte.ts store L35 module src/li
 imp src/lib/app/AppOverlays.svelte:4 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
 imp src/lib/core/markdown-editor/MarkdownEditor.svelte:25 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
 imp src/lib/core/settings/theme.service.ts:4 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
-imp src/lib/features/rail-shell/Rail.svelte:17 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
+imp src/lib/features/rail-shell/Rail.svelte:20 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
 imp src/lib/plugins/graph-view/GraphView.svelte:22 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
 imp src/lib/plugins/mods/mod-theme.svelte.ts:3 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
 ## reach
@@ -24,7 +24,7 @@ sym src/lib/core/settings/applied-theme.store.svelte.ts:14 store appliedThemeSto
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/app/AppOverlays.svelte:17 in (markup) markup
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/core/markdown-editor/MarkdownEditor.svelte:119 in freshState member +2
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/core/settings/theme.service.ts:35 in applyMode mcall +1
-by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/features/rail-shell/Rail.svelte:181 in actionRow member
+by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/features/rail-shell/Rail.svelte:193 in actionRow member
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/plugins/graph-view/GraphView.svelte:475 in $effect@474 member
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/plugins/mods/mod-theme.svelte.ts:41 in readModTheme member +4
 ## store

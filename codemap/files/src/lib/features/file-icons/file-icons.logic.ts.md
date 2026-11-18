@@ -17,7 +17,7 @@ imp src/lib/features/properties/PropertiesView.svelte:26 -> src/lib/features/fil
 imp src/lib/features/properties/RelationshipSearch.svelte:11 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:15 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
 imp src/lib/features/rail-shell/FilesNavigator.svelte:49 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
-imp src/lib/features/rail-shell/Rail.svelte:19 -> src/lib/features/file-icons/file-icons.logic.ts iconColorCss,parseIconValuePermissive
+imp src/lib/features/rail-shell/Rail.svelte:22 -> src/lib/features/file-icons/file-icons.logic.ts iconColorCss,parseIconValuePermissive
 imp src/lib/features/rail-shell/TypesNavigator.svelte:29 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
 imp src/lib/features/tasks/TasksView.svelte:30 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
 imp src/lib/features/type-definitions/type-sidebar.logic.ts:10 -> src/lib/features/file-icons/file-icons.logic.ts extractViewIcon,parseIconValuePermissive
@@ -33,7 +33,7 @@ sym src/lib/features/file-icons/file-icons.logic.ts:14 fn addRecentIcon(recent: 
 by src/lib/features/file-icons/file-icons.logic.ts:addRecentIcon <- src/lib/features/file-icons/file-icons.service.ts:78 in trackRecentIcon call
 sym src/lib/features/file-icons/file-icons.logic.ts:41 fn parseIconValuePermissive(raw: string): { iconPack: IconPackId; iconName: string } | null L8 | Parses an icon value that may be either `pack:name` or a bare name.
 by src/lib/features/file-icons/file-icons.logic.ts:parseIconValuePermissive <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:207 in iconRef=$derived call
-by src/lib/features/file-icons/file-icons.logic.ts:parseIconValuePermissive <- src/lib/features/rail-shell/Rail.svelte:201 in actionIcon call
+by src/lib/features/file-icons/file-icons.logic.ts:parseIconValuePermissive <- src/lib/features/rail-shell/Rail.svelte:214 in actionIcon call
 by src/lib/features/file-icons/file-icons.logic.ts:parseIconValuePermissive <- src/lib/features/type-definitions/type-sidebar.logic.ts:534 in updateViewIconYaml call
 by src/lib/features/file-icons/file-icons.logic.ts:parseIconValuePermissive <- src/lib/plugins/mods/mods-host.service.ts:592 in createModContext call
 sym src/lib/features/file-icons/file-icons.logic.ts:130 fn extractIconFromFrontmatter(content: string): { iconPack: IconPackId; iconName: string } | null L4 | Extracts icon assignment from raw markdown content's YAML frontmatter.
@@ -51,7 +51,7 @@ by src/lib/features/file-icons/file-icons.logic.ts:extractViewIcon <- src/lib/fe
 by src/lib/features/file-icons/file-icons.logic.ts:extractViewIcon <- src/lib/features/type-definitions/type-sidebar.logic.ts:536 in updateViewIconYaml call +1
 sym src/lib/features/file-icons/file-icons.logic.ts:219 fn iconColorCss(color: string | undefined): string | undefined L5 | CSS color for an icon's `_color`: a type palette name (`green`, any case) becomes the active theme's token, `var(--type-green)`; any other value (a hex from th…
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorCss <- src/lib/features/file-icons/IconRenderer.svelte:20 in cssColor=$derived call
-by src/lib/features/file-icons/file-icons.logic.ts:iconColorCss <- src/lib/features/rail-shell/Rail.svelte:167 in pinRow call
+by src/lib/features/file-icons/file-icons.logic.ts:iconColorCss <- src/lib/features/rail-shell/Rail.svelte:179 in pinRow call
 sym src/lib/features/file-icons/file-icons.logic.ts:231 fn iconColorStyle(color: string | undefined): string | undefined L4 | The inline `style` that colors an item's default icon, a Lucide component drawn in `currentColor`, with the item's `_color` when it has no icon of its own: the…
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/app/EditorView.svelte:61 in (markup) markup
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/note-list/NoteRow.svelte:56 in (markup) markup +1

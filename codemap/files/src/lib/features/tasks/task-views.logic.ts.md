@@ -12,7 +12,7 @@ imp src/lib/features/tasks/TasksView.svelte:82 -> src/lib/features/tasks/task-vi
 imp src/lib/features/tasks/tasks.service.ts:13 -> src/lib/features/tasks/task-views.logic.ts findTaskView,parseTasksViewState,viewQueryOf,withTasksViewState,type:SavedTaskView
 imp src/lib/features/tasks/tasks.store.svelte.ts:20 -> src/lib/features/tasks/task-views.logic.ts TO_LIST_ID,mergeExcludes,toListView,type:SavedTaskView,type:TaskViewQuery
 ## reach
-in2 src/lib/features/tasks/task-views.logic.ts 5 files in 2 modules: src/lib/app(4) src/lib/features/tasks(1)
+in2 src/lib/features/tasks/task-views.logic.ts 6 files in 2 modules: src/lib/app(5) src/lib/features/tasks(1)
 out2 src/lib/features/tasks/task-views.logic.ts 10 files in 4 modules: src/lib/features/tasks(4) src/lib/utils(4) src/lib/features/type-definitions(1) src/lib/types(1)
 ## tests
 test src/tests/lib/features/tasks/task-views.logic.test.ts imports src/lib/features/tasks/task-views.logic.ts mirror
