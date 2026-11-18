@@ -17,11 +17,11 @@ test src/tests/lib/features/tasks/tasks.service.test.ts imports src/lib/features
 sym src/lib/features/tasks/task-row-edit.logic.ts:6 type DuePreset L1 | The row menu's Due presets.
 by src/lib/features/tasks/task-row-edit.logic.ts:DuePreset <- src/lib/features/tasks/TasksView.svelte:81 in (script) import
 sym src/lib/features/tasks/task-row-edit.logic.ts:14 fn resolveDuePreset(preset: DuePreset, today: string): string L3 | The `YYYY-MM-DD` due date a Due preset sets: today, tomorrow, or today + 7 days.
-by src/lib/features/tasks/task-row-edit.logic.ts:resolveDuePreset <- src/lib/features/tasks/TasksView.svelte:693 in (markup) markup
+by src/lib/features/tasks/task-row-edit.logic.ts:resolveDuePreset <- src/lib/features/tasks/TasksView.svelte:722 in (markup) markup
 sym src/lib/features/tasks/task-row-edit.logic.ts:22 const PRIORITY_SIGNIFIERS: Record<Exclude<TaskPriority, 'none'>, PriorityEmoji> L7 | The signifier of each priority level, as the Rust parser reads them (`PRIORITY_EMOJIS`).
 sym src/lib/features/tasks/task-row-edit.logic.ts:31 fn prioritySignifier(priority: TaskPriority): PriorityEmoji | null L3 | The signifier `setPriorityToken` writes for `priority`; null for `none`, which removes it.
-by src/lib/features/tasks/task-row-edit.logic.ts:prioritySignifier <- src/lib/features/tasks/TasksView.svelte:562 in pickRowPriority call
+by src/lib/features/tasks/task-row-edit.logic.ts:prioritySignifier <- src/lib/features/tasks/TasksView.svelte:591 in pickRowPriority call
 sym src/lib/features/tasks/task-row-edit.logic.ts:36 fn priorityMenuLabel(priority: TaskPriority): string L3 | A priority's row menu label and toast word: the level, capitalized (`None` for none).
-by src/lib/features/tasks/task-row-edit.logic.ts:priorityMenuLabel <- src/lib/features/tasks/TasksView.svelte:563 in pickRowPriority call +1
+by src/lib/features/tasks/task-row-edit.logic.ts:priorityMenuLabel <- src/lib/features/tasks/TasksView.svelte:592 in pickRowPriority call +1
 ## calls
 call src/lib/features/tasks/task-row-edit.logic.ts:15 in resolveDuePreset -> src/lib/utils/date.ts:formatDateWithOffset call

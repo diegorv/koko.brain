@@ -1,6 +1,6 @@
 # file card src/lib/features/tasks/SourcesPanel.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/tasks/SourcesPanel.svelte ' codemap/files
-file src/lib/features/tasks/SourcesPanel.svelte component L496 module src/lib/features/tasks in1 t0
+file src/lib/features/tasks/SourcesPanel.svelte component L504 module src/lib/features/tasks in1 t0
 ## imports
 imp src/lib/features/tasks/SourcesPanel.svelte:6 -> src/lib/components/ui/button/index.ts Button
 imp src/lib/features/tasks/SourcesPanel.svelte:7 -> src/lib/components/ui/dropdown-menu/index.ts *
@@ -16,8 +16,8 @@ imp src/lib/features/tasks/TasksView.svelte:34 -> src/lib/features/tasks/Sources
 in2 src/lib/features/tasks/SourcesPanel.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/tasks/SourcesPanel.svelte 40 files in 10 modules: src/lib/components(20) src/lib/features/tasks(6) src/lib/utils(4) src/lib/core/editor(3) src/lib/core/vault(2) +5 modules
 ## symbols
-sym src/lib/features/tasks/SourcesPanel.svelte:1 component SourcesPanel props:id L496
-by src/lib/features/tasks/SourcesPanel.svelte:default <- src/lib/features/tasks/TasksView.svelte:1103 in (markup) mount
+sym src/lib/features/tasks/SourcesPanel.svelte:1 component SourcesPanel props:id L504
+by src/lib/features/tasks/SourcesPanel.svelte:default <- src/lib/features/tasks/TasksView.svelte:1139 in (markup) mount
 ## locals
 local src/lib/features/tasks/SourcesPanel.svelte:91 fn emptyClause(kind: ClauseKind): TaskSourceClause L16
 local src/lib/features/tasks/SourcesPanel.svelte:109 fn clauseValue(clause: TaskSourceClause): string L16
@@ -43,20 +43,20 @@ mount src/lib/features/tasks/SourcesPanel.svelte:287 Switch -> src/lib/component
 mount src/lib/features/tasks/SourcesPanel.svelte:302 Input -> src/lib/components/ui/input/input.svelte
 mount src/lib/features/tasks/SourcesPanel.svelte:315 Button -> src/lib/components/ui/button/button.svelte
 mount src/lib/features/tasks/SourcesPanel.svelte:324 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/tasks/SourcesPanel.svelte:356 Input -> src/lib/components/ui/input/input.svelte
-mount src/lib/features/tasks/SourcesPanel.svelte:368 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/tasks/SourcesPanel.svelte:383 Input -> src/lib/components/ui/input/input.svelte
-mount src/lib/features/tasks/SourcesPanel.svelte:397 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/tasks/SourcesPanel.svelte:412 Input -> src/lib/components/ui/input/input.svelte
-mount src/lib/features/tasks/SourcesPanel.svelte:423 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/tasks/SourcesPanel.svelte:432 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/tasks/SourcesPanel.svelte:444 Switch -> src/lib/components/ui/switch/switch.svelte
-mount src/lib/features/tasks/SourcesPanel.svelte:452 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/tasks/SourcesPanel.svelte:470 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/tasks/SourcesPanel.svelte:482 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/tasks/SourcesPanel.svelte:488 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/tasks/SourcesPanel.svelte:364 Input -> src/lib/components/ui/input/input.svelte
+mount src/lib/features/tasks/SourcesPanel.svelte:376 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/tasks/SourcesPanel.svelte:391 Input -> src/lib/components/ui/input/input.svelte
+mount src/lib/features/tasks/SourcesPanel.svelte:405 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/tasks/SourcesPanel.svelte:420 Input -> src/lib/components/ui/input/input.svelte
+mount src/lib/features/tasks/SourcesPanel.svelte:431 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/tasks/SourcesPanel.svelte:440 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/tasks/SourcesPanel.svelte:452 Switch -> src/lib/components/ui/switch/switch.svelte
+mount src/lib/features/tasks/SourcesPanel.svelte:460 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/tasks/SourcesPanel.svelte:478 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/tasks/SourcesPanel.svelte:490 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/tasks/SourcesPanel.svelte:496 Button -> src/lib/components/ui/button/button.svelte
 ## mounted-at
-mount src/lib/features/tasks/TasksView.svelte:1103 SourcesPanel -> src/lib/features/tasks/SourcesPanel.svelte
+mount src/lib/features/tasks/TasksView.svelte:1139 SourcesPanel -> src/lib/features/tasks/SourcesPanel.svelte
 ## calls
 call src/lib/features/tasks/SourcesPanel.svelte:82 in suggestions=$derived -> src/lib/features/tasks/task-query.logic.ts:sourceSuggestions call
 call src/lib/features/tasks/SourcesPanel.svelte:164 in updateCard -> src/lib/features/tasks/tasks.service.ts:setTaskSources call
@@ -80,15 +80,15 @@ call src/lib/features/tasks/SourcesPanel.svelte:249 in removeEntry -> src/lib/fe
 call src/lib/features/tasks/SourcesPanel.svelte:290 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:setExclude markup
 call src/lib/features/tasks/SourcesPanel.svelte:311 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:addEntry markup +1
 call src/lib/features/tasks/SourcesPanel.svelte:330 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:removeEntry markup
-call src/lib/features/tasks/SourcesPanel.svelte:362 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:setProperty markup +2
-call src/lib/features/tasks/SourcesPanel.svelte:387 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:clauseValue markup +1
-call src/lib/features/tasks/SourcesPanel.svelte:389 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:updateClause markup +3
-call src/lib/features/tasks/SourcesPanel.svelte:389 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:withValue markup +3
-call src/lib/features/tasks/SourcesPanel.svelte:391 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:valueSuggestions markup +1
-call src/lib/features/tasks/SourcesPanel.svelte:404 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:setState markup
-call src/lib/features/tasks/SourcesPanel.svelte:428 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:setMatch markup +1
-call src/lib/features/tasks/SourcesPanel.svelte:447 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:setNegate markup
-call src/lib/features/tasks/SourcesPanel.svelte:458 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:removeClause markup
-call src/lib/features/tasks/SourcesPanel.svelte:478 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:addClause markup
-call src/lib/features/tasks/SourcesPanel.svelte:482 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:removeCard markup
-call src/lib/features/tasks/SourcesPanel.svelte:488 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:addCard markup
+call src/lib/features/tasks/SourcesPanel.svelte:370 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:setProperty markup +2
+call src/lib/features/tasks/SourcesPanel.svelte:395 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:clauseValue markup +1
+call src/lib/features/tasks/SourcesPanel.svelte:397 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:updateClause markup +3
+call src/lib/features/tasks/SourcesPanel.svelte:397 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:withValue markup +3
+call src/lib/features/tasks/SourcesPanel.svelte:399 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:valueSuggestions markup +1
+call src/lib/features/tasks/SourcesPanel.svelte:412 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:setState markup
+call src/lib/features/tasks/SourcesPanel.svelte:436 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:setMatch markup +1
+call src/lib/features/tasks/SourcesPanel.svelte:455 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:setNegate markup
+call src/lib/features/tasks/SourcesPanel.svelte:466 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:removeClause markup
+call src/lib/features/tasks/SourcesPanel.svelte:486 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:addClause markup
+call src/lib/features/tasks/SourcesPanel.svelte:490 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:removeCard markup
+call src/lib/features/tasks/SourcesPanel.svelte:496 in (markup) -> src/lib/features/tasks/SourcesPanel.svelte:addCard markup

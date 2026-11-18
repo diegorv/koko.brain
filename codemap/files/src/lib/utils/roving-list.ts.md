@@ -16,7 +16,7 @@ sym src/lib/utils/roving-list.ts:34 fn resolveRovingFocus(input: RovingKeyInput)
 by src/lib/utils/roving-list.ts:resolveRovingFocus <- src/lib/features/search/SearchPanel.svelte:107 in handleListKeydown call
 by src/lib/utils/roving-list.ts:resolveRovingFocus <- src/lib/features/tasks/tasks-keys.logic.ts:57 in resolveTaskKey call
 sym src/lib/utils/roving-list.ts:57 fn nextCurrentRow(order: string[], prevOrder: string[], current: string | null): string | null L14 | The current row after the list changed from `prevOrder` to `order`: `current` when it is still listed, else the first row after it in `prevOrder` that is still…
-by src/lib/utils/roving-list.ts:nextCurrentRow <- src/lib/features/tasks/TasksView.svelte:458 in $effect@448 call +1
+by src/lib/utils/roving-list.ts:nextCurrentRow <- src/lib/features/tasks/TasksView.svelte:487 in $effect@477 call +1
 sym src/lib/utils/roving-list.ts:82 fn tabStopRow(rendered: string[], order: string[], current: string | null): string | null L12 | The row that holds the list's tab stop: `current` when it is rendered.
 by src/lib/utils/roving-list.ts:tabStopRow <- src/lib/features/search/SearchPanel.svelte:84 in tabStopKey=$derived call
-by src/lib/utils/roving-list.ts:tabStopRow <- src/lib/features/tasks/TasksView.svelte:333 in tabStopKey=$derived call +2
+by src/lib/utils/roving-list.ts:tabStopRow <- src/lib/features/tasks/TasksView.svelte:341 in tabStopKey=$derived call +2

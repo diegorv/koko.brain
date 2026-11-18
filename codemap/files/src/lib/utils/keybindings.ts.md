@@ -1,6 +1,6 @@
 # file card src/lib/utils/keybindings.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/utils/keybindings.ts ' codemap/files
-file src/lib/utils/keybindings.ts other L81 module src/lib/utils in5 t4
+file src/lib/utils/keybindings.ts other L81 module src/lib/utils in5 t5
 ## imported-by
 imp src/lib/app/global-keybindings.ts:1 -> src/lib/utils/keybindings.ts registerKeybinding,type:KeyBinding,type:KeyCombo
 imp src/lib/core/markdown-editor/MarkdownEditor.svelte:33 -> src/lib/utils/keybindings.ts formatShortcut
@@ -14,6 +14,7 @@ out2 src/lib/utils/keybindings.ts 0 files in 0 modules: -
 test src/tests/lib/utils/keybindings.test.ts imports src/lib/utils/keybindings.ts mirror
 test src/tests/lib/app/commands.test.ts imports src/lib/utils/keybindings.ts
 test src/tests/lib/core/markdown-editor/MarkdownEditor.test.ts imports src/lib/utils/keybindings.ts
+test src/tests/lib/features/tasks/TasksView.keyboard.test.ts imports src/lib/utils/keybindings.ts
 test src/tests/lib/app/global-keybindings.test.ts mocks src/lib/utils/keybindings.ts
 ## symbols
 sym src/lib/utils/keybindings.ts:2 interface KeyBinding L9 | Describes a keyboard shortcut with modifier keys and a handler callback.

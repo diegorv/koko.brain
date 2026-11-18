@@ -52,10 +52,10 @@ test src/tests/lib/features/command-palette/CommandPalette.test.ts mocks src/lib
 ## symbols
 sym src/lib/features/tasks/tasks.service.ts:47 fn getTasksResetGeneration(): number L3 | Returns how many times `resetTasks` has run.
 sym src/lib/features/tasks/tasks.service.ts:74 fn buildTaskIndex(): Promise<void> L28 | Builds the Tasks store's rows from the memoized entries snapshot (`getVaultEntries`, one `get_all_vault_entries_v2` per index version, shared with QueryJS): ev…
-by src/lib/features/tasks/tasks.service.ts:buildTaskIndex <- src/lib/features/tasks/TasksView.svelte:274 in $effect@271 call +1
+by src/lib/features/tasks/tasks.service.ts:buildTaskIndex <- src/lib/features/tasks/TasksView.svelte:282 in $effect@279 call +1
 sym src/lib/features/tasks/tasks.service.ts:108 fn setTaskSources(sources: TaskSource[]): void L3 | Replaces the session's source cards.
 by src/lib/features/tasks/tasks.service.ts:setTaskSources <- src/lib/features/tasks/SourcesPanel.svelte:164 in updateCard call +2
-by src/lib/features/tasks/tasks.service.ts:setTaskSources <- src/lib/features/tasks/TasksView.svelte:354 in groupActions call +2
+by src/lib/features/tasks/tasks.service.ts:setTaskSources <- src/lib/features/tasks/TasksView.svelte:362 in groupActions call +2
 sym src/lib/features/tasks/tasks.service.ts:143 fn loadSavedTasksView(): void L12 | Loads this vault's saved Tasks state (`tasksView`, `parseTasksViewState`): the global excludes, the saved views, and the active list, whose query it copies int…
 by src/lib/features/tasks/tasks.service.ts:loadSavedTasksView <- src/lib/app/lifecycle/app-lifecycle.service.ts:213 in initializeVault call
 sym src/lib/features/tasks/tasks.service.ts:157 fn selectTaskList(id: string): void L6 | Selects the list with `id` (a saved view or a built-in) and saves it as the active one; an unknown id does nothing.
@@ -77,11 +77,11 @@ by src/lib/features/tasks/tasks.service.ts:setTaskExcludes <- src/lib/features/t
 sym src/lib/features/tasks/tasks.service.ts:283 fn setTaskStatus(filePath: string, task: Pick<TaskItem, 'text' | 'status' | 'lineNumber'>, target: TaskStatus): Promise<boolean> L46 | Writes `target` as the status of `task` via the Rust `toggle_task_status` command, and returns true only when the line was rewritten.
 sym src/lib/features/tasks/tasks.service.ts:376 fn updateTask(filePath: string, task: Pick<TaskItem, 'text' | 'status' | 'lineNumber'>, newText: string): Promise<boolean> L49 | Writes `newText` as the text of `task` (the part after `[ ] `) via the Rust `write_task_text` command, and returns true only when the line was rewritten.
 sym src/lib/features/tasks/tasks.service.ts:427 fn toggleTask(filePath: string, task: TaskItem): Promise<void> L3 | Toggles a task: writes `toggleTarget(task.status)` through `setTaskStatus`.
-by src/lib/features/tasks/tasks.service.ts:toggleTask <- src/lib/features/tasks/TasksView.svelte:259 in handleToggle call
+by src/lib/features/tasks/tasks.service.ts:toggleTask <- src/lib/features/tasks/TasksView.svelte:267 in handleToggle call
 sym src/lib/features/tasks/tasks.service.ts:448 fn setTaskStatusFromMenu(filePath: string, task: TaskItem, target: TaskStatus): Promise<void> L7 | A row menu's status change: `setTaskStatus`, then a `Task marked <Label>` toast whose Undo writes `task.status` back.
-by src/lib/features/tasks/tasks.service.ts:setTaskStatusFromMenu <- src/lib/features/tasks/TasksView.svelte:542 in pickRowStatus call
+by src/lib/features/tasks/tasks.service.ts:setTaskStatusFromMenu <- src/lib/features/tasks/TasksView.svelte:571 in pickRowStatus call
 sym src/lib/features/tasks/tasks.service.ts:463 fn updateTaskFromMenu(filePath: string, task: TaskItem, newText: string, message: string): Promise<void> L7 | A row menu's text change (due date, priority): `updateTask`, then a toast with `message` whose Undo writes `task.text` back, expecting `newText`.
-by src/lib/features/tasks/tasks.service.ts:updateTaskFromMenu <- src/lib/features/tasks/TasksView.svelte:555 in setRowDue call +1
+by src/lib/features/tasks/tasks.service.ts:updateTaskFromMenu <- src/lib/features/tasks/TasksView.svelte:584 in setRowDue call +1
 sym src/lib/features/tasks/tasks.service.ts:547 fn openTasksTab(): void L14 | Opens or focuses the Tasks tab.
 by src/lib/features/tasks/tasks.service.ts:openTasksTab <- src/lib/app/commands.ts:91 in tasksStatusFilterCommand call
 by src/lib/features/tasks/tasks.service.ts:openTasksTab <- src/lib/app/rail-navigation.ts:31 in selectRailItem call

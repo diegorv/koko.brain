@@ -47,30 +47,30 @@ by src/lib/features/tasks/task-query.logic.ts:TaskQuickFilters <- src/lib/featur
 by src/lib/features/tasks/task-query.logic.ts:TaskQuickFilters <- src/lib/features/tasks/task-views.logic.ts:16 in (module) import
 by src/lib/features/tasks/task-query.logic.ts:TaskQuickFilters <- src/lib/features/tasks/tasks.store.svelte.ts:15 in (module) import
 sym src/lib/features/tasks/task-query.logic.ts:85 const DEFAULT_QUICK: TaskQuickFilters L1 | The quick filters a fresh Tasks view starts with
-by src/lib/features/tasks/task-query.logic.ts:DEFAULT_QUICK <- src/lib/features/tasks/TasksView.svelte:240 in savedQuick=$derived ref
+by src/lib/features/tasks/task-query.logic.ts:DEFAULT_QUICK <- src/lib/features/tasks/TasksView.svelte:248 in savedQuick=$derived ref
 by src/lib/features/tasks/task-query.logic.ts:DEFAULT_QUICK <- src/lib/features/tasks/task-views.logic.ts:73 in ALL_OPEN_VIEW ref +4
 by src/lib/features/tasks/task-query.logic.ts:DEFAULT_QUICK <- src/lib/features/tasks/tasks.store.svelte.ts:155 in tasksStore.resetQuick ref
 sym src/lib/features/tasks/task-query.logic.ts:88 type QuickFilterField L1 | A quick filter field `isQuickFieldDefault` tests
 by src/lib/features/tasks/task-query.logic.ts:QuickFilterField <- src/lib/features/tasks/TasksView.svelte:68 in (script) import
 sym src/lib/features/tasks/task-query.logic.ts:96 fn isQuickFieldDefault(quick: TaskQuickFilters, field: QuickFilterField): boolean L14 | Whether `field` of `quick` is at its default.
-by src/lib/features/tasks/task-query.logic.ts:isQuickFieldDefault <- src/lib/features/tasks/TasksView.svelte:237 in foldedCount=$derived call +1
+by src/lib/features/tasks/task-query.logic.ts:isQuickFieldDefault <- src/lib/features/tasks/TasksView.svelte:245 in foldedCount=$derived call +1
 sym src/lib/features/tasks/task-query.logic.ts:112 const TASK_PRIORITIES: readonly TaskPriority[] L1 | Every priority, highest first, in the order of the generated `TaskPriority` (`none` between medium and low)
-by src/lib/features/tasks/task-query.logic.ts:TASK_PRIORITIES <- src/lib/features/tasks/TasksView.svelte:209 in priorityTriggerLabel=$derived mcall +2
+by src/lib/features/tasks/task-query.logic.ts:TASK_PRIORITIES <- src/lib/features/tasks/TasksView.svelte:217 in priorityTriggerLabel=$derived mcall +2
 by src/lib/features/tasks/task-query.logic.ts:TASK_PRIORITIES <- src/lib/features/tasks/task-views.logic.ts:274 in parseQuick ref
 sym src/lib/features/tasks/task-query.logic.ts:115 fn priorityWord(priority: TaskPriority): string L3 | A priority's menu label and sentence word: the level itself, `no priority` for `none`.
-by src/lib/features/tasks/task-query.logic.ts:priorityWord <- src/lib/features/tasks/TasksView.svelte:209 in priorityTriggerLabel=$derived ref +1
+by src/lib/features/tasks/task-query.logic.ts:priorityWord <- src/lib/features/tasks/TasksView.svelte:217 in priorityTriggerLabel=$derived ref +1
 sym src/lib/features/tasks/task-query.logic.ts:123 fn toggleQuickPriority(priorities: TaskPriority[] | undefined, priority: TaskPriority): TaskPriority[] | undefined L7 | `priorities` with `priority` added or removed, in `TASK_PRIORITIES` order whatever the click order.
-by src/lib/features/tasks/task-query.logic.ts:toggleQuickPriority <- src/lib/features/tasks/TasksView.svelte:213 in togglePriority call
+by src/lib/features/tasks/task-query.logic.ts:toggleQuickPriority <- src/lib/features/tasks/TasksView.svelte:221 in togglePriority call
 sym src/lib/features/tasks/task-query.logic.ts:136 fn matchesNestedTag(chosen: string, tag: string): boolean L5 | Whether a task tag passes a chosen tag: equal to it, or nested under it (`work` passes `work/client`, not `workshop`), case-insensitively.
 sym src/lib/features/tasks/task-query.logic.ts:153 fn taskTagOptions(rows: TaskRow[]): string[] L10 | The Tag menu's options: every tag of `rows` as Rust emits it (no `#`), de-duplicated case-insensitively (the first spelling wins) and sorted case-insensitively.
 sym src/lib/features/tasks/task-query.logic.ts:168 fn tagMenuOptions(rows: TaskRow[], chosen: string[] | undefined): string[] L5 | `taskTagOptions(rows)` plus each chosen tag it lacks (same spelling), so a chosen tag whose tasks are gone can still be unchecked.
-by src/lib/features/tasks/task-query.logic.ts:tagMenuOptions <- src/lib/features/tasks/TasksView.svelte:217 in tagOptions=$derived call
+by src/lib/features/tasks/task-query.logic.ts:tagMenuOptions <- src/lib/features/tasks/TasksView.svelte:225 in tagOptions=$derived call
 sym src/lib/features/tasks/task-query.logic.ts:178 fn propertyKeyOptions(rows: readonly TaskRow[]): string[] L5 | The Display menu's Property options: the frontmatter keys of the notes of `rows`, whatever their value, sorted case-insensitively.
-by src/lib/features/tasks/task-query.logic.ts:propertyKeyOptions <- src/lib/features/tasks/TasksView.svelte:140 in propertyKeys=$derived call
+by src/lib/features/tasks/task-query.logic.ts:propertyKeyOptions <- src/lib/features/tasks/TasksView.svelte:148 in propertyKeys=$derived call
 sym src/lib/features/tasks/task-query.logic.ts:188 fn toggleQuickTag(tags: string[] | undefined, tag: string, options: string[]): string[] | undefined L7 | `tags` with `tag` added or removed, in `options` order whatever the click order.
-by src/lib/features/tasks/task-query.logic.ts:toggleQuickTag <- src/lib/features/tasks/TasksView.svelte:226 in toggleTag call
+by src/lib/features/tasks/task-query.logic.ts:toggleQuickTag <- src/lib/features/tasks/TasksView.svelte:234 in toggleTag call
 sym src/lib/features/tasks/task-query.logic.ts:200 fn toggleQuickStatus(statuses: TaskStatus[] | undefined, status: TaskStatus): TaskStatus[] | undefined L7 | `statuses` with `status` added or removed, in `TASK_STATUSES` order whatever the click order.
-by src/lib/features/tasks/task-query.logic.ts:toggleQuickStatus <- src/lib/features/tasks/TasksView.svelte:192 in toggleStatus call
+by src/lib/features/tasks/task-query.logic.ts:toggleQuickStatus <- src/lib/features/tasks/TasksView.svelte:200 in toggleStatus call
 sym src/lib/features/tasks/task-query.logic.ts:209 interface TaskOverlayEntry L10 | What the Tasks view itself last wrote to a task line, shown until the snapshot holds it.
 by src/lib/features/tasks/task-query.logic.ts:TaskOverlayEntry <- src/lib/features/tasks/tasks.service.ts:11 in (module) import
 sym src/lib/features/tasks/task-query.logic.ts:221 type TaskOverlay L1 | The view's own writes, keyed by `taskRowKey(filePath, lineNumber)`.
@@ -110,15 +110,15 @@ by src/lib/features/tasks/task-query.logic.ts:emptyTaskExcludes <- src/lib/featu
 sym src/lib/features/tasks/task-query.logic.ts:424 fn defaultTaskQuery(): TaskQuery L3 | The query of a fresh Tasks view, the seeded "To list" view's: the `#to-list` card, no own exclude (the global ones still apply) and `DEFAULT_QUICK`.
 by src/lib/features/tasks/task-query.logic.ts:defaultTaskQuery <- src/lib/features/tasks/tasks.store.svelte.ts:30 in query call +1
 sym src/lib/features/tasks/task-query.logic.ts:438 fn onlyThisFolder(query: TaskQuery, folder: string): TaskQuery L8 | The query that keeps only `folder`'s tasks (a Folder group's "Only this folder"): one card holding the folder clause when there is no card, else the clause add…
-by src/lib/features/tasks/task-query.logic.ts:onlyThisFolder <- src/lib/features/tasks/TasksView.svelte:361 in groupActions call
+by src/lib/features/tasks/task-query.logic.ts:onlyThisFolder <- src/lib/features/tasks/TasksView.svelte:369 in groupActions call
 sym src/lib/features/tasks/task-query.logic.ts:452 fn hideFolder(query: TaskQuery, folder: string): TaskQuery L6 | The query with `folder` added to the excluded folders (a Folder group's "Hide this folder").
-by src/lib/features/tasks/task-query.logic.ts:hideFolder <- src/lib/features/tasks/TasksView.svelte:362 in groupActions call
+by src/lib/features/tasks/task-query.logic.ts:hideFolder <- src/lib/features/tasks/TasksView.svelte:370 in groupActions call
 sym src/lib/features/tasks/task-query.logic.ts:464 fn hideNote(query: TaskQuery, relPath: string): TaskQuery L5 | The query with the vault-relative `relPath` added to the excluded notes (a Note group's "Hide this note").
-by src/lib/features/tasks/task-query.logic.ts:hideNote <- src/lib/features/tasks/TasksView.svelte:348 in groupActions call
+by src/lib/features/tasks/task-query.logic.ts:hideNote <- src/lib/features/tasks/TasksView.svelte:356 in groupActions call
 sym src/lib/features/tasks/task-query.logic.ts:480 fn onlyThisType(query: TaskQuery, type: string): TaskQuery L8 | The query that keeps only `type`'s tasks (a Type group's "Only this type"), like `onlyThisFolder`: one card holding the type clause when there is no card, else…
-by src/lib/features/tasks/task-query.logic.ts:onlyThisType <- src/lib/features/tasks/TasksView.svelte:354 in groupActions call
+by src/lib/features/tasks/task-query.logic.ts:onlyThisType <- src/lib/features/tasks/TasksView.svelte:362 in groupActions call
 sym src/lib/features/tasks/task-query.logic.ts:494 fn hideType(query: TaskQuery, type: string): TaskQuery L6 | The query with `type` added to the excluded types (a Type group's "Hide this type").
-by src/lib/features/tasks/task-query.logic.ts:hideType <- src/lib/features/tasks/TasksView.svelte:355 in groupActions call
+by src/lib/features/tasks/task-query.logic.ts:hideType <- src/lib/features/tasks/TasksView.svelte:363 in groupActions call
 sym src/lib/features/tasks/task-query.logic.ts:633 fn selectSourceRows(rows: readonly TaskRow[], sources: readonly TaskSource[], exclude: TaskExcludes, folders: TaskSourceFolders): TaskRow[] L30 | The rows the sources and excludes keep: a row passes when no exclude matches it and `sources` is empty or some card has every clause matching (see `TaskSourceC…
 by src/lib/features/tasks/task-query.logic.ts:selectSourceRows <- src/lib/features/tasks/task-views.logic.ts:114 in taskViewCount call
 by src/lib/features/tasks/task-query.logic.ts:selectSourceRows <- src/lib/features/tasks/tasks.store.svelte.ts:77 in sourceRows=$derived call
@@ -133,9 +133,9 @@ by src/lib/features/tasks/task-query.logic.ts:TaskGroupKey <- src/lib/features/t
 by src/lib/features/tasks/task-query.logic.ts:TaskGroupKey <- src/lib/features/tasks/task-views.logic.ts:14 in (module) import
 by src/lib/features/tasks/task-query.logic.ts:TaskGroupKey <- src/lib/features/tasks/tasks.store.svelte.ts:13 in (module) import
 sym src/lib/features/tasks/task-query.logic.ts:849 const GROUP_ROW_CAP L1 | The most rows a group renders before its `Show N more` button (PRD A9).
-by src/lib/features/tasks/task-query.logic.ts:GROUP_ROW_CAP <- src/lib/features/tasks/TasksView.svelte:326 in shownGroups=$derived ref +1
+by src/lib/features/tasks/task-query.logic.ts:GROUP_ROW_CAP <- src/lib/features/tasks/TasksView.svelte:334 in shownGroups=$derived ref +1
 sym src/lib/features/tasks/task-query.logic.ts:858 fn collapseKey(groupBy: TaskGroupKey, key: string): string L3 | The key a group's collapsed (or revealed) state is held under: `<groupBy>:<group key>`, so the same raw key under two groupings stays apart (`note:/vault/A.md`…
-by src/lib/features/tasks/task-query.logic.ts:collapseKey <- src/lib/features/tasks/TasksView.svelte:324 in shownGroups=$derived call
+by src/lib/features/tasks/task-query.logic.ts:collapseKey <- src/lib/features/tasks/TasksView.svelte:332 in shownGroups=$derived call
 sym src/lib/features/tasks/task-query.logic.ts:863 type TaskSortKey L1 | A key the rows of a group other than Note are sorted by.
 by src/lib/features/tasks/task-query.logic.ts:TaskSortKey <- src/lib/features/tasks/task-views.logic.ts:18 in (module) import
 by src/lib/features/tasks/task-query.logic.ts:TaskSortKey <- src/lib/features/tasks/tasks.store.svelte.ts:17 in (module) import
@@ -149,19 +149,19 @@ by src/lib/features/tasks/task-query.logic.ts:TaskGroup <- src/lib/features/task
 sym src/lib/features/tasks/task-query.logic.ts:1116 fn groupTaskRows(rows: VisibleRow[], groupBy: TaskGroupKey, sort: TaskSortKey[], today: string): TaskGroup[] L24 | Groups the visible rows for the Tasks list, leaving out empty groups.
 by src/lib/features/tasks/task-query.logic.ts:groupTaskRows <- src/lib/features/tasks/tasks.store.svelte.ts:97 in groups=$derived call
 sym src/lib/features/tasks/task-query.logic.ts:1150 fn statusFilterLabel(quick: TaskQuickFilters): string L3 | The value after `Status: ` on the Status menu trigger: `open`, `closed`, `all`, or the chosen statuses' words joined with `, `.
-by src/lib/features/tasks/task-query.logic.ts:statusFilterLabel <- src/lib/features/tasks/TasksView.svelte:1001 in (markup) markup
+by src/lib/features/tasks/task-query.logic.ts:statusFilterLabel <- src/lib/features/tasks/TasksView.svelte:1037 in (markup) markup
 sym src/lib/features/tasks/task-query.logic.ts:1159 fn taskCountText(rows: VisibleRow[], quick: TaskQuickFilters): string L11 | The toolbar count: "N open in M notes" at the default status filter, else "N tasks in M notes", with singular forms.
-by src/lib/features/tasks/task-query.logic.ts:taskCountText <- src/lib/features/tasks/TasksView.svelte:158 in countText=$derived call
+by src/lib/features/tasks/task-query.logic.ts:taskCountText <- src/lib/features/tasks/TasksView.svelte:166 in countText=$derived call
 sym src/lib/features/tasks/task-query.logic.ts:1296 fn describeTaskQuery(query: TaskQuery): string L10 | Builds the sentence above the Tasks list that says which tasks it shows: the status, the sources, the excludes, then Due, Priority, Tag and Search, e.g. "Open …
-by src/lib/features/tasks/task-query.logic.ts:describeTaskQuery <- src/lib/features/tasks/TasksView.svelte:169 in ruleSentence=$derived call
+by src/lib/features/tasks/task-query.logic.ts:describeTaskQuery <- src/lib/features/tasks/TasksView.svelte:177 in ruleSentence=$derived call
 sym src/lib/features/tasks/task-query.logic.ts:1367 fn isQuickModified(current: TaskQuickFilters, saved: TaskQuickFilters): boolean L3 | Whether the quick filters `current` differ from `saved`.
-by src/lib/features/tasks/task-query.logic.ts:isQuickModified <- src/lib/features/tasks/TasksView.svelte:244 in quickAtSaved=$derived call
+by src/lib/features/tasks/task-query.logic.ts:isQuickModified <- src/lib/features/tasks/TasksView.svelte:252 in quickAtSaved=$derived call
 sym src/lib/features/tasks/task-query.logic.ts:1378 fn isQueryModified(current: ComparedQuery, saved: ComparedQuery): boolean L3 | Whether the list on screen (`current`) differs from its saved query: the sources, own excludes, quick filters (`isQuickModified`), grouping and sort.
 by src/lib/features/tasks/task-query.logic.ts:isQueryModified <- src/lib/features/tasks/TaskLists.svelte:44 in modified=$derived call
 sym src/lib/features/tasks/task-query.logic.ts:1383 interface EmptyTasksExplanation L12 | Why the Tasks list is empty, and the one action that would fill it
 by src/lib/features/tasks/task-query.logic.ts:EmptyTasksExplanation <- src/lib/features/tasks/TasksView.svelte:66 in (script) import
 sym src/lib/features/tasks/task-query.logic.ts:1446 fn explainEmptyTasks({ rows: allRows, query, folders, today, now, }: { rows: readonly TaskRow[]; query: TaskQuery; folders: TaskSourceFolde… L63 | Names the first stage of the pipeline that leaves the Tasks list empty: no task at all, then the sources, then the excludes, then the status filter, Due, Prior…
-by src/lib/features/tasks/task-query.logic.ts:explainEmptyTasks <- src/lib/features/tasks/TasksView.svelte:173 in emptyExplanation=$derived call
+by src/lib/features/tasks/task-query.logic.ts:explainEmptyTasks <- src/lib/features/tasks/TasksView.svelte:181 in emptyExplanation=$derived call
 ## locals
 local src/lib/features/tasks/task-query.logic.ts:142 fn byLowerCase(a: string, b: string) L5
 local src/lib/features/tasks/task-query.logic.ts:429 fn folderValue(path: string) L1

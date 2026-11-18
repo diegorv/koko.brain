@@ -29,7 +29,7 @@ test src/tests/lib/utils/template.test.ts mocks src/lib/utils/date.ts
 sym src/lib/utils/date.ts:15 fn formatNow(outputFormat: string, offsetDays: number = 0): string L3 | Returns the current datetime formatted, with an optional day offset.
 by src/lib/utils/date.ts:formatNow <- src/lib/core/markdown-editor/extensions/date-shortcut/completion.logic.ts:40 in dateForToken call +2
 by src/lib/utils/date.ts:formatNow <- src/lib/features/tasks/TaskLists.svelte:55 in savedCounts=$derived call
-by src/lib/utils/date.ts:formatNow <- src/lib/features/tasks/TasksView.svelte:166 in today=$derived call
+by src/lib/utils/date.ts:formatNow <- src/lib/features/tasks/TasksView.svelte:174 in today=$derived call
 by src/lib/utils/date.ts:formatNow <- src/lib/features/tasks/tasks.store.svelte.ts:89 in visibleRows=$derived call +1
 by src/lib/utils/date.ts:formatNow <- src/lib/plugins/kanban/KanbanCard.svelte:114 in dateProximity=$derived call
 by src/lib/utils/date.ts:formatNow <- src/lib/plugins/kanban/KanbanListView.svelte:30 in (markup) markup
@@ -40,7 +40,7 @@ by src/lib/utils/date.ts:formatNowOnDate <- src/lib/utils/template.ts:114 in eva
 sym src/lib/utils/date.ts:42 fn formatDate(date: dayjs.ConfigType, format: string): string L3 | Formats a date value (string, Date, dayjs, etc.) into the given format string.
 by src/lib/utils/date.ts:formatDate <- src/lib/features/collection/calendar.logic.ts:178 in formatDateKey call
 by src/lib/utils/date.ts:formatDate <- src/lib/features/file-history/file-history.logic.ts:177 in toDateKey call
-by src/lib/utils/date.ts:formatDate <- src/lib/features/tasks/TasksView.svelte:597 in modifiedTitle call
+by src/lib/utils/date.ts:formatDate <- src/lib/features/tasks/TasksView.svelte:626 in modifiedTitle call
 by src/lib/utils/date.ts:formatDate <- src/lib/features/tasks/tasks.logic.ts:131 in chipDate call
 sym src/lib/utils/date.ts:92 fn formatToCapturingRegex(format: string): RegExp L36 | Converts a dayjs format string into an anchored regex (`^...$`) with named capture groups.
 by src/lib/utils/date.ts:formatToCapturingRegex <- src/lib/plugins/periodic-notes/periodic-notes.logic.ts:219 in detectPeriodicNoteType call

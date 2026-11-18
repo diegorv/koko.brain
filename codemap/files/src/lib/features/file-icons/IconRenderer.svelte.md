@@ -52,7 +52,7 @@ mount src/lib/features/rail-shell/Rail.svelte:363 IconRenderer -> src/lib/featur
 mount src/lib/features/rail-shell/Rail.svelte:370 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/rail-shell/TypesNavigator.svelte:290 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/rail-shell/TypesNavigator.svelte:420 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/tasks/TasksView.svelte:760 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/tasks/TasksView.svelte:789 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 ## calls
 call src/lib/features/file-icons/IconRenderer.svelte:20 in cssColor=$derived -> src/lib/features/file-icons/file-icons.logic.ts:iconColorCss call
 call src/lib/features/file-icons/IconRenderer.svelte:36 in (markup) -> src/lib/utils/sanitize.ts:sanitizeSvgContent markup

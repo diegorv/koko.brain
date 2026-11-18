@@ -25,6 +25,7 @@ fx src/lib/app/global-keybindings.ts:48 dom.keydown document in registerSlashSea
 fx src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:1129 dom.keydown input in buildMetaBindTextInput
 fx src/lib/features/event-calendar/EventCalendarView.svelte:114 dom.keydown document in $effect@110
 fx src/lib/features/event-calendar/event-calendar-gesture-guard.ts:54 dom.keydown window in GestureGuard.begin
+fx src/lib/features/tasks/TasksView.svelte:415 dom.keydown document in $effect@405
 fx src/lib/utils/keybindings.ts:76 dom.keydown document in registerKeybinding
 fx src/routes/composer/+page.svelte:240 dom.keydown svelte:window in (markup)
 fx src/lib/core/markdown-editor/MarkdownEditor.svelte:426 dom.mousedown container in (script)
@@ -62,7 +63,7 @@ fx src/lib/features/event-calendar/event-calendar-gesture-guard.ts:83 dom.pointe
 fx src/lib/features/event-calendar/EventPopover.svelte:145 dom.resize svelte:window in (markup)
 fx src/lib/core/markdown-editor/MarkdownEditor.svelte:560 dom.scroll scrollDOM in $effect@455
 fx src/lib/features/event-calendar/EventPopover.svelte:62 dom.scroll el in $effect@55
-fx src/lib/features/tasks/TasksView.svelte:286 dom.scroll viewport in $effect@282
+fx src/lib/features/tasks/TasksView.svelte:294 dom.scroll viewport in $effect@290
 fx src/routes/composer/+page.svelte:240 dom.storage svelte:window in (markup)
 fx src/lib/features/event-calendar/event-calendar.service.ts:315 dom.visibilitychange document in acquireCalendarClock
 fx src/lib/utils/log.service.ts:146 dom.visibilitychange document in startHeartbeat
