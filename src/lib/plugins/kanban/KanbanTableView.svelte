@@ -4,15 +4,18 @@
 	import { stripCardMetadata, extractCardDate, extractCardColor, extractCardTags, cardProximity, PROXIMITY_CLASSES } from './kanban.logic';
 	import { formatNow } from '#lib/utils/date.js';
 	import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
+	import KanbanCardText from './KanbanCardText.svelte';
 
 	interface Props {
 		board: KanbanBoard;
 		onToggleItem: (laneId: string, itemId: string) => void;
+		onWikilinkClick?: (target: string, heading?: string) => void;
 	}
 
-	let { board, onToggleItem }: Props = $props();
+	let { board, onToggleItem, onWikilinkClick }: Props = $props();
 
 	let tagColors = $derived(board.settings.tagColors ?? {});
+	let isEmpty = $derived(board.lanes.every((lane) => lane.items.length === 0));
 </script>
 
 <div class="flex flex-1 flex-col overflow-auto p-4">
@@ -44,6 +47,7 @@
 								class="flex size-4 items-center justify-center rounded-xs border transition-colors
 									{item.checked ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40 hover:border-primary'}"
 								onclick={() => onToggleItem(lane.id, item.id)}
+								aria-label={item.checked ? 'Mark open' : 'Mark done'}
 							>
 								{#if item.checked}
 									<Check class="size-3" />
@@ -51,7 +55,9 @@
 							</button>
 						</td>
 						<td class="px-2 py-1.5 text-xs text-muted-foreground">{lane.title}</td>
-						<td class="px-2 py-1.5 {item.checked ? 'text-muted-foreground line-through' : ''}">{displayText}</td>
+						<td class="px-2 py-1.5 {item.checked ? 'text-muted-foreground line-through' : ''}">
+							<KanbanCardText text={displayText} {onWikilinkClick} hideTags />
+						</td>
 						<td class="px-2 py-1.5">
 							<div class="flex flex-wrap gap-0.5">
 								{#each tags as tag}
@@ -77,6 +83,11 @@
 					</tr>
 				{/each}
 			{/each}
+			{#if isEmpty}
+				<tr>
+					<td colspan="6" class="px-2 py-2 text-xs text-muted-foreground">No cards</td>
+				</tr>
+			{/if}
 		</tbody>
 	</table>
 </div>

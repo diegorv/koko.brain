@@ -12,6 +12,7 @@
 	import List from '@lucide/svelte/icons/list';
 	import Table from '@lucide/svelte/icons/table';
 	import X from '@lucide/svelte/icons/x';
+	import { toast } from 'svelte-sonner';
 	import * as Select from '#lib/components/ui/select/index.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import {
@@ -46,6 +47,7 @@
 		setViewMode,
 		canReorderItems,
 		uniqueLaneTitle,
+		stripCardMetadata,
 	} from './kanban.logic';
 	import type { KanbanBoard, KanbanSortMode, KanbanViewMode } from './kanban.types';
 	import { kanbanStore } from './kanban.store.svelte';
@@ -393,6 +395,7 @@
 		const firstLane = board.lanes[0];
 		if (!firstLane) return;
 		applyChange(restoreItem(board, itemId, firstLane.id));
+		toast.success(`Restored to ${firstLane.title}`);
 	}
 
 	function handleDeleteArchivedItem(itemId: string) {
@@ -597,7 +600,7 @@
 	{#if currentViewMode === 'list'}
 		<KanbanListView board={displayBoard} onToggleItem={handleToggleItem} onWikilinkClick={handleWikilinkClick} />
 	{:else if currentViewMode === 'table'}
-		<KanbanTableView board={displayBoard} onToggleItem={handleToggleItem} />
+		<KanbanTableView board={displayBoard} onToggleItem={handleToggleItem} onWikilinkClick={handleWikilinkClick} />
 	{:else}
 	<!-- Board view -->
 	<div
@@ -685,7 +688,7 @@
 				<div class="flex flex-1 flex-col gap-1 overflow-y-auto px-2 pb-2">
 					{#each board.archive as item (item.id)}
 						<div class="flex items-center gap-1.5 rounded-xs border border-border bg-background/50 p-2 text-sm text-muted-foreground">
-							<span class="flex-1 truncate line-through">{item.text}</span>
+							<span class="flex-1 truncate line-through">{stripCardMetadata(item.text)}</span>
 							<button
 								class="rounded-xs p-0.5 hover:bg-muted hover:text-foreground transition-colors"
 								onclick={() => handleRestoreItem(item.id)}
