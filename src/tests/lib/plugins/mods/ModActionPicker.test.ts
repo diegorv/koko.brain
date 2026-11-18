@@ -170,6 +170,51 @@ describe('ModActionPicker', () => {
 		expect(runView()!.classList.contains('overflow-y-auto')).toBe(true);
 	});
 
+	describe('the status label colour', () => {
+		const statusClasses = () => [...(runView()?.querySelector('[data-mod-run-status]')?.classList ?? [])];
+
+		it('is the success colour on Done, with the same text', async () => {
+			clickRailButton();
+			row('counted').click();
+			flushSync();
+
+			await vi.waitFor(() => expect(modsRunsStore.runFor(runKey('counted'))?.status).toBe('done'));
+			flushSync();
+			expect(status()).toBe('Done');
+			expect(statusClasses()).toContain('text-success');
+			expect(statusClasses()).not.toContain('text-destructive');
+			expect(statusClasses()).not.toContain('text-muted-foreground');
+		});
+
+		it('is the destructive colour on Failed, with the same text', async () => {
+			clickRailButton();
+			row('boom').click();
+			flushSync();
+
+			await vi.waitFor(() => expect(modsRunsStore.runFor(runKey('boom'))?.status).toBe('failed'));
+			flushSync();
+			expect(status()).toBe('Failed');
+			expect(statusClasses()).toContain('text-destructive');
+			expect(statusClasses()).not.toContain('text-success');
+			expect(statusClasses()).not.toContain('text-muted-foreground');
+		});
+
+		it('stays muted while Running and on Cancelled', () => {
+			clickRailButton();
+			row('slow').click();
+			flushSync();
+
+			expect(status()).toBe('Running');
+			expect(statusClasses()).toContain('text-muted-foreground');
+			stopButton()!.click();
+			flushSync();
+			expect(status()).toBe('Cancelled');
+			expect(statusClasses()).toContain('text-muted-foreground');
+			expect(statusClasses()).not.toContain('text-success');
+			expect(statusClasses()).not.toContain('text-destructive');
+		});
+	});
+
 	describe('a long run', () => {
 		/** Clicks the rail button and picks Slow job */
 		function startSlowJob() {
@@ -189,6 +234,15 @@ describe('ModActionPicker', () => {
 			expect(runView()!.querySelector('[data-mod-run-progress-label]')?.textContent).toBe('Note 1 of 4');
 			expect(logLines()).toEqual(['Reading notes']);
 			expect(stopButton()).not.toBeNull();
+		});
+
+		it('names the progress bar with the run title and the count, and marks the log box as a log', () => {
+			startSlowJob();
+
+			const bar = runView()!.querySelector('[role="progressbar"]')!;
+			expect(bar.getAttribute('aria-label')).toBe('Slow job, 1 of 4');
+			const log = runView()!.querySelector('[data-mod-run-log]')!;
+			expect(log.getAttribute('role')).toBe('log');
 		});
 
 		it('adds log lines as the run goes, and shows Done at the end', async () => {

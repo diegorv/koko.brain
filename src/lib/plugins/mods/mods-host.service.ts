@@ -752,6 +752,11 @@ function unloadMod(live: LiveMod, callOnunload: boolean): void {
 	}
 }
 
+/** An entry's `description`, left out when there is none so the entry carries no `undefined` key */
+function descriptionField(description: string | undefined): { description?: string } {
+	return description === undefined ? {} : { description };
+}
+
 /** Lists a mod as failed, logs it, and toasts it unless the same message was toasted last time */
 function recordLoadError(vaultPath: string, folder: string, message: string, err: unknown, manifest?: ModManifest): void {
 	debug(`MOD:${manifest?.id ?? folder}`, message, err ?? '');
@@ -760,6 +765,7 @@ function recordLoadError(vaultPath: string, folder: string, message: string, err
 		folder,
 		name: manifest?.name ?? folder,
 		version: manifest?.version ?? '',
+		...descriptionField(manifest?.description),
 		state: 'error',
 		error: { message, stack: err instanceof Error ? err.stack : undefined },
 	});
@@ -845,6 +851,7 @@ async function loadMod(vaultPath: string, folder: string, startGeneration: numbe
 			folder,
 			name: manifest.name,
 			version: manifest.version,
+			...descriptionField(manifest.description),
 			state: 'loaded',
 			loadMs: Math.round(performance.now() - evaluatedAt),
 			...(manifest.settings ? { settings: manifest.settings } : {}),
@@ -875,6 +882,7 @@ async function listDisabledMod(vaultPath: string, folder: string, startGeneratio
 		folder,
 		name: manifest?.name ?? folder,
 		version: manifest?.version ?? '',
+		...descriptionField(manifest?.description),
 		state: 'disabled',
 	});
 }
@@ -1128,6 +1136,7 @@ export function disableMod(folder: string): void {
 		folder,
 		name: previous?.name ?? folder,
 		version: previous?.version ?? '',
+		...descriptionField(previous?.description),
 		state: 'disabled',
 	});
 }

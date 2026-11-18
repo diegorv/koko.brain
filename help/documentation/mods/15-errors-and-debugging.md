@@ -274,7 +274,7 @@ With **Save debug log to file** on, the host writes JSON records under `[FRONT-E
 | `action-end` | The same, with `outcome` `done`, `failed` or `cancelled` and `elapsedMs` |
 | `run-message` | One per accepted `run.log` line, only when **Save mod run messages to file** is also on: identity fields, ISO `timestamp`, `sequence`, `text` |
 
-- `load-result` `elapsedMs` includes reading the files; the **Loaded · N ms** in Labs does not. An `onload` that never settles has no `load-result`.
+- `load-result` `elapsedMs` includes reading the files; the **Loaded in N ms** tooltip in Labs does not. An `onload` that never settles has no `load-result`.
 - Starting an action that is already running writes no `action-start`: it only reveals the live run.
 - `done` means the action's promise resolved, nothing more. `cancelled` means the host ended the run; the mod's code may still be running.
 - `[FRONT-END:MOD-UI]` records trace dialogs: `dialog-queued`, `dialog-opened`, `dialog-closed` (with a `reason`), `loading-task-settled`, `dialog-rejected` (with a validation `reason`) and `notification-request`.

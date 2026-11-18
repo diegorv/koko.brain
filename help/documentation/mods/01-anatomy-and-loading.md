@@ -429,7 +429,7 @@ The list under **Vault mods** appears only while the flag is on. With no mod fol
 
 | State | Shows |
 |-------|-------|
-| **Loaded** | Name, version and load time, for example `Loaded · 42 ms` |
+| **Loaded** | Name, version and `Loaded`, with the load time in its tooltip, for example `Loaded in 42 ms` |
 | **Error** | The load error message and, when the thrown value was an `Error`, an expandable **Stack trace** |
 | **Disabled** | Name and version from the manifest (or the folder name) |
 
@@ -450,7 +450,7 @@ A **Loaded** row whose manifest declares [`settings`](#fields) lists one control
 
 ### Load time
 
-The load time is wall time from just before `main.js` is evaluated (its top-level code) until `onload` settles, rounded to whole milliseconds. File reads are excluded. It shows as `Loaded · 42 ms`, or `Loaded · < 1 ms` when it rounds to zero.
+The load time is wall time from just before `main.js` is evaluated (its top-level code) until `onload` settles, rounded to whole milliseconds. File reads are excluded. It shows in the tooltip of **Loaded** as `Loaded in 42 ms`, or `Loaded in < 1 ms` when it rounds to zero.
 
 - At vault open all mods load together, so a mod whose `onload` awaits something includes time spent while other mods ran.
 - A reload or a switch off and on replaces the time.
