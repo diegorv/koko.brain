@@ -17,7 +17,7 @@ test src/tests/lib/utils/sanitize.test.ts imports src/lib/utils/sanitize.ts mirr
 sym src/lib/utils/sanitize.ts:7 fn sanitizeHtml(html: string): string L25 | Sanitizes arbitrary HTML allowing a safe rich-text subset.
 by src/lib/utils/sanitize.ts:sanitizeHtml <- src/lib/features/canvas/canvas-markdown.logic.ts:17 in renderCanvasMarkdown call
 by src/lib/utils/sanitize.ts:sanitizeHtml <- src/lib/features/collection/CollectionTableView.svelte:84 in (markup) markup
-by src/lib/utils/sanitize.ts:sanitizeHtml <- src/lib/features/collection/collection-block-widget.ts:458 in buildCollectionTable call
+by src/lib/utils/sanitize.ts:sanitizeHtml <- src/lib/features/collection/collection-block-widget.ts:487 in buildCollectionTable call
 sym src/lib/utils/sanitize.ts:38 fn sanitizeSvgContent(svgInner: string): string L14 | Sanitizes SVG inner content (paths, circles, etc.) for use inside a trusted <svg> element.
 by src/lib/utils/sanitize.ts:sanitizeSvgContent <- src/lib/features/file-icons/IconRenderer.svelte:36 in (markup) markup
 sym src/lib/utils/sanitize.ts:57 fn sanitizeSnippetHtml(html: string): string L16 | Sanitizes an FTS5 snippet string that may contain <mark> tags.

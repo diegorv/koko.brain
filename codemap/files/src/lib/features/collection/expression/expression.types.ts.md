@@ -43,5 +43,5 @@ by src/lib/features/collection/expression/expression.types.ts:DisplayHTML <- src
 sym src/lib/features/collection/expression/expression.types.ts:115 type DisplayValue L1 | Union of all display value types
 sym src/lib/features/collection/expression/expression.types.ts:118 fn isDisplayValue(value: unknown): value is DisplayValue L8 | Checks whether a value is a display type wrapper
 by src/lib/features/collection/expression/expression.types.ts:isDisplayValue <- src/lib/features/collection/CollectionTableView.svelte:76 in (markup) markup
-by src/lib/features/collection/expression/expression.types.ts:isDisplayValue <- src/lib/features/collection/collection-block-widget.ts:457 in buildCollectionTable call
+by src/lib/features/collection/expression/expression.types.ts:isDisplayValue <- src/lib/features/collection/collection-block-widget.ts:486 in buildCollectionTable call
 by src/lib/features/collection/expression/expression.types.ts:isDisplayValue <- src/lib/features/collection/collection.logic.ts:394 in formatCellValue call

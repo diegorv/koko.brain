@@ -20,23 +20,23 @@ sym src/lib/features/collection/calendar.logic.ts:6 interface CalendarDay L8 | A
 sym src/lib/features/collection/calendar.logic.ts:16 interface CalendarEvent L8 | A note record placed on a specific calendar date
 sym src/lib/features/collection/calendar.logic.ts:32 fn getCalendarGrid(year: number, month: number, weekStartDay = 1): CalendarDay[][] L30 | Generates a 6×7 calendar grid for the given month.
 by src/lib/features/collection/calendar.logic.ts:getCalendarGrid <- src/lib/features/collection/CollectionCalendarView.svelte:42 in grid=$derived call
-by src/lib/features/collection/calendar.logic.ts:getCalendarGrid <- src/lib/features/collection/collection-block-widget.ts:221 in CollectionBlockWidget.buildCalendar call
+by src/lib/features/collection/calendar.logic.ts:getCalendarGrid <- src/lib/features/collection/collection-block-widget.ts:235 in CollectionBlockWidget.buildCalendar call
 sym src/lib/features/collection/calendar.logic.ts:68 fn extractDateFromRecord(record: PropertyIndexRecord, dateProperty: string): Date | null L28 | Extracts a Date from a record's property value.
 by src/lib/features/collection/calendar.logic.ts:extractDateFromRecord <- src/lib/features/collection/linear-calendar.logic.ts:136 in extractEventsForYear call +1
 sym src/lib/features/collection/calendar.logic.ts:102 fn groupRecordsByDate(records: PropertyIndexRecord[], dateProperty: string, endDateProperty?: string): Map<string, CalendarEvent[]> L41 | Groups note records by date for calendar display.
 by src/lib/features/collection/calendar.logic.ts:groupRecordsByDate <- src/lib/features/collection/CollectionCalendarView.svelte:45 in eventsByDate=$derived call
-by src/lib/features/collection/calendar.logic.ts:groupRecordsByDate <- src/lib/features/collection/collection-block-widget.ts:194 in CollectionBlockWidget.buildCalendar call
+by src/lib/features/collection/calendar.logic.ts:groupRecordsByDate <- src/lib/features/collection/collection-block-widget.ts:208 in CollectionBlockWidget.buildCalendar call
 sym src/lib/features/collection/calendar.logic.ts:148 fn navigateMonth(year: number, month: number, delta: number): { year: number; month: number } L4 | Navigates to a different month by applying a delta.
 by src/lib/features/collection/calendar.logic.ts:navigateMonth <- src/lib/features/collection/CollectionCalendarView.svelte:51 in goToPrevMonth call +1
 sym src/lib/features/collection/calendar.logic.ts:156 fn formatMonthYear(year: number, month: number): string L4 | Formats a year and month as a human-readable string (e.g. "March 2026").
 by src/lib/features/collection/calendar.logic.ts:formatMonthYear <- src/lib/features/collection/CollectionCalendarView.svelte:44 in monthLabel=$derived call
-by src/lib/features/collection/calendar.logic.ts:formatMonthYear <- src/lib/features/collection/collection-block-widget.ts:199 in CollectionBlockWidget.buildCalendar call
+by src/lib/features/collection/calendar.logic.ts:formatMonthYear <- src/lib/features/collection/collection-block-widget.ts:213 in CollectionBlockWidget.buildCalendar call
 sym src/lib/features/collection/calendar.logic.ts:165 fn getWeekDayLabels(weekStartDay = 1): string[] L8 | Returns the day-of-week labels starting from the given weekStartDay.
 by src/lib/features/collection/calendar.logic.ts:getWeekDayLabels <- src/lib/features/collection/CollectionCalendarView.svelte:43 in dayLabels=$derived call
-by src/lib/features/collection/calendar.logic.ts:getWeekDayLabels <- src/lib/features/collection/collection-block-widget.ts:210 in CollectionBlockWidget.buildCalendar call
+by src/lib/features/collection/calendar.logic.ts:getWeekDayLabels <- src/lib/features/collection/collection-block-widget.ts:224 in CollectionBlockWidget.buildCalendar call
 sym src/lib/features/collection/calendar.logic.ts:177 fn formatDateKey(date: Date): string L3 | Formats a Date as a YYYY-MM-DD string for use as a map key.
 by src/lib/features/collection/calendar.logic.ts:formatDateKey <- src/lib/features/collection/CollectionCalendarView.svelte:69 in getEventsForDay call
-by src/lib/features/collection/calendar.logic.ts:formatDateKey <- src/lib/features/collection/collection-block-widget.ts:222 in CollectionBlockWidget.buildCalendar call +1
+by src/lib/features/collection/calendar.logic.ts:formatDateKey <- src/lib/features/collection/collection-block-widget.ts:236 in CollectionBlockWidget.buildCalendar call +1
 ## calls
 call src/lib/features/collection/calendar.logic.ts:34 in getCalendarGrid -> src/lib/features/collection/calendar.logic.ts:formatDateKey call +1
 call src/lib/features/collection/calendar.logic.ts:69 in extractDateFromRecord -> src/lib/features/collection/collection.logic.ts:getPropertyValue call

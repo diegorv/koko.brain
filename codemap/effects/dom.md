@@ -9,9 +9,9 @@ fx src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:830 dom.chang
 fx src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:1038 dom.change cb in MetaBindToggleWidget.toDOM
 fx src/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.ts:171 dom.change select in CodeBlockWidget.buildLanguageSelect
 fx src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts:33 dom.click button in MetaBindButtonWidget.toDOM
-fx src/lib/features/collection/collection-block-widget.ts:255 dom.click pill in CollectionBlockWidget.buildCalendar
-fx src/lib/features/collection/collection-block-widget.ts:384 dom.click bar in CollectionBlockWidget.buildLinearCalendar
-fx src/lib/features/collection/collection-block-widget.ts:452 dom.click tr in buildCollectionTable
+fx src/lib/features/collection/collection-block-widget.ts:269 dom.click pill in CollectionBlockWidget.buildCalendar
+fx src/lib/features/collection/collection-block-widget.ts:398 dom.click bar in CollectionBlockWidget.buildLinearCalendar
+fx src/lib/features/collection/collection-block-widget.ts:481 dom.click tr in buildCollectionTable
 fx src/lib/features/event-calendar/event-calendar-gesture-guard.ts:99 dom.click window in GestureGuard.arm
 fx src/lib/plugins/graph-view/GraphView.svelte:422 dom.click canvasEl in setupInteractions
 fx src/lib/features/rail-shell/Rail.svelte:255 dom.dragstart svelte:window in (markup)
@@ -44,7 +44,7 @@ fx src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:1126 dom.mous
 fx src/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.ts:100 dom.mousedown copyBtn in CodeBlockWidget.toDOM
 fx src/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.ts:170 dom.mousedown select in CodeBlockWidget.buildLanguageSelect
 fx src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts:28 dom.mousedown button in MetaBindButtonWidget.toDOM
-fx src/lib/features/collection/collection-block-widget.ts:481 dom.mousedown el in stopEditorMousedown
+fx src/lib/features/collection/collection-block-widget.ts:518 dom.mousedown el in stopEditorMousedown
 fx src/lib/plugins/queryjs/kb-api.ts:511 dom.mousedown a in KBAPI.renderValue
 fx src/lib/plugins/queryjs/kb-ui.ts:524 dom.mousedown prev in KBUI.table
 fx src/lib/plugins/queryjs/kb-ui.ts:525 dom.mousedown next in KBUI.table
