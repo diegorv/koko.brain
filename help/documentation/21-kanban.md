@@ -22,9 +22,9 @@ The board toolbar exposes three views of the same `.kanban` file. The selected v
 |------|------|---------------|
 | **Board** (default) | Grid | The classic swimlane board: one column per lane, drag-and-drop between lanes, lane settings, archive separator. |
 | **List** | List | A stacked-list view: each lane becomes a section with a card count and a vertical list of cards. Useful for narrow windows or screen readers. |
-| **Table** | Table | A flat table with columns for *Lane*, *Card*, *Tags*, *Date*, and *Status*. Best for scanning many cards at once or copy-pasting card text. |
+| **Table** | Table | A flat table with columns for *Lane*, *Card*, *Tags*, *Date*, and *Status*. Best for scanning many cards at once. A board with no cards shows a single "No cards" row. |
 
-List and Table are read-only with respect to layout (no drag-and-drop, no lane settings, no archive section), but you can still check / uncheck cards. Wikilinks remain clickable in List view; in Table view card text is shown as plain text. Switch back to **Board** to edit the structure.
+List and Table are read-only with respect to layout (no drag-and-drop, no lane settings, no archive section), but you can still check / uncheck cards with the check button ("Mark done" / "Mark open"). Card text reads the same as on the board, and wikilinks stay clickable in both views. In Table view the card's tags appear only in the *Tags* column, not in the card text. Switch back to **Board** to edit the structure.
 
 ## Board Anatomy
 
@@ -106,7 +106,7 @@ When a card contains a `[[wikilink]]`, the linked file's content (without frontm
 
 ### Archive
 
-Below the active board (separated by a `---` line in the file) lives the **Archive**. Completed or archived cards are stored here and hidden from the main board view. Expand the Archive column, then use the restore icon to send a card back to the first lane, or the trash icon to delete it permanently.
+Below the active board (separated by a `---` line in the file) lives the **Archive**. Completed or archived cards are stored here and hidden from the main board view. Expand the Archive column to see archived cards (shown without their `{date}` and `{color}` tokens, which stay in the file). Use the restore icon to send a card back to the first lane, and a `Restored to <lane>` message confirms where it went; use the trash icon to delete it permanently.
 
 ## Card Metadata
 

@@ -17,17 +17,17 @@ Not in this ticket: a lane picker on Restore (archived items store no lane), the
 
 **Blocked by:** 05, 11
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run (no E2E surface changes).
 
-- [ ] Failing test first (`src/tests/lib/plugins/kanban/KanbanView.test.ts`, real store and logic, `kanban.service.js` and `svelte-sonner` mocked as side-effect services): in table view the check button is found by name "Mark done" and flips to "Mark open" after a click.
-- [ ] The table cell of `Ship #design [[Spec]]` shows "Ship" and a "Spec" button and no `#design` text; clicking "Spec" calls the view's `onOpenWikilink('Spec')` (through `handleWikilinkClick`, `KanbanView.svelte:230-232`); the Tags column still shows `design`.
-- [ ] An empty board in table view shows "No cards".
-- [ ] The list view's check buttons are named the same way.
-- [ ] An archived `Pay rent {2026-11-20} {color:red}` shows "Pay rent"; Restore fires the toast with "Restored to To Do", and the card is in the first lane in the persisted markdown.
-- [ ] `KanbanCardText` still renders tags as before when `hideTags` is unset (board and list unchanged).
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first (`src/tests/lib/plugins/kanban/KanbanView.test.ts`, real store and logic, `kanban.service.js` and `svelte-sonner` mocked as side-effect services): in table view the check button is found by name "Mark done" and flips to "Mark open" after a click.
+- [x] The table cell of `Ship #design [[Spec]]` shows "Ship" and a "Spec" button and no `#design` text; clicking "Spec" calls the view's `onOpenWikilink('Spec')` (through `handleWikilinkClick`, `KanbanView.svelte:230-232`); the Tags column still shows `design`.
+- [x] An empty board in table view shows "No cards".
+- [x] The list view's check buttons are named the same way.
+- [x] An archived `Pay rent {2026-11-20} {color:red}` shows "Pay rent"; Restore fires the toast with "Restored to To Do", and the card is in the first lane in the persisted markdown.
+- [x] `KanbanCardText` still renders tags as before when `hideTags` is unset (board and list unchanged).
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -62,3 +62,4 @@ Checked at 085b23c5d.
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. No owner questions on this ticket.
+- 2026-11-18, delivery (branch issue/12-kanban-list-table-archive-named-checks): kanban table cells render card text with tags hidden and wikilinks clickable, list and table check buttons named "Mark done"/"Mark open", empty table shows "No cards", archived items show clean text, restore fires a "Restored to <lane>" toast; review fix: help doc placeholder code-formatted. Full suite at 1504dff7f: 657 files, 17591 tests passed, 0 failures. Reviews: round 1 APPROVED, round 2 APPROVED.

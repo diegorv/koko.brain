@@ -8,9 +8,11 @@
 		onWikilinkClick?: (target: string, heading?: string) => void;
 		/** Called with the tag (no `#`) on a chip click. Without it the chips are plain text. */
 		onTagClick?: (tag: string) => void;
+		/** Skips the tag segments, for a view that shows tags elsewhere (the table's Tags column). */
+		hideTags?: boolean;
 	}
 
-	let { text, tagColors = {}, onWikilinkClick, onTagClick }: Props = $props();
+	let { text, tagColors = {}, onWikilinkClick, onTagClick, hideTags = false }: Props = $props();
 
 	let segments = $derived(parseCardSegments(text));
 </script>
@@ -25,7 +27,7 @@
 		>
 			{seg.display}
 		</button>
-	{:else if seg.type === 'tag'}
+	{:else if seg.type === 'tag' && !hideTags}
 		{#if onTagClick}
 			<button
 				class="inline cursor-pointer rounded-sm px-1 py-0.5 text-xs hover:ring-1 hover:ring-foreground/20"

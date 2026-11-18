@@ -18,7 +18,7 @@ in2 src/lib/plugins/kanban/KanbanCard.svelte 1 files in 1 modules: src/lib/plugi
 out2 src/lib/plugins/kanban/KanbanCard.svelte 27 files in 7 modules: src/lib/components(16) src/lib/core/filesystem(4) src/lib/core/markdown-editor(2) src/lib/utils(2) src/lib/core/vault(1) +2 modules
 ## symbols
 sym src/lib/plugins/kanban/KanbanCard.svelte:1 component KanbanCard props:item,laneId,isEditing,tagColors=,onSetTagColor,onRemoveTagColor,onTagClick,onToggle,onUpdate,onDelete,onArchive,onWikilinkClick,isFocused=,isDragging=,disableDrag=,onStartEdit,onStopEdit,onDragStart,onDragEnd L344
-by src/lib/plugins/kanban/KanbanCard.svelte:default <- src/lib/plugins/kanban/KanbanLane.svelte:331 in (markup) mount
+by src/lib/plugins/kanban/KanbanCard.svelte:default <- src/lib/plugins/kanban/KanbanLane.svelte:366 in (markup) mount
 ## locals
 local src/lib/plugins/kanban/KanbanCard.svelte:70 fn handleKeydown(e: KeyboardEvent) L18
 local src/lib/plugins/kanban/KanbanCard.svelte:89 fn findBoardRoot(): HTMLElement | null L3
@@ -35,7 +35,7 @@ mount src/lib/plugins/kanban/KanbanCard.svelte:243 KanbanCardText -> src/lib/plu
 mount src/lib/plugins/kanban/KanbanCard.svelte:248 KanbanDatePicker -> src/lib/plugins/kanban/KanbanDatePicker.svelte
 mount src/lib/plugins/kanban/KanbanCard.svelte:254 KanbanDatePicker -> src/lib/plugins/kanban/KanbanDatePicker.svelte
 ## mounted-at
-mount src/lib/plugins/kanban/KanbanLane.svelte:331 KanbanCard -> src/lib/plugins/kanban/KanbanCard.svelte
+mount src/lib/plugins/kanban/KanbanLane.svelte:366 KanbanCard -> src/lib/plugins/kanban/KanbanCard.svelte
 ## calls
 call src/lib/plugins/kanban/KanbanCard.svelte:77 in handleKeydown -> src/lib/plugins/kanban/KanbanCard.svelte:findBoardRoot call +1
 call src/lib/plugins/kanban/KanbanCard.svelte:78 in handleKeydown -> src/lib/plugins/kanban/KanbanCard.svelte:commitEdit call

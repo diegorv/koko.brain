@@ -19,10 +19,10 @@ sym src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:6 type 
 sym src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:8 interface WikilinkMatch L9
 sym src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:26 fn detectWikilinkContext(docText: string, pos: number): WikilinkMatch | null L47 | Detects whether the cursor is inside a `[[...]]` wikilink and determines the completion mode (file, heading, or blockId).
 by src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:detectWikilinkContext <- src/lib/core/markdown-editor/extensions/wikilink/completion.ts:47 in wikilinkCompletionSource call
-by src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:detectWikilinkContext <- src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:23 in context=$derived call
+by src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:detectWikilinkContext <- src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:25 in context=$derived call
 sym src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:75 fn matchFilesForWikilink(query: string, files: readonly FileEntry[]): FileEntry[] L16 | Matches files by fuzzy-matching the query against file names
 by src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:matchFilesForWikilink <- src/lib/core/markdown-editor/extensions/wikilink/completion.ts:71 in buildFileCompletions call
-by src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:matchFilesForWikilink <- src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:29 in files=$derived call
+by src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:matchFilesForWikilink <- src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:31 in files=$derived call
 sym src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:93 fn extractHeadingsFromContent(content: string): string[] L10 | Extracts all ATX heading texts from markdown content
 by src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:extractHeadingsFromContent <- src/lib/core/markdown-editor/extensions/wikilink/completion.ts:143 in buildHeadingCompletions call
 sym src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:105 fn extractBlockIdsFromContent(content: string): string[] L10 | Extracts all block ID markers (`^block-id`) from markdown content

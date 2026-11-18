@@ -19,10 +19,15 @@ Element.prototype.scrollIntoView ??= () => {};
 vi.mock('#lib/plugins/kanban/kanban.service.js', () => ({
 	loadLinkedFileContent: vi.fn(async () => null),
 }));
+// Toasts are a DOM side-effect service.
+vi.mock('svelte-sonner', () => ({
+	toast: { error: vi.fn(), success: vi.fn() },
+}));
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mount, unmount, flushSync, tick } from 'svelte';
+import { toast } from 'svelte-sonner';
 import { loadLinkedFileContent } from '#lib/plugins/kanban/kanban.service.js';
 import KanbanViewHarness from '../../../fixtures/KanbanViewHarness.svelte';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -1307,6 +1312,135 @@ describe('KanbanView: lanes, add row, counts and rail', () => {
 			expect(isLaneCollapsed(parseKanbanBoard(api!.getMarkdown()), 'To Do')).toBe(false);
 			const input = lane('To Do').querySelector<HTMLInputElement>('input:not([placeholder])');
 			expect(input?.value).toBe('To Do');
+		});
+	});
+});
+
+describe('KanbanView: list, table and archive', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+	let api: HarnessApi | undefined;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		kanbanStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		api = undefined;
+		kanbanStore.reset();
+		document.body.innerHTML = '';
+	});
+
+	function mountMode(source: string, mode: KanbanViewMode, onOpenWikilink: (target: string) => void = () => {}): void {
+		component = mount(KanbanViewHarness, {
+			target,
+			props: {
+				initialMarkdown: serializeKanbanBoard(setViewMode(parseKanbanBoard(source), mode)),
+				register: (a: HarnessApi) => { api = a; },
+				onOpenWikilink,
+			},
+		});
+		flushSync();
+	}
+
+	function buttonNamed(name: string): HTMLButtonElement[] {
+		return [...target.querySelectorAll<HTMLButtonElement>('button')].filter((b) => b.getAttribute('aria-label') === name);
+	}
+
+	describe('check buttons', () => {
+		it.each(['table', 'list'] as const)('%s: the check is named "Mark done" and flips to "Mark open" after a click', (mode) => {
+			mountMode('## To Do\n\n- [ ] write the test\n\n', mode);
+			const check = buttonNamed('Mark done');
+			expect(check).toHaveLength(1);
+			check[0].click();
+			flushSync();
+
+			expect(buttonNamed('Mark done')).toHaveLength(0);
+			expect(buttonNamed('Mark open')).toHaveLength(1);
+			expect(parseKanbanBoard(api!.getMarkdown()).lanes[0].items[0].checked).toBe(true);
+		});
+	});
+
+	describe('table cells', () => {
+		const TAGGED = '## To Do\n\n- [ ] Ship #design [[Spec]]\n\n';
+
+		function cardCell(): HTMLTableCellElement {
+			const row = target.querySelector<HTMLTableRowElement>('tbody tr');
+			if (!row) throw new Error('no table row');
+			return row.cells[2];
+		}
+
+		it('render the card text with a clickable wikilink and no inline tag', () => {
+			const onOpenWikilink = vi.fn();
+			mountMode(TAGGED, 'table', onOpenWikilink);
+			const cell = cardCell();
+
+			expect(cell.textContent).toContain('Ship');
+			expect(cell.textContent).not.toContain('#design');
+			const link = [...cell.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.trim() === 'Spec');
+			expect(link).toBeDefined();
+			link!.click();
+			flushSync();
+			expect(onOpenWikilink).toHaveBeenCalledWith('Spec');
+
+			const row = cell.closest('tr')!;
+			expect(row.cells[3].textContent?.trim()).toBe('#design');
+		});
+
+		it('list view still renders the #design chip inline', () => {
+			mountMode(TAGGED, 'list');
+			const chip = [...target.querySelectorAll<HTMLElement>('span, button')].find((el) => el.textContent?.trim() === '#design');
+			expect(chip).toBeDefined();
+		});
+
+		it('an empty board shows one "No cards" row', () => {
+			mountMode('## To Do\n\n## Done\n\n', 'table');
+			const rows = target.querySelectorAll<HTMLTableRowElement>('tbody tr');
+			expect(rows).toHaveLength(1);
+			expect(rows[0].textContent?.trim()).toBe('No cards');
+		});
+
+		it('a board with cards has no "No cards" row', () => {
+			mountMode(TAGGED, 'table');
+			expect(target.querySelector('tbody')!.textContent).not.toContain('No cards');
+		});
+	});
+
+	describe('archive', () => {
+		const ARCHIVED = '## To Do\n\n- [ ] open card\n\n## Done\n\n---\n\n## Archive\n\n- [x] Pay rent {2026-11-20} {color:red}\n';
+
+		function openArchive(): HTMLElement {
+			const toggle = [...target.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.includes('Archive (1)'));
+			if (!toggle) throw new Error('no archive toggle');
+			toggle.click();
+			flushSync();
+			const row = buttonNamed('Restore item')[0]?.parentElement;
+			if (!row) throw new Error('no archive row');
+			return row;
+		}
+
+		it('a row shows the card text without date or color tokens, and the stored text keeps them', () => {
+			mountMode(ARCHIVED, 'board');
+			const row = openArchive();
+
+			expect(row.textContent?.trim()).toBe('Pay rent');
+			expect(parseKanbanBoard(api!.getMarkdown()).archive[0].text).toBe('Pay rent {2026-11-20} {color:red}');
+		});
+
+		it('Restore toasts the first lane title and moves the card into it in the persisted markdown', () => {
+			mountMode(ARCHIVED, 'board');
+			openArchive();
+			buttonNamed('Restore item')[0].click();
+			flushSync();
+
+			expect(toast.success).toHaveBeenCalledWith('Restored to To Do');
+			const board = parseKanbanBoard(api!.getMarkdown());
+			expect(board.archive).toHaveLength(0);
+			expect(board.lanes[0].items.map((i) => i.text)).toContain('Pay rent {2026-11-20} {color:red}');
 		});
 	});
 });

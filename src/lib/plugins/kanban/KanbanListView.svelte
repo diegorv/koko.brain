@@ -36,6 +36,7 @@
 							class="flex size-4 shrink-0 items-center justify-center rounded-xs border transition-colors
 								{item.checked ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40 hover:border-primary'}"
 							onclick={() => onToggleItem(lane.id, item.id)}
+							aria-label={item.checked ? 'Mark open' : 'Mark done'}
 						>
 							{#if item.checked}
 								<Check class="size-3" />
