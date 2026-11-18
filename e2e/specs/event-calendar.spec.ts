@@ -76,13 +76,16 @@ function contrast(a: number[], b: number[]): number {
 
 test.use({ clockTime: '2026-11-10T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
 
-/** Seeds the event notes and announces them as a full rescan, the way Rust does after `scan_vault_v2*`. */
-async function seedEvents(page: Page): Promise<void> {
+/**
+ * Seeds the event notes and announces them as a full rescan, the way Rust does after `scan_vault_v2*`.
+ * @param files - the notes to seed, `EVENT_FILES` by default
+ */
+async function seedEvents(page: Page, files: Record<string, string> = EVENT_FILES): Promise<void> {
 	await page.evaluate(({ files }) => {
 		const e2e = window.__e2e;
 		e2e.fs.populate(files);
 		e2e.events.emit('vault-index-updated', e2e.vaultIndex.rescanResult());
-	}, { files: EVENT_FILES });
+	}, { files });
 }
 
 /**
@@ -107,7 +110,7 @@ test.describe('Event calendar', () => {
 		await openCalendar(page);
 
 		await expectTabActive(page, 'Calendar');
-		await expect(page.locator('[data-calendar-title]')).toHaveText('November, 2026');
+		await expect(page.locator('[data-calendar-title]')).toHaveText('November 2026');
 		await expect(page.locator('[data-calendar-subtitle]')).toContainText('Week 46');
 		await expect(page.getByRole('tablist', { name: 'Calendar view' })).toBeVisible();
 		await expect(page.getByRole('tab', { name: 'Week' })).toHaveAttribute('aria-selected', 'true');
@@ -258,6 +261,24 @@ test.describe('Event calendar month view', () => {
 		await expect(chip).toHaveText('09:00 Standup');
 		await expect(page.locator(`[data-month-cell="2026-11-12"] [data-event-path="${HOLIDAY}"]`)).toHaveText('Holiday');
 		await expect(page.locator('[data-month-cell="2026-11-10"] [data-month-day]')).toHaveAttribute('data-today', 'true');
+	});
+
+	test('a busy day keeps its "+N more" inside the cell', async ({ vaultPage: page }) => {
+		const busy: Record<string, string> = { '/test-vault/Events/': '' };
+		for (let hour = 8; hour < 13; hour++) {
+			const hh = String(hour).padStart(2, '0');
+			busy[`/test-vault/Events/Busy ${hh}.md`] = `---\n_type: Event\ndate: 2026-11-18\nstart: ${hh}:00\nend: ${hh}:30\n---\n`;
+		}
+		await seedEvents(page, busy);
+		await openCalendar(page);
+		await page.getByRole('tab', { name: 'Month' }).click();
+
+		const cell = page.locator('[data-month-cell="2026-11-18"]');
+		const more = cell.locator('[data-month-more]');
+		await expect(more).toBeVisible({ timeout: 10_000 });
+		const cellBox = (await cell.boundingBox())!;
+		const moreBox = (await more.boundingBox())!;
+		expect(moreBox.y + moreBox.height).toBeLessThanOrEqual(cellBox.y + cellBox.height);
 	});
 });
 

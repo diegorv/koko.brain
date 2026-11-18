@@ -7,17 +7,17 @@ imp src/lib/features/event-calendar/EventTaskChip.svelte:5 -> src/lib/features/t
 imp src/lib/features/event-calendar/EventTaskChip.svelte:6 -> src/lib/features/event-calendar/event-calendar-tasks.logic.ts type:CalendarTask
 ## imported-by
 imp src/lib/features/event-calendar/EventMonthGrid.svelte:13 -> src/lib/features/event-calendar/EventTaskChip.svelte default
-imp src/lib/features/event-calendar/EventTaskLane.svelte:4 -> src/lib/features/event-calendar/EventTaskChip.svelte default
+imp src/lib/features/event-calendar/EventTaskLane.svelte:5 -> src/lib/features/event-calendar/EventTaskChip.svelte default
 ## reach
 in2 src/lib/features/event-calendar/EventTaskChip.svelte 2 files in 1 modules: src/lib/features/event-calendar(2)
 out2 src/lib/features/event-calendar/EventTaskChip.svelte 8 files in 5 modules: src/lib/core/editor(3) src/lib/features/event-calendar(2) src/lib/features/tasks(1) src/lib/types(1) src/lib/utils(1)
 ## symbols
 sym src/lib/features/event-calendar/EventTaskChip.svelte:1 component EventTaskChip props:task,class= L43
 by src/lib/features/event-calendar/EventTaskChip.svelte:default <- src/lib/features/event-calendar/EventMonthGrid.svelte:144 in (markup) mount
-by src/lib/features/event-calendar/EventTaskChip.svelte:default <- src/lib/features/event-calendar/EventTaskLane.svelte:42 in (markup) mount
+by src/lib/features/event-calendar/EventTaskChip.svelte:default <- src/lib/features/event-calendar/EventTaskLane.svelte:51 in (markup) mount
 ## mounted-at
 mount src/lib/features/event-calendar/EventMonthGrid.svelte:144 EventTaskChip -> src/lib/features/event-calendar/EventTaskChip.svelte
-mount src/lib/features/event-calendar/EventTaskLane.svelte:42 EventTaskChip -> src/lib/features/event-calendar/EventTaskChip.svelte
+mount src/lib/features/event-calendar/EventTaskLane.svelte:51 EventTaskChip -> src/lib/features/event-calendar/EventTaskChip.svelte
 ## calls
 call src/lib/features/event-calendar/EventTaskChip.svelte:18 in closed=$derived -> src/lib/features/tasks/task-status.logic.ts:isTaskOpen call
 call src/lib/features/event-calendar/EventTaskChip.svelte:34 in (markup) -> src/lib/core/editor/open-note-at.service.ts:openNoteAt markup

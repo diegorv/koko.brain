@@ -31,7 +31,7 @@ async function seedEvents(page: Page): Promise<void> {
 /** Asserts the Calendar is the active tab on the Kickoff week, with the Kickoff block focused and pulsing once. */
 async function expectKickoffFocused(page: Page): Promise<void> {
 	await expect(page.locator('[role="tab"][aria-selected="true"]', { hasText: 'Calendar' })).toBeVisible();
-	await expect(page.locator('[data-calendar-title]')).toHaveText('November, 2026');
+	await expect(page.locator('[data-calendar-title]')).toHaveText('November 2026');
 	await expect(page.locator('[data-calendar-subtitle]')).toContainText('Week 48');
 
 	const block = page.locator(`[data-day-column="2026-11-24"] [data-event-path="${KICKOFF}"]`);

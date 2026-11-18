@@ -59,8 +59,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 22 | [Settings switches: dependents disable while their parent is off, and a switch that failed to start turns back off](issues/22-settings-switches-dependents-disable-while-parent.md) | none | done | issue/22-settings-switches-dependents-disable-while-parent (7adcde4d4) | 2026-11-18 |
 | 23 | [File History says what it compares and when something failed](issues/23-file-history-compares-something-failed.md) | 20 | todo | | |
 | 24 | [Calendar events say what you can do; the new-event form opens without an error](issues/24-calendar-events-say-you-can-do.md) | none | done | issue/24-calendar-events-say-you-can-do (bd8d1575b) | 2026-11-18 |
-| 25 | [Calendar time grid shows what is now and what is hidden](issues/25-calendar-time-grid-shows-now-hidden.md) | 24 | in-progress | | |
-| 26 | [Calendar month grid reads at a glance](issues/26-calendar-month-grid-reads-at-glance.md) | 24, 25 | todo | | |
+| 25 | [Calendar time grid shows what is now and what is hidden](issues/25-calendar-time-grid-shows-now-hidden.md) | 24 | done | issue/25-calendar-time-grid-shows-now-hidden (8856ffdbe) | 2026-11-18 |
+| 26 | [Calendar month grid reads at a glance](issues/26-calendar-month-grid-reads-at-glance.md) | 24, 25 | in-progress | | |
 | 27 | [The Tasks toolbar and list say what they do](issues/27-tasks-toolbar-list-say-they-do.md) | none | done | issue/27-tasks-toolbar-list-say-they-do (765d89506) | 2026-11-18 |
 | 28 | [The Days mini month works narrow and by screen reader](issues/28-days-mini-month-works-narrow-by.md) | 26 | todo | | |
 | 29 | [The template picker names the template and what Enter will do](issues/29-template-picker-names-template-enter-will.md) | none | done | issue/29-template-picker-names-template-enter-will (e73578399) | 2026-11-18 |
@@ -127,3 +127,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 18:29 — 22 — start — launched by /relay-lite:run — 8a52acc9c
 - 2026-11-18 18:40 — 22 — deliver — merged after review 1 APPROVED, fix round (LabsSection stops the mods host before writing the flag off), re-review 2 APPROVED (claude) with one rare-case nit left; full vitest suite passed (17634 tests) — 7adcde4d4
 - 2026-11-18 18:40 — 25 — start — launched by /relay-lite:run — 9fa660b19
+- 2026-11-18 18:54 — 25 — deliver — merged after review 1 APPROVED with one nit, fix round (scroll test fakes the date), re-review 2 APPROVED (claude); full vitest suite passed (17649 tests) — 8856ffdbe
+- 2026-11-18 18:54 — 26 — start — launched by /relay-lite:run — a6ac1d10a

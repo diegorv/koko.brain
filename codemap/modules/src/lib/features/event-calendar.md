@@ -1,7 +1,7 @@
 # module card src/lib/features/event-calendar
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/features/event-calendar ' codemap/modules
 sections: neighbors, entry files, files, public, stores, effects, debt
-module src/lib/features/event-calendar features files 36 in-modules 7 out-modules 12 pub 17/232 ipc 1/0 card ~4.6k
+module src/lib/features/event-calendar features files 36 in-modules 7 out-modules 12 pub 17/236 ipc 1/0 card ~4.6k
 ## neighbors
 dep src/lib/app -> src/lib/features/event-calendar 9
 dep src/lib/features/backlinks -> src/lib/features/event-calendar 1
@@ -50,12 +50,12 @@ file src/lib/features/event-calendar/EventMonthGrid.svelte component L160 module
 file src/lib/features/event-calendar/EventPopover.svelte component L203 module src/lib/features/event-calendar in1 t1
 file src/lib/features/event-calendar/EventShortcutsDialog.svelte component L55 module src/lib/features/event-calendar in1 t0
 file src/lib/features/event-calendar/EventTaskChip.svelte component L43 module src/lib/features/event-calendar in2 t0
-file src/lib/features/event-calendar/EventTaskLane.svelte component L48 module src/lib/features/event-calendar in1 t1
-file src/lib/features/event-calendar/EventTimeGrid.svelte component L336 module src/lib/features/event-calendar in1 t4
+file src/lib/features/event-calendar/EventTaskLane.svelte component L68 module src/lib/features/event-calendar in1 t1
+file src/lib/features/event-calendar/EventTimeGrid.svelte component L349 module src/lib/features/event-calendar in1 t4
 file src/lib/features/event-calendar/EventWeekStrip.svelte component L60 module src/lib/features/event-calendar in1 t1
 file src/lib/features/event-calendar/ShowInCalendarButton.svelte component L75 module src/lib/features/event-calendar in2 t1
 file src/lib/features/event-calendar/event-calendar-daily-note.store.svelte.ts store L61 module src/lib/features/event-calendar in3 t6 | Bridge from the Calendar to whatever opens a day's daily note.
-file src/lib/features/event-calendar/event-calendar-dates.logic.ts logic L346 module src/lib/features/event-calendar in13 t9 | Native, dependency-free date helpers for the event calendar.
+file src/lib/features/event-calendar/event-calendar-dates.logic.ts logic L346 module src/lib/features/event-calendar in14 t9 | Native, dependency-free date helpers for the event calendar.
 file src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts other L143 module src/lib/features/event-calendar in2 t2
 file src/lib/features/event-calendar/event-calendar-drag.logic.ts logic L319 module src/lib/features/event-calendar in5 t1 | Pointer gestures of the time grid (create, move and resize) and of the day cells of the month grid and the all-day lane (move to another day).
 file src/lib/features/event-calendar/event-calendar-event.logic.ts logic L513 module src/lib/features/event-calendar in12 t4 | Schema of event notes: how a Rust `VaultIndex` entry of the configured event type becomes a calendar event or a Needs-attention issue, what a calendar write pu…
@@ -64,10 +64,10 @@ file src/lib/features/event-calendar/event-calendar-form.logic.ts logic L224 mod
 file src/lib/features/event-calendar/event-calendar-gesture-guard.ts other L162 module src/lib/features/event-calendar in2 t1
 file src/lib/features/event-calendar/event-calendar-history.logic.ts logic L107 module src/lib/features/event-calendar in2 t3 | Field-level undo / redo history of the event calendar.
 file src/lib/features/event-calendar/event-calendar-keys.logic.ts logic L148 module src/lib/features/event-calendar in3 t2 | Keyboard shortcuts of the Calendar tab, a port of `calender-app-design/src/components/shell/keyboard-shortcuts.tsx` scoped to the view.
-file src/lib/features/event-calendar/event-calendar-layout.logic.ts logic L77 module src/lib/features/event-calendar in5 t3 | Time-grid geometry for the event calendar, ported from the prototype's `calender-app-design/src/components/calendar/layout.ts`.
-file src/lib/features/event-calendar/event-calendar-tasks.logic.ts logic L96 module src/lib/features/event-calendar in5 t1 | Dated tasks on the Calendar: projects the Rust task index (`get_all_tasks_v2`) onto calendar days.
+file src/lib/features/event-calendar/event-calendar-layout.logic.ts logic L108 module src/lib/features/event-calendar in5 t3 | Time-grid geometry for the event calendar, ported from the prototype's `calender-app-design/src/components/calendar/layout.ts`.
+file src/lib/features/event-calendar/event-calendar-tasks.logic.ts logic L125 module src/lib/features/event-calendar in5 t1 | Dated tasks on the Calendar: projects the Rust task index (`get_all_tasks_v2`) onto calendar days.
 file src/lib/features/event-calendar/event-calendar-view.logic.ts logic L421 module src/lib/features/event-calendar in9 t2 | View math the Calendar tab renders from: which days each view shows, how the arrows step, the header labels, events grouped per day, month cells and chips, the…
-file src/lib/features/event-calendar/event-calendar-view.store.svelte.ts store L231 module src/lib/features/event-calendar in20 t20
+file src/lib/features/event-calendar/event-calendar-view.store.svelte.ts store L231 module src/lib/features/event-calendar in21 t21
 file src/lib/features/event-calendar/event-calendar.service.ts service L1587 module src/lib/features/event-calendar in13 t21 | Service of the Calendar tab.
 file src/lib/features/event-calendar/event-calendar.store.svelte.ts store L247 module src/lib/features/event-calendar in9 t10 | Reactive data of the Calendar tab: the projected index snapshot, the pending-write overlay, the undo history, the load state and the dated tasks overlay.
 file src/lib/features/event-calendar/event-calendar.types.ts types L321 module src/lib/features/event-calendar in18 t0 | Shared types of the event-calendar feature.

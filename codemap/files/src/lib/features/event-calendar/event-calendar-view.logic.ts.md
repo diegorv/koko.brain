@@ -13,7 +13,7 @@ imp src/lib/features/event-calendar/EventMonthGrid.svelte:9 -> src/lib/features/
 imp src/lib/features/event-calendar/EventPopover.svelte:12 -> src/lib/features/event-calendar/event-calendar-view.logic.ts eventWhenLabel
 imp src/lib/features/event-calendar/EventTaskLane.svelte:2 -> src/lib/features/event-calendar/event-calendar-view.logic.ts ALL_DAY_MAX_ROWS
 imp src/lib/features/event-calendar/EventTimeGrid.svelte:19 -> src/lib/features/event-calendar/event-calendar-view.logic.ts groupEventsByDay,nowOffsetMinutes
-imp src/lib/features/event-calendar/event-calendar-tasks.logic.ts:9 -> src/lib/features/event-calendar/event-calendar-view.logic.ts MONTH_MAX_CHIPS
+imp src/lib/features/event-calendar/event-calendar-tasks.logic.ts:9 -> src/lib/features/event-calendar/event-calendar-view.logic.ts ALL_DAY_MAX_ROWS,MONTH_MAX_CHIPS
 imp src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:3 -> src/lib/features/event-calendar/event-calendar-view.logic.ts buildMonthCells,nowOffsetMinutes,rangeLabel,stepDate,visibleDays,type:MonthCell,type:RangeLabel
 imp src/lib/features/event-calendar/event-calendar.service.ts:41 -> src/lib/features/event-calendar/event-calendar-view.logic.ts defaultCreateSlot,focusViewFor
 ## reach
@@ -24,9 +24,10 @@ test src/tests/lib/features/event-calendar/event-calendar-view.logic.test.ts imp
 test src/tests/lib/features/event-calendar/event-calendar-tasks.logic.test.ts imports src/lib/features/event-calendar/event-calendar-view.logic.ts
 ## symbols
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:43 const MONTH_MAX_CHIPS L1 | Most chips a month cell shows before "+N more".
-by src/lib/features/event-calendar/event-calendar-view.logic.ts:MONTH_MAX_CHIPS <- src/lib/features/event-calendar/event-calendar-tasks.logic.ts:93 in monthCellSlots ref +1
+by src/lib/features/event-calendar/event-calendar-view.logic.ts:MONTH_MAX_CHIPS <- src/lib/features/event-calendar/event-calendar-tasks.logic.ts:122 in monthCellSlots ref +1
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:46 const ALL_DAY_MAX_ROWS L1 | Most rows the all-day lane grows to, the "+N" row included.
-by src/lib/features/event-calendar/event-calendar-view.logic.ts:ALL_DAY_MAX_ROWS <- src/lib/features/event-calendar/EventTaskLane.svelte:23 in rows=$derived ref
+by src/lib/features/event-calendar/event-calendar-view.logic.ts:ALL_DAY_MAX_ROWS <- src/lib/features/event-calendar/EventTaskLane.svelte:24 in rows=$derived ref
+by src/lib/features/event-calendar/event-calendar-view.logic.ts:ALL_DAY_MAX_ROWS <- src/lib/features/event-calendar/event-calendar-tasks.logic.ts:110 in taskLaneCells ref +1
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:49 interface RangeLabel L6 | Header labels of the current range.
 by src/lib/features/event-calendar/event-calendar-view.logic.ts:RangeLabel <- src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:10 in (module) import
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:57 interface EventsByDay L6 | Events of the visible days, split by lane.
@@ -44,7 +45,7 @@ sym src/lib/features/event-calendar/event-calendar-view.logic.ts:163 fn rangeLab
 by src/lib/features/event-calendar/event-calendar-view.logic.ts:rangeLabel <- src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:84 in eventCalendarViewStore.rangeLabel call
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:187 fn segmentOnDay<T extends EventNote>(event: T, day: string): T | null L8 | The part of an event that falls on one day.
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:223 fn groupEventsByDay(events: EventNote[], days: string[]): EventsByDay L6 | Groups events by day and lane.
-by src/lib/features/event-calendar/event-calendar-view.logic.ts:groupEventsByDay <- src/lib/features/event-calendar/EventTimeGrid.svelte:81 in timed=$derived call
+by src/lib/features/event-calendar/event-calendar-view.logic.ts:groupEventsByDay <- src/lib/features/event-calendar/EventTimeGrid.svelte:83 in timed=$derived call
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:242 fn focusViewFor(view: CalendarViewMode, event: EventNote, events: EventNote[], weekStartsOn: WeekStart, showWeekends: boolean): Calend… L13 | The view to show `event` in when focusing it.
 by src/lib/features/event-calendar/event-calendar-view.logic.ts:focusViewFor <- src/lib/features/event-calendar/event-calendar.service.ts:271 in openEventInCalendar call
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:264 fn buildMonthCells(date: string, weekStartsOn: WeekStart, showWeekends: boolean): MonthCell[] L6 | Cells of the month grid: six weeks around `date`'s month.
@@ -61,7 +62,7 @@ by src/lib/features/event-calendar/event-calendar-view.logic.ts:buildAllDayChips
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:380 fn laneRows(maxEvents: number): number L3 | Height of the all-day lane in rows.
 by src/lib/features/event-calendar/event-calendar-view.logic.ts:laneRows <- src/lib/features/event-calendar/EventAllDayLane.svelte:30 in rows=$derived call
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:393 fn nowOffsetMinutes(nowMs: number, dayKey: string): number | null L4 | Position of the now-line in a day column, from the local wall clock.
-by src/lib/features/event-calendar/event-calendar-view.logic.ts:nowOffsetMinutes <- src/lib/features/event-calendar/EventTimeGrid.svelte:294 in (markup) markup
+by src/lib/features/event-calendar/event-calendar-view.logic.ts:nowOffsetMinutes <- src/lib/features/event-calendar/EventTimeGrid.svelte:307 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-view.logic.ts:nowOffsetMinutes <- src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:92 in eventCalendarViewStore.nowMinutes call
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:411 fn defaultCreateSlot(date: string, todayKey: string, nowMinutes: number, dayStartHour: number, duration: number): CreateSlot L11 | Slot a new event opens with when no time was picked on the grid.
 by src/lib/features/event-calendar/event-calendar-view.logic.ts:defaultCreateSlot <- src/lib/features/event-calendar/event-calendar.service.ts:287 in openNewEventDialog call

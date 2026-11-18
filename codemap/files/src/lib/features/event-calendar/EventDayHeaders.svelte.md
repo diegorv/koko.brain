@@ -12,13 +12,13 @@ in2 src/lib/features/event-calendar/EventDayHeaders.svelte 1 files in 1 modules:
 out2 src/lib/features/event-calendar/EventDayHeaders.svelte 4 files in 2 modules: src/lib/features/event-calendar(3) src/lib/core/settings(1)
 ## symbols
 sym src/lib/features/event-calendar/EventDayHeaders.svelte:1 component EventDayHeaders props:days L50
-by src/lib/features/event-calendar/EventDayHeaders.svelte:default <- src/lib/features/event-calendar/EventTimeGrid.svelte:253 in (markup) mount
+by src/lib/features/event-calendar/EventDayHeaders.svelte:default <- src/lib/features/event-calendar/EventTimeGrid.svelte:266 in (markup) mount
 ## locals
 local src/lib/features/event-calendar/EventDayHeaders.svelte:14 fn handleClick(day: string) L5
 ## mounts
 mount src/lib/features/event-calendar/EventDayHeaders.svelte:47 EventDailyNoteButton -> src/lib/features/event-calendar/EventDailyNoteButton.svelte
 ## mounted-at
-mount src/lib/features/event-calendar/EventTimeGrid.svelte:253 EventDayHeaders -> src/lib/features/event-calendar/EventDayHeaders.svelte
+mount src/lib/features/event-calendar/EventTimeGrid.svelte:266 EventDayHeaders -> src/lib/features/event-calendar/EventDayHeaders.svelte
 ## calls
 call src/lib/features/event-calendar/EventDayHeaders.svelte:16 in handleClick -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:eventCalendarViewStore.setDate mcall
 call src/lib/features/event-calendar/EventDayHeaders.svelte:17 in handleClick -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:eventCalendarViewStore.setView mcall

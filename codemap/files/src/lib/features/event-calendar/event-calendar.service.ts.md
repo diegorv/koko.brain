@@ -107,11 +107,11 @@ sym src/lib/features/event-calendar/event-calendar.service.ts:657 fn registerEve
 by src/lib/features/event-calendar/event-calendar.service.ts:registerEventCalendarPathChangeConsumer <- src/lib/app/lifecycle/app-lifecycle.service.ts:265 in initializeVault call
 sym src/lib/features/event-calendar/event-calendar.service.ts:815 fn updateEventFields(path: string, patch: EventPatch, options: UpdateEventOptions): Promise<void> L9 | Writes calendar fields to an existing event, queued per path.
 sym src/lib/features/event-calendar/event-calendar.service.ts:830 fn moveEvent(path: string, timing: EventTiming): Promise<void> L3 | Moves an event to a new day and time range (a drag), as a 'Move event' op.
-by src/lib/features/event-calendar/event-calendar.service.ts:moveEvent <- src/lib/features/event-calendar/EventTimeGrid.svelte:194 in commitDrop call
+by src/lib/features/event-calendar/event-calendar.service.ts:moveEvent <- src/lib/features/event-calendar/EventTimeGrid.svelte:207 in commitDrop call
 sym src/lib/features/event-calendar/event-calendar.service.ts:842 fn moveEventToDay(path: string, date: string): Promise<void> L3 | Moves an event to another day (a drag in the month grid or the all-day lane), as a 'Move event' op.
 by src/lib/features/event-calendar/event-calendar.service.ts:moveEventToDay <- src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:136 in DayDrag.#commit call
 sym src/lib/features/event-calendar/event-calendar.service.ts:851 fn resizeEvent(path: string, end: number): Promise<void> L3 | Changes an event's end (a resize), as a 'Resize event' op.
-by src/lib/features/event-calendar/event-calendar.service.ts:resizeEvent <- src/lib/features/event-calendar/EventTimeGrid.svelte:194 in commitDrop call
+by src/lib/features/event-calendar/event-calendar.service.ts:resizeEvent <- src/lib/features/event-calendar/EventTimeGrid.svelte:207 in commitDrop call
 sym src/lib/features/event-calendar/event-calendar.service.ts:868 fn editEvent(path: string, patch: EventFormPatch): Promise<string> L9 | Saves the edit dialog as one queued unit and one 'Edit event' op.
 by src/lib/features/event-calendar/event-calendar.service.ts:editEvent <- src/lib/features/event-calendar/EventDialog.svelte:124 in save call
 sym src/lib/features/event-calendar/event-calendar.service.ts:879 type EventCalendarErrorReason L1 | Why a create, duplicate, restore or timing write was refused.
@@ -129,7 +129,7 @@ by src/lib/features/event-calendar/event-calendar.service.ts:eventErrorMessage <
 by src/lib/features/event-calendar/event-calendar.service.ts:eventErrorMessage <- src/lib/features/event-calendar/EventForm.svelte:61 in handleSubmit call
 sym src/lib/features/event-calendar/event-calendar.service.ts:1415 fn toastEventError(err: unknown, path: string): void L12 | Reports a failed calendar write in a toast.
 by src/lib/features/event-calendar/event-calendar.service.ts:toastEventError <- src/lib/features/event-calendar/EventDialog.svelte:127 in save call
-by src/lib/features/event-calendar/event-calendar.service.ts:toastEventError <- src/lib/features/event-calendar/EventTimeGrid.svelte:196 in commitDrop call
+by src/lib/features/event-calendar/event-calendar.service.ts:toastEventError <- src/lib/features/event-calendar/EventTimeGrid.svelte:209 in commitDrop call
 by src/lib/features/event-calendar/event-calendar.service.ts:toastEventError <- src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:138 in DayDrag.#commit call
 sym src/lib/features/event-calendar/event-calendar.service.ts:1456 fn deleteEventFromUi(path: string, root: HTMLElement | undefined): Promise<void> L27 | The popover's and the dialog's Delete: deletes the event and shows an "Event deleted" toast, described by the event's title, whose Undo restores it through `un…
 by src/lib/features/event-calendar/event-calendar.service.ts:deleteEventFromUi <- src/lib/features/event-calendar/EventCalendarView.svelte:80 in handleKeydown call

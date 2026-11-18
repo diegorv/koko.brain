@@ -15,12 +15,12 @@ in2 src/lib/features/event-calendar/EventBlock.svelte 1 files in 1 modules: src/
 out2 src/lib/features/event-calendar/EventBlock.svelte 7 files in 4 modules: src/lib/core/settings(3) src/lib/core/frontmatter(2) src/lib/features/type-definitions(1) src/lib/types(1)
 ## symbols
 sym src/lib/features/event-calendar/EventBlock.svelte:1 component EventBlock props:event,column,columns,timeFormat,whole L133
-by src/lib/features/event-calendar/EventBlock.svelte:default <- src/lib/features/event-calendar/EventTimeGrid.svelte:302 in (markup) mount
+by src/lib/features/event-calendar/EventBlock.svelte:default <- src/lib/features/event-calendar/EventTimeGrid.svelte:315 in (markup) mount
 ## locals
 local src/lib/features/event-calendar/EventBlock.svelte:58 fn openPopover(el: HTMLElement) L3
 local src/lib/features/event-calendar/EventBlock.svelte:63 fn handleKeydown(e: KeyboardEvent) L6
 ## mounted-at
-mount src/lib/features/event-calendar/EventTimeGrid.svelte:302 EventBlock -> src/lib/features/event-calendar/EventBlock.svelte
+mount src/lib/features/event-calendar/EventTimeGrid.svelte:315 EventBlock -> src/lib/features/event-calendar/EventBlock.svelte
 ## calls
 call src/lib/features/event-calendar/EventBlock.svelte:38 in height=$derived -> src/lib/features/event-calendar/event-calendar-layout.logic.ts:minutesToPx call
 call src/lib/features/event-calendar/EventBlock.svelte:39 in time=$derived -> src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTimeRange call

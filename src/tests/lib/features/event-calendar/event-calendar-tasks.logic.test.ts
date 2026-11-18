@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	monthCellSlots,
+	monthChipCapacity,
 	taskLaneCells,
 	tasksByDay,
 	tasksFromGroups,
@@ -154,5 +155,37 @@ describe('monthCellSlots', () => {
 
 	it('counts every task behind "+N more" when events fill the cell', () => {
 		expect(monthCellSlots(MONTH_MAX_CHIPS + 1, 2)).toEqual({ events: MONTH_MAX_CHIPS, tasks: 0, hidden: 3 });
+	});
+
+	it('leaves the last slot to "+N more" when a measured cell overflows', () => {
+		const capacity = { all: 3, withFooter: 2 };
+
+		expect(monthCellSlots(4, 0, capacity)).toEqual({ events: 2, tasks: 0, hidden: 2 });
+		expect(monthCellSlots(1, 3, capacity)).toEqual({ events: 1, tasks: 1, hidden: 2 });
+	});
+
+	it('shows every item of a measured cell that holds them all, without "+N more"', () => {
+		expect(monthCellSlots(3, 0, { all: 3, withFooter: 2 })).toEqual({ events: 3, tasks: 0, hidden: 0 });
+		expect(monthCellSlots(1, 2, { all: 3, withFooter: 2 })).toEqual({ events: 1, tasks: 2, hidden: 0 });
+	});
+
+	it('keeps MONTH_MAX_CHIPS chips beside "+N more" without a capacity', () => {
+		expect(monthCellSlots(5, 0)).toEqual({ events: MONTH_MAX_CHIPS, tasks: 0, hidden: 5 - MONTH_MAX_CHIPS });
+	});
+});
+
+describe('monthChipCapacity', () => {
+	it('fits 3 chips, or 2 beside the footer, in a 125 px row', () => {
+		expect(monthChipCapacity(125)).toEqual({ all: 3, withFooter: 2 });
+	});
+
+	it('grows with a taller row', () => {
+		expect(monthChipCapacity(200)).toEqual({ all: 6, withFooter: 5 });
+	});
+
+	it('never drops below one chip in a short or unusable row', () => {
+		expect(monthChipCapacity(40)).toEqual({ all: 1, withFooter: 1 });
+		expect(monthChipCapacity(0)).toEqual({ all: 1, withFooter: 1 });
+		expect(monthChipCapacity(-10)).toEqual({ all: 1, withFooter: 1 });
 	});
 });

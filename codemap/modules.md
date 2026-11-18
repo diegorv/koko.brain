@@ -32,7 +32,7 @@ module src/lib/features/command-palette features files 5 in-modules 1 out-module
 module src/lib/features/copy-block-link features files 1 in-modules 1 out-modules 3 pub 2/3 ipc 0/0 card ~0.5k
 module src/lib/features/deep-link features files 4 in-modules 4 out-modules 8 pub 14/33 ipc 0/0 card ~1.8k
 module src/lib/features/dock-badge features files 2 in-modules 1 out-modules 3 pub 2/2 ipc 0/0 card ~0.6k
-module src/lib/features/event-calendar features files 36 in-modules 7 out-modules 12 pub 17/232 ipc 1/0 card ~4.6k
+module src/lib/features/event-calendar features files 36 in-modules 7 out-modules 12 pub 17/236 ipc 1/0 card ~4.6k
 module src/lib/features/file-history features files 7 in-modules 2 out-modules 7 pub 5/24 ipc 4/0 card ~1.2k
 module src/lib/features/file-icons features files 9 in-modules 9 out-modules 8 pub 22/42 ipc 1/0 card ~3.7k
 module src/lib/features/note-action-bar features files 4 in-modules 2 out-modules 12 pub 2/19 ipc 0/0 card ~1k
@@ -80,7 +80,7 @@ layer core -> utils 70
 layer features -> components 101
 layer features -> contracts 43
 layer features -> core 342
-layer features -> features 737
+layer features -> features 739
 layer features -> types 23
 layer features -> utils 100
 layer lib-root -> utils 1

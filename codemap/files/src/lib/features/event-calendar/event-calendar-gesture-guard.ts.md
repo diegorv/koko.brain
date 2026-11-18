@@ -14,7 +14,7 @@ test src/tests/lib/features/event-calendar/event-calendar-gesture-guard.test.ts 
 ## symbols
 sym src/lib/features/event-calendar/event-calendar-gesture-guard.ts:4 interface GestureGuardOptions L8 | What a gesture surface (the time grid, a day-cell drag) tells its guard.
 sym src/lib/features/event-calendar/event-calendar-gesture-guard.ts:25 class GestureGuard L138 | The lifecycle every Calendar pointer gesture shares: the gesture is live from `begin` to `end`; while live, Escape and focus leaving the Calendar discard it, a…
-by src/lib/features/event-calendar/event-calendar-gesture-guard.ts:GestureGuard <- src/lib/features/event-calendar/EventTimeGrid.svelte:62 in guard new
+by src/lib/features/event-calendar/event-calendar-gesture-guard.ts:GestureGuard <- src/lib/features/event-calendar/EventTimeGrid.svelte:64 in guard new
 by src/lib/features/event-calendar/event-calendar-gesture-guard.ts:GestureGuard <- src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:36 in DayDrag.constructor new
 ## calls
 call src/lib/features/event-calendar/event-calendar-gesture-guard.ts:51 in GestureGuard.begin -> src/lib/features/event-calendar/event-calendar-gesture-guard.ts:GestureGuard.end call

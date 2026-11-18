@@ -1,7 +1,7 @@
 # file card src/lib/features/event-calendar/event-calendar-dates.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/event-calendar/event-calendar-dates.logic.ts ' codemap/files
 sections: imported-by, reach, tests, symbols, locals, calls
-file src/lib/features/event-calendar/event-calendar-dates.logic.ts logic L346 module src/lib/features/event-calendar in13 t9 | Native, dependency-free date helpers for the event calendar.
+file src/lib/features/event-calendar/event-calendar-dates.logic.ts logic L346 module src/lib/features/event-calendar in14 t9 | Native, dependency-free date helpers for the event calendar.
 ## imported-by
 imp src/lib/features/event-calendar/EventBlock.svelte:3 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts formatTime,formatTimeRange,type:TimeFormat
 imp src/lib/features/event-calendar/EventDailyNoteButton.svelte:4 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts formatLong
@@ -12,12 +12,13 @@ imp src/lib/features/event-calendar/EventTimeGrid.svelte:4 -> src/lib/features/e
 imp src/lib/features/event-calendar/EventWeekStrip.svelte:3 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts dayOfWeek,formatLong,formatWeekday,fromKey,weekDays,WEEKDAYS_SHORT
 imp src/lib/features/event-calendar/event-calendar-event.logic.ts:18 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts addDays,formatTime,isValidDayKey,parseTimeStrict
 imp src/lib/features/event-calendar/event-calendar-form.logic.ts:12 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts isValidDayKey,parseTimeStrict
+imp src/lib/features/event-calendar/event-calendar-layout.logic.ts:8 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts toKey
 imp src/lib/features/event-calendar/event-calendar-tasks.logic.ts:8 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts isValidDayKey
 imp src/lib/features/event-calendar/event-calendar-view.logic.ts:13 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts addDays,addMonths,daysInMonth,dayOfWeek,diffDays,formatDuration,formatLong,formatRange,formatShort,formatTime,formatTimeRange,formatWeekday,fromKey,isoWeek,isWeekend,monthGrid,monthName,startOfMonth,toKey,weekDays,type:TimeFormat,type:WeekStart
 imp src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:2 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts toKey
 imp src/lib/plugins/calendar/calendar.logic.ts:4 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts type:WeekStart
 ## reach
-in2 src/lib/features/event-calendar/event-calendar-dates.logic.ts 22 files in 5 modules: src/lib/features/event-calendar(15) src/lib/plugins/calendar(4) src/lib/app(1) src/lib/features/rail-shell(1) src/lib/plugins/one-on-one(1)
+in2 src/lib/features/event-calendar/event-calendar-dates.logic.ts 23 files in 5 modules: src/lib/features/event-calendar(16) src/lib/plugins/calendar(4) src/lib/app(1) src/lib/features/rail-shell(1) src/lib/plugins/one-on-one(1)
 out2 src/lib/features/event-calendar/event-calendar-dates.logic.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/features/event-calendar/event-calendar-dates.logic.test.ts imports src/lib/features/event-calendar/event-calendar-dates.logic.ts mirror
@@ -44,6 +45,7 @@ by src/lib/features/event-calendar/event-calendar-dates.logic.ts:WEEKDAYS_SHORT 
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:WEEKDAYS_SHORT <- src/lib/features/event-calendar/EventMonthGrid.svelte:17 in headers=$derived ref
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:WEEKDAYS_SHORT <- src/lib/features/event-calendar/EventWeekStrip.svelte:47 in (markup) markup
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:57 fn toKey(date: Date): string L3 | Converts a `Date` to its local day key.
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:toKey <- src/lib/features/event-calendar/event-calendar-layout.logic.ts:104 in mountScrollTop call
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:toKey <- src/lib/features/event-calendar/event-calendar-view.logic.ts:395 in nowOffsetMinutes call
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:toKey <- src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:27 in focusedDate call +3
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:66 fn fromKey(key: string): Date L4 | Converts a day key to local midnight of that day.
@@ -88,7 +90,7 @@ sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:235 fn formatL
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatLong <- src/lib/features/event-calendar/EventDailyNoteButton.svelte:31 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatLong <- src/lib/features/event-calendar/EventDayHeaders.svelte:31 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatLong <- src/lib/features/event-calendar/EventMonthGrid.svelte:114 in (markup) markup
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatLong <- src/lib/features/event-calendar/EventTimeGrid.svelte:298 in (markup) markup
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatLong <- src/lib/features/event-calendar/EventTimeGrid.svelte:311 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatLong <- src/lib/features/event-calendar/EventWeekStrip.svelte:42 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatLong <- src/lib/features/event-calendar/event-calendar-view.logic.ts:332 in eventWhenLabel call
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:245 fn formatShort(key: string): string L4 | Short date label without the year.
@@ -102,12 +104,12 @@ sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:268 fn formatR
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatRange <- src/lib/features/event-calendar/event-calendar-view.logic.ts:168 in rangeLabel call +1
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:285 fn formatTime(minutes: number, format: TimeFormat = '24h'): string L9 | Formats minutes from midnight as a clock time.
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/EventBlock.svelte:98 in (markup) markup
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/EventTimeGrid.svelte:94 in hourLabel call
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/EventTimeGrid.svelte:96 in hourLabel call
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/event-calendar-event.logic.ts:287 in formatEventTime call
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/event-calendar-view.logic.ts:295 in itemsForDay call +2
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:302 fn formatTimeRange(start: number, end: number, format: TimeFormat = '24h'): string L3 | Formats a start and end time.
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTimeRange <- src/lib/features/event-calendar/EventBlock.svelte:39 in time=$derived call
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTimeRange <- src/lib/features/event-calendar/EventTimeGrid.svelte:317 in (markup) markup
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTimeRange <- src/lib/features/event-calendar/EventTimeGrid.svelte:330 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTimeRange <- src/lib/features/event-calendar/event-calendar-view.logic.ts:340 in eventWhenLabel call +1
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:311 fn formatDuration(minutes: number): string L6 | Formats a length of time.
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatDuration <- src/lib/features/event-calendar/event-calendar-view.logic.ts:339 in eventWhenLabel call +1

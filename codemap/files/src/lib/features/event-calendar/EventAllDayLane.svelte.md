@@ -17,12 +17,12 @@ out2 src/lib/features/event-calendar/EventAllDayLane.svelte 11 files in 5 module
 test src/tests/lib/features/event-calendar/EventAllDayLane.test.ts imports src/lib/features/event-calendar/EventAllDayLane.svelte mirror
 ## symbols
 sym src/lib/features/event-calendar/EventAllDayLane.svelte:1 component EventAllDayLane props:days,events L108
-by src/lib/features/event-calendar/EventAllDayLane.svelte:default <- src/lib/features/event-calendar/EventTimeGrid.svelte:254 in (markup) mount
+by src/lib/features/event-calendar/EventAllDayLane.svelte:default <- src/lib/features/event-calendar/EventTimeGrid.svelte:267 in (markup) mount
 ## locals
 local src/lib/features/event-calendar/EventAllDayLane.svelte:43 fn openDay(day: string) L4
 local src/lib/features/event-calendar/EventAllDayLane.svelte:49 fn handleCellClick(e: MouseEvent, day: string) L3
 ## mounted-at
-mount src/lib/features/event-calendar/EventTimeGrid.svelte:254 EventAllDayLane -> src/lib/features/event-calendar/EventAllDayLane.svelte
+mount src/lib/features/event-calendar/EventTimeGrid.svelte:267 EventAllDayLane -> src/lib/features/event-calendar/EventAllDayLane.svelte
 ## calls
 call src/lib/features/event-calendar/EventAllDayLane.svelte:28 in drag -> src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:DayDrag new
 call src/lib/features/event-calendar/EventAllDayLane.svelte:29 in cells=$derived -> src/lib/features/event-calendar/event-calendar-drag.logic.ts:previewDayMove call
