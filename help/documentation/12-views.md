@@ -55,6 +55,20 @@ When you open a `.view` file in the editor, you see a spreadsheet-like table (th
 - **Rows**: Each row represents a note from your vault that matches the query filters you have defined.
 - **Columns**: Each column corresponds to a frontmatter property (e.g., `title`, `status`, `date`, `tags`).
 
+File columns have default header names; hover a header to see its key:
+
+| Key | Header |
+|-----|--------|
+| `file.name` | Name |
+| `file.path` | Path |
+| `file.folder` | Folder |
+| `file.ext` | Extension |
+| `file.size` | Size |
+| `file.ctime` | Created |
+| `file.mtime` | Modified |
+
+Name cells hide the `.md` extension; filters and sorts still see the full file name. Frontmatter and formula columns show their key unless you set a `displayName` (see [Custom display names](#custom-display-names)).
+
 You can click on any row to open the corresponding note in the editor.
 
 ## Toolbar

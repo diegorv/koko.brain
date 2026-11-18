@@ -1,10 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
 	buildNoteRecord,
+	columnLabel,
 	executeQuery,
 	evaluateFilter,
 	filterCitesArchived,
 	formatCellValue,
+	formatColumnCell,
 	getPropertyValue,
 } from '#lib/features/collection/collection.logic.js';
 import type { CollectionDefinition, CollectionViewDef, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -339,7 +341,32 @@ describe('executeQuery', () => {
 		const view = baseView({ order: ['file.name', 'status', 'priority'] });
 		const result = executeQuery(baseDef(), view, index, null);
 		expect(result.columns.map((c) => c.key)).toEqual(['file.name', 'status', 'priority']);
-		expect(result.columns.map((c) => c.displayName)).toEqual(['file.name', 'status', 'priority']);
+		expect(result.columns.map((c) => c.displayName)).toEqual(['Name', 'status', 'priority']);
+	});
+
+	it('labels file.* columns readably without changing the keys order, sort and filters use', () => {
+		const view = baseView({
+			order: ['file.name', 'file.mtime', 'status'],
+			sort: [{ column: 'file.name', direction: 'DESC' }],
+			filters: "file.name != 'a.md'",
+		});
+		const result = executeQuery(baseDef(), view, index, null);
+		expect(result.columns).toEqual([
+			{ key: 'file.name', displayName: 'Name' },
+			{ key: 'file.mtime', displayName: 'Modified' },
+			{ key: 'status', displayName: 'status' },
+		]);
+		expect(view.order).toEqual(['file.name', 'file.mtime', 'status']);
+		expect(view.sort).toEqual([{ column: 'file.name', direction: 'DESC' }]);
+		expect(view.filters).toBe("file.name != 'a.md'");
+		// Filter and sort still see the raw value, extension included.
+		expect(result.records.map((r) => r.name)).toEqual(['d.md', 'c.md', 'b.md']);
+	});
+
+	it('lets a configured displayName win over the built-in file.* label', () => {
+		const def = baseDef({ properties: { 'file.name': { displayName: 'Note' } } });
+		const result = executeQuery(def, baseView({ order: ['file.name'] }), index, null);
+		expect(result.columns).toEqual([{ key: 'file.name', displayName: 'Note' }]);
 	});
 
 	it('infers columns when order is absent', () => {
@@ -608,6 +635,56 @@ describe('formatCellValue', () => {
 	});
 });
 
+describe('columnLabel', () => {
+	it.each([
+		['file.name', 'Name'],
+		['file.path', 'Path'],
+		['file.folder', 'Folder'],
+		['file.ext', 'Extension'],
+		['file.size', 'Size'],
+		['file.ctime', 'Created'],
+		['file.mtime', 'Modified'],
+	])('labels %s as %s with no config', (key, label) => {
+		expect(columnLabel(key)).toBe(label);
+	});
+
+	it('keeps note properties, formulas and unknown file.* keys raw', () => {
+		expect(columnLabel('due_date')).toBe('due_date');
+		expect(columnLabel('formula.score')).toBe('formula.score');
+		expect(columnLabel('file.basename')).toBe('file.basename');
+	});
+
+	it('uses the configured displayName first', () => {
+		expect(columnLabel('file.name', { 'file.name': { displayName: 'Note' } })).toBe('Note');
+		expect(columnLabel('status', { status: { displayName: 'Status' } })).toBe('Status');
+	});
+
+	it('falls back when the config has no displayName for the key', () => {
+		expect(columnLabel('file.name', { 'file.name': {} })).toBe('Name');
+		expect(columnLabel('status', {})).toBe('status');
+	});
+});
+
+describe('formatColumnCell', () => {
+	it('drops a trailing .md from a file.name value', () => {
+		expect(formatColumnCell('file.name', 'Roadmap.md')).toBe('Roadmap');
+	});
+
+	it('keeps other extensions in file.name', () => {
+		expect(formatColumnCell('file.name', 'diagram.canvas')).toBe('diagram.canvas');
+	});
+
+	it('keeps the full text of other columns, file.path included', () => {
+		expect(formatColumnCell('file.path', '/vault/Projects/Roadmap.md')).toBe('/vault/Projects/Roadmap.md');
+		expect(formatColumnCell('title', 'notes.md')).toBe('notes.md');
+	});
+
+	it('formats non-string values like formatCellValue', () => {
+		expect(formatColumnCell('file.size', 2048)).toBe('2048');
+		expect(formatColumnCell('file.name', null)).toBe('—');
+	});
+});
+
 describe('getPropertyValue', () => {
 	const record = makeRecord('/vault/notes/test.md', { status: 'active', priority: 5 }, { mtime: 1700000000000, ctime: 1690000000000, size: 2048 });
 
@@ -762,7 +839,7 @@ describe('executeQuery edge cases', () => {
 		const def = baseDef();
 		const result = executeQuery(def, view, new Map(), null);
 		expect(result.records).toEqual([]);
-		expect(result.columns).toEqual([{ key: 'file.name', displayName: 'file.name' }]);
+		expect(result.columns).toEqual([{ key: 'file.name', displayName: 'Name' }]);
 	});
 });
 

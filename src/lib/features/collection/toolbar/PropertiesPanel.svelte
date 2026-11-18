@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PropertyConfig } from '../collection.types';
 	import type { FormulaEntry } from './toolbar.types';
+	import { columnLabel } from '../collection.logic';
 	import { toggleColumn } from './properties.logic';
 	import {
 		addFormulaEntry,
@@ -53,7 +54,7 @@
 	});
 
 	function getDisplayName(column: string): string {
-		return propertyConfigs[column]?.displayName ?? column;
+		return columnLabel(column, propertyConfigs);
 	}
 
 	let scrollContainer = $state<HTMLDivElement | null>(null);

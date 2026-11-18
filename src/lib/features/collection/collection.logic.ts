@@ -3,6 +3,7 @@ import type {
 	CollectionFilter,
 	CollectionViewDef,
 	FilterItem,
+	PropertyConfig,
 	PropertyIndexRecord,
 	QueryColumn,
 	QueryResult,
@@ -412,6 +413,41 @@ export function formatCellValue(value: unknown): string {
 	return String(value);
 }
 
+/**
+ * Built-in header labels for the `file.*` columns the properties panel offers.
+ * Note properties and `formula.*` keys have none: humanizing them is an open
+ * owner decision.
+ */
+const FILE_COLUMN_LABELS: Record<string, string> = {
+	'file.name': 'Name',
+	'file.path': 'Path',
+	'file.folder': 'Folder',
+	'file.ext': 'Extension',
+	'file.size': 'Size',
+	'file.ctime': 'Created',
+	'file.mtime': 'Modified',
+};
+
+/**
+ * The label shown for a column: its configured `displayName`, else the
+ * built-in `file.*` label, else the raw key.
+ */
+export function columnLabel(key: string, propertyConfigs?: Record<string, PropertyConfig>): string {
+	return propertyConfigs?.[key]?.displayName ?? FILE_COLUMN_LABELS[key] ?? key;
+}
+
+/**
+ * Formats a table cell's text. A `file.name` cell drops a trailing `.md`; the
+ * value itself, and so filters and sorts, keep it.
+ */
+export function formatColumnCell(key: string, value: unknown): string {
+	const text = formatCellValue(value);
+	if (key === 'file.name' && typeof value === 'string' && text.endsWith('.md')) {
+		return text.slice(0, -'.md'.length);
+	}
+	return text;
+}
+
 /** Retrieves a property value from a PropertyIndexRecord by column name */
 export function getPropertyValue(record: PropertyIndexRecord, column: string): unknown {
 	if (column.startsWith('file.')) {
@@ -473,7 +509,7 @@ function resolveColumns(
 ): QueryColumn[] {
 	const toColumn = (key: string): QueryColumn => ({
 		key,
-		displayName: definition.properties?.[key]?.displayName ?? key,
+		displayName: columnLabel(key, definition.properties),
 	});
 
 	if (view.order && view.order.length > 0) {

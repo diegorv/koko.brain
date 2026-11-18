@@ -418,7 +418,7 @@ views:
 		return parsed.definition;
 	}
 
-	/** The file names in the rendered table's first column (file.name). */
+	/** The file names in the rendered table's first column (file.name), shown without `.md`. */
 	function renderedNames(): string[] {
 		return [...target.querySelectorAll('tbody tr')].map((tr) => tr.querySelector('td')?.textContent?.trim() ?? '');
 	}
@@ -433,7 +433,7 @@ views:
 
 	it('renders the same rows as executeQuery on the raw definition', () => {
 		const def = rawDefinition(NESTED);
-		const expected = executeQuery(def, def.views[0], collectionStore.propertyIndex, null).records.map((r) => r.name);
+		const expected = executeQuery(def, def.views[0], collectionStore.propertyIndex, null).records.map((r) => r.name.replace(/\.md$/, ''));
 		expect(expected.length).toBeGreaterThan(0);
 
 		component = mount(CollectionViewHarness, { target, props: { initialYaml: NESTED } });
@@ -457,7 +457,7 @@ views:
 			});
 			flushSync();
 
-			expect(renderedNames()).toEqual(['w.md']);
+			expect(renderedNames()).toEqual(['w']);
 		} finally {
 			vaultStore.close();
 		}
@@ -561,7 +561,7 @@ views:
 		flushSync();
 
 		expect(target.querySelector('[role="alert"]')).toBeNull();
-		expect([...target.querySelectorAll('tbody tr')].map((tr) => tr.textContent?.trim())).toEqual(['a.md']);
+		expect([...target.querySelectorAll('tbody tr')].map((tr) => tr.textContent?.trim())).toEqual(['a']);
 	});
 
 	it('shows the error over a calendar view too', () => {
@@ -610,9 +610,9 @@ describe('CollectionView - a .view lists its row set', () => {
 		flushSync();
 	}
 
-	/** The paths of the rendered rows, matched by file name against the index. */
+	/** The paths of the rendered rows, matched by file name (shown without `.md`) against the index. */
 	function renderedPaths(): string[] {
-		const byName = new Map([...collectionStore.propertyIndex.values()].map((r) => [r.name, r.path]));
+		const byName = new Map([...collectionStore.propertyIndex.values()].map((r) => [r.name.replace(/\.md$/, ''), r.path]));
 		return [...target.querySelectorAll('tbody tr')].map((tr) => {
 			const name = [...tr.querySelectorAll('td')].map((td) => td.textContent?.trim() ?? '').find((t) => byName.has(t));
 			return name ? byName.get(name)! : '';
