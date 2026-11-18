@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Renaming a kanban lane keeps its settings; new lanes get unique names](issues/01-renaming-kanban-lane-keeps-settings-new.md) | none | todo | | |
+| 01 | [Renaming a kanban lane keeps its settings; new lanes get unique names](issues/01-renaming-kanban-lane-keeps-settings-new.md) | none | in-progress | | |
 | 02 | [Kanban keyboard shortcuts act only on the card you see; the sort menu is the themed Select](issues/02-kanban-keyboard-shortcuts-act-only-card.md) | 01 | todo | | |
 | 03 | [QueryJS tables: Prev and Next work, tables scroll, buttons show focus](issues/03-queryjs-tables-prev-next-work-tables.md) | none | done | issue/03-queryjs-tables-prev-next-work-tables (0c1205f8f) | 2026-11-18 |
 | 04 | [Canvas file and link cards: a plain click selects, an open button opens, previews skip frontmatter](issues/04-canvas-file-link-cards-plain-click.md) | none | todo | | |
@@ -106,3 +106,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 15:53 — 24 — deliver — merged after review 1 APPROVED with findings, fix round (read-only events, reserved title-message row in the event form), re-review 2 APPROVED (claude), one nit accepted as intended; full vitest suite passed (17503 tests), event-calendar E2E passed — bd8d1575b
 - 2026-11-18 15:53 — 27 — start — launched by /relay-lite:run — a6d1691de
 - 2026-11-18 16:16 — 27 — deliver — merged after review 1 CHANGES_REQUESTED, fix round (note header truncates folder first, context-row left rule test), re-review 2 APPROVED (claude); full vitest suite passed (17511 tests); by-eye check at 420 and 800 px still open — 765d89506
+- 2026-11-18 16:16 — 01 — start — launched by /relay-lite:run — d2a981915
