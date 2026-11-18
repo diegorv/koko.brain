@@ -8,13 +8,13 @@ imp src/lib/plugins/kanban/KanbanLane.svelte:14 -> src/lib/plugins/kanban/Kanban
 imp src/lib/plugins/kanban/KanbanLane.svelte:15 -> src/lib/components/ui/context-menu/index.ts *
 imp src/lib/plugins/kanban/KanbanLane.svelte:16 -> src/lib/utils/clamp.ts clamp
 ## imported-by
-imp src/lib/plugins/kanban/KanbanView.svelte:47 -> src/lib/plugins/kanban/KanbanLane.svelte default
+imp src/lib/plugins/kanban/KanbanView.svelte:48 -> src/lib/plugins/kanban/KanbanLane.svelte default
 ## reach
 in2 src/lib/plugins/kanban/KanbanLane.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/plugins/kanban/KanbanLane.svelte 26 files in 5 modules: src/lib/components(16) src/lib/plugins/kanban(4) src/lib/core/filesystem(3) src/lib/utils(2) src/lib/core/markdown-editor(1)
 ## symbols
 sym src/lib/plugins/kanban/KanbanLane.svelte:1 component KanbanLane props:lane,editingItemId,editingLaneId,focusedItemId=,collapsed=,laneWidth=,maxItems=,atLimit=,autoComplete=,tagColors=,disableDrag=,dragItemId=,isDragOver=,dropIndicatorIndex=,onWikilinkClick,onAddItem,onToggleItem,onUpdateItem,onDeleteItem,onArchiveItem,onArchiveCompleted,onRenameLane,onDeleteLane,onToggleCollapse,onToggleAutoComplete,onSetMaxItems,onSetTagColor,onRemoveTagColor,onLaneWidthChange,onStartEditItem,onStopEditItem,onStartEditLane,onStopEditLane,onItemDragStart,onItemDragEnd,onItemDragOver,onItemDrop,onLaneDragStart,onLaneDragEnd L399
-by src/lib/plugins/kanban/KanbanLane.svelte:default <- src/lib/plugins/kanban/KanbanView.svelte:523 in (markup) mount
+by src/lib/plugins/kanban/KanbanLane.svelte:default <- src/lib/plugins/kanban/KanbanView.svelte:524 in (markup) mount
 ## locals
 local src/lib/plugins/kanban/KanbanLane.svelte:111 fn handleAddItem() L7
 local src/lib/plugins/kanban/KanbanLane.svelte:119 fn handleAddItemKeydown(e: KeyboardEvent) L7
@@ -31,7 +31,7 @@ local src/lib/plugins/kanban/KanbanLane.svelte:207 fn handleResizeEnd(_e: Pointe
 mount src/lib/plugins/kanban/KanbanLane.svelte:328 KanbanCard -> src/lib/plugins/kanban/KanbanCard.svelte
 mount src/lib/plugins/kanban/KanbanLane.svelte:368 KanbanWikilinkSuggestions -> src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte
 ## mounted-at
-mount src/lib/plugins/kanban/KanbanView.svelte:523 KanbanLane -> src/lib/plugins/kanban/KanbanLane.svelte
+mount src/lib/plugins/kanban/KanbanView.svelte:524 KanbanLane -> src/lib/plugins/kanban/KanbanLane.svelte
 ## calls
 call src/lib/plugins/kanban/KanbanLane.svelte:123 in handleAddItemKeydown -> src/lib/plugins/kanban/KanbanLane.svelte:handleAddItem call
 call src/lib/plugins/kanban/KanbanLane.svelte:143 in handleTitleKeydown -> src/lib/plugins/kanban/KanbanLane.svelte:commitTitleEdit call
