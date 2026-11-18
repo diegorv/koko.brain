@@ -30,7 +30,7 @@ test.describe('Settings panel', () => {
 		expect(barBox).not.toBeNull();
 		expect(panelBox!.y + panelBox!.height).toBeLessThanOrEqual(barBox!.y + 0.5);
 		expect(panelBox!.y + panelBox!.height).toBeGreaterThanOrEqual(barBox!.y - 0.5);
-		expect(barBox!.height).toBeCloseTo(32, 0);
+		expect(barBox!.height).toBeCloseTo(24, 0);
 	});
 
 	test('navigating between sections updates the visible content', async ({ vaultPage: page }) => {

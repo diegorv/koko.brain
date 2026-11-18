@@ -369,7 +369,7 @@ Putting UI inside the app's own chrome (the status bar, the editor) means depend
 
 | Region | Hook | Notes |
 |--------|------|-------|
-| Status bar | `[data-status-bar]`, with two direct `.status-bar-group` children (left, right) | The bar draws a 12px divider before every child of a group except the first (`:not(:first-child)::before`). Prepend to a group and the next item gets the divider. Text color is the bar's own `--status-bar-fg`, inherited |
+| Status bar | `[data-status-bar]`, with two direct `.status-bar-group` children (left, right) | The bar draws a 12px divider before every child of a group except the first (`:not(:first-child)::before`). Prepend to a group and the next item gets the divider. Text color is the bar's own `--status-bar-fg`, inherited. The bar is 24px tall: a chip taller than that overflows it |
 | The editor of the active tab | `ctx.app.editorStore.editorView?.dom` | Raw, see [Raw app access](09-raw-app.md#editorstoreeditorview). One view is shared by Markdown tabs; it is `null` for canvas, kanban and collection boards and virtual tabs, and a **new** view is created when the user comes back from one. Re-read it, never keep it |
 | Rail buttons | `[data-rail-item="<key>"]` | Mod buttons have key `mod:<mod-id>:<button-id>`. Add buttons with `ctx.addRailButton`, do not inject them |
 

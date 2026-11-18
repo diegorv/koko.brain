@@ -14,15 +14,15 @@ Not in this ticket: clickable status bar items (excluded by the review's validat
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh settings.spec.ts` and the spec that holds the new case
 
-- [ ] Failing test first, new `src/tests/lib/core/status-bar/SaveStatus.test.ts` (real `editorStore`): a dirty tab (`content !== savedContent`) renders "Modified" and no `.animate-pulse`; only the active label is exposed to assistive technology; a saved tab renders "Saved"; no tab and a virtual tab render nothing.
-- [ ] Failing E2E first (`e2e/specs/word-count.spec.ts` or `editor.spec.ts`): with a note open, `[data-status-bar]` is 24 (plus or minus 0.5) px tall; `[data-save-status]` keeps the same `x` and `width` while Saved, after typing (Modified) and after the autosave (`expect.poll` over the 2 s debounce, `editor.service.ts:276-279`). If the E2E vault can show Todoist sync's status item before it, run once with it; otherwise say so in the PR.
-- [ ] `e2e/specs/settings.spec.ts:23` goes from 32 to 24 (a requested value change, not a weakened check) and the Settings panel still ends at the bar's top edge in the same test.
-- [ ] `help/documentation/03-editor.md:141-151` stays true; the mods help note above is added.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, new `src/tests/lib/core/status-bar/SaveStatus.test.ts` (real `editorStore`): a dirty tab (`content !== savedContent`) renders "Modified" and no `.animate-pulse`; only the active label is exposed to assistive technology; a saved tab renders "Saved"; no tab and a virtual tab render nothing.
+- [x] Failing E2E first (`e2e/specs/word-count.spec.ts` or `editor.spec.ts`): with a note open, `[data-status-bar]` is 24 (plus or minus 0.5) px tall; `[data-save-status]` keeps the same `x` and `width` while Saved, after typing (Modified) and after the autosave (`expect.poll` over the 2 s debounce, `editor.service.ts:276-279`). If the E2E vault can show Todoist sync's status item before it, run once with it; otherwise say so in the PR.
+- [x] `e2e/specs/settings.spec.ts:23` goes from 32 to 24 (a requested value change, not a weakened check) and the Settings panel still ends at the bar's top edge in the same test.
+- [x] `help/documentation/03-editor.md:141-151` stays true; the mods help note above is added.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -49,3 +49,5 @@ Ticket 27 (zoom chip): its offset reads `--status-bar-height`, which works in ei
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided by the owner: the consolidated 34-ticket numbering and granularity. Defaults (not individually answered): 02.1 no reserved save slot when nothing shows (no tab, virtual tab).
+
+- 2026-11-18, deliver (issue/02-status-bar-calm-save-slot): status bar lowered to 24px, save slot keeps one width with no pulse, settings E2E height 32 to 24, mods help note. Full suite: 17128 passed, 54 skipped, 1 todo, exit 0. Reviews: round 1 CHANGES_REQUESTED (fixed: E2E run with Todoist sync item), round 2 APPROVED.
