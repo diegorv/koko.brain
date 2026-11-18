@@ -1,19 +1,19 @@
 # file card src/lib/core/editor/editor.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/editor/editor.logic.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, calls
-file src/lib/core/editor/editor.logic.ts logic L140 module src/lib/core/editor in21 t19
+file src/lib/core/editor/editor.logic.ts logic L192 module src/lib/core/editor in21 t19
 ## imports
-imp src/lib/core/editor/editor.logic.ts:1 -> src/lib/utils/path.ts basename
+imp src/lib/core/editor/editor.logic.ts:1 -> src/lib/utils/path.ts basename,relativePath
 imp src/lib/core/editor/editor.logic.ts:3 -> src/lib/core/editor/editor.types.ts type:EditorTab
 ## imported-by
 imp src/lib/app/EditorView.svelte:27 -> src/lib/core/editor/editor.logic.ts isMarkdownNoteTab,isVirtualTab
 imp src/lib/core/editor/editor.service.ts:5 -> src/lib/core/editor/editor.logic.ts findTabIndex,getFileName,isTabDirty,isTabPinned,isVirtualTab
-imp src/lib/core/editor/editor.store.svelte.ts:3 -> src/lib/core/editor/editor.logic.ts reorderTabsAfterPinChange,getPinnedBoundary
+imp src/lib/core/editor/editor.store.svelte.ts:3 -> src/lib/core/editor/editor.logic.ts reorderTabsAfterPinChange,getPinnedBoundary,moveTab
 imp src/lib/core/editor/open-note-at.service.ts:3 -> src/lib/core/editor/editor.logic.ts lineStartToOffset
 imp src/lib/core/filesystem/link-updater.service.ts:5 -> src/lib/core/editor/editor.logic.ts isTabDirty
 imp src/lib/core/filesystem/path-change.service.ts:9 -> src/lib/core/editor/editor.logic.ts isTabDirty,isVirtualTab
 imp src/lib/core/layout/layout.logic.ts:1 -> src/lib/core/editor/editor.logic.ts EVENT_CALENDAR_VIRTUAL_PATH,getFileName,GRAPH_VIRTUAL_PATH,TAGS_VIRTUAL_PATH,TASKS_VIRTUAL_PATH
-imp src/lib/core/markdown-editor/EditorTabs.svelte:15 -> src/lib/core/editor/editor.logic.ts isTabDirty,isTabPinned,isVirtualTab
+imp src/lib/core/markdown-editor/EditorTabs.svelte:15 -> src/lib/core/editor/editor.logic.ts clampTabInsertion,isMarkdownNoteTab,isTabDirty,isTabPinned,isVirtualTab,tabTooltipText
 imp src/lib/core/markdown-editor/MarkdownEditor.svelte:23 -> src/lib/core/editor/editor.logic.ts findTabIndex,getPositionAfterFrontmatter
 imp src/lib/core/status-bar/SaveStatus.svelte:5 -> src/lib/core/editor/editor.logic.ts isTabDirty,isVirtualTab
 imp src/lib/features/auto-organize/auto-organize.service.ts:6 -> src/lib/core/editor/editor.logic.ts isTabDirty
@@ -67,13 +67,14 @@ sym src/lib/core/editor/editor.logic.ts:18 fn isVirtualTab(tab: Pick<EditorTab, 
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/app/EditorView.svelte:44 in isVirtual=$derived call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/editor/editor.service.ts:238 in writeTab call +4
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/filesystem/path-change.service.ts:67 in saveDirtyTabsUnder call
-by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/markdown-editor/EditorTabs.svelte:147 in (markup) markup +1
+by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/markdown-editor/EditorTabs.svelte:224 in (markup) markup +1
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/status-bar/SaveStatus.svelte:9 in status=$derived call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/features/search/SemanticIndexStatus.svelte:31 in $effect@29 call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/plugins/word-count/WordCount.svelte:13 in isMarkdown=$derived call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/routes/(app)/+layout.svelte:113 in $effect@105 call +1
 sym src/lib/core/editor/editor.logic.ts:28 fn isMarkdownNoteTab(tab: Pick<EditorTab, 'path' | 'fileType'>): boolean L5 | Returns true for a tab showing a markdown note file: not virtual, rendered as markdown (no special `fileType`), and named `*.md`, which leaves out other text f…
 by src/lib/core/editor/editor.logic.ts:isMarkdownNoteTab <- src/lib/app/EditorView.svelte:45 in isMarkdownNote=$derived call
+by src/lib/core/editor/editor.logic.ts:isMarkdownNoteTab <- src/lib/core/markdown-editor/EditorTabs.svelte:232 in (markup) markup
 by src/lib/core/editor/editor.logic.ts:isMarkdownNoteTab <- src/lib/features/properties/lifecycle.service.ts:32 in updateActiveNote call
 by src/lib/core/editor/editor.logic.ts:isMarkdownNoteTab <- src/lib/plugins/graph-view/graph-view.service.ts:26 in captureCenterPath call
 sym src/lib/core/editor/editor.logic.ts:35 fn getFileName(path: string): string L3 | Extracts the file name from a full path (e.g. "/docs/note.md" → "note.md")
@@ -90,7 +91,7 @@ sym src/lib/core/editor/editor.logic.ts:45 fn isTabDirty(tab: Pick<EditorTab, 'c
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/editor/editor.service.ts:238 in writeTab call +4
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/filesystem/link-updater.service.ts:53 in updateLinksAfterRename call
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/filesystem/path-change.service.ts:67 in saveDirtyTabsUnder call
-by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/markdown-editor/EditorTabs.svelte:147 in (markup) markup +1
+by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/markdown-editor/EditorTabs.svelte:224 in (markup) markup +1
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/status-bar/SaveStatus.svelte:10 in status=$derived call
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/features/auto-organize/auto-organize.service.ts:482 in applyRename call
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/features/tasks/tasks.service.ts:344 in preflightTaskWrite call
@@ -98,16 +99,28 @@ by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/features/type-defin
 more by 1 not shown: src/lib/plugins/mods(1): q importers src/lib/core/editor/editor.logic.ts:isTabDirty
 sym src/lib/core/editor/editor.logic.ts:50 fn isTabPinned(tab: Pick<EditorTab, 'pinned'>): boolean L3 | Returns whether a tab is pinned
 by src/lib/core/editor/editor.logic.ts:isTabPinned <- src/lib/core/editor/editor.service.ts:365 in closeTab call
-by src/lib/core/editor/editor.logic.ts:isTabPinned <- src/lib/core/markdown-editor/EditorTabs.svelte:130 in (markup) markup +1
+by src/lib/core/editor/editor.logic.ts:isTabPinned <- src/lib/core/markdown-editor/EditorTabs.svelte:203 in (markup) markup +1
 sym src/lib/core/editor/editor.logic.ts:58 fn getPinnedBoundary(tabs: Pick<EditorTab, 'pinned'>[]): number L8 | Returns the boundary index between pinned and unpinned tabs.
 by src/lib/core/editor/editor.logic.ts:getPinnedBoundary <- src/lib/core/editor/editor.store.svelte.ts:54 in editorStore.addTab call
 sym src/lib/core/editor/editor.logic.ts:73 fn reorderTabsAfterPinChange(tabs: EditorTab[], tabIndex: number, activeIndex: number, pin: boolean): { tabs: EditorTab[]; activeIndex: number } L31 | Computes the new active index after pinning/unpinning a tab.
 by src/lib/core/editor/editor.logic.ts:reorderTabsAfterPinChange <- src/lib/core/editor/editor.store.svelte.ts:150 in editorStore.togglePin call +1
-sym src/lib/core/editor/editor.logic.ts:110 fn getPositionAfterFrontmatter(content: string): number L14 | Returns the document position of the first line after a YAML frontmatter block.
+sym src/lib/core/editor/editor.logic.ts:110 fn clampTabInsertion(tabs: Pick<EditorTab, 'pinned'>[], from: number, to: number): number L6 | Clamps the insertion slot `to` for the tab at `from` so pinned tabs stay first: a pinned tab lands at or before the pinned boundary, an unpinned one at or afte…
+by src/lib/core/editor/editor.logic.ts:clampTabInsertion <- src/lib/core/markdown-editor/EditorTabs.svelte:136 in handleDragOver call
+sym src/lib/core/editor/editor.logic.ts:124 fn moveTab(tabs: EditorTab[], activeIndex: number, from: number, to: number): { tabs: EditorTab[]; activeIndex: number } L18 | Moves the tab at `from` to the insertion slot `to` (0..length, counted before the removal), clamped by `clampTabInsertion`.
+by src/lib/core/editor/editor.logic.ts:moveTab <- src/lib/core/editor/editor.store.svelte.ts:157 in editorStore.moveTab call
+sym src/lib/core/editor/editor.logic.ts:149 fn tabTooltipText(tab: EditorTab, vaultPath: string | null): string L7 | The hover text of a tab, one item per line: its name, then for a file tab its vault-relative path, "Unsaved changes" when dirty and "Pinned" when pinned.
+by src/lib/core/editor/editor.logic.ts:tabTooltipText <- src/lib/core/markdown-editor/EditorTabs.svelte:218 in (markup) markup
+sym src/lib/core/editor/editor.logic.ts:162 fn getPositionAfterFrontmatter(content: string): number L14 | Returns the document position of the first line after a YAML frontmatter block.
 by src/lib/core/editor/editor.logic.ts:getPositionAfterFrontmatter <- src/lib/core/markdown-editor/MarkdownEditor.svelte:407 in (script) call +1
-sym src/lib/core/editor/editor.logic.ts:132 fn lineStartToOffset(content: string, lineStart: number): number L9 | Converts a 1-indexed line number to the character offset where that line starts.
+sym src/lib/core/editor/editor.logic.ts:184 fn lineStartToOffset(content: string, lineStart: number): number L9 | Converts a 1-indexed line number to the character offset where that line starts.
 by src/lib/core/editor/editor.logic.ts:lineStartToOffset <- src/lib/core/editor/open-note-at.service.ts:46 in openNoteAt call
 ## calls
 call src/lib/core/editor/editor.logic.ts:29 in isMarkdownNoteTab -> src/lib/core/editor/editor.logic.ts:isVirtualTab call
 call src/lib/core/editor/editor.logic.ts:36 in getFileName -> src/lib/utils/path.ts:basename call
 call src/lib/core/editor/editor.logic.ts:85 in reorderTabsAfterPinChange -> src/lib/core/editor/editor.logic.ts:getPinnedBoundary call
+call src/lib/core/editor/editor.logic.ts:113 in clampTabInsertion -> src/lib/core/editor/editor.logic.ts:getPinnedBoundary call
+call src/lib/core/editor/editor.logic.ts:132 in moveTab -> src/lib/core/editor/editor.logic.ts:clampTabInsertion call
+call src/lib/core/editor/editor.logic.ts:150 in tabTooltipText -> src/lib/core/editor/editor.logic.ts:isVirtualTab call
+call src/lib/core/editor/editor.logic.ts:151 in tabTooltipText -> src/lib/utils/path.ts:relativePath call
+call src/lib/core/editor/editor.logic.ts:152 in tabTooltipText -> src/lib/core/editor/editor.logic.ts:isTabDirty call
+call src/lib/core/editor/editor.logic.ts:153 in tabTooltipText -> src/lib/core/editor/editor.logic.ts:isTabPinned call

@@ -7,7 +7,7 @@ dep src/lib/app -> src/lib/utils 17
 dep src/lib/core/editor -> src/lib/utils 7
 dep src/lib/core/filesystem -> src/lib/utils 13
 dep src/lib/core/frontmatter -> src/lib/utils 2
-dep src/lib/core/markdown-editor -> src/lib/utils 22
+dep src/lib/core/markdown-editor -> src/lib/utils 23
 dep src/lib/core/note-creator -> src/lib/utils 3
 dep src/lib/core/settings -> src/lib/utils 16
 dep src/lib/core/trash -> src/lib/utils 1
@@ -51,7 +51,7 @@ in2 src/lib/utils 5 modules: src/lib/components(55) src/lib/core/layout(2) src/l
 out2 src/lib/utils 0 modules: -
 ## entry files
 entry src/lib/utils/debug.ts ext-in73 src/lib/app/LabsSection.svelte src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/app/global-keybindings.ts src/lib/app/lifecycle/app-lifecycle.service.ts more importers 68 not shown: src/lib/features/todoist-sync(7) src/lib/core/settings(6) src/lib/core/filesystem(5) +30 modules: q importers src/lib/utils/debug.ts
-entry src/lib/utils/path.ts ext-in27 src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/core/editor/editor.logic.ts src/lib/core/filesystem/delete-note.service.ts src/lib/core/filesystem/file-entries.logic.ts more importers 22 not shown: src/lib/core/filesystem(4) src/lib/features/search(3) src/lib/features/tasks(3) +8 modules: q importers src/lib/utils/path.ts
+entry src/lib/utils/path.ts ext-in28 src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/core/editor/editor.logic.ts src/lib/core/filesystem/delete-note.service.ts src/lib/core/filesystem/file-entries.logic.ts more importers 23 not shown: src/lib/core/filesystem(4) src/lib/features/search(3) src/lib/features/tasks(3) +9 modules: q importers src/lib/utils/path.ts
 entry src/lib/utils/date.ts ext-in15 src/lib/core/markdown-editor/extensions/date-shortcut/completion.logic.ts src/lib/features/collection/calendar.logic.ts src/lib/features/file-history/file-history.logic.ts src/lib/features/tasks/TaskLists.svelte src/lib/features/tasks/TasksView.svelte more importers 10 not shown: src/lib/features/tasks(4) src/lib/plugins/kanban(3) src/lib/plugins/calendar(1) +2 modules: q importers src/lib/utils/date.ts
 entry src/lib/utils/log.service.ts ext-in13 src/lib/app/AppShell.svelte src/lib/app/boot.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/core/editor/editor.service.ts src/lib/core/note-creator/note-creator.service.ts more importers 8 not shown: src/lib/features/rail-shell(2) src/lib/plugins/queryjs(2) src/lib/core/settings(1) +3 modules: q importers src/lib/utils/log.service.ts
 entry src/lib/utils/clamp.ts ext-in10 src/lib/core/editor/open-note-at.service.ts src/lib/core/settings/sections/FileHistorySection.svelte src/lib/core/settings/settings.logic.ts src/lib/features/auto-organize/AutoOrganizeSection.svelte src/lib/features/collection/expression/evaluator.ts more importers 5 not shown: src/lib/plugins/kanban(2) src/lib/plugins/queryjs(2) src/lib/features/rail-shell(1): q importers src/lib/utils/clamp.ts
@@ -101,7 +101,7 @@ file src/lib/utils/menu-action.types.ts types L21 module src/lib/utils in2 t0
 file src/lib/utils/node-shims/fs.js other L3 module src/lib/utils in0 t0
 file src/lib/utils/node-shims/path.js other L4 module src/lib/utils in0 t0
 file src/lib/utils/note-date.ts other L57 module src/lib/utils in3 t1
-file src/lib/utils/path.ts other L123 module src/lib/utils in27 t1
+file src/lib/utils/path.ts other L123 module src/lib/utils in28 t1
 file src/lib/utils/platform.ts other L40 module src/lib/utils in5 t4
 file src/lib/utils/roving-list.ts other L93 module src/lib/utils in2 t1 | The generic keyboard model of a roving-tabindex list: which row a key focuses, which row stays current when the list changes, and which row holds the list's on…
 file src/lib/utils/sanitize-url.ts other L15 module src/lib/utils in5 t1

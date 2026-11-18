@@ -16,7 +16,7 @@ imp src/lib/app/editor-host.ts:23 -> src/lib/core/settings/settings.store.svelte
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:40 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/app/rail-navigation.ts:2 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/core/layout/layout.service.ts:2 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
-imp src/lib/core/markdown-editor/EditorTabs.svelte:17 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
+imp src/lib/core/markdown-editor/EditorTabs.svelte:24 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/core/markdown-editor/MarkdownEditor.svelte:24 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/core/settings/sections/AppearanceSection.svelte:6 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/core/settings/sections/EditorSection.svelte:9 -> src/lib/core/settings/settings.store.svelte.ts settingsStore

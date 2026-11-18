@@ -152,9 +152,9 @@ by src/lib/core/editor/editor.service.ts:saveAllDirtyTabs <- src/lib/app/lifecyc
 by src/lib/core/editor/editor.service.ts:saveAllDirtyTabs <- src/lib/core/vault/exit.service.ts:16 in prepareForExit call
 by src/lib/core/editor/editor.service.ts:saveAllDirtyTabs <- src/lib/core/vault/vault.service.ts:23 in switchVault call
 sym src/lib/core/editor/editor.service.ts:340 fn switchTab(index: number) L6 | Switches to a specific tab by index
-by src/lib/core/editor/editor.service.ts:switchTab <- src/lib/core/markdown-editor/EditorTabs.svelte:144 in (markup) markup +2
+by src/lib/core/editor/editor.service.ts:switchTab <- src/lib/core/markdown-editor/EditorTabs.svelte:220 in (markup) markup +2
 sym src/lib/core/editor/editor.service.ts:362 fn closeTab(index: number) L33 | Closes a tab by index.
-by src/lib/core/editor/editor.service.ts:closeTab <- src/lib/core/markdown-editor/EditorTabs.svelte:159 in (markup) markup +1
+by src/lib/core/editor/editor.service.ts:closeTab <- src/lib/core/markdown-editor/EditorTabs.svelte:236 in (markup) markup +1
 sym src/lib/core/editor/editor.service.ts:397 fn closeActiveTab() L5 | Convenience: closes whichever tab is currently focused
 by src/lib/core/editor/editor.service.ts:closeActiveTab <- src/lib/app/commands.ts:133 in getBuiltInCommands call
 by src/lib/core/editor/editor.service.ts:closeActiveTab <- src/lib/app/global-keybindings.ts:84 in GLOBAL_KEYBINDINGS call
@@ -165,7 +165,7 @@ sym src/lib/core/editor/editor.service.ts:411 fn switchToPreviousTab() L5 | Cycl
 by src/lib/core/editor/editor.service.ts:switchToPreviousTab <- src/lib/app/commands.ts:147 in getBuiltInCommands call
 by src/lib/core/editor/editor.service.ts:switchToPreviousTab <- src/lib/app/global-keybindings.ts:91 in GLOBAL_KEYBINDINGS call
 sym src/lib/core/editor/editor.service.ts:418 fn togglePinTab(index: number) L3 | Toggles the pinned state of the tab at the given index
-by src/lib/core/editor/editor.service.ts:togglePinTab <- src/lib/core/markdown-editor/EditorTabs.svelte:169 in (markup) markup
+by src/lib/core/editor/editor.service.ts:togglePinTab <- src/lib/core/markdown-editor/EditorTabs.svelte:246 in (markup) markup
 sym src/lib/core/editor/editor.service.ts:423 fn togglePinActiveTab() L5 | Toggles the pinned state of the currently active tab
 by src/lib/core/editor/editor.service.ts:togglePinActiveTab <- src/lib/app/commands.ts:371 in getBuiltInCommands call
 sym src/lib/core/editor/editor.service.ts:437 fn toggleSourceMode() L3 | Toggles between live preview and source mode.

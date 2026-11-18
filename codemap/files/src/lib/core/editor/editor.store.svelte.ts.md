@@ -1,10 +1,10 @@
 # file card src/lib/core/editor/editor.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/editor/editor.store.svelte.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, store, calls
-file src/lib/core/editor/editor.store.svelte.ts store L173 module src/lib/core/editor in48 t110
+file src/lib/core/editor/editor.store.svelte.ts store L180 module src/lib/core/editor in48 t110
 ## imports
 imp src/lib/core/editor/editor.store.svelte.ts:2 -> src/lib/core/editor/editor.types.ts type:EditorTab
-imp src/lib/core/editor/editor.store.svelte.ts:3 -> src/lib/core/editor/editor.logic.ts reorderTabsAfterPinChange,getPinnedBoundary
+imp src/lib/core/editor/editor.store.svelte.ts:3 -> src/lib/core/editor/editor.logic.ts reorderTabsAfterPinChange,getPinnedBoundary,moveTab
 ## imported-by
 imp src/lib/app/AppShell.svelte:54 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/app/EditorView.svelte:8 -> src/lib/core/editor/editor.store.svelte.ts editorStore
@@ -93,7 +93,7 @@ test src/tests/lib/features/collection/collection-block-click.test.ts imports sr
 test src/tests/lib/features/collection/collection-block-row-rule.test.ts imports src/lib/core/editor/editor.store.svelte.ts
 more tests 70 not shown: src/tests/lib/features/properties(11) src/tests/lib/features/tasks(10) src/tests/lib/features/rail-shell(8) src/tests/lib/plugins/mods(7) src/tests/lib/features/event-calendar(5) src/tests/lib/features/todoist-sync(4) src/tests/lib/plugins/graph-view(4) src/tests/lib/features/deep-link(3) +13 modules: q tests src/lib/core/editor/editor.store.svelte.ts
 ## symbols
-sym src/lib/core/editor/editor.store.svelte.ts:33 store editorStore L141 | Central store for all editor tab state.
+sym src/lib/core/editor/editor.store.svelte.ts:33 store editorStore L148 | Central store for all editor tab state.
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/AppShell.svelte:61 in rightSidebarShown=$derived member +1
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/EditorView.svelte:37 in isCollectionTab=$derived member +25
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/commands.ts:405 in getBuiltInCommands member +2
@@ -105,15 +105,15 @@ by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/core/filesy
 more by 40 not shown: src/lib/features/properties(4) src/lib/features/todoist-sync(4) src/lib/features/rail-shell(3) src/lib/core/markdown-editor(2) src/lib/features/auto-organize(2) src/lib/features/backlinks(2) src/lib/features/outgoing-links(2) src/lib/plugins/mods(2) +19 modules: q importers src/lib/core/editor/editor.store.svelte.ts:editorStore
 ## store
 store src/lib/core/editor/editor.store.svelte.ts:33 editorStore esc:1
-mem src/lib/core/editor/editor.store.svelte.ts:34 get editorStore.tabs r:57 w-via:addTab,removeTab,updateContent,markSavedByPath,updateTabPath,+5
-more r 57 not shown: src/lib/core/editor(19) src/lib/core/markdown-editor(6) src/lib/features/todoist-sync(6) src/lib/features/tasks(5) src/lib/features/event-calendar(4) src/lib/core/filesystem(3) src/lib/features/auto-organize(3) src/lib/features/tags(3) +5 modules: q store src/lib/core/editor/editor.store.svelte.ts:editorStore.tabs
-mem src/lib/core/editor/editor.store.svelte.ts:35 get editorStore.activeIndex r:16 w-via:addTab,setActiveIndex,removeTab,togglePin,setPinned,+1
+mem src/lib/core/editor/editor.store.svelte.ts:34 get editorStore.tabs r:58 w-via:addTab,removeTab,updateContent,markSavedByPath,updateTabPath,+6
+more r 58 not shown: src/lib/core/editor(19) src/lib/core/markdown-editor(7) src/lib/features/todoist-sync(6) src/lib/features/tasks(5) src/lib/features/event-calendar(4) src/lib/core/filesystem(3) src/lib/features/auto-organize(3) src/lib/features/tags(3) +5 modules: q store src/lib/core/editor/editor.store.svelte.ts:editorStore.tabs
+mem src/lib/core/editor/editor.store.svelte.ts:35 get editorStore.activeIndex r:16 w-via:addTab,setActiveIndex,removeTab,togglePin,moveTab,+2
 more r 16 not shown: src/lib/core/editor(6) src/lib/core/markdown-editor(5) src/lib/features/auto-organize(1) src/lib/features/event-calendar(1) src/lib/features/tags(1) src/lib/features/tasks(1) src/lib/plugins/graph-view(1): q store src/lib/core/editor/editor.store.svelte.ts:editorStore.activeIndex
-mem src/lib/core/editor/editor.store.svelte.ts:37 get editorStore.activeTab r:43 w-via:addTab,setActiveIndex,removeTab,updateContent,markSavedByPath,+6 | The currently focused tab object, or null if none
+mem src/lib/core/editor/editor.store.svelte.ts:37 get editorStore.activeTab r:43 w-via:addTab,setActiveIndex,removeTab,updateContent,markSavedByPath,+7 | The currently focused tab object, or null if none
 more r 43 not shown: src/lib/app(17) src/lib/features/properties(7) src/lib/core/markdown-editor(3) src/lib/core/editor(2) src/lib/features/outgoing-links(2) src/lib/features/search(2) src/lib/plugins/word-count(2) src/routes(2) +6 modules: q store src/lib/core/editor/editor.store.svelte.ts:editorStore.activeTab
-mem src/lib/core/editor/editor.store.svelte.ts:39 get editorStore.activeTabPath r:40 w-via:addTab,setActiveIndex,removeTab,updateContent,markSavedByPath,+6 | Shortcut to the active tab's file path, or null
+mem src/lib/core/editor/editor.store.svelte.ts:39 get editorStore.activeTabPath r:40 w-via:addTab,setActiveIndex,removeTab,updateContent,markSavedByPath,+7 | Shortcut to the active tab's file path, or null
 more r 40 not shown: src/lib/app(5) src/lib/features/backlinks(5) src/lib/features/properties(4) src/lib/plugins/table-of-contents(4) src/lib/core/markdown-editor(3) src/lib/features/outgoing-links(3) src/lib/features/rail-shell(3) src/lib/core/editor(2) +8 modules: q store src/lib/core/editor/editor.store.svelte.ts:editorStore.activeTabPath
-mem src/lib/core/editor/editor.store.svelte.ts:40 get editorStore.activeTabContent r:src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte:35,src/routes/(app)/+layout.svelte:149 w-via:addTab,setActiveIndex,removeTab,updateContent,markSavedByPath,+6
+mem src/lib/core/editor/editor.store.svelte.ts:40 get editorStore.activeTabContent r:src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte:35,src/routes/(app)/+layout.svelte:149 w-via:addTab,setActiveIndex,removeTab,updateContent,markSavedByPath,+7
 mem src/lib/core/editor/editor.store.svelte.ts:41 get editorStore.pendingScrollPosition r:src/lib/core/markdown-editor/MarkdownEditor.svelte:592 w-via:setPendingScrollPosition,reset
 mem src/lib/core/editor/editor.store.svelte.ts:42 get editorStore.isLivePreview r:9 w-via:setLivePreview,reset
 more r 9 not shown: src/lib/app(4) src/lib/core/markdown-editor(3) src/lib/core/editor(1) src/lib/features/note-action-bar(1): q store src/lib/core/editor/editor.store.svelte.ts:editorStore.isLivePreview
@@ -135,9 +135,11 @@ mem src/lib/core/editor/editor.store.svelte.ts:121 do editorStore.updateTabPath 
 mem src/lib/core/editor/editor.store.svelte.ts:130 do editorStore.updateTabContentByPath w:src/lib/core/editor/editor.service.ts:129 | Replaces the content and savedContent of a tab identified by its path (no dirty flag)
 mem src/lib/core/editor/editor.store.svelte.ts:139 do editorStore.updateTabContentOnly w:src/lib/core/editor/editor.service.ts:131,src/lib/core/editor/editor.service.ts:315 | Updates only the content of a tab (preserves savedContent and dirty state)
 mem src/lib/core/editor/editor.store.svelte.ts:147 do editorStore.togglePin w:src/lib/core/editor/editor.service.ts:419 | Toggles the pinned state of the tab at the given index and reorders tabs
-mem src/lib/core/editor/editor.store.svelte.ts:156 do editorStore.setPinned w:src/lib/core/editor/editor.service.ts:445,src/lib/core/editor/editor.service.ts:453 | Sets the pinned state of the tab at the given index
-mem src/lib/core/editor/editor.store.svelte.ts:165 do editorStore.reset w:src/lib/core/editor/editor.service.ts:525 | Resets all state to initial values (e.g. when switching vaults)
+mem src/lib/core/editor/editor.store.svelte.ts:156 do editorStore.moveTab w:src/lib/core/markdown-editor/EditorTabs.svelte:147 | Moves the tab at `from` to the insertion slot `to` (see `moveTab` in editor.logic), keeping the active tab
+mem src/lib/core/editor/editor.store.svelte.ts:163 do editorStore.setPinned w:src/lib/core/editor/editor.service.ts:445,src/lib/core/editor/editor.service.ts:453 | Sets the pinned state of the tab at the given index
+mem src/lib/core/editor/editor.store.svelte.ts:172 do editorStore.reset w:src/lib/core/editor/editor.service.ts:525 | Resets all state to initial values (e.g. when switching vaults)
 ## calls
 call src/lib/core/editor/editor.store.svelte.ts:54 in editorStore.addTab -> src/lib/core/editor/editor.logic.ts:getPinnedBoundary call
 call src/lib/core/editor/editor.store.svelte.ts:150 in editorStore.togglePin -> src/lib/core/editor/editor.logic.ts:reorderTabsAfterPinChange call
-call src/lib/core/editor/editor.store.svelte.ts:159 in editorStore.setPinned -> src/lib/core/editor/editor.logic.ts:reorderTabsAfterPinChange call
+call src/lib/core/editor/editor.store.svelte.ts:157 in editorStore.moveTab -> src/lib/core/editor/editor.logic.ts:moveTab call
+call src/lib/core/editor/editor.store.svelte.ts:166 in editorStore.setPinned -> src/lib/core/editor/editor.logic.ts:reorderTabsAfterPinChange call

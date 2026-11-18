@@ -7,7 +7,7 @@ imp src/lib/core/editor/editor.logic.ts:3 -> src/lib/core/editor/editor.types.ts
 imp src/lib/core/editor/editor.service.ts:8 -> src/lib/core/editor/editor.types.ts type:EditorTab
 imp src/lib/core/editor/editor.store.svelte.ts:2 -> src/lib/core/editor/editor.types.ts type:EditorTab
 imp src/lib/core/filesystem/path-change.service.ts:10 -> src/lib/core/editor/editor.types.ts type:EditorTab
-imp src/lib/core/markdown-editor/EditorTabs.svelte:25 -> src/lib/core/editor/editor.types.ts type:EditorTab
+imp src/lib/core/markdown-editor/EditorTabs.svelte:34 -> src/lib/core/editor/editor.types.ts type:EditorTab
 ## reach
 in2 src/lib/core/editor/editor.types.ts 81 files in 37 modules: src/lib/app(8) src/lib/features/rail-shell(8) src/lib/features/event-calendar(5) src/lib/features/properties(4) src/lib/features/todoist-sync(4) +32 modules: q impact src/lib/core/editor/editor.types.ts --depth 2
 out2 src/lib/core/editor/editor.types.ts 0 files in 0 modules: -
@@ -21,4 +21,4 @@ by src/lib/core/editor/editor.types.ts:EditorTab <- src/lib/core/editor/editor.l
 by src/lib/core/editor/editor.types.ts:EditorTab <- src/lib/core/editor/editor.service.ts:8 in (module) import
 by src/lib/core/editor/editor.types.ts:EditorTab <- src/lib/core/editor/editor.store.svelte.ts:2 in (module) import
 by src/lib/core/editor/editor.types.ts:EditorTab <- src/lib/core/filesystem/path-change.service.ts:10 in (module) import
-by src/lib/core/editor/editor.types.ts:EditorTab <- src/lib/core/markdown-editor/EditorTabs.svelte:25 in (script) import
+by src/lib/core/editor/editor.types.ts:EditorTab <- src/lib/core/markdown-editor/EditorTabs.svelte:34 in (script) import

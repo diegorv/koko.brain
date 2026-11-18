@@ -1,7 +1,7 @@
 # module card src/lib/core/editor
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/core/editor ' codemap/modules
 sections: neighbors, entry files, files, public, stores, effects, debt
-module src/lib/core/editor core files 6 in-modules 37 out-modules 3 pub 44/52 ipc 0/0 card ~4.3k
+module src/lib/core/editor core files 6 in-modules 37 out-modules 3 pub 46/55 ipc 0/0 card ~4.5k
 ## neighbors
 dep src/lib/app -> src/lib/core/editor 18
 dep src/lib/core/filesystem -> src/lib/core/editor 10
@@ -54,9 +54,9 @@ entry src/lib/core/editor/open-note-at.service.ts ext-in5 src/lib/features/event
 entry src/lib/core/editor/editor.types.ts ext-in3 src/lib/app/EditorView.svelte src/lib/core/filesystem/path-change.service.ts src/lib/core/markdown-editor/EditorTabs.svelte
 ## files
 file src/lib/core/editor/editor.hooks.ts other L137 module src/lib/core/editor in23 t49
-file src/lib/core/editor/editor.logic.ts logic L140 module src/lib/core/editor in21 t19
+file src/lib/core/editor/editor.logic.ts logic L192 module src/lib/core/editor in21 t19
 file src/lib/core/editor/editor.service.ts service L527 module src/lib/core/editor in55 t97
-file src/lib/core/editor/editor.store.svelte.ts store L173 module src/lib/core/editor in48 t110
+file src/lib/core/editor/editor.store.svelte.ts store L180 module src/lib/core/editor in48 t110
 file src/lib/core/editor/editor.types.ts types L15 module src/lib/core/editor in6 t0
 file src/lib/core/editor/open-note-at.service.ts service L49 module src/lib/core/editor in5 t3
 ## public
@@ -77,7 +77,9 @@ sym src/lib/core/editor/editor.logic.ts:35 fn getFileName(path: string): string 
 sym src/lib/core/editor/editor.logic.ts:40 fn findTabIndex(tabs: Pick<EditorTab, 'path'>[], path: string): number L3 | Returns the index of an already-open tab by its file path, or -1 if not found
 sym src/lib/core/editor/editor.logic.ts:45 fn isTabDirty(tab: Pick<EditorTab, 'content' | 'savedContent'>): boolean L3 | Checks whether a tab has unsaved changes by comparing current content to the last saved snapshot
 sym src/lib/core/editor/editor.logic.ts:50 fn isTabPinned(tab: Pick<EditorTab, 'pinned'>): boolean L3 | Returns whether a tab is pinned
-sym src/lib/core/editor/editor.logic.ts:110 fn getPositionAfterFrontmatter(content: string): number L14 | Returns the document position of the first line after a YAML frontmatter block.
+sym src/lib/core/editor/editor.logic.ts:110 fn clampTabInsertion(tabs: Pick<EditorTab, 'pinned'>[], from: number, to: number): number L6 | Clamps the insertion slot `to` for the tab at `from` so pinned tabs stay first: a pinned tab lands at or before the pinned boundary, an unpinned one at or afte…
+sym src/lib/core/editor/editor.logic.ts:149 fn tabTooltipText(tab: EditorTab, vaultPath: string | null): string L7 | The hover text of a tab, one item per line: its name, then for a file tab its vault-relative path, "Unsaved changes" when dirty and "Pinned" when pinned.
+sym src/lib/core/editor/editor.logic.ts:162 fn getPositionAfterFrontmatter(content: string): number L14 | Returns the document position of the first line after a YAML frontmatter block.
 sym src/lib/core/editor/editor.service.ts:28 fn registerTabCloseListener(name: string, closed: (path: string) => void): () => void L8 | Registers `closed` to run with the path of each tab `closeTab` or `closeTabsForDeletedPath` removes.
 sym src/lib/core/editor/editor.service.ts:62 fn registerPendingEditFlusher(path: string, flush: () => void): () => void L14 | Registers `flush` to run when `closeTab` closes the tab of `path`, before it saves, so an edit a view still holds in a debounce reaches the file.
 sym src/lib/core/editor/editor.service.ts:120 fn syncExternalContentToEditor(path: string, content: string, markSaved: boolean, schedule: AutoSaveSchedule): void L22 | Single owner of "external content → CodeMirror" sync (Phase 5 of the perf refactor).
@@ -101,7 +103,7 @@ sym src/lib/core/editor/editor.service.ts:450 fn unpinTabByPath(filePath: string
 sym src/lib/core/editor/editor.service.ts:463 fn closeTabsForDeletedPath(deletedPath: string): EditorTab[] L14 | Force-closes all tabs whose path matches or is a child of the given path.
 sym src/lib/core/editor/editor.service.ts:485 fn reloadExternallyChangedTabs(changedPaths: string[]): Promise<void> L30 | Reloads content from disk for open tabs whose files were externally modified.
 sym src/lib/core/editor/editor.service.ts:522 fn resetEditor() L6 | Cancels any pending auto-saves and resets all editor state.
-sym src/lib/core/editor/editor.store.svelte.ts:33 store editorStore L141 | Central store for all editor tab state.
+sym src/lib/core/editor/editor.store.svelte.ts:33 store editorStore L148 | Central store for all editor tab state.
 sym src/lib/core/editor/editor.types.ts:2 interface EditorTab L14 | Represents a single open file tab in the editor
 sym src/lib/core/editor/open-note-at.service.ts:35 fn openNoteAt(path: string | null, target: NoteTarget): Promise<void> L15 | Single owner of "open this note and put the caret at this position".
 ## stores

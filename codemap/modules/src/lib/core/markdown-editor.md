@@ -1,7 +1,7 @@
 # module card src/lib/core/markdown-editor
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/core/markdown-editor ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src/lib/core/markdown-editor core files 109 in-modules 11 out-modules 8 pub 35/357 ipc 0/0 card ~8.9k
+module src/lib/core/markdown-editor core files 109 in-modules 11 out-modules 9 pub 35/357 ipc 0/0 card ~9k
 ## neighbors
 dep src/lib/app -> src/lib/core/markdown-editor 10
 dep src/lib/core/editor -> src/lib/core/markdown-editor 1
@@ -20,8 +20,9 @@ dep src/lib/core/markdown-editor -> src/lib/core/filesystem 6
 dep src/lib/core/markdown-editor -> src/lib/core/frontmatter 5
 dep src/lib/core/markdown-editor -> src/lib/core/layout 1
 dep src/lib/core/markdown-editor -> src/lib/core/settings 5
+dep src/lib/core/markdown-editor -> src/lib/core/vault 1
 dep src/lib/core/markdown-editor -> src/lib/types 2
-dep src/lib/core/markdown-editor -> src/lib/utils 22
+dep src/lib/core/markdown-editor -> src/lib/utils 23
 in2 src/lib/core/markdown-editor 22 modules: src/lib/features/event-calendar(5) src/lib/features/rail-shell(4) src/routes(4) src/lib/core/vault(2) src/lib/features/backlinks(2) +17 modules
 out2 src/lib/core/markdown-editor 1 modules: src/lib/contracts(4)
 ## entry files
@@ -45,7 +46,7 @@ entry src/lib/core/markdown-editor/extensions/wikilink/completion.ts ext-in1 src
 entry src/lib/core/markdown-editor/setup/editor-extensions.ts ext-in1 src/lib/app/commands.ts
 entry src/lib/core/markdown-editor/setup/editor-theme.ts ext-in1 src/lib/plugins/quick-capture/composer-editor.ts
 ## files
-file src/lib/core/markdown-editor/EditorTabs.svelte component L226 module src/lib/core/markdown-editor in1 t1
+file src/lib/core/markdown-editor/EditorTabs.svelte component L310 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/MarkdownEditor.svelte component L762 module src/lib/core/markdown-editor in1 t3
 file src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts logic L92 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/doc-diff.logic.ts logic L157 module src/lib/core/markdown-editor in2 t1
@@ -155,7 +156,7 @@ file src/lib/core/markdown-editor/setup/index.ts other L2 module src/lib/core/ma
 file src/lib/core/markdown-editor/tab-view-state.ts other L111 module src/lib/core/markdown-editor in3 t2 | Per-tab view state (scroll position, cursor) preserved across tab switches AND across MarkdownEditor component remounts (e.g. when switching to a non-markdown …
 file src/lib/core/markdown-editor/wikilink-click-target.ts other L81 module src/lib/core/markdown-editor in3 t2
 ## public
-sym src/lib/core/markdown-editor/EditorTabs.svelte:1 component EditorTabs props:tabIcon,tabTitleColor L226
+sym src/lib/core/markdown-editor/EditorTabs.svelte:1 component EditorTabs props:tabIcon,tabTitleColor L310
 sym src/lib/core/markdown-editor/MarkdownEditor.svelte:1 component MarkdownEditor props:host,renderers,blockLinks L762
 sym src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:34 fn detectBlockElement(lineText: string): DetectedBlockElement L20 | Detects the type of markdown element on a given line.
 sym src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:59 fn generateBlockId(): string L6 | Generates a random 6-character alphanumeric block ID.
