@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Palette commands toggle each right sidebar panel and open Trash](issues/01-palette-right-panel-toggles-trash.md) | none | done | issue/01-palette-right-panel-toggles-trash (205a3fd9e) | 2026-11-18 |
-| 02 | [Calmer status bar: 24px, no pulse, a save slot that does not shift](issues/02-status-bar-calm-save-slot.md) | none | todo | | |
+| 02 | [Calmer status bar: 24px, no pulse, a save slot that does not shift](issues/02-status-bar-calm-save-slot.md) | none | in-progress | | |
 | 03 | [My people reads as a feature: setup button, "Nd ago", overdue icon, row ring](issues/03-my-people-setup-ago-overdue.md) | none | todo | | |
 | 04 | [A refused property rename reverts and says why; list chips edit in place and an empty list shows "+ Add"](issues/04-property-rename-refusal-list-chips.md) | none | todo | | |
 | 05 | [Right sidebar headers stay pinned with a Hide panel menu; Properties collapses and is remembered; Info uses the shared header with short dates](issues/05-right-sidebar-pinned-headers-hide-menu.md) | 01 | todo | | |
@@ -75,3 +75,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 02:21 — ledger created (34 Issues)
 - 2026-11-18 02:22 — 01 — start — launched by /relay-lite:run — 905af7c93
 - 2026-11-18 02:33 — 01 — deliver — two review rounds APPROVED (round 1 findings fixed in help docs); full suite 646 files, 17122 passed; squashed and pushed — 205a3fd9e
+- 2026-11-18 02:34 — 02 — start — launched by /relay-lite:run — f5d93bc87
