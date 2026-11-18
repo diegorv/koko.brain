@@ -15,17 +15,17 @@ Not in this ticket: open-itens 048 (renaming a lane to "Archive" after a raw `--
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes.
 
-- [ ] Failing test first, `src/tests/lib/plugins/kanban/kanban.logic.test.ts` (real logic, no mocks): lane "Done" with `{ autoComplete: true, maxItems: 5, collapsed: true }` renamed to "Complete": `isLaneAutoComplete`, `getLaneMaxItems` and `isLaneCollapsed` return true, 5, true for "Complete" and `laneSettings` has no "Done" key.
-- [ ] A lane with no settings renames without gaining a `laneSettings` entry.
-- [ ] Renaming to a title another lane has gives "<title> 2" and leaves that lane's settings unchanged (its limit and auto-complete are not overwritten).
-- [ ] Two lanes titled "Done" sharing one entry: renaming one keeps the "Done" entry and gives the renamed lane a copy.
-- [ ] Serialize then `parseKanbanBoard` keeps the settings under the new title; a card moved into the renamed auto-complete lane with `moveItem` and `isLaneAutoComplete` is checked.
-- [ ] `src/tests/lib/plugins/kanban/KanbanView.test.ts` (harness `src/tests/fixtures/KanbanViewHarness.svelte`, only `kanban.service.js` mocked): clicking Add lane twice persists lanes "New Lane" and "New Lane 2".
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, `src/tests/lib/plugins/kanban/kanban.logic.test.ts` (real logic, no mocks): lane "Done" with `{ autoComplete: true, maxItems: 5, collapsed: true }` renamed to "Complete": `isLaneAutoComplete`, `getLaneMaxItems` and `isLaneCollapsed` return true, 5, true for "Complete" and `laneSettings` has no "Done" key.
+- [x] A lane with no settings renames without gaining a `laneSettings` entry.
+- [x] Renaming to a title another lane has gives "<title> 2" and leaves that lane's settings unchanged (its limit and auto-complete are not overwritten).
+- [x] Two lanes titled "Done" sharing one entry: renaming one keeps the "Done" entry and gives the renamed lane a copy.
+- [x] Serialize then `parseKanbanBoard` keeps the settings under the new title; a card moved into the renamed auto-complete lane with `moveItem` and `isLaneAutoComplete` is checked.
+- [x] `src/tests/lib/plugins/kanban/KanbanView.test.ts` (harness `src/tests/fixtures/KanbanViewHarness.svelte`, only `kanban.service.js` mocked): clicking Add lane twice persists lanes "New Lane" and "New Lane 2".
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Original proposal
 
@@ -51,3 +51,4 @@ Tickets 02, 05, 10, 11, 12 and 42 all edit `KanbanView.svelte` and `KanbanView.t
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping, and the promotion of this ticket to 01 as a grave data bug. Defaults (not individually answered): 01.1 (old 03.1, raised by the coverage check): a typed lane title that matches another lane is suffixed (" 2") on rename as well as on Add lane, a visible change to a daily-use file. Default: yes, because without it a rename would overwrite the other lane's limit and auto-complete.
+- 2026-11-18, deliver (branch issue/01-renaming-kanban-lane-keeps-settings-new): `renameLane` moves (or copies, when another lane keeps the old title) the lane's settings to the new title and suffixes a taken title (" 2"); Add Lane uses `uniqueLaneTitle`; the old-title entry is read only as an own key (`Object.hasOwn`), fixed after review round 1. Tests: full `pnpm vitest run` at af03b2f4b exit 0, 657/657 files, 17527 passed, 56 skipped, 1 todo; `pnpm check` 0 errors. Reviews: round 1 APPROVED (1 minor finding fixed, 1 nit no change), round 2 APPROVED (no findings).

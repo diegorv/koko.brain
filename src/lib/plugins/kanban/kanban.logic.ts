@@ -488,14 +488,41 @@ export function removeLane(board: KanbanBoard, laneId: string): KanbanBoard {
 	};
 }
 
-/** Renames a lane */
+/**
+ * Returns `wanted` when no other lane has that title, otherwise the first free
+ * `"<wanted> 2"`, `"<wanted> 3"`, ... Lane settings are keyed by title, so two
+ * lanes with one title would share one settings entry.
+ * `exceptLaneId` leaves that lane out, so a lane being renamed does not collide with itself.
+ */
+export function uniqueLaneTitle(board: KanbanBoard, wanted: string, exceptLaneId?: string): string {
+	const taken = new Set(board.lanes.filter((l) => l.id !== exceptLaneId).map((l) => l.title));
+	if (!taken.has(wanted)) return wanted;
+	let n = 2;
+	while (taken.has(`${wanted} ${n}`)) n++;
+	return `${wanted} ${n}`;
+}
+
+/**
+ * Renames a lane, suffixing a title another lane already has (see uniqueLaneTitle).
+ * The lane's settings entry follows the new title; it is copied rather than moved
+ * when another lane still has the old title, since that lane reads the same entry.
+ */
 export function renameLane(board: KanbanBoard, laneId: string, newTitle: string): KanbanBoard {
-	return {
-		...board,
-		lanes: board.lanes.map((lane) =>
-			lane.id === laneId ? { ...lane, title: newTitle } : lane,
-		),
-	};
+	const target = board.lanes.find((l) => l.id === laneId);
+	if (!target) return board;
+	const title = uniqueLaneTitle(board, newTitle, laneId);
+	if (title === target.title) return board;
+
+	const oldTitle = target.title;
+	const lanes = board.lanes.map((lane) => (lane.id === laneId ? { ...lane, title } : lane));
+	const laneSettings = board.settings.laneSettings;
+	// Own keys only: a lane titled "constructor" would otherwise read Object.prototype.constructor.
+	const entry = laneSettings && Object.hasOwn(laneSettings, oldTitle) ? laneSettings[oldTitle] : undefined;
+	if (!laneSettings || !entry) return { ...board, lanes };
+
+	const nextLaneSettings = { ...laneSettings, [title]: { ...entry } };
+	if (!lanes.some((l) => l.title === oldTitle)) delete nextLaneSettings[oldTitle];
+	return { ...board, lanes, settings: { ...board.settings, laneSettings: nextLaneSettings } };
 }
 
 /** Moves a lane to a new position */
