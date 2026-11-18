@@ -46,7 +46,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [Relationships: only kinds with links, one Add relationship row, a keyboard picker with recent notes first](issues/09-relationships-add-row-keyboard-picker.md) | none | todo | | |
 | 10 | [Untyped notes get a Set type row, Add property asks for a name and a type, and the property icon opens a lossless type menu](issues/10-set-type-typed-add-type-menu.md) | 04 | todo | | |
 | 11 | [Property rows stack key over value in a narrow sidebar](issues/11-property-rows-stack-narrow.md) | 04, 10 | todo | | |
-| 12 | [The rail note list says why it is empty and what to do next](issues/12-note-list-empty-states-cause.md) | none | todo | | |
+| 12 | [The rail note list says why it is empty and what to do next](issues/12-note-list-empty-states-cause.md) | none | in-progress | | |
 | 13 | [Files header gets a "+" menu, and every creator says "New <kind>"](issues/13-files-plus-menu-new-kind.md) | none | todo | | |
 | 14 | [Folder-lens rows stop repeating the folder; the Files tree puts system folders last and muted, with direct file counts](issues/14-folder-rows-system-folders-counts.md) | 13 | todo | | |
 | 15 | [One note-actions group in the row menu, the More menu and the palette, with a one-click Mark organized on Inbox rows](issues/15-note-actions-group-inbox-organized.md) | 12, 14 | todo | | |
@@ -79,3 +79,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 02:49 — 02 — deliver — review 1 CHANGES_REQUESTED (save slot E2E with Todoist item), fixed; re-review APPROVED; full suite 17128 passed; squashed and pushed — be82c1bf7
 - 2026-11-18 02:49 — 03 — start — launched by /relay-lite:run — 673e88b1d
 - 2026-11-18 03:01 — 03 — deliver — review 1 APPROVED with findings (sr-only Overdue moved into the open button, settings test fallback), fixed; round 2 APPROVED; full suite 17131 passed; squashed and pushed — a2f120a7a
+- 2026-11-18 03:01 — 12 — start — launched by /relay-lite:run — 0660bfa9c
