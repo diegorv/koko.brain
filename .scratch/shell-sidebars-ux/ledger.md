@@ -47,7 +47,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 10 | [Untyped notes get a Set type row, Add property asks for a name and a type, and the property icon opens a lossless type menu](issues/10-set-type-typed-add-type-menu.md) | 04 | todo | | |
 | 11 | [Property rows stack key over value in a narrow sidebar](issues/11-property-rows-stack-narrow.md) | 04, 10 | todo | | |
 | 12 | [The rail note list says why it is empty and what to do next](issues/12-note-list-empty-states-cause.md) | none | done | issue/12-note-list-empty-states-cause (46135b097) | 2026-11-18 |
-| 13 | [Files header gets a "+" menu, and every creator says "New <kind>"](issues/13-files-plus-menu-new-kind.md) | none | in-progress | | |
+| 13 | [Files header gets a "+" menu, and every creator says "New <kind>"](issues/13-files-plus-menu-new-kind.md) | none | done | issue/13-files-plus-menu-new-kind (f045dead0) | 2026-11-18 |
 | 14 | [Folder-lens rows stop repeating the folder; the Files tree puts system folders last and muted, with direct file counts](issues/14-folder-rows-system-folders-counts.md) | 13 | todo | | |
 | 15 | [One note-actions group in the row menu, the More menu and the palette, with a one-click Mark organized on Inbox rows](issues/15-note-actions-group-inbox-organized.md) | 12, 14 | todo | | |
 | 16 | [Filters show their count and can be cleared; the .view tab's triggers are named single buttons; an empty table says filters hid its rows](issues/16-filters-count-clear-view-triggers.md) | 12 | todo | | |
@@ -82,3 +82,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 03:01 — 12 — start — launched by /relay-lite:run — 0660bfa9c
 - 2026-11-18 03:23 — 12 — deliver — review 1 APPROVED with 2 findings (Clear search refocus, help copy), fixed; round 2 APPROVED; full suite 17170 passed; rebased, squashed and pushed — 46135b097
 - 2026-11-18 03:23 — 13 — start — launched by /relay-lite:run — 44008174d
+- 2026-11-18 03:41 — 13 — deliver — review 1 CHANGES_REQUESTED (closing Files header menu let presses through), fixed; re-review APPROVED; full suite 17179 passed; rebased, squashed and pushed — f045dead0
