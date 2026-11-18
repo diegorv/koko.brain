@@ -72,7 +72,7 @@ sym src/lib/features/type-definitions/type-definitions.service.ts:173 fn createT
 by src/lib/features/type-definitions/type-definitions.service.ts:createTypeDefinition <- src/lib/features/event-calendar/EventCalendarSection.svelte:96 in openEventType call
 by src/lib/features/type-definitions/type-definitions.service.ts:createTypeDefinition <- src/lib/features/rail-shell/TypesNavigator.svelte:138 in handleNewType call +1
 sym src/lib/features/type-definitions/type-definitions.service.ts:221 fn renameType(oldName: string, newName: string, definitionPath: string): Promise<void> L40 | True rename of a type.
-by src/lib/features/type-definitions/type-definitions.service.ts:renameType <- src/lib/features/rail-shell/TypesNavigator.svelte:495 in (markup) markup
+by src/lib/features/type-definitions/type-definitions.service.ts:renameType <- src/lib/features/rail-shell/TypesNavigator.svelte:496 in (markup) markup
 sym src/lib/features/type-definitions/type-definitions.service.ts:271 fn createView(name: string, filters?: CollectionFilter | string, folder?: string): Promise<string> L9 | Creates a `.view` named `name` in `folder` (the vault root without it), with `name` as its label and table view name and `filters` (when given) as that view's …
 by src/lib/features/type-definitions/type-definitions.service.ts:createView <- src/lib/features/type-definitions/ViewDialog.svelte:129 in submit call
 sym src/lib/features/type-definitions/type-definitions.service.ts:291 type ViewWriteReason L1 | Why a `.view` rewrite refused or failed: - `save-failed`: saving the open tab failed.

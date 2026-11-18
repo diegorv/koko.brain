@@ -1,6 +1,6 @@
 # file card src/lib/features/type-definitions/type-definitions.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/type-definitions/type-definitions.logic.ts ' codemap/files
-file src/lib/features/type-definitions/type-definitions.logic.ts logic L275 module src/lib/features/type-definitions in9 t21
+file src/lib/features/type-definitions/type-definitions.logic.ts logic L275 module src/lib/features/type-definitions in9 t22
 ## imports
 imp src/lib/features/type-definitions/type-definitions.logic.ts:1 -> src/lib/types/vault-v2.types.ts type:NoteEntryV2,type:FrontmatterValue
 imp src/lib/features/type-definitions/type-definitions.logic.ts:2 -> src/lib/core/filesystem/fs.logic.ts getFileNameError,isValidFileName
@@ -40,6 +40,7 @@ test src/tests/lib/features/rail-shell/TypesNavigator.test.ts imports src/lib/fe
 test src/tests/lib/features/rail-shell/lens.logic.test.ts imports src/lib/features/type-definitions/type-definitions.logic.ts
 test src/tests/lib/features/rail-shell/new-note.service.test.ts imports src/lib/features/type-definitions/type-definitions.logic.ts
 test src/tests/lib/features/rail-shell/view-lens.service.test.ts imports src/lib/features/type-definitions/type-definitions.logic.ts
+test src/tests/lib/features/type-definitions/TypeNameDialog.svelte.test.ts imports src/lib/features/type-definitions/type-definitions.logic.ts
 test src/tests/lib/features/type-definitions/type-definitions.service.test.ts imports src/lib/features/type-definitions/type-definitions.logic.ts
 test src/tests/lib/features/auto-organize/type-lifecycle-rules.test.ts imports-type src/lib/features/type-definitions/type-definitions.logic.ts
 test src/tests/lib/features/type-definitions/type-definitions.store.test.ts imports-type src/lib/features/type-definitions/type-definitions.logic.ts

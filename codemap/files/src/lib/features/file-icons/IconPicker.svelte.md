@@ -28,7 +28,7 @@ by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/aut
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:540 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/note-list/NoteRowMenu.svelte:291 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/FilesNavigator.svelte:486 in (markup) mount
-by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/TypesNavigator.svelte:500 in (markup) mount
+by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/TypesNavigator.svelte:501 in (markup) mount
 ## locals
 local src/lib/features/file-icons/IconPicker.svelte:84 fn loadIcons() L19
 local src/lib/features/file-icons/IconPicker.svelte:134 fn handleSelect(icon: NormalizedIcon) L4
@@ -45,7 +45,7 @@ mount src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:367 IconPic
 mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:540 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/note-list/NoteRowMenu.svelte:291 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/rail-shell/FilesNavigator.svelte:486 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
-mount src/lib/features/rail-shell/TypesNavigator.svelte:500 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
+mount src/lib/features/rail-shell/TypesNavigator.svelte:501 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 ## calls
 call src/lib/features/file-icons/IconPicker.svelte:50 in packs -> src/lib/features/file-icons/file-icons.icon-data.ts:getAllIconPacks call
 call src/lib/features/file-icons/IconPicker.svelte:74 in recentNormalized=$derived -> src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync call

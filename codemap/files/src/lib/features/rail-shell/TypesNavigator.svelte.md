@@ -1,7 +1,7 @@
 # file card src/lib/features/rail-shell/TypesNavigator.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/rail-shell/TypesNavigator.svelte ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, mounts, mounted-at, calls, effects
-file src/lib/features/rail-shell/TypesNavigator.svelte component L511 module src/lib/features/rail-shell in1 t1
+file src/lib/features/rail-shell/TypesNavigator.svelte component L512 module src/lib/features/rail-shell in1 t1
 ## imports
 imp src/lib/features/rail-shell/TypesNavigator.svelte:16 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/rail-shell/TypesNavigator.svelte:17 -> src/lib/core/editor/editor.store.svelte.ts editorStore
@@ -41,7 +41,7 @@ out2 src/lib/features/rail-shell/TypesNavigator.svelte 63 files in 17 modules: s
 ## tests
 test src/tests/lib/features/rail-shell/TypesNavigator.test.ts imports src/lib/features/rail-shell/TypesNavigator.svelte mirror
 ## symbols
-sym src/lib/features/rail-shell/TypesNavigator.svelte:1 component TypesNavigator props:rows,picked,onPick L511
+sym src/lib/features/rail-shell/TypesNavigator.svelte:1 component TypesNavigator props:rows,picked,onPick L512
 by src/lib/features/rail-shell/TypesNavigator.svelte:default <- src/lib/app/AppShell.svelte:219 in (markup) mount
 ## locals
 local src/lib/features/rail-shell/TypesNavigator.svelte:88 fn recountViews = debounce(…) L7
@@ -62,7 +62,7 @@ mount src/lib/features/rail-shell/TypesNavigator.svelte:465 TypeNameDialog -> sr
 mount src/lib/features/rail-shell/TypesNavigator.svelte:474 ViewDialog -> src/lib/features/type-definitions/ViewDialog.svelte
 mount src/lib/features/rail-shell/TypesNavigator.svelte:482 ViewDialog -> src/lib/features/type-definitions/ViewDialog.svelte
 mount src/lib/features/rail-shell/TypesNavigator.svelte:487 TypeNameDialog -> src/lib/features/type-definitions/TypeNameDialog.svelte
-mount src/lib/features/rail-shell/TypesNavigator.svelte:500 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
+mount src/lib/features/rail-shell/TypesNavigator.svelte:501 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 ## mounted-at
 mount src/lib/app/AppShell.svelte:219 TypesNavigator -> src/lib/features/rail-shell/TypesNavigator.svelte
 ## calls
@@ -103,11 +103,11 @@ call src/lib/features/rail-shell/TypesNavigator.svelte:469 in (markup) -> src/li
 call src/lib/features/rail-shell/TypesNavigator.svelte:470 in (markup) -> src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing markup +1
 call src/lib/features/rail-shell/TypesNavigator.svelte:471 in (markup) -> src/lib/features/rail-shell/TypesNavigator.svelte:handleNewType markup
 call src/lib/features/rail-shell/TypesNavigator.svelte:476 in (markup) -> src/lib/features/rail-shell/lens.logic.ts:viewLabels markup +1
-call src/lib/features/rail-shell/TypesNavigator.svelte:495 in (markup) -> src/lib/features/type-definitions/type-definitions.service.ts:renameType markup
-call src/lib/features/rail-shell/TypesNavigator.svelte:506 in (markup) -> src/lib/features/rail-shell/TypesNavigator.svelte:handleIconSelect markup
-call src/lib/features/rail-shell/TypesNavigator.svelte:507 in (markup) -> src/lib/features/rail-shell/TypesNavigator.svelte:handleIconColors markup
-call src/lib/features/rail-shell/TypesNavigator.svelte:508 in (markup) -> src/lib/features/rail-shell/TypesNavigator.svelte:handleIconRemove markup
-call src/lib/features/rail-shell/TypesNavigator.svelte:509 in (markup) -> src/lib/features/rail-shell/TypesNavigator.svelte:handleIconPickerClose markup
+call src/lib/features/rail-shell/TypesNavigator.svelte:496 in (markup) -> src/lib/features/type-definitions/type-definitions.service.ts:renameType markup
+call src/lib/features/rail-shell/TypesNavigator.svelte:507 in (markup) -> src/lib/features/rail-shell/TypesNavigator.svelte:handleIconSelect markup
+call src/lib/features/rail-shell/TypesNavigator.svelte:508 in (markup) -> src/lib/features/rail-shell/TypesNavigator.svelte:handleIconColors markup
+call src/lib/features/rail-shell/TypesNavigator.svelte:509 in (markup) -> src/lib/features/rail-shell/TypesNavigator.svelte:handleIconRemove markup
+call src/lib/features/rail-shell/TypesNavigator.svelte:510 in (markup) -> src/lib/features/rail-shell/TypesNavigator.svelte:handleIconPickerClose markup
 ## effects
 fx src/lib/features/rail-shell/TypesNavigator.svelte:88 timer-wrap.debounce args=async (paths: string[], ctx: LensContext, propertyIndex: Ma… as recountViews in recountViews
 fx src/lib/features/rail-shell/TypesNavigator.svelte:96 svelte.$effect in (script)
