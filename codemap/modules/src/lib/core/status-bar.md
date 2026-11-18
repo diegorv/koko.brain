@@ -10,10 +10,10 @@ out2 src/lib/core/status-bar 1 modules: src/lib/utils(1)
 entry src/lib/core/status-bar/SaveStatus.svelte ext-in1 src/lib/app/AppShell.svelte
 entry src/lib/core/status-bar/StatusBar.svelte ext-in1 src/lib/app/AppShell.svelte
 ## files
-file src/lib/core/status-bar/SaveStatus.svelte component L24 module src/lib/core/status-bar in1 t0
+file src/lib/core/status-bar/SaveStatus.svelte component L39 module src/lib/core/status-bar in1 t1
 file src/lib/core/status-bar/StatusBar.svelte component L34 module src/lib/core/status-bar in1 t0
 ## public
-sym src/lib/core/status-bar/SaveStatus.svelte:1 component SaveStatus L24
+sym src/lib/core/status-bar/SaveStatus.svelte:1 component SaveStatus L39
 sym src/lib/core/status-bar/StatusBar.svelte:1 component StatusBar props:left,right L34
 ## debt
 -
