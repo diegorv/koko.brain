@@ -19,11 +19,14 @@
 		semanticResult,
 		hybridResult,
 		legacyResult,
+		tabindex,
 	}: {
 		ftsResult?: FtsSearchResult;
 		semanticResult?: SemanticSearchResult;
 		hybridResult?: HybridSearchResult;
 		legacyResult?: SearchResult;
+		/** The card button's tabindex: 0 on the list's one Tab stop, -1 on the other rows */
+		tabindex?: number;
 	} = $props();
 
 	/** Build absolute file path from a vault-relative path */
@@ -135,6 +138,7 @@
 <div class="relative h-20 overflow-hidden" data-search-result>
 	<button
 		class="w-full h-full text-left px-2 py-2 hover:bg-file-explorer-accent/60 transition-colors cursor-pointer"
+		{tabindex}
 		onclick={handleClick}
 	>
 		<!-- A button holds only phrasing content, so every row is a span styled flex or block. -->

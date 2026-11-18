@@ -1,8 +1,14 @@
 /**
  * The Tasks view's keyboard model: which action a key on a row maps to,
  * which row stays current when the list changes, and which row holds the
- * tab stop. Rows are identified by `taskRowKey`.
+ * tab stop. Rows are identified by `taskRowKey`. The arrow, Home and End
+ * keys, `nextCurrentRow` and `tabStopRow` are the shared roving-list model
+ * in `utils/roving-list.ts`; the Space, Enter and menu keys are Tasks-only.
  */
+
+import { resolveRovingFocus } from '#lib/utils/roving-list.js';
+
+export { nextCurrentRow, tabStopRow } from '#lib/utils/roving-list.js';
 
 /** A keydown on the task list, as `resolveTaskKey` reads it. */
 export interface TaskKeyInput {
@@ -48,15 +54,9 @@ export function resolveTaskKey(input: TaskKeyInput): TaskKeyAction | null {
 	if (!onRow || meta || ctrl || alt || count === 0) return null;
 	if (shift) return key === 'F10' ? { kind: 'menu' } : null;
 	if (key === 'ContextMenu') return { kind: 'menu' };
+	const focus = resolveRovingFocus({ key, onRow, meta, ctrl, alt, shift, index, count });
+	if (focus !== null) return { kind: 'focus', index: focus };
 	switch (key) {
-		case 'ArrowDown':
-			return { kind: 'focus', index: Math.min(index + 1, count - 1) };
-		case 'ArrowUp':
-			return { kind: 'focus', index: Math.max(index - 1, 0) };
-		case 'Home':
-			return { kind: 'focus', index: 0 };
-		case 'End':
-			return { kind: 'focus', index: count - 1 };
 		case ' ':
 			return repeat ? null : { kind: 'toggle' };
 		case 'Enter':
@@ -64,49 +64,4 @@ export function resolveTaskKey(input: TaskKeyInput): TaskKeyAction | null {
 		default:
 			return null;
 	}
-}
-
-/**
- * The current row after the list changed from `prevOrder` to `order`:
- * `current` when it is still listed, else the first row after it in
- * `prevOrder` that is still listed, else the nearest one before it, else
- * null. Null when `current` is null or was not in `prevOrder`.
- */
-export function nextCurrentRow(order: string[], prevOrder: string[], current: string | null): string | null {
-	if (current === null) return null;
-	const listed = new Set(order);
-	if (listed.has(current)) return current;
-	const at = prevOrder.indexOf(current);
-	if (at < 0) return null;
-	for (let i = at + 1; i < prevOrder.length; i++) {
-		if (listed.has(prevOrder[i])) return prevOrder[i];
-	}
-	for (let i = at - 1; i >= 0; i--) {
-		if (listed.has(prevOrder[i])) return prevOrder[i];
-	}
-	return null;
-}
-
-/**
- * The row that holds the list's tab stop: `current` when it is rendered.
- * When `current` is listed but not rendered (its group is collapsed, or it
- * sits past the row cap), the first rendered row after it in `order`, else
- * the last rendered row. With no current row, or one in no group, the first
- * rendered row. Null when nothing is rendered. The roving `tabindex`, focus
- * on open and the focus that follows a removed row all read this function.
- * @param rendered - the rows in the DOM, in display order
- * @param order - every row in display order, hidden ones included
- * @param current - the current row's key
- */
-export function tabStopRow(rendered: string[], order: string[], current: string | null): string | null {
-	if (rendered.length === 0) return null;
-	if (current === null) return rendered[0];
-	const shown = new Set(rendered);
-	if (shown.has(current)) return current;
-	const at = order.indexOf(current);
-	if (at < 0) return rendered[0];
-	for (let i = at + 1; i < order.length; i++) {
-		if (shown.has(order[i])) return order[i];
-	}
-	return rendered[rendered.length - 1];
 }

@@ -14,16 +14,16 @@ Not in this ticket: Cmd+Enter in lists (it would do what Enter does; the replace
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh e2e/specs/search.spec.ts`
 
-- [ ] Failing test first, new `src/tests/lib/utils/roving-list.test.ts`: clamping at both ends, Home and End, null on modifiers and on `count === 0`, `nextCurrentRow` and `tabStopRow` cases. `src/tests/lib/features/tasks/tasks-keys.logic.test.ts` and `TasksView.keyboard.test.ts` pass with no edit.
-- [ ] Failing test first, `src/tests/lib/features/search/SearchPanel.test.ts` (real `searchStore`, the search service mocked as today): with three results, ArrowDown in the input focuses the first; ArrowDown, End and Home move focus; exactly one result button has `tabindex="0"` and it follows focus; ArrowUp on the first returns to the input; Enter on a focused result opens it.
-- [ ] Failing test first: Escape with text in the input clears the query and keeps focus in the input; Escape with an empty query leaves the input and keeps Search shown (the case at `SearchPanel.test.ts:153-163` stays as written).
-- [ ] `e2e/specs/search.spec.ts:39-51` is rewritten for two Escapes (the first clears, the second leaves the input) with its rail-item tail kept; `06-search-and-navigation.md:90` reads the new rule.
-- [ ] `src/tests/lib/architecture/pure-logic.test.ts` stays green (`utils/roving-list.ts` imports nothing framework-bound).
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, new `src/tests/lib/utils/roving-list.test.ts`: clamping at both ends, Home and End, null on modifiers and on `count === 0`, `nextCurrentRow` and `tabStopRow` cases. `src/tests/lib/features/tasks/tasks-keys.logic.test.ts` and `TasksView.keyboard.test.ts` pass with no edit.
+- [x] Failing test first, `src/tests/lib/features/search/SearchPanel.test.ts` (real `searchStore`, the search service mocked as today): with three results, ArrowDown in the input focuses the first; ArrowDown, End and Home move focus; exactly one result button has `tabindex="0"` and it follows focus; ArrowUp on the first returns to the input; Enter on a focused result opens it.
+- [x] Failing test first: Escape with text in the input clears the query and keeps focus in the input; Escape with an empty query leaves the input and keeps Search shown (the case at `SearchPanel.test.ts:153-163` stays as written).
+- [x] `e2e/specs/search.spec.ts:39-51` is rewritten for two Escapes (the first clears, the second leaves the input) with its rail-item tail kept; `06-search-and-navigation.md:90` reads the new rule.
+- [x] `src/tests/lib/architecture/pure-logic.test.ts` stays green (`utils/roving-list.ts` imports nothing framework-bound).
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -53,3 +53,4 @@ Checked at `ab143a411`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided by the owner: the 34-ticket split. Defaults (not individually answered): 18.1 (old 27.1), the first Escape clears the query and the second leaves the input, which rewrites the help sentence and the E2E case above.
+- 2026-11-18, delivered from `issue/18-roving-list-search-arrows`: roving-list keyboard model extracted to `src/lib/utils/roving-list.ts` (shared with Tasks), arrow keys/Home/End and one Tab stop in Search results, Escape clears the query first then leaves the input; help doc and E2E updated. Review round 1 APPROVED (findings fixed: Semantic Tab-stop test, held-Enter test; Show in Calendar Tab stop deferred to Issue 19), round 2 APPROVED with no findings. Tests: `pnpm check` 0 errors; full `pnpm vitest run` at 1230d2413: 650/650 files, 17238 passed, 54 skipped, 1 todo.

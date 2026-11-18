@@ -1063,7 +1063,7 @@ test.describe('Search on the rail', () => {
 		return railSearch(page).locator('[data-rail-search-header] input');
 	}
 
-	test('"/" opens Search and focuses the input; a query lists the matching note with its snippet; Escape leaves the input', async ({ vaultPage: page }) => {
+	test('"/" opens Search and focuses the input; a query lists the matching note with its snippet; ArrowDown and Enter open it', async ({ vaultPage: page }) => {
 		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
 		// The daily note opens with the editor focused; "/" there is text, so focus the rail first.
 		await page.locator('[data-rail-item="today"]').click();
@@ -1081,11 +1081,11 @@ test.describe('Search on the rail', () => {
 		await expect(row).toContainText('for the next milestone.');
 		await expect(railSearch(page)).toContainText('1 result');
 
-		await page.keyboard.press('Escape');
-		await expect(searchInput(page)).not.toBeFocused();
-		await expect(row).toBeVisible();
+		await page.keyboard.press('ArrowDown');
+		await expect(row.getByRole('button').first()).toBeFocused();
+		await expect(row.getByRole('button').first()).toHaveAttribute('tabindex', '0');
 
-		await row.getByRole('button').first().click();
+		await page.keyboard.press('Enter');
 		await expectTabActive(page, 'Roadmap');
 	});
 

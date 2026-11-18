@@ -6,6 +6,7 @@
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
+	import { resolveRovingFocus, tabStopRow } from '#lib/utils/roving-list.js';
 	import { searchStore } from './search.store.svelte';
 	import { isBelowSemanticMinimum, SEMANTIC_MIN_QUERY_CHARS } from './search.logic';
 	import { performSearch } from './search.service';
@@ -38,9 +39,84 @@
 		searchStore.setQuery(target.value);
 	}
 
+	/** True when Meta, Ctrl, Alt or Shift is held */
+	function hasModifier(e: KeyboardEvent): boolean {
+		return e.metaKey || e.ctrlKey || e.altKey || e.shiftKey;
+	}
+
+	// The first Escape clears the query, the next one leaves the input; the
+	// rail list search closes in one press, this panel stays shown.
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key !== 'Escape') return;
-		inputEl?.blur();
+		if (e.key === 'Escape') {
+			if (searchStore.query !== '') searchStore.setQuery('');
+			else inputEl?.blur();
+			return;
+		}
+		if (e.key !== 'ArrowDown' || hasModifier(e)) return;
+		const first = resultButtons()[0];
+		if (!first) return;
+		e.preventDefault();
+		first.focus();
+	}
+
+	let listEl: HTMLElement | undefined = $state();
+
+	/** The rendered results' card buttons, in display order. The Show in Calendar button beside a card is not a row. */
+	function resultButtons(): HTMLElement[] {
+		return Array.from(listEl?.querySelectorAll<HTMLElement>('[data-search-result] > button:first-child') ?? []);
+	}
+
+	/** The current mode's row keys, in the order the `{#each}` blocks below render them */
+	const rowKeys = $derived(
+		searchStore.mode === 'text'
+			? searchStore.ftsResults.length > 0
+				? searchStore.ftsResults.map((r) => r.path)
+				: searchStore.results.map((r) => r.filePath)
+			: searchStore.mode === 'semantic'
+				? searchStore.semanticResults.map((r) => r.key)
+				: searchStore.hybridResults.map((r) => r.path),
+	);
+
+	/** The row that last took focus; a key no longer listed hands the Tab stop to the first row */
+	let currentKey: string | null = $state(null);
+
+	/** The one result in the Tab order */
+	const tabStopKey = $derived(tabStopRow(rowKeys, rowKeys, currentKey));
+
+	function handleListFocusin(e: FocusEvent) {
+		const index = resultButtons().indexOf(e.target as HTMLElement);
+		if (index >= 0) currentKey = rowKeys[index] ?? null;
+	}
+
+	// Enter is handled here, not left to the button's native activation, so a
+	// held Enter opens the note once.
+	function handleListKeydown(e: KeyboardEvent) {
+		const rows = resultButtons();
+		const index = rows.indexOf(e.target as HTMLElement);
+		if (index < 0) return;
+		if (!hasModifier(e) && e.key === 'Enter') {
+			e.preventDefault();
+			if (!e.repeat) rows[index].click();
+			return;
+		}
+		if (!hasModifier(e) && e.key === 'ArrowUp' && index === 0) {
+			e.preventDefault();
+			inputEl?.focus();
+			return;
+		}
+		const next = resolveRovingFocus({
+			key: e.key,
+			onRow: true,
+			meta: e.metaKey,
+			ctrl: e.ctrlKey,
+			alt: e.altKey,
+			shift: e.shiftKey,
+			index,
+			count: rows.length,
+		});
+		if (next === null) return;
+		e.preventDefault();
+		rows[next].focus();
 	}
 
 	/** Semantic and Hybrid need the setting on and the model loaded; turning the setting off does not reset `modelAvailable` */
@@ -210,28 +286,32 @@
 					<Button variant="outline" size="sm" onclick={() => performSearch()}>Retry</Button>
 				</div>
 			{:else if showResults}
+				<!-- svelte-ignore a11y_no_static_element_interactions (roving-focus list: the result buttons take the keys) -->
 				<div
+					bind:this={listEl}
 					class="divide-y divide-divider/20 transition-opacity {searchSlow ? 'opacity-50' : ''}"
 					aria-busy={searchSlow ? 'true' : undefined}
 					data-search-result-list
+					onkeydown={handleListKeydown}
+					onfocusin={handleListFocusin}
 				>
 					{#if searchStore.mode === 'text'}
 						{#if searchStore.ftsResults.length > 0}
 							{#each searchStore.ftsResults as ftsResult (ftsResult.path)}
-								<SearchResultItem {ftsResult} />
+								<SearchResultItem {ftsResult} tabindex={ftsResult.path === tabStopKey ? 0 : -1} />
 							{/each}
 						{:else}
 							{#each searchStore.results as result (result.filePath)}
-								<SearchResultItem legacyResult={result} />
+								<SearchResultItem legacyResult={result} tabindex={result.filePath === tabStopKey ? 0 : -1} />
 							{/each}
 						{/if}
 					{:else if searchStore.mode === 'semantic'}
 						{#each searchStore.semanticResults as semanticResult (semanticResult.key)}
-							<SearchResultItem {semanticResult} />
+							<SearchResultItem {semanticResult} tabindex={semanticResult.key === tabStopKey ? 0 : -1} />
 						{/each}
 					{:else}
 						{#each searchStore.hybridResults as hybridResult (hybridResult.path)}
-							<SearchResultItem {hybridResult} />
+							<SearchResultItem {hybridResult} tabindex={hybridResult.path === tabStopKey ? 0 : -1} />
 						{/each}
 					{/if}
 				</div>

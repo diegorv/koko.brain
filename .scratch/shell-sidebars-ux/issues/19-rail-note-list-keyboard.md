@@ -70,3 +70,4 @@ Checked at `ab143a411`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided by the owner: the 34-ticket split. Defaults (not individually answered): none specific to this ticket beyond 18.1 (the first Escape in Search clears, which lives in ticket 18).
+- 2026-11-18, from Issue 18's review (finding 3): in Search results the Show in Calendar button beside an event-note card (`SearchResult.svelte:179-182`) is still its own Tab stop, so the "one Tab stop" line in `help/documentation/06-search-and-navigation.md:94` holds only for lists without event notes. Not this ticket's list; take it up when a secondary row action gets a keyboard model here (or in the later roving-list wave) and apply the same choice to Search.
