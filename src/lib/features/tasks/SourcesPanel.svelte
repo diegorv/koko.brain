@@ -348,6 +348,14 @@
 			<p class="text-meta text-muted-foreground">A task is listed when every clause of one card matches.</p>
 		</div>
 		{#each sources as card, ci (ci)}
+			<!-- The cards are alternatives. Hidden from assistive tech: the intro sentence already says so. -->
+			{#if ci > 0}
+				<div data-task-sources-or aria-hidden="true" class="flex items-center gap-2 text-meta text-muted-foreground">
+					<span class="h-px flex-1 bg-border"></span>
+					or
+					<span class="h-px flex-1 bg-border"></span>
+				</div>
+			{/if}
 			<div data-task-source-card role="group" aria-label="Card {ci + 1}" class="space-y-2 rounded-md border border-border bg-background p-2">
 				{#each card.clauses as clause, li (li)}
 					<div class="flex flex-wrap items-center gap-2">

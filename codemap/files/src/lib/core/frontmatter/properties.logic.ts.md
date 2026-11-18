@@ -76,7 +76,7 @@ by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/core/fron
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:931 in dispatchMetaBindUpdate call
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/features/auto-organize/auto-organize.service.ts:644 in withRuleProperties call
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/features/deep-link/deep-link.logic.ts:390 in injectTitleIntoContent call +1
-by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/features/event-calendar/event-calendar-event.logic.ts:358 in applyEventDraft call
+by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/features/event-calendar/event-calendar-event.logic.ts:364 in applyEventDraft call
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/features/event-calendar/event-calendar.service.ts:1004 in duplicateEvent call
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/features/properties/properties.service.ts:98 in commitChanges call
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/features/todoist-sync/sync-now.service.ts:899 in writeProjectId call
@@ -123,7 +123,7 @@ by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/core/f
 by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:933 in dispatchMetaBindUpdate call
 by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/features/auto-organize/auto-organize.service.ts:644 in withRuleProperties call
 by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/features/deep-link/deep-link.logic.ts:398 in injectTitleIntoContent call +4
-by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/features/event-calendar/event-calendar-event.logic.ts:362 in applyEventDraft call
+by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/features/event-calendar/event-calendar-event.logic.ts:368 in applyEventDraft call
 by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/features/event-calendar/event-calendar.service.ts:1004 in duplicateEvent call
 by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/features/properties/properties.service.ts:99 in commitChanges call
 by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/features/todoist-sync/sync-now.service.ts:899 in writeProjectId call

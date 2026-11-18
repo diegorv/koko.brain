@@ -136,13 +136,21 @@
 	/** The checked Property submenu radio: the grouped property, '' under any other grouping. */
 	let propertyRadioValue = $derived(typeof tasksStore.groupBy === 'string' ? '' : tasksStore.groupBy.property);
 
+	/** The current grouping as the Display trigger shows it: the menu label, or the grouped property's key. */
+	let groupByLabel = $derived.by(() => {
+		const groupBy = tasksStore.groupBy;
+		if (typeof groupBy !== 'string') return groupBy.property;
+		if (groupBy === 'heading') return 'Heading';
+		return GROUP_OPTIONS.find((option) => option.value === groupBy)?.label ?? groupBy;
+	});
+
 	/** The Property submenu's keys: those of the notes the sources and excludes keep, like the Tag menu. */
 	let propertyKeys = $derived(propertyKeyOptions(tasksStore.sourceRows));
 
 	/** Whether the Sources panel is open. View state: it closes when the view remounts. */
 	let sourcesOpen = $state(false);
 	const uid = $props.id();
-	/** The Sources panel's element id, named by the Edit button's `aria-controls`. */
+	/** The Sources panel's element id, named by the Edit sources button's `aria-controls`. */
 	const sourcesPanelId = `${uid}-sources`;
 
 	/** Opens the Sources panel; for `excludes`, also focuses the Excludes section's first switch. */
@@ -386,6 +394,27 @@
 		const active = document.activeElement;
 		return !active || active === document.body || (allowRoot && active === rootEl) || (!!listEl && listEl.contains(active));
 	}
+
+	/** The toolbar's search box. */
+	let searchEl = $state<HTMLInputElement | null>(null);
+
+	// Cmd or Ctrl+F focuses and selects the search box, only from `<body>` or
+	// from inside the view: a note editor or another pane keeps the key. With
+	// Shift it is left alone, so Cmd+Shift+F reaches the global Search binding.
+	// Only the active tab mounts a TasksView, so one listener exists at a time.
+	$effect(() => {
+		function onFindKeydown(e: KeyboardEvent) {
+			if (e.key.toLowerCase() !== 'f' || !(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
+			const active = document.activeElement;
+			const fromView = !active || active === document.body || (!!rootEl && rootEl.contains(active));
+			if (!fromView || !searchEl) return;
+			e.preventDefault();
+			searchEl.focus();
+			searchEl.select();
+		}
+		document.addEventListener('keydown', onFindKeydown);
+		return () => document.removeEventListener('keydown', onFindKeydown);
+	});
 
 	function handleListKeydown(e: KeyboardEvent) {
 		const target = e.target as HTMLElement;
@@ -747,7 +776,7 @@
 	{/if}
 {/snippet}
 
-<!-- One group's header, after its chevron. A Note group shows the note (icon, title, folder, "N of M open"); any other shows its label and row count. -->
+<!-- One group's header, after its chevron. A Note group shows the note (icon, title, "N of M open", folder, on one row); any other shows its label and row count. -->
 {#snippet groupHeader(group: TaskGroup, key: string, collapsed: boolean)}
 	{#if group.filePath !== undefined}
 		{@const filePath = group.filePath}
@@ -772,11 +801,12 @@
 					>
 						{group.label}
 					</button>
-					<span data-task-group-count class="text-xs text-muted-foreground">{`${group.open} of ${group.total} open`}</span>
+					<span data-task-group-count class="shrink-0 text-xs text-muted-foreground">{`${group.open} of ${group.total} open`}</span>
+					{#if group.folder}
+						<!-- flex-1 (basis 0): the folder takes only the leftover width and truncates before the title or count wrap. -->
+						<span data-task-group-subtitle class="flex-1 min-w-0 truncate text-xs text-muted-foreground @max-[560px]:hidden">{group.folder}</span>
+					{/if}
 				</div>
-				{#if group.folder}
-					<p data-task-group-subtitle class="truncate text-xs text-muted-foreground @max-[560px]:hidden">{group.folder}</p>
-				{/if}
 			</div>
 			{@render groupHeaderActions(group)}
 		</div>
@@ -800,16 +830,19 @@
 	{@const rowKey = taskRowKey(row.filePath, row.lineNumber)}
 	<!-- Roving focus: only the tab-stop row and its controls are in the tab order. -->
 	{@const rowTabindex = rowKey === tabStopKey ? 0 : -1}
-	<!-- A dimmed row fails the filters and stays as the parent of one that passes. -->
+	<!-- A context row (`row.dimmed`) fails the filters and stays as the parent of one that passes.
+	     Its left rule is an inset shadow: the indent is the inline padding-left, which a border would shift. -->
 	<!-- A flat row has no indent: its breadcrumb, on its own line above the text, carries the hierarchy. -->
 	<!-- svelte-ignore a11y_no_noninteractive_tabindex (roving-focus list: the row is the focus stop) -->
 	<div
 		data-task-row
 		data-task-key={rowKey}
+		data-task-context={row.dimmed || undefined}
+		title={row.dimmed ? 'Shown for context' : undefined}
 		role="listitem"
 		tabindex={rowTabindex}
 		oncontextmenu={() => handleRowContextMenu(row)}
-		class="flex items-start gap-x-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {row.dimmed ? 'opacity-60' : ''} {row.breadcrumb ? 'flex-wrap' : ''}"
+		class="flex items-start gap-x-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {row.dimmed ? 'shadow-[inset_2px_0_0_color-mix(in_oklab,var(--muted-foreground)_55%,transparent)]' : ''} {row.breadcrumb ? 'flex-wrap' : ''}"
 		style={flat ? undefined : `padding-left: ${row.indent * 1.25 + 0.25}rem`}
 	>
 		{#if row.breadcrumb}
@@ -913,12 +946,13 @@
 			</span>
 		{/if}
 		<input
+			bind:this={searchEl}
 			type="search"
 			value={tasksStore.quick.search ?? ''}
 			oninput={(e) => handleSearchInput(e.currentTarget.value)}
 			placeholder="Search tasks"
 			aria-label="Search tasks"
-			class="h-6 w-40 min-w-0 shrink px-2 text-xs rounded-md bg-background/50 border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+			class="h-6 w-40 min-w-0 shrink px-2 text-xs rounded-md bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
 		/>
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger>
@@ -927,7 +961,9 @@
 						{...props}
 						class="flex h-6 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer"
 					>
-						<span>Display</span>
+						<!-- The trigger never shrinks, so a long property key truncates at the value's max width. -->
+						<span class="shrink-0">Display ·</span>
+						<span data-task-display-value class="min-w-0 max-w-24 truncate">{groupByLabel}</span>
 						<ChevronDown class="size-3 shrink-0" aria-hidden="true" />
 					</button>
 				{/snippet}
@@ -1091,7 +1127,7 @@
 							aria-controls={sourcesPanelId}
 							onclick={() => (sourcesOpen = !sourcesOpen)}
 						>
-							Edit
+							Edit sources
 						</button>
 						{#if tasksStore.query.sources.length > 0}
 							<button type="button" class="text-xs text-primary hover:underline cursor-pointer" onclick={() => setTaskSources([])}>
@@ -1132,7 +1168,7 @@
 									<div
 										{...props}
 										bind:this={listEl}
-										class="space-y-6 mt-3"
+										class="space-y-4 mt-3"
 										onkeydown={handleListKeydown}
 										onfocusin={handleListFocusin}
 										oncontextmenu={(e) => handleListContextMenu(e, props.oncontextmenu)}

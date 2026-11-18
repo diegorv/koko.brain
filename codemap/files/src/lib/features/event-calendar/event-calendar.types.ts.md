@@ -1,15 +1,16 @@
 # file card src/lib/features/event-calendar/event-calendar.types.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/event-calendar/event-calendar.types.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols
-file src/lib/features/event-calendar/event-calendar.types.ts types L321 module src/lib/features/event-calendar in17 t0 | Shared types of the event-calendar feature.
+file src/lib/features/event-calendar/event-calendar.types.ts types L321 module src/lib/features/event-calendar in18 t0 | Shared types of the event-calendar feature.
 ## imports
 imp src/lib/features/event-calendar/event-calendar.types.ts:11 -> src/lib/core/settings/settings.types.ts type:EventCalendarColor,type:EventCalendarViewMode
 ## imported-by
-imp src/lib/features/event-calendar/EventAllDayLane.svelte:7 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventNote
-imp src/lib/features/event-calendar/EventBlock.svelte:7 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventNote
+imp src/lib/features/event-calendar/EventAllDayLane.svelte:8 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventNote
+imp src/lib/features/event-calendar/EventBlock.svelte:8 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventNote
 imp src/lib/features/event-calendar/EventCalendarHeader.svelte:8 -> src/lib/features/event-calendar/event-calendar.types.ts type:CalendarViewMode
 imp src/lib/features/event-calendar/EventCalendarNeedsAttention.svelte:5 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventIssue
 imp src/lib/features/event-calendar/EventColorSwatches.svelte:3 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventColor
+imp src/lib/features/event-calendar/EventShortcutsDialog.svelte:5 -> src/lib/features/event-calendar/event-calendar.types.ts type:CalendarViewMode
 imp src/lib/features/event-calendar/EventTimeGrid.svelte:28 -> src/lib/features/event-calendar/event-calendar.types.ts type:DragState
 imp src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:5 -> src/lib/features/event-calendar/event-calendar.types.ts type:DayDragState,type:EventNote
 imp src/lib/features/event-calendar/event-calendar-drag.logic.ts:14 -> src/lib/features/event-calendar/event-calendar.types.ts type:DayDragState,type:DragState,type:EventNote
@@ -23,7 +24,7 @@ imp src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:12 -> sr
 imp src/lib/features/event-calendar/event-calendar.service.ts:43 -> src/lib/features/event-calendar/event-calendar.types.ts type:CalendarViewMode,type:EventDraft,type:EventNote,type:EventPatch,type:EventState,type:HistoryOp,type:PendingWrite
 imp src/lib/features/event-calendar/event-calendar.store.svelte.ts:16 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventIssue,type:EventNote,type:EventProjection,type:EventState,type:PendingWrite
 ## reach
-in2 src/lib/features/event-calendar/event-calendar.types.ts 21 files in 5 modules: src/lib/features/event-calendar(13) src/lib/app(4) src/lib/plugins/calendar(2) src/lib/features/rail-shell(1) src/lib/plugins/one-on-one(1)
+in2 src/lib/features/event-calendar/event-calendar.types.ts 20 files in 5 modules: src/lib/features/event-calendar(12) src/lib/app(4) src/lib/plugins/calendar(2) src/lib/features/rail-shell(1) src/lib/plugins/one-on-one(1)
 out2 src/lib/features/event-calendar/event-calendar.types.ts 2 files in 1 modules: src/lib/core/settings(2)
 ## tests
 test src/tests/fixtures/event-notes.fixture.ts imports-type src/lib/features/event-calendar/event-calendar.types.ts
@@ -49,13 +50,14 @@ by src/lib/features/event-calendar/event-calendar.types.ts:EventColor <- src/lib
 by src/lib/features/event-calendar/event-calendar.types.ts:EventColor <- src/lib/features/event-calendar/event-calendar-event.logic.ts:20 in (module) import
 sym src/lib/features/event-calendar/event-calendar.types.ts:17 type CalendarViewMode L1 | One of the calendar views (`EVENT_CALENDAR_VIEW_MODES`).
 by src/lib/features/event-calendar/event-calendar.types.ts:CalendarViewMode <- src/lib/features/event-calendar/EventCalendarHeader.svelte:8 in (script) import
+by src/lib/features/event-calendar/event-calendar.types.ts:CalendarViewMode <- src/lib/features/event-calendar/EventShortcutsDialog.svelte:5 in (script) import
 by src/lib/features/event-calendar/event-calendar.types.ts:CalendarViewMode <- src/lib/features/event-calendar/event-calendar-keys.logic.ts:8 in (module) import
 by src/lib/features/event-calendar/event-calendar.types.ts:CalendarViewMode <- src/lib/features/event-calendar/event-calendar-view.logic.ts:38 in (module) import
 by src/lib/features/event-calendar/event-calendar.types.ts:CalendarViewMode <- src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:13 in (module) import
 by src/lib/features/event-calendar/event-calendar.types.ts:CalendarViewMode <- src/lib/features/event-calendar/event-calendar.service.ts:43 in (module) import
 sym src/lib/features/event-calendar/event-calendar.types.ts:23 interface EventNote L37 | An event note as the calendar renders it.
-by src/lib/features/event-calendar/event-calendar.types.ts:EventNote <- src/lib/features/event-calendar/EventAllDayLane.svelte:7 in (script) import
-by src/lib/features/event-calendar/event-calendar.types.ts:EventNote <- src/lib/features/event-calendar/EventBlock.svelte:7 in (script) import
+by src/lib/features/event-calendar/event-calendar.types.ts:EventNote <- src/lib/features/event-calendar/EventAllDayLane.svelte:8 in (script) import
+by src/lib/features/event-calendar/event-calendar.types.ts:EventNote <- src/lib/features/event-calendar/EventBlock.svelte:8 in (script) import
 by src/lib/features/event-calendar/event-calendar.types.ts:EventNote <- src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:5 in (module) import
 by src/lib/features/event-calendar/event-calendar.types.ts:EventNote <- src/lib/features/event-calendar/event-calendar-drag.logic.ts:14 in (module) import
 by src/lib/features/event-calendar/event-calendar.types.ts:EventNote <- src/lib/features/event-calendar/event-calendar-event.logic.ts:24 in (module) import

@@ -34,7 +34,7 @@ imp src/lib/features/type-definitions/type-definitions.store.svelte.ts:4 -> src/
 imp src/lib/plugins/calendar/day-lens.logic.ts:4 -> src/lib/features/type-definitions/type-sidebar.logic.ts excludeSystemFolder,isListableNote
 imp src/lib/plugins/queryjs/kb-api.ts:15 -> src/lib/features/type-definitions/type-sidebar.logic.ts excludeSystemFolder,isListableNote
 ## reach
-in2 src/lib/features/type-definitions/type-sidebar.logic.ts 39 files in 16 modules: src/lib/features/event-calendar(10) src/lib/features/rail-shell(8) src/lib/app(5) src/lib/plugins/calendar(2) src/lib/plugins/mods(2) +11 modules: q impact src/lib/features/type-definitions/type-sidebar.logic.ts --depth 2
+in2 src/lib/features/type-definitions/type-sidebar.logic.ts 41 files in 16 modules: src/lib/features/event-calendar(12) src/lib/features/rail-shell(8) src/lib/app(5) src/lib/plugins/calendar(2) src/lib/plugins/mods(2) +11 modules: q impact src/lib/features/type-definitions/type-sidebar.logic.ts --depth 2
 out2 src/lib/features/type-definitions/type-sidebar.logic.ts 5 files in 5 modules: src/lib/contracts(1) src/lib/core/frontmatter(1) src/lib/core/settings(1) src/lib/features/file-icons(1) src/lib/utils(1)
 ## tests
 test src/tests/lib/features/type-definitions/type-sidebar.logic.test.ts imports src/lib/features/type-definitions/type-sidebar.logic.ts mirror
@@ -61,7 +61,7 @@ by src/lib/features/type-definitions/type-sidebar.logic.ts:TypeSidebarSelection 
 by src/lib/features/type-definitions/type-sidebar.logic.ts:TypeSidebarSelection <- src/lib/features/type-definitions/type-definitions.store.svelte.ts:4 in (module) import
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:65 fn excludeSystemFolder<T extends { path: string }>(entries: T[], vaultPath: string | null | undefined, systemFolder: string): T[] L11 | Returns a new array containing only entries whose `path` is outside the configured system folder.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/app/AppShell.svelte:69 in $effect@66 call
-by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/event-calendar/event-calendar-event.logic.ts:246 in eventsFromEntries call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/event-calendar/event-calendar-event.logic.ts:252 in eventsFromEntries call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/rail-shell/Rail.svelte:68 in inboxCount=$derived call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/rail-shell/lens.logic.ts:329 in listEntries call +4
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/plugins/calendar/day-lens.logic.ts:48 in noteDateCounts call

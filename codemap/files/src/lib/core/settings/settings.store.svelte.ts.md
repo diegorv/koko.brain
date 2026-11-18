@@ -41,8 +41,8 @@ imp src/lib/features/deep-link/deep-link.service.ts:11 -> src/lib/core/settings/
 imp src/lib/features/event-calendar/EventCalendarSection.svelte:7 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/features/event-calendar/EventCalendarView.svelte:13 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/features/event-calendar/EventDialog.svelte:9 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
-imp src/lib/features/event-calendar/EventMonthGrid.svelte:2 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
-imp src/lib/features/event-calendar/EventPopover.svelte:8 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
+imp src/lib/features/event-calendar/EventMonthGrid.svelte:3 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
+imp src/lib/features/event-calendar/EventPopover.svelte:9 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/features/event-calendar/EventTimeGrid.svelte:3 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/features/event-calendar/EventWeekStrip.svelte:2 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/features/event-calendar/ShowInCalendarButton.svelte:5 -> src/lib/core/settings/settings.store.svelte.ts settingsStore

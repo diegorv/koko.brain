@@ -18,6 +18,7 @@ import { resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { registerKeybinding } from '#lib/utils/keybindings.js';
 import type { FileTaskGroupV2, TaskV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
 import { mockTaskFetch, mountTasksView, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
 
@@ -289,6 +290,105 @@ describe('TasksView: keyboard and accessible rows', () => {
 			await until(() => expect(rows()).toHaveLength(3));
 
 			expect(document.activeElement).toBe(search);
+		});
+	});
+
+	describe('Cmd+F focuses the search box', () => {
+		const searchInput = () => document.querySelector<HTMLInputElement>('input[aria-label="Search tasks"]')!;
+
+		/** Dispatches Cmd+F (or Ctrl+F, or with Shift) on `el` and returns the event. */
+		function pressFind(el: Element, mods: { meta?: boolean; ctrl?: boolean; shift?: boolean } = { meta: true }): KeyboardEvent {
+			const event = new KeyboardEvent('keydown', {
+				key: mods.shift ? 'F' : 'f',
+				metaKey: !!mods.meta,
+				ctrlKey: !!mods.ctrl,
+				shiftKey: !!mods.shift,
+				bubbles: true,
+				cancelable: true,
+			});
+			el.dispatchEvent(event);
+			flushSync();
+			return event;
+		}
+
+		it('on a task row, focuses the search box and selects its text; Ctrl+F does the same', async () => {
+			mockTaskFetch(twoNotes());
+			({ component } = await mountTasksView());
+			await until(() => expect(rows()).toHaveLength(3));
+			const search = searchInput();
+			search.value = 'rent';
+			search.dispatchEvent(new Event('input', { bubbles: true }));
+			await until(() => expect(rows()).toHaveLength(1));
+
+			rows()[0].focus();
+			expect(pressFind(rows()[0]).defaultPrevented).toBe(true);
+			expect(document.activeElement).toBe(search);
+			expect([search.selectionStart, search.selectionEnd]).toEqual([0, 4]);
+
+			rows()[0].focus();
+			expect(pressFind(rows()[0], { ctrl: true }).defaultPrevented).toBe(true);
+			expect(document.activeElement).toBe(search);
+		});
+
+		it('from <body>, focuses the search box', async () => {
+			mockTaskFetch(twoNotes());
+			({ component } = await mountTasksView());
+			await until(() => expect(rows()).toHaveLength(3));
+			(document.activeElement as HTMLElement | null)?.blur();
+			expect(document.activeElement).toBe(document.body);
+
+			expect(pressFind(document.body).defaultPrevented).toBe(true);
+			expect(document.activeElement).toBe(searchInput());
+		});
+
+		it('from a contenteditable outside the view, does nothing and leaves the event alone', async () => {
+			mockTaskFetch(twoNotes());
+			({ component } = await mountTasksView());
+			await until(() => expect(rows()).toHaveLength(3));
+			const editable = document.body.appendChild(document.createElement('div'));
+			editable.contentEditable = 'true';
+			editable.tabIndex = 0;
+			editable.focus();
+			expect(document.activeElement).toBe(editable);
+
+			expect(pressFind(editable).defaultPrevented).toBe(false);
+			expect(document.activeElement).toBe(editable);
+		});
+
+		it('leaves Cmd+Shift+F to the global handler', async () => {
+			mockTaskFetch(twoNotes());
+			({ component } = await mountTasksView());
+			await until(() => expect(rows()).toHaveLength(3));
+			const globalSearch = vi.fn();
+			const unregister = registerKeybinding({ key: 'f', meta: true, shift: true, handler: globalSearch });
+			try {
+				rows()[0].focus();
+				pressFind(rows()[0], { meta: true, shift: true });
+				expect(globalSearch).toHaveBeenCalledTimes(1);
+				expect(document.activeElement).toBe(rows()[0]);
+			} finally {
+				unregister();
+			}
+		});
+
+		it('stops listening when the view unmounts', async () => {
+			mockTaskFetch(twoNotes());
+			({ component } = await mountTasksView());
+			await until(() => expect(rows()).toHaveLength(3));
+			unmount(component!);
+			component = null;
+
+			expect(pressFind(document.body).defaultPrevented).toBe(false);
+		});
+
+		it('draws the search box with the full border and placeholder tokens', async () => {
+			mockTaskFetch(twoNotes());
+			({ component } = await mountTasksView());
+			await until(() => expect(rows()).toHaveLength(3));
+			const classes = Array.from(searchInput().classList);
+			expect(classes).toContain('border-border');
+			expect(classes).toContain('placeholder:text-muted-foreground');
+			expect(classes.filter((c) => c.endsWith('/50'))).toEqual([]);
 		});
 	});
 });

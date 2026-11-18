@@ -398,7 +398,7 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		await until(() => expect(rows()).toHaveLength(1));
 		expect(paragraph(`Open tasks from every note${EXCEPT}`)).toBeDefined();
 		expect(buttonsNamed('Clear')).toHaveLength(0);
-		expect(buttonsNamed('Edit')).toHaveLength(1);
+		expect(buttonsNamed('Edit sources')).toHaveLength(1);
 	});
 
 	it('names the tag card when nothing sits under it, with Edit sources, and Clear lists every task', async () => {
@@ -406,7 +406,10 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		mockTaskFetch([noteWith(['Ship feature A'])]);
 		await mountView();
 		await until(() => expect(paragraph('No task sits under a heading containing #to-list')).toBeDefined());
-		expect(buttonsNamed('Edit sources')).toHaveLength(1);
+		// The sentence's button shares the name, so the empty state's is looked up inside it.
+		const emptyState = paragraph('No task sits under a heading containing #to-list')!.parentElement!;
+		expect(Array.from(emptyState.querySelectorAll('button')).filter((b) => b.textContent?.trim() === 'Edit sources')).toHaveLength(1);
+		expect(buttonsNamed('Edit sources')).toHaveLength(2);
 		expect(buttonsNamed('Clear')).toHaveLength(1);
 
 		buttonsNamed('Clear')[0].click();
@@ -452,7 +455,7 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		expect(sentence).toBeDefined();
 		const edit = sentence!.nextElementSibling;
 		expect(edit?.tagName).toBe('BUTTON');
-		expect(edit?.textContent?.trim()).toBe('Edit');
+		expect(edit?.textContent?.trim()).toBe('Edit sources');
 		expect(edit?.nextElementSibling?.textContent?.trim()).toBe('Clear');
 		expect(sentence!.closest('.pane-toolbar')).toBeNull();
 		expect(countText()).toBe('1 open in 1 note');
@@ -1047,7 +1050,7 @@ describe('TasksView: sources and excludes', () => {
 		const reads = entryReads();
 		const button = (name: string) => Array.from(document.querySelectorAll('button')).find((b) => b.textContent?.trim() === name)!;
 
-		button('Edit').click();
+		button('Edit sources').click();
 		flushSync();
 		button('Add card').click();
 		flushSync();

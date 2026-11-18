@@ -59,9 +59,9 @@ fx src/lib/utils/log.service.ts:145 dom.pointerdown document in startHeartbeat
 fx src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:60 dom.pointermove window in DayDrag.pointerdown
 fx src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:61 dom.pointerup window in DayDrag.pointerdown
 fx src/lib/features/event-calendar/event-calendar-gesture-guard.ts:83 dom.pointerup window in GestureGuard.discard
-fx src/lib/features/event-calendar/EventPopover.svelte:143 dom.resize svelte:window in (markup)
+fx src/lib/features/event-calendar/EventPopover.svelte:145 dom.resize svelte:window in (markup)
 fx src/lib/core/markdown-editor/MarkdownEditor.svelte:560 dom.scroll scrollDOM in $effect@455
-fx src/lib/features/event-calendar/EventPopover.svelte:60 dom.scroll el in $effect@53
+fx src/lib/features/event-calendar/EventPopover.svelte:62 dom.scroll el in $effect@55
 fx src/lib/features/tasks/TasksView.svelte:286 dom.scroll viewport in $effect@282
 fx src/routes/composer/+page.svelte:240 dom.storage svelte:window in (markup)
 fx src/lib/features/event-calendar/event-calendar.service.ts:315 dom.visibilitychange document in acquireCalendarClock

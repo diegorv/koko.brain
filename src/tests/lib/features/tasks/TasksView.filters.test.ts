@@ -172,23 +172,37 @@ describe('TasksView: the filter row', () => {
 		await until(() => expect(rows()).toHaveLength(2));
 	});
 
-	it('dims a done parent kept for its open child, which keeps its toggle', async () => {
+	it('marks a done parent kept for its open child as context, at full opacity with its toggle and indent', async () => {
 		mockTaskFetch([
 			taskGroupV2(NOTE, [
 				taskV2('Parent', { status: 'done', indent: 0, lineNumber: 1 }),
 				taskV2('Child', { indent: 1, lineNumber: 2 }),
+				taskV2('Sibling', { indent: 0, lineNumber: 3 }),
 			]),
 		]);
 		({ component } = await mountTasksView());
-		await until(() => expect(rows()).toHaveLength(2));
+		await until(() => expect(rows()).toHaveLength(3));
 
-		const [parent, child] = rows();
-		expect(parent.classList.contains('opacity-60')).toBe(true);
-		expect(parent.querySelector('[data-task-toggle]')).not.toBeNull();
+		const [parent, child, sibling] = rows();
+		expect(parent.hasAttribute('data-task-context')).toBe(true);
+		expect(parent.getAttribute('title')).toBe('Shown for context');
+		expect(parent.classList.contains('opacity-60')).toBe(false);
+		const leftRule = [...parent.classList].find((c) => c.startsWith('shadow-[inset_2px_0_0_'));
+		expect(leftRule).toBeDefined();
+		const toggle = parent.querySelector<HTMLButtonElement>('[data-task-toggle]');
+		expect(toggle).not.toBeNull();
+		expect(toggle!.disabled).toBe(false);
 		expect(parent.querySelector('[data-task-text]')!.classList.contains('line-through')).toBe(true);
-		expect(child.classList.contains('opacity-60')).toBe(false);
-		expect(child.querySelector('[data-task-text]')!.classList.contains('line-through')).toBe(false);
-		expect(countText()).toBe('1 open in 1 note');
+		// The rule must not move the row: same inline indent as a passing row at indent 0.
+		expect(parent.style.paddingLeft).not.toBe('');
+		expect(parent.style.paddingLeft).toBe(sibling.style.paddingLeft);
+		for (const passing of [child, sibling]) {
+			expect(passing.hasAttribute('data-task-context')).toBe(false);
+			expect(passing.hasAttribute('title')).toBe(false);
+			expect(passing.classList.contains(leftRule!)).toBe(false);
+			expect(passing.querySelector('[data-task-text]')!.classList.contains('line-through')).toBe(false);
+		}
+		expect(countText()).toBe('2 open in 1 note');
 	});
 
 	it('keeps the note header "N of M open" under Status > Closed', async () => {
@@ -206,8 +220,22 @@ describe('TasksView: the filter row', () => {
 		menuItem('menuitemradio', 'Closed').click();
 		await until(() => expect(rowTexts()).toEqual(['Sign NDA']));
 
-		expect(document.querySelector('[data-task-group-count]')?.textContent).toBe('2 of 3 open');
-		expect(document.querySelector('[data-task-group-subtitle]')?.textContent?.trim()).toBe('Projects/Clients');
+		const count = document.querySelector('[data-task-group-count]')!;
+		const subtitle = document.querySelector('[data-task-group-subtitle]')!;
+		expect(count.textContent).toBe('2 of 3 open');
+		expect(subtitle.textContent?.trim()).toBe('Projects/Clients');
+		// One header row: the folder follows the count in the title's row.
+		expect(subtitle.parentElement).toBe(count.parentElement);
+		expect(document.querySelector('[data-task-group-title]')!.parentElement).toBe(count.parentElement);
+		expect(count.nextElementSibling).toBe(subtitle);
+		expect(subtitle.classList).toContain('truncate');
+		expect(subtitle.classList).toContain('@max-[560px]:hidden');
+		// Only the folder shrinks: basis 0 gives it the leftover width, so the title and count stay on one line.
+		expect(subtitle.classList).toContain('flex-1');
+		expect(count.classList).toContain('shrink-0');
+		const list = document.querySelector('[data-task-group]')!.parentElement!;
+		expect(list.classList).toContain('space-y-4');
+		expect(list.classList).not.toContain('space-y-6');
 	});
 
 	it('drops the row of a note edited 10 days ago under Due > Note edited in the last 7 days', async () => {

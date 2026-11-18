@@ -7,10 +7,10 @@ imp src/lib/features/event-calendar/event-calendar-view.logic.ts:13 -> src/lib/f
 imp src/lib/features/event-calendar/event-calendar-view.logic.ts:37 -> src/lib/features/event-calendar/event-calendar-layout.logic.ts floorToSnap,MIN_EVENT_MINUTES
 imp src/lib/features/event-calendar/event-calendar-view.logic.ts:38 -> src/lib/features/event-calendar/event-calendar.types.ts type:CalendarViewMode,type:EventNote
 ## imported-by
-imp src/lib/features/event-calendar/EventAllDayLane.svelte:5 -> src/lib/features/event-calendar/event-calendar-view.logic.ts buildAllDayChips,laneRows
-imp src/lib/features/event-calendar/EventBlock.svelte:5 -> src/lib/features/event-calendar/event-calendar-view.logic.ts eventRangeLabel
-imp src/lib/features/event-calendar/EventMonthGrid.svelte:8 -> src/lib/features/event-calendar/event-calendar-view.logic.ts itemsByDay
-imp src/lib/features/event-calendar/EventPopover.svelte:10 -> src/lib/features/event-calendar/event-calendar-view.logic.ts eventWhenLabel
+imp src/lib/features/event-calendar/EventAllDayLane.svelte:6 -> src/lib/features/event-calendar/event-calendar-view.logic.ts buildAllDayChips,laneRows
+imp src/lib/features/event-calendar/EventBlock.svelte:6 -> src/lib/features/event-calendar/event-calendar-view.logic.ts eventRangeLabel
+imp src/lib/features/event-calendar/EventMonthGrid.svelte:9 -> src/lib/features/event-calendar/event-calendar-view.logic.ts itemsByDay
+imp src/lib/features/event-calendar/EventPopover.svelte:12 -> src/lib/features/event-calendar/event-calendar-view.logic.ts eventWhenLabel
 imp src/lib/features/event-calendar/EventTaskLane.svelte:2 -> src/lib/features/event-calendar/event-calendar-view.logic.ts ALL_DAY_MAX_ROWS
 imp src/lib/features/event-calendar/EventTimeGrid.svelte:19 -> src/lib/features/event-calendar/event-calendar-view.logic.ts groupEventsByDay,nowOffsetMinutes
 imp src/lib/features/event-calendar/event-calendar-tasks.logic.ts:9 -> src/lib/features/event-calendar/event-calendar-view.logic.ts MONTH_MAX_CHIPS
@@ -51,15 +51,15 @@ sym src/lib/features/event-calendar/event-calendar-view.logic.ts:264 fn buildMon
 by src/lib/features/event-calendar/event-calendar-view.logic.ts:buildMonthCells <- src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:80 in eventCalendarViewStore.monthCells call
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:280 fn itemsForDay<T extends EventNote>(events: T[], day: string, timeFormat: TimeFormat): DayItem<T>[] L18 | Chips of one month cell.
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:308 fn itemsByDay<T extends EventNote>(events: T[], days: string[], timeFormat: TimeFormat): Map<string, DayItem<T>[]> L14 | Chips of every month cell, built in one pass over `events` instead of one `itemsForDay` scan of the whole list per cell.
-by src/lib/features/event-calendar/event-calendar-view.logic.ts:itemsByDay <- src/lib/features/event-calendar/EventMonthGrid.svelte:23 in chipsByDay=$derived call
+by src/lib/features/event-calendar/event-calendar-view.logic.ts:itemsByDay <- src/lib/features/event-calendar/EventMonthGrid.svelte:24 in chipsByDay=$derived call
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:331 fn eventWhenLabel(event: EventNote, timeFormat: TimeFormat): EventWhenLabel L11 | When an event happens, as the popover shows it.
-by src/lib/features/event-calendar/event-calendar-view.logic.ts:eventWhenLabel <- src/lib/features/event-calendar/EventPopover.svelte:36 in when=$derived call
+by src/lib/features/event-calendar/event-calendar-view.logic.ts:eventWhenLabel <- src/lib/features/event-calendar/EventPopover.svelte:38 in when=$derived call
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:350 fn eventRangeLabel(event: EventNote, timeFormat: TimeFormat): string L5 | Time range of a timed event, as a block's accessible name reads it.
-by src/lib/features/event-calendar/event-calendar-view.logic.ts:eventRangeLabel <- src/lib/features/event-calendar/EventBlock.svelte:42 in labelTime=$derived call
+by src/lib/features/event-calendar/event-calendar-view.logic.ts:eventRangeLabel <- src/lib/features/event-calendar/EventBlock.svelte:43 in labelTime=$derived call
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:364 fn buildAllDayChips(days: string[], events: EventNote[]): AllDayCell[] L8 | Chips of the all-day lane, capped so no day needs more than `ALL_DAY_MAX_ROWS` rows: a day with more all-day events than that shows one row fewer of chips and …
-by src/lib/features/event-calendar/event-calendar-view.logic.ts:buildAllDayChips <- src/lib/features/event-calendar/EventAllDayLane.svelte:28 in cells=$derived call
+by src/lib/features/event-calendar/event-calendar-view.logic.ts:buildAllDayChips <- src/lib/features/event-calendar/EventAllDayLane.svelte:29 in cells=$derived call
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:380 fn laneRows(maxEvents: number): number L3 | Height of the all-day lane in rows.
-by src/lib/features/event-calendar/event-calendar-view.logic.ts:laneRows <- src/lib/features/event-calendar/EventAllDayLane.svelte:29 in rows=$derived call
+by src/lib/features/event-calendar/event-calendar-view.logic.ts:laneRows <- src/lib/features/event-calendar/EventAllDayLane.svelte:30 in rows=$derived call
 sym src/lib/features/event-calendar/event-calendar-view.logic.ts:393 fn nowOffsetMinutes(nowMs: number, dayKey: string): number | null L4 | Position of the now-line in a day column, from the local wall clock.
 by src/lib/features/event-calendar/event-calendar-view.logic.ts:nowOffsetMinutes <- src/lib/features/event-calendar/EventTimeGrid.svelte:294 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-view.logic.ts:nowOffsetMinutes <- src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:92 in eventCalendarViewStore.nowMinutes call

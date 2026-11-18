@@ -255,7 +255,7 @@ describe('TasksView: the list column', () => {
 		const listSwitches = () => Array.from(section('list').querySelectorAll('[role="switch"]')).map((s) => s.getAttribute('aria-checked'));
 		listButton('All open').click();
 		flushSync();
-		byName(document, 'button', 'Edit').click();
+		byName(document, 'button', 'Edit sources').click();
 		flushSync();
 		// The archived note is excluded by the default global switch.
 		expect(rowTexts()).toEqual(['home task', 'inbox task']);
@@ -335,7 +335,7 @@ describe('TasksView: the list column', () => {
 
 	it('removing a "This list" excluded folder focuses the next one in the same section', () => {
 		const section = (scope: 'global' | 'list') => document.querySelector<HTMLElement>(`[data-task-excludes="${scope}"]`)!;
-		byName(document, 'button', 'Edit').click();
+		byName(document, 'button', 'Edit sources').click();
 		flushSync();
 		for (const name of ['A', 'B']) {
 			const folder = byName(section('list'), 'input', 'Excluded folder on this list') as HTMLInputElement;
@@ -429,7 +429,7 @@ describe('TasksView: the list column', () => {
 		expect(tasksStore.activeList).toBe(ALL_OPEN_ID);
 		expect(marker()).toBeNull();
 		// The marker left with the focused button; focus lands on the sentence's Edit.
-		expect(document.activeElement).toBe(buttonNamed('Edit'));
+		expect(document.activeElement).toBe(buttonNamed('Edit sources'));
 	});
 
 	it('picking another list closes the marker\'s Save as view input', () => {
@@ -462,7 +462,7 @@ describe('TasksView: the list column', () => {
 
 		expect(findTaskView(tasksStore.activeList, tasksStore.savedViews)?.name).toBe('Undated by folder');
 		expect(marker()).toBeNull();
-		expect(document.activeElement).toBe(buttonNamed('Edit'));
+		expect(document.activeElement).toBe(buttonNamed('Edit sources'));
 		await settle();
 		const written = lastTasksView().savedViews.at(-1)!;
 		expect(written.name).toBe('Undated by folder');
@@ -478,7 +478,7 @@ describe('TasksView: the list column', () => {
 		buttonNamed('Save')!.click();
 		flushSync();
 		expect(marker()).toBeNull();
-		expect(document.activeElement).toBe(buttonNamed('Edit'));
+		expect(document.activeElement).toBe(buttonNamed('Edit sources'));
 		await settle();
 		expect(lastTasksView().savedViews).toHaveLength(1);
 		expect(lastTasksView().savedViews[0]).toMatchObject({ id: TO_LIST_ID, name: 'To list', query: { groupBy: 'priority' } });
@@ -495,7 +495,7 @@ describe('TasksView: the list column', () => {
 		expect(tasksStore.groupBy).toBe('priority');
 		expect(tasksStore.quick).toEqual({ show: 'open' });
 		expect(marker()).toBeNull();
-		expect(document.activeElement).toBe(buttonNamed('Edit'));
+		expect(document.activeElement).toBe(buttonNamed('Edit sources'));
 	});
 
 	it('Reset filters on a saved view brings back its saved quick filters, and shows only off them', () => {

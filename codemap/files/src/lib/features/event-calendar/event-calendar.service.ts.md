@@ -39,8 +39,8 @@ imp src/lib/app/global-keybindings.ts:14 -> src/lib/features/event-calendar/even
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:58 -> src/lib/features/event-calendar/event-calendar.service.ts drainEventCalendarWrites,registerEventCalendarPathChangeConsumer,resetEventCalendar
 imp src/lib/features/event-calendar/EventCalendarView.svelte:15 -> src/lib/features/event-calendar/event-calendar.service.ts acquireCalendarClock,deleteEventFromUi,loadCalendarTasks,loadEvents,openNewEventDialog,redoEventChangeFromUi,undoEventChangeFromUi
 imp src/lib/features/event-calendar/EventDialog.svelte:12 -> src/lib/features/event-calendar/event-calendar.service.ts createEvent,deleteEventFromUi,duplicateEventFromUi,editEvent,eventErrorMessage,toastEventError
-imp src/lib/features/event-calendar/EventForm.svelte:14 -> src/lib/features/event-calendar/event-calendar.service.ts eventErrorMessage
-imp src/lib/features/event-calendar/EventPopover.svelte:11 -> src/lib/features/event-calendar/event-calendar.service.ts deleteEventFromUi,duplicateEventFromUi
+imp src/lib/features/event-calendar/EventForm.svelte:15 -> src/lib/features/event-calendar/event-calendar.service.ts eventErrorMessage
+imp src/lib/features/event-calendar/EventPopover.svelte:13 -> src/lib/features/event-calendar/event-calendar.service.ts deleteEventFromUi,duplicateEventFromUi
 imp src/lib/features/event-calendar/EventTimeGrid.svelte:20 -> src/lib/features/event-calendar/event-calendar.service.ts moveEvent,resizeEvent,toastEventError
 imp src/lib/features/event-calendar/ShowInCalendarButton.svelte:8 -> src/lib/features/event-calendar/event-calendar.service.ts findCalendarEvent,openEventInCalendar
 imp src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:2 -> src/lib/features/event-calendar/event-calendar.service.ts moveEventToDay,toastEventError
@@ -126,7 +126,7 @@ sym src/lib/features/event-calendar/event-calendar.service.ts:1366 fn undoEventC
 sym src/lib/features/event-calendar/event-calendar.service.ts:1375 fn redoEventChange(): Promise<EventChangeResult> L3 | Redoes the newest undone change when the note still shows its prior state.
 sym src/lib/features/event-calendar/event-calendar.service.ts:1397 fn eventErrorMessage(err: unknown): string L9 | The user-facing text of a failed calendar write, for an inline error.
 by src/lib/features/event-calendar/event-calendar.service.ts:eventErrorMessage <- src/lib/features/event-calendar/EventDialog.svelte:154 in create call
-by src/lib/features/event-calendar/event-calendar.service.ts:eventErrorMessage <- src/lib/features/event-calendar/EventForm.svelte:55 in handleSubmit call
+by src/lib/features/event-calendar/event-calendar.service.ts:eventErrorMessage <- src/lib/features/event-calendar/EventForm.svelte:61 in handleSubmit call
 sym src/lib/features/event-calendar/event-calendar.service.ts:1415 fn toastEventError(err: unknown, path: string): void L12 | Reports a failed calendar write in a toast.
 by src/lib/features/event-calendar/event-calendar.service.ts:toastEventError <- src/lib/features/event-calendar/EventDialog.svelte:127 in save call
 by src/lib/features/event-calendar/event-calendar.service.ts:toastEventError <- src/lib/features/event-calendar/EventTimeGrid.svelte:196 in commitDrop call
@@ -134,10 +134,10 @@ by src/lib/features/event-calendar/event-calendar.service.ts:toastEventError <- 
 sym src/lib/features/event-calendar/event-calendar.service.ts:1456 fn deleteEventFromUi(path: string, root: HTMLElement | undefined): Promise<void> L27 | The popover's and the dialog's Delete: deletes the event and shows an "Event deleted" toast, described by the event's title, whose Undo restores it through `un…
 by src/lib/features/event-calendar/event-calendar.service.ts:deleteEventFromUi <- src/lib/features/event-calendar/EventCalendarView.svelte:80 in handleKeydown call
 by src/lib/features/event-calendar/event-calendar.service.ts:deleteEventFromUi <- src/lib/features/event-calendar/EventDialog.svelte:171 in remove call
-by src/lib/features/event-calendar/event-calendar.service.ts:deleteEventFromUi <- src/lib/features/event-calendar/EventPopover.svelte:130 in deleteNote call
+by src/lib/features/event-calendar/event-calendar.service.ts:deleteEventFromUi <- src/lib/features/event-calendar/EventPopover.svelte:132 in deleteNote call
 sym src/lib/features/event-calendar/event-calendar.service.ts:1492 fn duplicateEventFromUi(path: string, root: HTMLElement | undefined): Promise<void> L15 | The popover's and the dialog's Duplicate: duplicates the event, shows an "Event duplicated" toast with the copy's title, and once the view has rendered moves f…
 by src/lib/features/event-calendar/event-calendar.service.ts:duplicateEventFromUi <- src/lib/features/event-calendar/EventDialog.svelte:180 in duplicate call
-by src/lib/features/event-calendar/event-calendar.service.ts:duplicateEventFromUi <- src/lib/features/event-calendar/EventPopover.svelte:139 in duplicateNote call
+by src/lib/features/event-calendar/event-calendar.service.ts:duplicateEventFromUi <- src/lib/features/event-calendar/EventPopover.svelte:141 in duplicateNote call
 sym src/lib/features/event-calendar/event-calendar.service.ts:1537 fn undoEventChangeFromUi(root?: HTMLElement): Promise<void> L3 | The Calendar keys' and the palette's undo: runs `undoEventChange` and reports the outcome in a toast. "Undone: <label>" carries a Redo action that focuses the …
 by src/lib/features/event-calendar/event-calendar.service.ts:undoEventChangeFromUi <- src/lib/app/commands.ts:264 in getBuiltInCommands call
 by src/lib/features/event-calendar/event-calendar.service.ts:undoEventChangeFromUi <- src/lib/features/event-calendar/EventCalendarView.svelte:86 in handleKeydown call

@@ -18,18 +18,18 @@ Not in this ticket: collapsing Global excludes behind a disclosure (P164 remaind
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh tasks-view.spec.ts` (the "Edit" click at `:279` changes)
 
-- [ ] Failing test first, `TasksView.grouping.test.ts`: the default Display trigger text includes "Note"; after `setGroupBy('due')` it shows "Due date"; with `{ property: 'area' }` "area"; with `'heading'` "Heading"; its name starts with "Display". The `displayTrigger()` helper at `:38-41` (matches the exact text "Display") changes on purpose.
-- [ ] "Edit sources" keeps `aria-expanded` and `aria-controls` and toggles the panel. Every "Edit" lookup is updated: `TasksView.sources.test.ts` (`:115,148,174,219,250,287,304,349,357,379,401,432,472,497,520`), `TasksView.lists.test.ts` (`:258,338,432,465,481,498`), `tasks-view-settings.test.ts:345`, `TasksView.test.ts` (`:401,455,1050`) and `e2e/specs/tasks-view.spec.ts:279`. The empty-state lookup (`TasksView.sources.test.ts:291`, `TasksView.test.ts:409`, which already name an "Edit sources" button in the empty list) is scoped to its container, because two buttons now share the name.
-- [ ] Cmd+F on a task row focuses the search input and selects its text; from a contenteditable outside the view it does nothing and is not `preventDefault`ed; after unmount the listener is gone; Cmd+Shift+F still reaches the global handler (`TasksView.keyboard.test.ts`). The search input has no `/50` class.
-- [ ] `[data-task-group-subtitle]` sits in the same row element as the title and the count (`TasksView.filters.test.ts:210`, `TasksView.grouping.test.ts:159` updated); flat groups still have none; the list container has `space-y-4`; the count text stays "N of M open".
-- [ ] A dimmed parent row has the title and `data-task-context`, no `opacity-60`, an enabled toggle and the same inline `padding-left` as a passing row at its indent; a passing row has neither attribute.
-- [ ] Two source cards render one "or" separator (`aria-hidden`); one or zero cards render none; Add card, Remove card and clause edits pass unchanged.
+- [x] Failing test first, `TasksView.grouping.test.ts`: the default Display trigger text includes "Note"; after `setGroupBy('due')` it shows "Due date"; with `{ property: 'area' }` "area"; with `'heading'` "Heading"; its name starts with "Display". The `displayTrigger()` helper at `:38-41` (matches the exact text "Display") changes on purpose.
+- [x] "Edit sources" keeps `aria-expanded` and `aria-controls` and toggles the panel. Every "Edit" lookup is updated: `TasksView.sources.test.ts` (`:115,148,174,219,250,287,304,349,357,379,401,432,472,497,520`), `TasksView.lists.test.ts` (`:258,338,432,465,481,498`), `tasks-view-settings.test.ts:345`, `TasksView.test.ts` (`:401,455,1050`) and `e2e/specs/tasks-view.spec.ts:279`. The empty-state lookup (`TasksView.sources.test.ts:291`, `TasksView.test.ts:409`, which already name an "Edit sources" button in the empty list) is scoped to its container, because two buttons now share the name.
+- [x] Cmd+F on a task row focuses the search input and selects its text; from a contenteditable outside the view it does nothing and is not `preventDefault`ed; after unmount the listener is gone; Cmd+Shift+F still reaches the global handler (`TasksView.keyboard.test.ts`). The search input has no `/50` class.
+- [x] `[data-task-group-subtitle]` sits in the same row element as the title and the count (`TasksView.filters.test.ts:210`, `TasksView.grouping.test.ts:159` updated); flat groups still have none; the list container has `space-y-4`; the count text stays "N of M open".
+- [x] A dimmed parent row has the title and `data-task-context`, no `opacity-60`, an enabled toggle and the same inline `padding-left` as a passing row at its indent; a passing row has neither attribute.
+- [x] Two source cards render one "or" separator (`aria-hidden`); one or zero cards render none; Add card, Remove card and clause edits pass unchanged.
 - [ ] Tests use the real `tasksStore`; only Tauri and `svelte-sonner` are mocked. The left rule and the one-row header are checked by eye at 420 and 800 px (jsdom has no layout).
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -61,3 +61,4 @@ Tasks-view-ux 129 (needs-info) edits `TasksView.svelte` row markup and refresh c
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): this ticket had no owner question in the old breakdown.
+- 2026-11-18, deliver (branch `issue/27-tasks-toolbar-list-say-they-do`): the Display trigger names the grouping, "Edit sources" replaces the bare "Edit", the search box is full contrast and Cmd+F focuses it, note group headers sit on one row (folder truncates first) with `space-y-4`, context rows carry a left rule and a reason, and an "or" sits between source cards; help doc updated. Review round 1: CHANGES_REQUESTED (header truncation, left-rule assertion), fixed; round 2: APPROVED, one minor finding left to the owner: check the left rule and one-row header by eye in the running app at 420 and 800 px (the criterion stays unticked). Full suite: 657 files, 17511 passed, 56 skipped, 1 todo, exit 0.

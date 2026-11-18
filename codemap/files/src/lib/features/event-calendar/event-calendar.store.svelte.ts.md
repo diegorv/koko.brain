@@ -11,8 +11,8 @@ imp src/lib/app/commands.ts:43 -> src/lib/features/event-calendar/event-calendar
 imp src/lib/features/event-calendar/EventCalendarNeedsAttention.svelte:3 -> src/lib/features/event-calendar/event-calendar.store.svelte.ts eventCalendarStore
 imp src/lib/features/event-calendar/EventCalendarView.svelte:24 -> src/lib/features/event-calendar/event-calendar.store.svelte.ts eventCalendarStore
 imp src/lib/features/event-calendar/EventDialog.svelte:20 -> src/lib/features/event-calendar/event-calendar.store.svelte.ts eventCalendarStore
-imp src/lib/features/event-calendar/EventMonthGrid.svelte:9 -> src/lib/features/event-calendar/event-calendar.store.svelte.ts eventCalendarStore
-imp src/lib/features/event-calendar/EventPopover.svelte:12 -> src/lib/features/event-calendar/event-calendar.store.svelte.ts eventCalendarStore
+imp src/lib/features/event-calendar/EventMonthGrid.svelte:10 -> src/lib/features/event-calendar/event-calendar.store.svelte.ts eventCalendarStore
+imp src/lib/features/event-calendar/EventPopover.svelte:14 -> src/lib/features/event-calendar/event-calendar.store.svelte.ts eventCalendarStore
 imp src/lib/features/event-calendar/EventTimeGrid.svelte:21 -> src/lib/features/event-calendar/event-calendar.store.svelte.ts eventCalendarStore
 imp src/lib/features/event-calendar/ShowInCalendarButton.svelte:9 -> src/lib/features/event-calendar/event-calendar.store.svelte.ts eventCalendarStore
 imp src/lib/features/event-calendar/event-calendar.service.ts:40 -> src/lib/features/event-calendar/event-calendar.store.svelte.ts eventCalendarStore
@@ -36,8 +36,8 @@ by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarS
 by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventCalendarNeedsAttention.svelte:10 in attention=$derived member +3
 by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventCalendarView.svelte:139 in $effect@121 member +8
 by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventDialog.svelte:47 in event=$derived mcall
-by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventMonthGrid.svelte:18 in events=$derived member +1
-by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventPopover.svelte:33 in event=$derived member
+by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventMonthGrid.svelte:19 in events=$derived member +1
+by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventPopover.svelte:35 in event=$derived member
 by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventTimeGrid.svelte:78 in events=$derived member +1
 by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/ShowInCalendarButton.svelte:29 in $effect@25 member
 more by 1 not shown: src/lib/features/event-calendar(1): q importers src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore
@@ -62,7 +62,7 @@ mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:102 get event
 more r 15 not shown: src/lib/features/event-calendar(15): q store src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore.history
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:104 get eventCalendarStore.canUndo r:src/lib/app/commands.ts:258 w-via:remapPath,setHistory,reset | Whether there is an op to undo.
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:106 get eventCalendarStore.canRedo r:src/lib/app/commands.ts:268 w-via:remapPath,setHistory,reset | Whether there is an op to redo.
-mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:108 get eventCalendarStore.tasks r:src/lib/features/event-calendar/EventMonthGrid.svelte:27,src/lib/features/event-calendar/EventTimeGrid.svelte:256 w-via:setTasks,reset | Dated tasks the calendar overlays, sorted by due date.
+mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:108 get eventCalendarStore.tasks r:src/lib/features/event-calendar/EventMonthGrid.svelte:28,src/lib/features/event-calendar/EventTimeGrid.svelte:256 w-via:setTasks,reset | Dated tasks the calendar overlays, sorted by due date.
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:115 do eventCalendarStore.setSnapshot w:src/lib/features/event-calendar/event-calendar.service.ts:89 | Replaces the snapshot and drops the pending writes it has caught up with.
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:125 do eventCalendarStore.setLoading w:src/lib/features/event-calendar/event-calendar.service.ts:79,src/lib/features/event-calendar/event-calendar.service.ts:84,src/lib/features/event-calendar/event-calendar.service.ts:92,src/lib/features/event-calendar/event-calendar.service.ts:97,src/lib/features/event-calendar/event-calendar.service.ts:99 | Sets whether a load is in progress.
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:128 do eventCalendarStore.setLoadError w:src/lib/features/event-calendar/event-calendar.service.ts:91,src/lib/features/event-calendar/event-calendar.service.ts:96 | Sets the last load error; null clears it.

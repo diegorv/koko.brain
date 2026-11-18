@@ -10,7 +10,7 @@ imp src/lib/features/event-calendar/event-calendar-form.logic.ts:14 -> src/lib/f
 imp src/lib/features/event-calendar/event-calendar-form.logic.ts:15 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventDraft,type:EventNote,type:EventPatch,type:EventState
 ## imported-by
 imp src/lib/features/event-calendar/EventDialog.svelte:11 -> src/lib/features/event-calendar/event-calendar-form.logic.ts draftForCreate,draftFromEvent,draftToPatch,type:EventFormDraft
-imp src/lib/features/event-calendar/EventForm.svelte:7 -> src/lib/features/event-calendar/event-calendar-form.logic.ts applyEndChange,applyStartChange,toggleAllDay,validateDraft,type:EventFormDraft
+imp src/lib/features/event-calendar/EventForm.svelte:8 -> src/lib/features/event-calendar/event-calendar-form.logic.ts applyEndChange,applyStartChange,toggleAllDay,validateDraft,type:EventFormDraft
 imp src/lib/features/event-calendar/event-calendar.service.ts:37 -> src/lib/features/event-calendar/event-calendar-form.logic.ts planTitleChange,type:EventFormPatch
 ## reach
 in2 src/lib/features/event-calendar/event-calendar-form.logic.ts 11 files in 4 modules: src/lib/features/event-calendar(5) src/lib/app(4) src/lib/features/rail-shell(1) src/lib/plugins/calendar(1)
@@ -20,7 +20,7 @@ test src/tests/lib/features/event-calendar/event-calendar-form.logic.test.ts imp
 ## symbols
 sym src/lib/features/event-calendar/event-calendar-form.logic.ts:27 type EventFormDraft L4 | The form state of the event dialog.
 by src/lib/features/event-calendar/event-calendar-form.logic.ts:EventFormDraft <- src/lib/features/event-calendar/EventDialog.svelte:11 in (script) import
-by src/lib/features/event-calendar/event-calendar-form.logic.ts:EventFormDraft <- src/lib/features/event-calendar/EventForm.svelte:12 in (script) import
+by src/lib/features/event-calendar/event-calendar-form.logic.ts:EventFormDraft <- src/lib/features/event-calendar/EventForm.svelte:13 in (script) import
 sym src/lib/features/event-calendar/event-calendar-form.logic.ts:33 interface EventCreatePayload L10 | What opens the create dialog: a day and, optionally, a range or the all-day flag.
 sym src/lib/features/event-calendar/event-calendar-form.logic.ts:45 type EventCreateSettings L1 | The settings a new draft reads.
 sym src/lib/features/event-calendar/event-calendar-form.logic.ts:48 interface EventFormErrors L8 | Visible validation messages, one per form area; an empty object means valid.
@@ -32,13 +32,13 @@ by src/lib/features/event-calendar/event-calendar-form.logic.ts:draftFromEvent <
 sym src/lib/features/event-calendar/event-calendar-form.logic.ts:99 fn draftForCreate(payload: EventCreatePayload, settings: EventCreateSettings): EventFormDraft L16 | Builds the draft of a new event.
 by src/lib/features/event-calendar/event-calendar-form.logic.ts:draftForCreate <- src/lib/features/event-calendar/EventDialog.svelte:58 in opened=$derived call
 sym src/lib/features/event-calendar/event-calendar-form.logic.ts:123 fn applyStartChange(draft: EventFormDraft, value: string): EventFormDraft L5 | Applies a new start from the time input, keeping the duration (at least `MIN_EVENT_MINUTES`) and capping the end at 1440.
-by src/lib/features/event-calendar/event-calendar-form.logic.ts:applyStartChange <- src/lib/features/event-calendar/EventForm.svelte:123 in (markup) markup
+by src/lib/features/event-calendar/event-calendar-form.logic.ts:applyStartChange <- src/lib/features/event-calendar/EventForm.svelte:141 in (markup) markup
 sym src/lib/features/event-calendar/event-calendar-form.logic.ts:137 fn applyEndChange(draft: EventFormDraft, value: string): EventFormDraft L4 | Applies a new end from the time input.
-by src/lib/features/event-calendar/event-calendar-form.logic.ts:applyEndChange <- src/lib/features/event-calendar/EventForm.svelte:136 in (markup) markup
+by src/lib/features/event-calendar/event-calendar-form.logic.ts:applyEndChange <- src/lib/features/event-calendar/EventForm.svelte:154 in (markup) markup
 sym src/lib/features/event-calendar/event-calendar-form.logic.ts:149 fn toggleAllDay(draft: EventFormDraft, allDay = !draft.allDay): EventFormDraft L3 | Sets the all-day flag.
-by src/lib/features/event-calendar/event-calendar-form.logic.ts:toggleAllDay <- src/lib/features/event-calendar/EventForm.svelte:106 in (markup) markup
+by src/lib/features/event-calendar/event-calendar-form.logic.ts:toggleAllDay <- src/lib/features/event-calendar/EventForm.svelte:124 in (markup) markup
 sym src/lib/features/event-calendar/event-calendar-form.logic.ts:161 fn validateDraft(draft: EventFormDraft): EventFormErrors L8 | Validates a draft.
-by src/lib/features/event-calendar/event-calendar-form.logic.ts:validateDraft <- src/lib/features/event-calendar/EventForm.svelte:38 in errors=$derived call
+by src/lib/features/event-calendar/event-calendar-form.logic.ts:validateDraft <- src/lib/features/event-calendar/EventForm.svelte:41 in errors=$derived call
 sym src/lib/features/event-calendar/event-calendar-form.logic.ts:178 fn draftToPatch(draft: EventFormDraft, original: EventState): EventFormPatch L14 | Computes what an edit changes.
 by src/lib/features/event-calendar/event-calendar-form.logic.ts:draftToPatch <- src/lib/features/event-calendar/EventDialog.svelte:119 in save call
 sym src/lib/features/event-calendar/event-calendar-form.logic.ts:207 fn planTitleChange(currentFileBase: string, newTitle: string, siblingNames: string[]): TitleChangePlan L18 | Plans how a new title lands on disk.

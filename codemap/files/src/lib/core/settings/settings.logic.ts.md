@@ -17,7 +17,7 @@ imp src/lib/features/event-calendar/EventColorSwatches.svelte:2 -> src/lib/core/
 imp src/lib/features/event-calendar/event-calendar-event.logic.ts:15 -> src/lib/core/settings/settings.logic.ts EVENT_CALENDAR_COLORS
 imp src/lib/features/todoist-sync/TodoistSection.svelte:9 -> src/lib/core/settings/settings.logic.ts clampSyncIntervalMinutes
 ## reach
-in2 src/lib/core/settings/settings.logic.ts 30 files in 12 modules: src/lib/features/event-calendar(11) src/lib/core/settings(5) src/lib/app(3) src/lib/plugins/calendar(2) src/lib/plugins/periodic-notes(2) +7 modules: q impact src/lib/core/settings/settings.logic.ts --depth 2
+in2 src/lib/core/settings/settings.logic.ts 31 files in 12 modules: src/lib/features/event-calendar(12) src/lib/core/settings(5) src/lib/app(3) src/lib/plugins/calendar(2) src/lib/plugins/periodic-notes(2) +7 modules: q impact src/lib/core/settings/settings.logic.ts --depth 2
 out2 src/lib/core/settings/settings.logic.ts 1 files in 1 modules: src/lib/core/settings(1)
 ## tests
 test src/tests/lib/core/settings/settings.logic.test.ts imports src/lib/core/settings/settings.logic.ts mirror
@@ -46,7 +46,7 @@ by src/lib/core/settings/settings.logic.ts:clampHeadingLetterSpacing <- src/lib/
 sym src/lib/core/settings/settings.logic.ts:108 const EVENT_CALENDAR_COLORS L1 | Event colors the calendar offers; the only runtime copy of this list
 by src/lib/core/settings/settings.logic.ts:EVENT_CALENDAR_COLORS <- src/lib/core/settings/settings.types.ts:1 in (module) import
 by src/lib/core/settings/settings.logic.ts:EVENT_CALENDAR_COLORS <- src/lib/features/event-calendar/EventColorSwatches.svelte:20 in select member +3
-by src/lib/core/settings/settings.logic.ts:EVENT_CALENDAR_COLORS <- src/lib/features/event-calendar/event-calendar-event.logic.ts:203 in entryToEvent ref
+by src/lib/core/settings/settings.logic.ts:EVENT_CALENDAR_COLORS <- src/lib/features/event-calendar/event-calendar-event.logic.ts:209 in entryToEvent ref
 sym src/lib/core/settings/settings.logic.ts:111 const EVENT_CALENDAR_VIEW_MODES L1 | Calendar view modes; the only runtime copy of this list
 by src/lib/core/settings/settings.logic.ts:EVENT_CALENDAR_VIEW_MODES <- src/lib/core/settings/settings.types.ts:1 in (module) import
 by src/lib/core/settings/settings.logic.ts:EVENT_CALENDAR_VIEW_MODES <- src/lib/features/event-calendar/EventCalendarSection.svelte:198 in (markup) markup +1
