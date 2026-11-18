@@ -27,6 +27,34 @@
 		return (e.currentTarget as HTMLInputElement).value;
 	}
 
+	/** The field's number, or `null` when it is empty or not a finite number (`Number('')` is 0). */
+	function typedNumber(e: Event): number | null {
+		const raw = inputValue(e);
+		if (raw.trim() === '') return null;
+		const n = Number(raw);
+		return Number.isFinite(n) ? n : null;
+	}
+
+	/**
+	 * Live preview while typing: writes only a value its clamp leaves unchanged,
+	 * so a half-typed or cleared field never reaches the editor.
+	 */
+	function writeInRange(e: Event, clampFn: (n: number) => number, write: (n: number) => void) {
+		const n = typedNumber(e);
+		if (n !== null && clampFn(n) === n) write(n);
+	}
+
+	/**
+	 * On commit: writes the clamped value (nothing for an empty or non-numeric field),
+	 * then shows the stored value. The field is set by hand because Svelte skips the
+	 * DOM write when the bound value did not change.
+	 */
+	function commitClamped(e: Event, clampFn: (n: number) => number, write: (n: number) => void, stored: () => number) {
+		const n = typedNumber(e);
+		if (n !== null) write(clampFn(n));
+		(e.currentTarget as HTMLInputElement).value = String(stored());
+	}
+
 	function selectFont(font: string) {
 		settingsStore.updateEditor({ fontFamily: font });
 		fontPickerOpen = false;
@@ -95,13 +123,8 @@
 			min={8}
 			max={32}
 			value={String(settingsStore.editor.fontSize)}
-			oninput={(e) => {
-				settingsStore.updateEditor({ fontSize: Number(inputValue(e)) });
-			}}
-			onchange={(e) => {
-				const val = clampFontSize(Number(inputValue(e)));
-				settingsStore.updateEditor({ fontSize: val });
-			}}
+			oninput={(e) => writeInRange(e, clampFontSize, (fontSize) => settingsStore.updateEditor({ fontSize }))}
+			onchange={(e) => commitClamped(e, clampFontSize, (fontSize) => settingsStore.updateEditor({ fontSize }), () => settingsStore.editor.fontSize)}
 		/>
 	</SettingItem>
 
@@ -116,13 +139,8 @@
 			max={3}
 			step={0.1}
 			value={String(settingsStore.editor.lineHeight)}
-			oninput={(e) => {
-				settingsStore.updateEditor({ lineHeight: Number(inputValue(e)) });
-			}}
-			onchange={(e) => {
-				const val = clampLineHeight(Number(inputValue(e)));
-				settingsStore.updateEditor({ lineHeight: val });
-			}}
+			oninput={(e) => writeInRange(e, clampLineHeight, (lineHeight) => settingsStore.updateEditor({ lineHeight }))}
+			onchange={(e) => commitClamped(e, clampLineHeight, (lineHeight) => settingsStore.updateEditor({ lineHeight }), () => settingsStore.editor.lineHeight)}
 		/>
 	</SettingItem>
 
@@ -137,13 +155,8 @@
 			max={2}
 			step={0.1}
 			value={String(settingsStore.editor.paragraphSpacing)}
-			oninput={(e) => {
-				settingsStore.updateEditor({ paragraphSpacing: Number(inputValue(e)) });
-			}}
-			onchange={(e) => {
-				const val = clampParagraphSpacing(Number(inputValue(e)));
-				settingsStore.updateEditor({ paragraphSpacing: val });
-			}}
+			oninput={(e) => writeInRange(e, clampParagraphSpacing, (paragraphSpacing) => settingsStore.updateEditor({ paragraphSpacing }))}
+			onchange={(e) => commitClamped(e, clampParagraphSpacing, (paragraphSpacing) => settingsStore.updateEditor({ paragraphSpacing }), () => settingsStore.editor.paragraphSpacing)}
 		/>
 	</SettingItem>
 
@@ -160,13 +173,8 @@
 			max={2000}
 			step={10}
 			value={String(settingsStore.editor.contentWidth)}
-			oninput={(e) => {
-				settingsStore.updateEditor({ contentWidth: Number(inputValue(e)) });
-			}}
-			onchange={(e) => {
-				const val = clampContentWidth(Number(inputValue(e)));
-				settingsStore.updateEditor({ contentWidth: val });
-			}}
+			oninput={(e) => writeInRange(e, clampContentWidth, (contentWidth) => settingsStore.updateEditor({ contentWidth }))}
+			onchange={(e) => commitClamped(e, clampContentWidth, (contentWidth) => settingsStore.updateEditor({ contentWidth }), () => settingsStore.editor.contentWidth)}
 		/>
 	</SettingItem>
 

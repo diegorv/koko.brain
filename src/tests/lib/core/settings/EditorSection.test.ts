@@ -81,52 +81,133 @@ describe('EditorSection - clamp on commit', () => {
 		expect(headingInputs()).toHaveLength(3);
 	});
 
-	it('clamps font size to the upper bound on commit', () => {
+	// While typing, a field writes only a finite value inside its range, so the
+	// live preview never jumps to 0 or an out-of-range size. The commit clamps.
+	it('writes font size while typing only when the value is in range', () => {
+		const input = editorInputs()[0];
+		type(input, '');
+		expect(settingsStore.editor.fontSize).toBe(19);
+		type(input, '1');
+		expect(settingsStore.editor.fontSize).toBe(19);
+		type(input, '999');
+		expect(settingsStore.editor.fontSize).toBe(19);
+		type(input, '14');
+		expect(settingsStore.editor.fontSize).toBe(14);
+	});
+
+	it('clamps font size to the upper bound on commit and shows the stored value', () => {
 		const input = editorInputs()[0];
 		type(input, '999');
-		// Raw while typing is deliberate (live preview); only the commit clamps.
-		expect(settingsStore.editor.fontSize).toBe(999);
 		commit(input);
 		expect(settingsStore.editor.fontSize).toBe(32);
+		expect(input.value).toBe('32');
 	});
 
 	it('clamps font size to the lower bound on commit', () => {
 		const input = editorInputs()[0];
 		type(input, '1');
-		expect(settingsStore.editor.fontSize).toBe(1);
 		commit(input);
 		expect(settingsStore.editor.fontSize).toBe(8);
+		expect(input.value).toBe('8');
 	});
 
-	it('clamps line height on commit', () => {
+	it('keeps the stored font size and restores the field on an empty commit', () => {
+		const input = editorInputs()[0];
+		type(input, '');
+		commit(input);
+		expect(settingsStore.editor.fontSize).toBe(19);
+		expect(input.value).toBe('19');
+	});
+
+	it('writes line height while typing only when the value is in range', () => {
+		const input = editorInputs()[1];
+		type(input, '');
+		expect(settingsStore.editor.lineHeight).toBe(1.6);
+		type(input, '9');
+		expect(settingsStore.editor.lineHeight).toBe(1.6);
+		type(input, '0.5');
+		expect(settingsStore.editor.lineHeight).toBe(1.6);
+		type(input, '2');
+		expect(settingsStore.editor.lineHeight).toBe(2);
+	});
+
+	it('clamps line height on commit and restores the field on an empty commit', () => {
 		const input = editorInputs()[1];
 		type(input, '9');
-		expect(settingsStore.editor.lineHeight).toBe(9);
 		commit(input);
 		expect(settingsStore.editor.lineHeight).toBe(3);
+		expect(input.value).toBe('3');
+		type(input, '');
+		commit(input);
+		expect(settingsStore.editor.lineHeight).toBe(3);
+		expect(input.value).toBe('3');
+	});
+
+	it('writes paragraph spacing while typing only when the value is in range', () => {
+		const input = editorInputs()[2];
+		type(input, '');
+		expect(settingsStore.editor.paragraphSpacing).toBe(0.05);
+		type(input, '9');
+		expect(settingsStore.editor.paragraphSpacing).toBe(0.05);
+		type(input, '-1');
+		expect(settingsStore.editor.paragraphSpacing).toBe(0.05);
+		type(input, '0.5');
+		expect(settingsStore.editor.paragraphSpacing).toBe(0.5);
+	});
+
+	it('clamps paragraph spacing on commit and restores the field on an empty commit', () => {
+		const input = editorInputs()[2];
+		type(input, '9');
+		commit(input);
+		expect(settingsStore.editor.paragraphSpacing).toBe(2);
+		expect(input.value).toBe('2');
+		type(input, '');
+		commit(input);
+		expect(settingsStore.editor.paragraphSpacing).toBe(2);
+		expect(input.value).toBe('2');
+	});
+
+	it('writes content width while typing only for 0 or a value in 400-2000', () => {
+		const input = editorInputs()[3];
+		type(input, '800');
+		expect(settingsStore.editor.contentWidth).toBe(800);
+		type(input, '5');
+		expect(settingsStore.editor.contentWidth).toBe(800);
+		type(input, '');
+		expect(settingsStore.editor.contentWidth).toBe(800);
+		type(input, '0');
+		expect(settingsStore.editor.contentWidth).toBe(0);
 	});
 
 	it('clamps content width on commit', () => {
 		const input = editorInputs()[3];
-		type(input, '50');
-		expect(settingsStore.editor.contentWidth).toBe(50);
+		type(input, '800');
+		commit(input);
+		type(input, '5');
+		expect(settingsStore.editor.contentWidth).toBe(800);
 		commit(input);
 		expect(settingsStore.editor.contentWidth).toBe(400);
+		expect(input.value).toBe('400');
 	});
 
 	it('keeps content width 0 as the "no limit" sentinel on commit', () => {
 		const input = editorInputs()[3];
+		type(input, '800');
+		commit(input);
+		expect(settingsStore.editor.contentWidth).toBe(800);
 		type(input, '0');
 		commit(input);
 		expect(settingsStore.editor.contentWidth).toBe(0);
 	});
 
-	it('clamps paragraph spacing on commit', () => {
-		const input = editorInputs()[2];
-		type(input, '9');
-		expect(settingsStore.editor.paragraphSpacing).toBe(9);
+	it('keeps the stored content width and restores the field on an empty commit', () => {
+		const input = editorInputs()[3];
+		type(input, '800');
 		commit(input);
-		expect(settingsStore.editor.paragraphSpacing).toBe(2);
+		type(input, '');
+		commit(input);
+		expect(settingsStore.editor.contentWidth).toBe(800);
+		expect(input.value).toBe('800');
 	});
 
 	it('clamps heading font size on commit', () => {

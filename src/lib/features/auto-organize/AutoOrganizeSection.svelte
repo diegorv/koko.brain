@@ -132,9 +132,22 @@
 			step={0.5}
 			value={String(settingsStore.autoOrganize.debounceMs / 1000)}
 			oninput={(e) => {
-				const seconds = Number((e.currentTarget as HTMLInputElement).value);
-				const ms = clampDebounce(Math.round(seconds * 1000));
-				settingsStore.updateAutoOrganize({ debounceMs: ms });
+				// Writes only an in-range value, so clearing the field or typing the
+				// first digit of 30 does not snap it; a NaN fails the equality too.
+				const raw = (e.currentTarget as HTMLInputElement).value;
+				const ms = Math.round(Number(raw) * 1000);
+				if (raw.trim() !== '' && clampDebounce(ms) === ms) {
+					settingsStore.updateAutoOrganize({ debounceMs: ms });
+				}
+			}}
+			onchange={(e) => {
+				const input = e.currentTarget as HTMLInputElement;
+				const seconds = Number(input.value);
+				if (input.value.trim() !== '' && Number.isFinite(seconds)) {
+					settingsStore.updateAutoOrganize({ debounceMs: clampDebounce(Math.round(seconds * 1000)) });
+				}
+				// Svelte skips the DOM write when the bound value did not change.
+				input.value = String(settingsStore.autoOrganize.debounceMs / 1000);
 			}}
 		/>
 	</SettingItem>
