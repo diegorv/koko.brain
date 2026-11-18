@@ -81,7 +81,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 44 | [Sort order can be changed from the keyboard](issues/44-sort-keyboard-reorder.md) | 15 | todo | | |
 | 45 | [Quick Capture keeps the draft until it is written, with Discard and a short hold](issues/45-quick-capture-draft-discard.md) | 07 | todo | | |
 | 46 | [Frontmatter reads as metadata in source mode](issues/46-frontmatter-reads-as-metadata-source-mode.md) | none | done | issue/46-frontmatter-reads-as-metadata-source-mode (9d897ac41) | 2026-11-18 |
-| 47 | [Calendars count undated notes; view tabs show their type](issues/47-calendars-count-undated-notes-view-tabs.md) | 09, 14 | todo | | |
+| 47 | [Calendars count undated notes; view tabs show their type](issues/47-calendars-count-undated-notes-view-tabs.md) | 09, 14 | in-progress | | |
 
 ## Log
 
@@ -140,3 +140,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 19:59 — 42 — deliver — merged after review 1 APPROVED with 3 findings, fix round (chip title wording; card-menu key deferred to Issue 50; board-only chip kept), re-review 2 APPROVED (claude); full vitest suite passed (17703 tests) — 8258ffac3
 - 2026-11-18 19:59 — 46 — start — launched by /relay-lite:run — f855f7ed6
 - 2026-11-18 20:09 — 46 — deliver — merged after review 1 APPROVED with 1 minor and 3 nits, none changed (full-note line scan per doc change matches live preview, follow-up for both modes; wikilink meta colour for owner eye check) (claude); full vitest suite passed (17715 tests) — 9d897ac41
+- 2026-11-18 20:09 — 47 — start — launched by /relay-lite:run — ecaf03118
