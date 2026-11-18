@@ -43,7 +43,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 06 | [Remote images in Claude replies can leak data](issues/06-remote-images-in-replies.md) | 03 | wontfix | | |
 | 07 | [Cancel misses a child forked during `killpg`](issues/07-cancel-misses-a-child-forked-during-killpg.md) | 05 | done | issue/07-cancel-misses-a-child-forked-during-killpg (e1b69f51e) | 2026-11-15 |
 | 08 | [Replace the hand-written stream-json fixture with a real capture](issues/08-real-stream-json-fixture.md) | 03 | done | issue/08-real-stream-json-fixture (46213233d) | 2026-11-15 |
-| 09 | [A run started before a vault switch leaks into the new vault's chat](issues/09-stale-run-after-vault-switch.md) | 03 | todo | | |
+| 09 | [A turn that survives a double vault switch keeps the old vault's chat, and a longer closing fence is missed](issues/09-stale-run-after-vault-switch.md) | 03 | todo | | |
 | 10 | [The status check finds `claude` the way a turn does](issues/10-status-uses-turn-env.md) | 05 | done | issue/10-status-uses-turn-env (95945e00a) | 2026-11-15 |
 | 11 | [Quitting the app cancels running turns](issues/11-cancel-turns-on-app-exit.md) | 07 | done | issue/11-cancel-turns-on-app-exit (fdc76b135) | 2026-11-15 |
 | 12 | [Panel follows the reply, keeps focus, and handles IME and slash-menu keys](issues/12-panel-scroll-focus-keys.md) | 10 | done | issue/12-panel-scroll-focus-keys (31b482497) | 2026-11-15 |
@@ -88,3 +88,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-15 23:09 — ledger updated (added 14)
 - 2026-11-15 23:09 — 14 — start — launched by /relay-lite:run — 2d9811f73
 - 2026-11-16 00:10 — 14 — deliver — Review round 1 APPROVED with no findings; merged onto mvp-claude at a6b88127c; full vitest suite 17106 passed — a6b88127c
+- 2026-11-16 06:56 — ledger updated (title of 09)

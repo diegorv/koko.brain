@@ -67,14 +67,16 @@ export type RightPanel = 'properties' | 'backlinks' | 'outgoingLinks' | 'tableOf
 /**
  * Shows or hides one right sidebar panel. Showing it also shows a hidden
  * sidebar, so the panel turned on is on screen, except on the tabs
- * `hidesRightSidebar` covers, where the sidebar never shows. Hiding it leaves
- * the sidebar alone.
+ * `hidesRightSidebar` covers, where the sidebar never shows. Showing it also
+ * closes the Claude panel, which would otherwise cover it. Hiding it leaves
+ * the sidebar and the Claude panel alone.
  * @param panel - the panel whose layout flag is written
  * @param visible - the panel's new visibility
  */
 export function setRightPanelVisible(panel: RightPanel, visible: boolean): void {
 	const patch: Partial<LayoutSettings> = {};
 	patch[`${panel}Visible`] = visible;
+	if (visible && settingsStore.layout.claudeVisible) patch.claudeVisible = false;
 	if (visible && !hidesRightSidebar(editorStore.activeTabPath)) patch.rightSidebarVisible = true;
 	settingsStore.updateLayout(patch);
 }
