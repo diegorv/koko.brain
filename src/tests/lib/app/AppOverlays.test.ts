@@ -1,10 +1,17 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, unmount, flushSync, tick } from 'svelte';
 import { toast } from 'svelte-sonner';
 
+vi.mock('@tauri-apps/api/webviewWindow', () => ({
+	getCurrentWebviewWindow: () => ({ setZoom: vi.fn().mockResolvedValue(undefined) }),
+}));
+
 import AppOverlays from '#lib/app/AppOverlays.svelte';
 import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { zoomIn, resetZoom } from '#lib/core/zoom/zoom.service.js';
+import { zoomStore } from '#lib/core/zoom/zoom.store.svelte.js';
 import { commandPaletteStore } from '#lib/features/command-palette/command-palette.store.svelte.js';
 import { modDialogsStore } from '#lib/plugins/mods/mod-dialogs.store.svelte.js';
 import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
@@ -145,5 +152,37 @@ describe('AppOverlays mod dialogs', () => {
 		flushSync();
 
 		expect(document.querySelector('[data-mod-dialog="alert"]')?.textContent).toContain('Done');
+	});
+});
+
+describe('AppOverlays zoom chip', () => {
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(async () => {
+		vi.useFakeTimers();
+		await resetZoom();
+		vi.clearAllTimers();
+		localStorage.clear();
+		zoomStore._reset();
+		vaultStore.close();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+		vi.useRealTimers();
+	});
+
+	it('shows the chip after zoomIn with no vault open (the vault picker)', async () => {
+		component = mount(AppOverlays, { target: document.body.appendChild(document.createElement('div')) });
+		flushSync();
+		expect(vaultStore.isOpen).toBe(false);
+		expect(document.querySelector('button[aria-label="Reset zoom to 100%"]')).toBeNull();
+
+		await zoomIn();
+		flushSync();
+
+		expect(document.querySelector('button[aria-label="Reset zoom to 100%"]')?.textContent).toContain('110%');
 	});
 });

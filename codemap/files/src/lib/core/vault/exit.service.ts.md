@@ -18,7 +18,7 @@ test src/tests/lib/core/vault/exit.service.test.ts imports src/lib/core/vault/ex
 ## symbols
 sym src/lib/core/vault/exit.service.ts:15 fn prepareForExit(): Promise<boolean> L9 | Puts every pending write on disk before the app goes away: the window close, Quit (Cmd+Q, app menu) and Restart to update all run it first.
 by src/lib/core/vault/exit.service.ts:prepareForExit <- src/lib/app/tauri-listeners.service.ts:53 in registerCloseHandler call +1
-by src/lib/core/vault/exit.service.ts:prepareForExit <- src/lib/core/settings/sections/UpdateSection.svelte:221 in restartApp call
+by src/lib/core/vault/exit.service.ts:prepareForExit <- src/lib/core/settings/sections/UpdateSection.svelte:257 in restartApp call
 sym src/lib/core/vault/exit.service.ts:32 fn confirmDiscardFailedSaves(failedPaths: string[], verb: string): Promise<boolean> L8 | Asks whether to go on and lose the unsaved changes of tabs whose save failed.
 by src/lib/core/vault/exit.service.ts:confirmDiscardFailedSaves <- src/lib/core/vault/vault.service.ts:23 in switchVault call
 ## calls

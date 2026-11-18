@@ -1205,6 +1205,29 @@ describe('loadSettings', () => {
 			expect(settingsStore.settings.updates.channel).toBe('nightly');
 		});
 
+		it('defaults updates.channel to "preview" on a preview build (fresh install)', async () => {
+			(globalThis as Record<string, unknown>).__APP_CHANNEL__ = 'preview';
+			vi.mocked(exists).mockResolvedValue(false);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(mkdir).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.settings.updates.channel).toBe('preview');
+		});
+
+		it('keeps a saved preview channel', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(
+				JSON.stringify({ updates: { channel: 'preview' } }),
+			);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.settings.updates.channel).toBe('preview');
+		});
+
 		it('respects an explicit channel from a saved settings file', async () => {
 			(globalThis as Record<string, unknown>).__APP_CHANNEL__ = 'nightly';
 			vi.mocked(exists).mockResolvedValue(true);

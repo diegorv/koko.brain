@@ -7,7 +7,7 @@ imp src/lib/plugins/templates/TemplatePicker.svelte:4 -> src/lib/plugins/templat
 imp src/lib/plugins/templates/TemplatePicker.svelte:5 -> src/lib/plugins/templates/templates.service.ts createFileFromTemplate
 imp src/lib/plugins/templates/TemplatePicker.svelte:6 -> src/lib/plugins/templates/templates.logic.ts filterTemplates
 ## imported-by
-imp src/lib/app/AppOverlays.svelte:7 -> src/lib/plugins/templates/TemplatePicker.svelte default
+imp src/lib/app/AppOverlays.svelte:8 -> src/lib/plugins/templates/TemplatePicker.svelte default
 ## reach
 in2 src/lib/plugins/templates/TemplatePicker.svelte 1 files in 1 modules: src/routes(1)
 out2 src/lib/plugins/templates/TemplatePicker.svelte 18 files in 7 modules: src/lib/components(11) src/lib/core/note-creator(2) src/lib/contracts(1) src/lib/core/filesystem(1) src/lib/core/settings(1) +2 modules
@@ -15,7 +15,7 @@ out2 src/lib/plugins/templates/TemplatePicker.svelte 18 files in 7 modules: src/
 test src/tests/lib/plugins/templates/TemplatePicker.test.ts imports src/lib/plugins/templates/TemplatePicker.svelte mirror
 ## symbols
 sym src/lib/plugins/templates/TemplatePicker.svelte:1 component TemplatePicker L113
-by src/lib/plugins/templates/TemplatePicker.svelte:default <- src/lib/app/AppOverlays.svelte:20 in (markup) mount
+by src/lib/plugins/templates/TemplatePicker.svelte:default <- src/lib/app/AppOverlays.svelte:21 in (markup) mount
 ## locals
 local src/lib/plugins/templates/TemplatePicker.svelte:21 fn handleOpenChange(open: boolean) L5
 local src/lib/plugins/templates/TemplatePicker.svelte:27 fn selectTemplate(path: string) L5
@@ -23,7 +23,7 @@ local src/lib/plugins/templates/TemplatePicker.svelte:33 fn confirmCreate() L14
 local src/lib/plugins/templates/TemplatePicker.svelte:48 fn handleKeydown(e: KeyboardEvent) L8
 local src/lib/plugins/templates/TemplatePicker.svelte:57 fn reset() L6
 ## mounted-at
-mount src/lib/app/AppOverlays.svelte:20 TemplatePicker -> src/lib/plugins/templates/TemplatePicker.svelte
+mount src/lib/app/AppOverlays.svelte:21 TemplatePicker -> src/lib/plugins/templates/TemplatePicker.svelte
 ## calls
 call src/lib/plugins/templates/TemplatePicker.svelte:15 in filteredTemplates=$derived -> src/lib/plugins/templates/templates.logic.ts:filterTemplates call
 call src/lib/plugins/templates/TemplatePicker.svelte:23 in handleOpenChange -> src/lib/plugins/templates/TemplatePicker.svelte:reset call

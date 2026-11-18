@@ -1,6 +1,6 @@
 # file card src/lib/features/file-icons/file-icons.icon-data.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/file-icons/file-icons.icon-data.ts ' codemap/files
-file src/lib/features/file-icons/file-icons.icon-data.ts other L320 module src/lib/features/file-icons in7 t30
+file src/lib/features/file-icons/file-icons.icon-data.ts other L320 module src/lib/features/file-icons in7 t31
 ## imports
 imp src/lib/features/file-icons/file-icons.icon-data.ts:1 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId,type:IconPackMeta,type:NormalizedIcon
 ## imported-by
@@ -9,14 +9,15 @@ imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:14 -> src/lib/feat
 imp src/lib/features/file-icons/IconPicker.svelte:4 -> src/lib/features/file-icons/file-icons.icon-data.ts getAllIconPacks,getIconsForPack,getIconSync
 imp src/lib/features/file-icons/file-icons.service.ts:16 -> src/lib/features/file-icons/file-icons.icon-data.ts preloadPacks,setOnPacksLoaded
 imp src/lib/features/file-icons/icon-resolver.ts:2 -> src/lib/features/file-icons/file-icons.icon-data.ts getIconSync
-imp src/lib/features/rail-shell/Rail.svelte:18 -> src/lib/features/file-icons/file-icons.icon-data.ts getIconSync
+imp src/lib/features/rail-shell/Rail.svelte:21 -> src/lib/features/file-icons/file-icons.icon-data.ts getIconSync
 imp src/lib/plugins/mods/mods-host.service.ts:11 -> src/lib/features/file-icons/file-icons.icon-data.ts getIconSync
 ## reach
-in2 src/lib/features/file-icons/file-icons.icon-data.ts 17 files in 7 modules: src/lib/app(6) src/lib/features/rail-shell(3) src/lib/features/auto-organize(2) src/lib/features/note-list(2) src/lib/features/properties(2) +2 modules: q impact src/lib/features/file-icons/file-icons.icon-data.ts --depth 2
+in2 src/lib/features/file-icons/file-icons.icon-data.ts 18 files in 8 modules: src/lib/app(6) src/lib/features/rail-shell(3) src/lib/features/auto-organize(2) src/lib/features/note-list(2) src/lib/features/properties(2) +3 modules: q impact src/lib/features/file-icons/file-icons.icon-data.ts --depth 2
 out2 src/lib/features/file-icons/file-icons.icon-data.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/features/file-icons/file-icons.icon-data.test.ts imports src/lib/features/file-icons/file-icons.icon-data.ts mirror
 test src/tests/lib/features/file-icons/IconPicker.test.ts imports src/lib/features/file-icons/file-icons.icon-data.ts
+test src/tests/lib/features/quick-switcher/QuickSwitcher.test.ts imports src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/tasks/TasksView.test.ts imports src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/plugins/mods/mod-rail-icon.test.ts imports src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/app/EditorView.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
@@ -57,7 +58,7 @@ by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/fe
 by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:281 in getResolvedIcon call
 by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/file-icons/IconPicker.svelte:74 in recentNormalized=$derived call +1
 by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/file-icons/icon-resolver.ts:50 in resolveRef call
-by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/rail-shell/Rail.svelte:202 in actionIcon call
+by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/rail-shell/Rail.svelte:215 in actionIcon call
 by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/plugins/mods/mods-host.service.ts:593 in createModContext call
 sym src/lib/features/file-icons/file-icons.icon-data.ts:316 fn preloadPacks(packIds: IconPackId[]): Promise<void> L5 | Pre-loads specific packs into cache (call at startup for packs referenced in saved icons)
 by src/lib/features/file-icons/file-icons.icon-data.ts:preloadPacks <- src/lib/features/file-icons/file-icons.service.ts:230 in buildFrontmatterIconIndex call +1

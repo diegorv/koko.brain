@@ -11,7 +11,7 @@ imp src/lib/features/auto-organize/auto-organize.service.ts:45 -> src/lib/featur
 imp src/lib/features/collection/CollectionView.svelte:15 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/collection/collection-block-widget.ts:7 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/collection/collection.service.ts:8 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
-imp src/lib/features/rail-shell/RailNoteList.svelte:29 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
+imp src/lib/features/rail-shell/RailNoteList.svelte:31 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/rail-shell/TypesNavigator.svelte:46 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/type-definitions/ViewDialog.svelte:7 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/plugins/mods/mod-app.service.ts:9 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
@@ -71,7 +71,7 @@ by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/collection/CollectionView.svelte:145 in restoreViewIndex mcall +7
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/collection/collection-block-widget.ts:79 in CollectionBlockWidget.constructor member +5
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/collection/collection.service.ts:101 in buildPropertyIndex mcall +11
-by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/rail-shell/RailNoteList.svelte:182 in availableProperties=$derived member +6
+by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/rail-shell/RailNoteList.svelte:191 in availableProperties=$derived member +6
 more by 5 not shown: src/lib/plugins/mods(2) src/lib/features/rail-shell(1) src/lib/features/type-definitions(1) src/lib/plugins/queryjs(1): q importers src/lib/features/collection/collection.store.svelte.ts:collectionStore
 ## store
 store src/lib/features/collection/collection.store.svelte.ts:28 collectionStore esc:0
@@ -79,7 +79,7 @@ mem src/lib/features/collection/collection.store.svelte.ts:29 get collectionStor
 more r 28 not shown: src/lib/features/collection(8) src/lib/features/auto-organize(7) src/lib/features/rail-shell(6) src/lib/plugins/mods(3) src/lib/features/type-definitions(2) src/lib/app(1) src/lib/plugins/queryjs(1): q store src/lib/features/collection/collection.store.svelte.ts:collectionStore.propertyIndex
 mem src/lib/features/collection/collection.store.svelte.ts:30 get collectionStore.isIndexReady r:12 w-via:setPropertyIndex,reset
 more r 12 not shown: src/lib/features/collection(5) src/lib/features/rail-shell(3) src/lib/plugins/queryjs(3) src/lib/plugins/mods(1): q store src/lib/features/collection/collection.store.svelte.ts:collectionStore.isIndexReady
-mem src/lib/features/collection/collection.store.svelte.ts:31 get collectionStore.version r:src/lib/features/collection/collection-block-widget.ts:80,src/lib/features/collection/collection-block-widget.ts:423,src/lib/plugins/mods/mod-app.service.ts:88,src/lib/plugins/queryjs/queryjs-block-widget.ts:249 w-via:setPropertyIndex,updateRecord,removeRecord
+mem src/lib/features/collection/collection.store.svelte.ts:31 get collectionStore.version r:src/lib/features/collection/collection-block-widget.ts:80,src/lib/features/collection/collection-block-widget.ts:423,src/lib/plugins/mods/mod-app.service.ts:88,src/lib/plugins/queryjs/queryjs-block-widget.ts:258 w-via:setPropertyIndex,updateRecord,removeRecord
 mem src/lib/features/collection/collection.store.svelte.ts:34 do collectionStore.setPropertyIndex w:src/lib/features/collection/collection.service.ts:101,src/lib/features/collection/collection.service.ts:137 | Replaces the entire property index and marks it as ready
 mem src/lib/features/collection/collection.store.svelte.ts:41 do collectionStore.updateRecord w:src/lib/features/collection/collection.service.ts:161 | Updates a single note record in the index
 mem src/lib/features/collection/collection.store.svelte.ts:49 do collectionStore.removeRecord w:src/lib/features/collection/collection.service.ts:168 | Removes a note record from the index

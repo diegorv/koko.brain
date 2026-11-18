@@ -4,8 +4,8 @@ sections: neighbors, entry files, files, public, stores, effects, debt
 module src/lib/core/settings core files 38 in-modules 29 out-modules 6 pub 53/175 ipc 3/0 card ~6.7k
 ## neighbors
 dep src/lib/app -> src/lib/core/settings 32
-dep src/lib/core/layout -> src/lib/core/settings 1
-dep src/lib/core/markdown-editor -> src/lib/core/settings 4
+dep src/lib/core/layout -> src/lib/core/settings 2
+dep src/lib/core/markdown-editor -> src/lib/core/settings 5
 dep src/lib/core/vault -> src/lib/core/settings 1
 dep src/lib/features/auto-organize -> src/lib/core/settings 4
 dep src/lib/features/deep-link -> src/lib/core/settings 1
@@ -16,7 +16,7 @@ dep src/lib/features/note-action-bar -> src/lib/core/settings 2
 dep src/lib/features/properties -> src/lib/core/settings 1
 dep src/lib/features/quick-switcher -> src/lib/core/settings 1
 dep src/lib/features/rail-shell -> src/lib/core/settings 13
-dep src/lib/features/search -> src/lib/core/settings 5
+dep src/lib/features/search -> src/lib/core/settings 7
 dep src/lib/features/tags -> src/lib/core/settings 3
 dep src/lib/features/tasks -> src/lib/core/settings 4
 dep src/lib/features/todoist-sync -> src/lib/core/settings 8
@@ -24,7 +24,7 @@ dep src/lib/features/type-definitions -> src/lib/core/settings 2
 dep src/lib/plugins/calendar -> src/lib/core/settings 4
 dep src/lib/plugins/graph-view -> src/lib/core/settings 1
 dep src/lib/plugins/mods -> src/lib/core/settings 3
-dep src/lib/plugins/one-on-one -> src/lib/core/settings 3
+dep src/lib/plugins/one-on-one -> src/lib/core/settings 4
 dep src/lib/plugins/periodic-notes -> src/lib/core/settings 3
 dep src/lib/plugins/queryjs -> src/lib/core/settings 4
 dep src/lib/plugins/quick-capture -> src/lib/core/settings 2
@@ -38,15 +38,15 @@ dep src/lib/core/settings -> src/lib/core/markdown-editor 1
 dep src/lib/core/settings -> src/lib/core/trash 4
 dep src/lib/core/settings -> src/lib/core/vault 2
 dep src/lib/core/settings -> src/lib/utils 16
-in2 src/lib/core/settings 11 modules: src/lib/core/filesystem(5) src/lib/core/editor(2) src/lib/features/backlinks(2) src/lib/features/collection(2) src/lib/features/note-list(2) +6 modules
+in2 src/lib/core/settings 12 modules: src/lib/core/filesystem(5) src/lib/core/editor(2) src/lib/features/backlinks(2) src/lib/features/collection(2) src/lib/features/note-list(2) +7 modules
 out2 src/lib/core/settings 2 modules: src/lib/core/filesystem(4) src/lib/core/editor(2)
 ## entry files
-entry src/lib/core/settings/settings.store.svelte.ts ext-in67 src/lib/app/AppShell.svelte src/lib/app/EditorView.svelte src/lib/app/boot.ts src/lib/app/commands.ts src/lib/app/deep-link-actions.ts more importers 62 not shown: src/lib/features/event-calendar(10) src/lib/features/rail-shell(9) src/lib/features/todoist-sync(5) +22 modules: q importers src/lib/core/settings/settings.store.svelte.ts
-entry src/lib/core/settings/settings.types.ts ext-in15 src/lib/app/SettingsPanel.svelte src/lib/features/event-calendar/EventCalendarSection.svelte src/lib/features/event-calendar/event-calendar-event.logic.ts src/lib/features/event-calendar/event-calendar-form.logic.ts src/lib/features/event-calendar/event-calendar.types.ts more importers 10 not shown: src/lib/plugins/calendar(2) src/lib/plugins/periodic-notes(2) src/lib/features/rail-shell(1) +5 modules: q importers src/lib/core/settings/settings.types.ts
+entry src/lib/core/settings/settings.store.svelte.ts ext-in69 src/lib/app/AppShell.svelte src/lib/app/EditorView.svelte src/lib/app/boot.ts src/lib/app/commands.ts src/lib/app/deep-link-actions.ts more importers 64 not shown: src/lib/features/event-calendar(10) src/lib/features/rail-shell(9) src/lib/features/search(5) +22 modules: q importers src/lib/core/settings/settings.store.svelte.ts
+entry src/lib/core/settings/settings.types.ts ext-in16 src/lib/app/SettingsPanel.svelte src/lib/core/layout/layout.service.ts src/lib/features/event-calendar/EventCalendarSection.svelte src/lib/features/event-calendar/event-calendar-event.logic.ts src/lib/features/event-calendar/event-calendar-form.logic.ts more importers 11 not shown: src/lib/plugins/calendar(2) src/lib/plugins/periodic-notes(2) src/lib/features/event-calendar(1) +6 modules: q importers src/lib/core/settings/settings.types.ts
 entry src/lib/core/settings/sections/SettingItem.svelte ext-in7 src/lib/app/LabsSection.svelte src/lib/features/auto-organize/AutoOrganizeSection.svelte src/lib/features/event-calendar/EventCalendarSection.svelte src/lib/features/rail-shell/LayoutSection.svelte src/lib/features/search/SearchSection.svelte more importers 2 not shown: src/lib/features/todoist-sync(1) src/lib/plugins/queryjs(1): q importers src/lib/core/settings/sections/SettingItem.svelte
+entry src/lib/core/settings/settings-panel.store.svelte.ts ext-in7 src/lib/app/SettingsPanel.svelte src/lib/app/commands.ts src/lib/app/global-keybindings.ts src/lib/app/tauri-listeners.service.ts src/lib/features/event-calendar/EventCalendarSection.svelte more importers 2 not shown: src/lib/features/search(1) src/lib/plugins/one-on-one(1): q importers src/lib/core/settings/settings-panel.store.svelte.ts
 entry src/lib/core/settings/settings.logic.ts ext-in6 src/lib/app/SettingsPanel.svelte src/lib/core/markdown-editor/MarkdownEditor.svelte src/lib/features/event-calendar/EventCalendarSection.svelte src/lib/features/event-calendar/EventColorSwatches.svelte src/lib/features/event-calendar/event-calendar-event.logic.ts more importers 1 not shown: src/lib/features/todoist-sync(1): q importers src/lib/core/settings/settings.logic.ts
 entry src/lib/core/settings/applied-theme.store.svelte.ts ext-in5 src/lib/app/AppOverlays.svelte src/lib/core/markdown-editor/MarkdownEditor.svelte src/lib/features/rail-shell/Rail.svelte src/lib/plugins/graph-view/GraphView.svelte src/lib/plugins/mods/mod-theme.svelte.ts
-entry src/lib/core/settings/settings-panel.store.svelte.ts ext-in5 src/lib/app/SettingsPanel.svelte src/lib/app/commands.ts src/lib/app/global-keybindings.ts src/lib/app/tauri-listeners.service.ts src/lib/features/event-calendar/EventCalendarSection.svelte
 entry src/lib/core/settings/rail-pin.logic.ts ext-in2 src/lib/features/rail-shell/lens.logic.ts src/lib/features/type-definitions/type-definitions.service.ts
 entry src/lib/core/settings/sentry.service.ts ext-in2 src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/utils/debug.ts
 entry src/lib/core/settings/settings-persistence.svelte.ts ext-in2 src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/core/vault/exit.service.ts
@@ -69,7 +69,7 @@ entry src/lib/core/settings/theme-builder.logic.ts ext-in1 src/lib/features/file
 entry src/lib/core/settings/theme-editor.logic.ts ext-in1 src/lib/features/tags/TagColorPicker.svelte
 entry src/lib/core/settings/update-check.service.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 ## files
-file src/lib/core/settings/BuildInfo.svelte component L51 module src/lib/core/settings in2 t1
+file src/lib/core/settings/BuildInfo.svelte component L52 module src/lib/core/settings in2 t1
 file src/lib/core/settings/applied-theme.store.svelte.ts store L35 module src/lib/core/settings in6 t7
 file src/lib/core/settings/heading-typography.logic.ts logic L35 module src/lib/core/settings in1 t4
 file src/lib/core/settings/rail-pin.logic.ts logic L22 module src/lib/core/settings in2 t1 | Keys of the rail items pinned with `_rail: true`, saved in `layout.railItem`.
@@ -78,7 +78,7 @@ file src/lib/core/settings/sections/EditorSection.svelte component L174 module s
 file src/lib/core/settings/sections/FileHistorySection.svelte component L56 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/FilesSection.svelte component L46 module src/lib/core/settings in1 t2
 file src/lib/core/settings/sections/HeadingTypographyEditor.svelte component L118 module src/lib/core/settings in1 t1
-file src/lib/core/settings/sections/OneOnOneSection.svelte component L101 module src/lib/core/settings in1 t1
+file src/lib/core/settings/sections/OneOnOneSection.svelte component L105 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/PeriodicNotesSection.svelte component L132 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/QuickCaptureSection.svelte component L79 module src/lib/core/settings in1 t2
 file src/lib/core/settings/sections/SentrySection.svelte component L95 module src/lib/core/settings in1 t0
@@ -89,15 +89,15 @@ file src/lib/core/settings/sections/ThemePreview.svelte component L53 module src
 file src/lib/core/settings/sections/TrashSection.svelte component L138 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/TroubleshootingSection.svelte component L158 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/TypesSection.svelte component L58 module src/lib/core/settings in1 t1
-file src/lib/core/settings/sections/UpdateSection.svelte component L338 module src/lib/core/settings in1 t3
+file src/lib/core/settings/sections/UpdateSection.svelte component L376 module src/lib/core/settings in1 t4
 file src/lib/core/settings/sentry.logic.ts logic L28 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sentry.service.ts service L134 module src/lib/core/settings in3 t6
-file src/lib/core/settings/settings-panel.store.svelte.ts store L24 module src/lib/core/settings in5 t6
+file src/lib/core/settings/settings-panel.store.svelte.ts store L24 module src/lib/core/settings in7 t8
 file src/lib/core/settings/settings-persistence.svelte.ts other L122 module src/lib/core/settings in2 t9
 file src/lib/core/settings/settings.logic.ts logic L303 module src/lib/core/settings in11 t2
 file src/lib/core/settings/settings.service.ts service L297 module src/lib/core/settings in3 t6
-file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in83 t124
-file src/lib/core/settings/settings.types.ts types L461 module src/lib/core/settings in24 t0
+file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in85 t130
+file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in25 t0
 file src/lib/core/settings/theme-builder.logic.ts logic L318 module src/lib/core/settings in3 t10
 file src/lib/core/settings/theme-catalog.service.ts service L45 module src/lib/core/settings in1 t1
 file src/lib/core/settings/theme-editor.logic.ts logic L303 module src/lib/core/settings in3 t1
@@ -108,7 +108,7 @@ file src/lib/core/settings/theme.service.ts service L87 module src/lib/core/sett
 file src/lib/core/settings/theme.types.ts types L251 module src/lib/core/settings in10 t0
 file src/lib/core/settings/update-check.service.ts service L37 module src/lib/core/settings in1 t2
 ## public
-sym src/lib/core/settings/BuildInfo.svelte:1 component BuildInfo props:variant= L51
+sym src/lib/core/settings/BuildInfo.svelte:1 component BuildInfo props:variant= L52
 sym src/lib/core/settings/applied-theme.store.svelte.ts:14 store appliedThemeStore L22 | Reactive mode of the applied theme.
 sym src/lib/core/settings/rail-pin.logic.ts:9 const VIEW_PIN_PREFIX L1 | The rail item key prefix of a pinned `.view`; the rest is its absolute path.
 sym src/lib/core/settings/rail-pin.logic.ts:12 const TYPE_PIN_PREFIX L1 | The rail item key prefix of a pinned type; the rest is its `TypeMetadata.name`.
@@ -118,7 +118,7 @@ sym src/lib/core/settings/sections/AppearanceSection.svelte:1 component Appearan
 sym src/lib/core/settings/sections/EditorSection.svelte:1 component EditorSection L174
 sym src/lib/core/settings/sections/FileHistorySection.svelte:1 component FileHistorySection L56
 sym src/lib/core/settings/sections/FilesSection.svelte:1 component FilesSection L46
-sym src/lib/core/settings/sections/OneOnOneSection.svelte:1 component OneOnOneSection L101
+sym src/lib/core/settings/sections/OneOnOneSection.svelte:1 component OneOnOneSection L105
 sym src/lib/core/settings/sections/PeriodicNotesSection.svelte:1 component PeriodicNotesSection L132
 sym src/lib/core/settings/sections/QuickCaptureSection.svelte:1 component QuickCaptureSection L79
 sym src/lib/core/settings/sections/SentrySection.svelte:1 component SentrySection L95
@@ -126,7 +126,7 @@ sym src/lib/core/settings/sections/SettingItem.svelte:1 component SettingItem pr
 sym src/lib/core/settings/sections/TrashSection.svelte:1 component TrashSection L138
 sym src/lib/core/settings/sections/TroubleshootingSection.svelte:1 component TroubleshootingSection L158
 sym src/lib/core/settings/sections/TypesSection.svelte:1 component TypesSection L58
-sym src/lib/core/settings/sections/UpdateSection.svelte:1 component UpdateSection L338
+sym src/lib/core/settings/sections/UpdateSection.svelte:1 component UpdateSection L376
 sym src/lib/core/settings/sentry.service.ts:94 fn configureSentry(settings: SentrySettings): Promise<SentryConfigurationResult> L6 | Enables or disables error monitoring for one vault.
 sym src/lib/core/settings/sentry.service.ts:102 fn disableSentry(): Promise<SentryConfigurationResult> L3 | Disables the active Sentry client without changing persisted settings.
 sym src/lib/core/settings/sentry.service.ts:112 fn captureSentryException(tag: string, exception: unknown): void L7 | Captures a handled application error only when the current vault opted in to Sentry.
@@ -151,11 +151,11 @@ sym src/lib/core/settings/settings.types.ts:15 interface PeriodicNotesSettings L
 sym src/lib/core/settings/settings.types.ts:48 interface LayoutSettings L70 | Configuration for layout visibility preferences
 sym src/lib/core/settings/settings.types.ts:276 type TodoistSyncContext L1 | One of the vault contexts in `TODOIST_SYNC_CONTEXTS`
 sym src/lib/core/settings/settings.types.ts:301 type AutoRunQueriesPolicy L4 | Policy for QueryJS block execution — controls when `kb.pages()`/`dv.view()` blocks run
-sym src/lib/core/settings/settings.types.ts:325 type ReleaseChannel L1 | Release channel the in-app auto-updater follows.
-sym src/lib/core/settings/settings.types.ts:359 type SettingsSection L1 | Sidebar navigation sections in the settings dialog
-sym src/lib/core/settings/settings.types.ts:362 type EventCalendarColor L1 | One of the event colors in `EVENT_CALENDAR_COLORS`
-sym src/lib/core/settings/settings.types.ts:365 type EventCalendarViewMode L1 | One of the calendar view modes in `EVENT_CALENDAR_VIEW_MODES`
-sym src/lib/core/settings/settings.types.ts:368 interface EventCalendarSettings L20 | Configuration for the event calendar
+sym src/lib/core/settings/settings.types.ts:326 type ReleaseChannel L1 | Release channel the in-app auto-updater follows.
+sym src/lib/core/settings/settings.types.ts:360 type SettingsSection L1 | Sidebar navigation sections in the settings dialog
+sym src/lib/core/settings/settings.types.ts:363 type EventCalendarColor L1 | One of the event colors in `EVENT_CALENDAR_COLORS`
+sym src/lib/core/settings/settings.types.ts:366 type EventCalendarViewMode L1 | One of the calendar view modes in `EVENT_CALENDAR_VIEW_MODES`
+sym src/lib/core/settings/settings.types.ts:369 interface EventCalendarSettings L20 | Configuration for the event calendar
 sym src/lib/core/settings/theme-builder.logic.ts:8 const TYPE_PALETTE_NAMES L1 | Names of the categorical type palette.
 sym src/lib/core/settings/theme-editor.logic.ts:231 fn hexToColorInputValue(value: string): string L6 | Converts a color value to a format accepted by `<input type="color">` (`#rrggbb`).
 sym src/lib/core/settings/theme.service.ts:13 const THEME_VARS_STORAGE_KEY L1 | localStorage key holding the CSS variables of the theme last applied in the main window.

@@ -153,6 +153,11 @@ describe('RailNoteList - search', () => {
 		input.dispatchEvent(new Event('input', { bubbles: true }));
 	}
 
+	/** The title of the empty state behind `hook`. */
+	function emptyTitle(hook: string): string | undefined {
+		return target.querySelector(`[${hook}] [data-empty-state-title]`)?.textContent ?? undefined;
+	}
+
 	function groupHeaders(): string[] {
 		return [...target.querySelectorAll<HTMLElement>('[data-note-list-group]')].map((el) => el.textContent?.replace(/\s+/g, ' ').trim() ?? '');
 	}
@@ -354,16 +359,76 @@ describe('RailNoteList - search', () => {
 		await waitForDebounce();
 		await settle();
 
-		expect(target.querySelector('[data-note-list-no-matches]')?.textContent?.trim()).toBe('No matching notes');
+		expect(emptyTitle('data-note-list-no-matches')).toBe('No notes match "zzzz"');
+		expect(target.querySelector('[data-note-list-no-matches] [data-empty-state-hint]')?.textContent).toBe(
+			'Search covers titles and content of this list.',
+		);
 		expect(target.querySelector('[data-note-list-empty]')).toBeNull();
 	});
 
-	it('says no notes here for an unfiltered empty flat list', async () => {
+	it('says the Inbox is at zero, not that nothing matches, for an unfiltered empty flat list', async () => {
 		setEntries([entryV2('/vault/done.md', { organized: true })]);
 		await mountList(INBOX_LENS);
 
-		expect(target.querySelector('[data-note-list-empty]')?.textContent?.trim()).toBe('No notes here');
+		expect(emptyTitle('data-note-list-empty')).toBe('Inbox zero');
 		expect(target.querySelector('[data-note-list-no-matches]')).toBeNull();
+	});
+
+	it('shows the no-match state on Today, not empty group headers, when nothing matches', async () => {
+		const today = eventCalendarViewStore.todayKey;
+		setEntries([entryV2('/vault/Work/dated.md', { frontmatter: { date: today }, modifiedAt: 200 })]);
+		await mountList(TODAY_LENS);
+		expect(rowTitles()).toEqual(['dated']);
+
+		await openSearch();
+		typeSearch('zzzz');
+		await waitForDebounce();
+		await settle();
+
+		expect(emptyTitle('data-note-list-no-matches')).toBe('No notes match "zzzz"');
+		expect(target.querySelector('[data-note-list-group-empty]')).toBeNull();
+		expect(groupHeaders()).toEqual([]);
+	});
+
+	it('Clear search empties the input, keeps the search row open and restores the rows', async () => {
+		await mountList();
+		await openSearch();
+		typeSearch('zzzz');
+		await waitForDebounce();
+		await settle();
+		expect(rowTitles()).toEqual([]);
+
+		const clear = target.querySelector<HTMLButtonElement>('[data-note-list-no-matches] [data-empty-state-action]')!;
+		// A real click focuses the button first; the button unmounts, so focus must land on the input, not body.
+		clear.focus();
+		clear.click();
+		await settle();
+
+		expect(searchInput()?.value).toBe('');
+		expect(document.activeElement).toBe(searchInput());
+		expect(rowTitles().sort()).toEqual(['alpha', 'beta', 'gamma']);
+		expect(target.querySelector('[data-note-list-no-matches]')).toBeNull();
+	});
+
+	it('says it is searching note contents while the full-text search runs with no local match, then that nothing matches', async () => {
+		let answer: (hits: unknown[]) => void = () => {};
+		vi.mocked(invoke).mockImplementation((command) =>
+			command === 'search_fts' ? new Promise((resolve) => (answer = resolve)) : Promise.resolve(undefined),
+		);
+		await mountList();
+		await openSearch();
+		typeSearch('zzzz');
+		await waitForDebounce();
+		await settle();
+
+		expect(target.querySelector('[data-note-list-searching]')?.textContent?.trim()).toBe('Searching note contents...');
+		expect(target.querySelector('[data-note-list-no-matches]')).toBeNull();
+		expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+
+		answer([]);
+		await settle();
+		expect(target.querySelector('[data-note-list-searching]')).toBeNull();
+		expect(emptyTitle('data-note-list-no-matches')).toBe('No notes match "zzzz"');
 	});
 
 	it('hides the search toggle and row for a view in an error state', async () => {

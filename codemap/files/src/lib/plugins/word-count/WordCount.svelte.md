@@ -12,9 +12,9 @@ in2 src/lib/plugins/word-count/WordCount.svelte 1 files in 1 modules: src/routes
 out2 src/lib/plugins/word-count/WordCount.svelte 2 files in 2 modules: src/lib/core/editor(1) src/lib/utils(1)
 ## symbols
 sym src/lib/plugins/word-count/WordCount.svelte:1 component WordCount L46
-by src/lib/plugins/word-count/WordCount.svelte:default <- src/lib/app/AppShell.svelte:310 in (markup) mount
+by src/lib/plugins/word-count/WordCount.svelte:default <- src/lib/app/AppShell.svelte:312 in (markup) mount
 ## mounted-at
-mount src/lib/app/AppShell.svelte:310 WordCount -> src/lib/plugins/word-count/WordCount.svelte
+mount src/lib/app/AppShell.svelte:312 WordCount -> src/lib/plugins/word-count/WordCount.svelte
 ## calls
 call src/lib/plugins/word-count/WordCount.svelte:13 in isMarkdown=$derived -> src/lib/core/editor/editor.logic.ts:isVirtualTab call
 call src/lib/plugins/word-count/WordCount.svelte:22 in $effect@17 -> src/lib/plugins/word-count/word-count.logic.ts:countWords call

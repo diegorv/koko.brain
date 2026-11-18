@@ -11,7 +11,7 @@ imp src/lib/features/tasks/task-views.logic.ts:23 -> src/lib/features/tasks/task
 imp src/lib/features/tasks/tasks.logic.ts:4 -> src/lib/features/tasks/task-status.logic.ts isTaskOpen
 imp src/lib/features/tasks/tasks.service.ts:12 -> src/lib/features/tasks/task-status.logic.ts statusMenuLabel,toggleTarget
 ## reach
-in2 src/lib/features/tasks/task-status.logic.ts 9 files in 3 modules: src/lib/app(4) src/lib/features/tasks(3) src/lib/features/event-calendar(2)
+in2 src/lib/features/tasks/task-status.logic.ts 10 files in 3 modules: src/lib/app(5) src/lib/features/tasks(3) src/lib/features/event-calendar(2)
 out2 src/lib/features/tasks/task-status.logic.ts 1 files in 1 modules: src/lib/contracts(1)
 ## tests
 test src/tests/lib/features/tasks/task-status.logic.test.ts imports src/lib/features/tasks/task-status.logic.ts mirror

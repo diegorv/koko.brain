@@ -36,8 +36,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Move collision is silent](issues/01-move-collision-is-silent.md) | none | done | issue/01-move-collision-is-silent (abc8399b) | 2026-11-13 |
-| 02 | [My People counts only 1:1s](issues/02-my-people-counts-only-1on1s.md) | none | in-progress | | |
-| 03 | [QueryJS results dropped on every save](issues/03-queryjs-results-dropped-on-every-save.md) | none | todo | | |
+| 02 | [My People counts only 1:1s](issues/02-my-people-counts-only-1on1s.md) | none | done | issue/02-my-people-counts-only-1on1s (c24a703a) | 2026-11-16 |
+| 03 | [QueryJS results dropped on every save](issues/03-queryjs-results-dropped-on-every-save.md) | none | done | issue/03-queryjs-results-dropped-on-every-save (40c06f95) | 2026-11-16 |
 
 ## Log
 
@@ -45,3 +45,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-13 15:22 — 01 — start — launched by /relay-lite:run — 7ac981f3
 - 2026-11-13 16:08 — 01 — deliver — merged as abc8399b: rule move into a folder with a same-name file now files the note as '<name> 2', updates links and shows a toast; review CHANGES_REQUESTED then APPROVED; full vitest suite green — abc8399b
 - 2026-11-13 16:16 — 02 — start — launched by /relay-lite:run — 4a6fe32c
+- 2026-11-16 15:02 — 02 — deliver — build agent failed: API unreachable (ENOTFOUND); nothing delivered, worktree kept — 3a701624
+- 2026-11-16 15:02 — 02 — start — launched by /relay-lite:run (retry) — b2527a80
+- 2026-11-16 15:17 — 02 — deliver — merged as c24a703a: ONE_ON_ONE constants module-private, withOneOnOneKind skips a quoted kind key; review round 1 APPROVED with findings fixed, round 2 APPROVED; full vitest suite green at 6588b4c4 — c24a703a
+- 2026-11-16 15:21 — 03 — start — launched by /relay-lite:run — 8bf55152
+- 2026-11-16 15:37 — 03 — deliver — merged as 40c06f95: a block whose result a save dropped re-runs once, a failed stale re-run drops the stale mark; review round 1 APPROVED with findings (1 fixed, 1 rejected), round 2 APPROVED; full vitest suite green on rerun (first run had an unrelated preview-branch timeout); live check on a chart-heavy note still open — 40c06f95

@@ -89,7 +89,7 @@
 		style="box-shadow: inset 0 -1px 0 var(--divider)"
 		data-tauri-drag-region
 	>
-		<span class="truncate text-sm font-medium text-tab-text-active">Calendar</span>
+		<span class="truncate text-sm font-medium text-tab-text-active">Days</span>
 	</div>
 	<div class="flex flex-1 flex-col overflow-y-auto p-2">
 		<!-- « < Month Year > » -->

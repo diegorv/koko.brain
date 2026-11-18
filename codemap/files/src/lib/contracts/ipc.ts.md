@@ -1,6 +1,6 @@
 # file card src/lib/contracts/ipc.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/contracts/ipc.ts ' codemap/files
-file src/lib/contracts/ipc.ts other L89 module src/lib/contracts in45 t5
+file src/lib/contracts/ipc.ts other L89 module src/lib/contracts in46 t5
 ## imports
 imp src/lib/contracts/ipc.ts:1 -> pkg:@tauri-apps/api/core invoke
 imp src/lib/contracts/ipc.ts:2 -> pkg:@tauri-apps/api/event listen,type:UnlistenFn
@@ -30,6 +30,7 @@ imp src/lib/features/file-history/file-history.service.ts:1 -> src/lib/contracts
 imp src/lib/features/file-icons/file-icons.service.ts:2 -> src/lib/contracts/ipc.ts call
 imp src/lib/features/outgoing-links/outgoing-links.service.ts:1 -> src/lib/contracts/ipc.ts call
 imp src/lib/features/properties/lifecycle-filter.service.ts:1 -> src/lib/contracts/ipc.ts call
+imp src/lib/features/quick-switcher/QuickSwitcher.svelte:8 -> src/lib/contracts/ipc.ts call
 imp src/lib/features/rail-shell/list-fulltext.service.ts:1 -> src/lib/contracts/ipc.ts call
 imp src/lib/features/rail-shell/new-note.service.ts:1 -> src/lib/contracts/ipc.ts call
 imp src/lib/features/search/SearchSection.svelte:3 -> src/lib/contracts/ipc.ts call
@@ -46,10 +47,9 @@ imp src/lib/features/type-definitions/type-definitions.service.ts:3 -> src/lib/c
 imp src/lib/plugins/graph-view/graph-view.service.ts:1 -> src/lib/contracts/ipc.ts call
 imp src/lib/plugins/mods/mod-vault.service.ts:3 -> src/lib/contracts/ipc.ts call
 imp src/lib/plugins/mods/mods-host.service.ts:4 -> src/lib/contracts/ipc.ts call
-imp src/lib/plugins/quick-capture/composer-editor-host.service.ts:1 -> src/lib/contracts/ipc.ts call
-more imported-by 5 not shown: src/lib/utils(2) src/lib/plugins/quick-capture(1) src/lib/plugins/templates(1) src/routes(1): q importers src/lib/contracts/ipc.ts
+more imported-by 6 not shown: src/lib/plugins/quick-capture(2) src/lib/utils(2) src/lib/plugins/templates(1) src/routes(1): q importers src/lib/contracts/ipc.ts
 ## reach
-in2 src/lib/contracts/ipc.ts 81 files in 36 modules: src/lib/app(8) src/lib/features/event-calendar(8) src/lib/features/rail-shell(7) src/lib/core/settings(6) src/lib/features/tasks(4) +31 modules: q impact src/lib/contracts/ipc.ts --depth 2
+in2 src/lib/contracts/ipc.ts 83 files in 37 modules: src/lib/app(10) src/lib/features/event-calendar(8) src/lib/features/rail-shell(7) src/lib/core/settings(6) src/lib/features/tasks(4) +32 modules: q impact src/lib/contracts/ipc.ts --depth 2
 out2 src/lib/contracts/ipc.ts 1 files in 1 modules: src/lib/contracts(1)
 ## tests
 test src/tests/lib/contracts/ipc.test.ts imports src/lib/contracts/ipc.ts mirror
@@ -67,7 +67,7 @@ by src/lib/contracts/ipc.ts:call <- src/lib/app/tauri-listeners.service.ts:86 in
 by src/lib/contracts/ipc.ts:call <- src/lib/core/filesystem/fs.service.ts:96 in loadDirectoryTree call +3
 by src/lib/contracts/ipc.ts:call <- src/lib/core/filesystem/fs.watcher.ts:223 in handleChangedPaths call +2
 by src/lib/contracts/ipc.ts:call <- src/lib/core/filesystem/link-updater.service.ts:46 in updateLinksAfterRename call
-more by 37 not shown: src/lib/features/todoist-sync(5) src/lib/core/settings(4) src/lib/features/search(3) src/lib/core/filesystem(2) src/lib/features/rail-shell(2) src/lib/plugins/mods(2) src/lib/plugins/quick-capture(2) src/lib/utils(2) +15 modules: q importers src/lib/contracts/ipc.ts:call
+more by 38 not shown: src/lib/features/todoist-sync(5) src/lib/core/settings(4) src/lib/features/search(3) src/lib/core/filesystem(2) src/lib/features/rail-shell(2) src/lib/plugins/mods(2) src/lib/plugins/quick-capture(2) src/lib/utils(2) +16 modules: q importers src/lib/contracts/ipc.ts:call
 sym src/lib/contracts/ipc.ts:56 fn setInvokeTracking(enabled: boolean): void L4 | Turns invoke-time recording on or off; off drops what was recorded.
 by src/lib/contracts/ipc.ts:setInvokeTracking <- src/lib/utils/debug.ts:127 in startTauriDebugListener call +1
 sym src/lib/contracts/ipc.ts:73 fn takeQueueWait(cmd: string, enterMs: number): { invokeMs: number; queueMs: number } | null L5 | Pairs a Rust `enter <cmd>` at `enterMs` with the oldest recorded invoke of `cmd` and returns the wait between them: time the command spent queued behind other …
@@ -75,7 +75,7 @@ by src/lib/contracts/ipc.ts:takeQueueWait <- src/lib/utils/debug.ts:140 in logQu
 sym src/lib/contracts/ipc.ts:84 fn on<K extends keyof EventMap>(name: K, handler: (payload: EventMap[K]) => void): Promise<UnlistenFn> L6 | Typed `listen` over `EventMap`: the payload type comes from the event name, and the handler receives `event.payload` instead of the `Event` wrapper.
 by src/lib/contracts/ipc.ts:on <- src/lib/app/tauri-listeners.service.ts:28 in registerMenuSettingsListener call +2
 by src/lib/contracts/ipc.ts:on <- src/lib/core/filesystem/fs.watcher.ts:276 in startWatching call
-by src/lib/contracts/ipc.ts:on <- src/lib/features/search/search.service.ts:85 in startSemanticProgressListener call
+by src/lib/contracts/ipc.ts:on <- src/lib/features/search/search.service.ts:98 in startSemanticProgressListener call
 by src/lib/contracts/ipc.ts:on <- src/lib/plugins/quick-capture/quick-capture.service.ts:62 in registerQuickCaptureListener call
 by src/lib/contracts/ipc.ts:on <- src/lib/utils/debug.ts:128 in startTauriDebugListener call
 by src/lib/contracts/ipc.ts:on <- src/routes/composer/+page.svelte:214 in (script) call +1

@@ -1,0 +1,1649 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App shell: tabs, history, headers, status bar and menus</title>
+<style>
+	/* Page chrome (not part of the app) */
+	:root {
+		--pg-bg: #f4f3f1;
+		--pg-fg: #26242a;
+		--pg-muted: #6d6a73;
+		--pg-card: #ffffff;
+		--pg-line: #dedbe4;
+		--pg-accent: #6848a8;
+		--pg-before: #b0453a;
+		--pg-after: #2f7a55;
+	}
+	* { box-sizing: border-box; }
+	html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+	body {
+		margin: 0;
+		background: var(--pg-bg);
+		color: var(--pg-fg);
+		font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	}
+	.topbar {
+		position: sticky; top: 0; z-index: 100;
+		background: color-mix(in srgb, var(--pg-bg) 92%, white);
+		border-bottom: 1px solid var(--pg-line);
+		backdrop-filter: blur(8px);
+	}
+	.topbar-in { max-width: 1180px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+	.topbar h1 { font-size: 16px; margin: 0; font-weight: 650; }
+	.topbar nav { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; min-width: 0; }
+	.topbar nav a {
+		font-size: 12px; font-weight: 600; text-decoration: none; color: var(--pg-fg);
+		padding: 3px 8px; border-radius: 999px; border: 1px solid var(--pg-line); background: var(--pg-card);
+	}
+	.topbar nav a:hover { border-color: var(--pg-accent); color: var(--pg-accent); }
+	.themebtn { display: inline-flex; border: 1px solid var(--pg-line); border-radius: 8px; overflow: hidden; background: var(--pg-card); }
+	.themebtn button { font: inherit; font-size: 12px; font-weight: 600; padding: 5px 12px; border: 0; background: none; color: var(--pg-muted); cursor: pointer; }
+	.themebtn button[aria-pressed="true"] { background: var(--pg-accent); color: #fff; }
+	main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 80px; }
+	.intro { color: var(--pg-muted); max-width: 820px; margin: 0 0 8px; }
+	.tier-h { margin: 40px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--pg-muted); font-weight: 700; }
+	section.prop { background: var(--pg-card); border: 1px solid var(--pg-line); border-radius: 14px; padding: 20px; margin: 14px 0 24px; }
+	section.prop > header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+	.pid { font-weight: 800; font-size: 13px; background: var(--pg-accent); color: #fff; padding: 2px 9px; border-radius: 6px; letter-spacing: .02em; }
+	.ptitle { font-size: 17px; font-weight: 650; margin: 0; }
+	.badge { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--pg-line); color: var(--pg-muted); text-transform: uppercase; letter-spacing: .05em; }
+	.problem { margin: 8px 0 14px; color: var(--pg-muted); max-width: 860px; }
+	.lbl { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin: 14px 0 6px; }
+	.lbl.before { color: var(--pg-before); }
+	.lbl.after { color: var(--pg-after); }
+	.lbl small { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--pg-muted); font-size: 12px; }
+	.note { font-size: 13px; color: var(--pg-muted); margin: 8px 0; max-width: 860px; }
+	.note b { color: var(--pg-fg); }
+	.decision { border: 1px dashed var(--pg-accent); background: color-mix(in srgb, var(--pg-accent) 6%, white); border-radius: 10px; padding: 10px 14px; font-size: 13px; margin: 10px 0; max-width: 860px; }
+	.decision b { color: var(--pg-accent); }
+	.ctrls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; font-size: 13px; }
+	.ctrls button, .btn {
+		font: inherit; font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 7px; cursor: pointer;
+		border: 1px solid var(--pg-line); background: var(--pg-card); color: var(--pg-fg);
+	}
+	.ctrls button:hover { border-color: var(--pg-accent); }
+	.ctrls button[aria-pressed="true"] { background: var(--pg-accent); border-color: var(--pg-accent); color: #fff; }
+	.ctrls label { display: inline-flex; align-items: center; gap: 6px; color: var(--pg-muted); }
+	.seg { display: inline-flex; border: 1px solid var(--pg-line); border-radius: 7px; overflow: hidden; }
+	.seg button { border: 0; border-radius: 0; border-right: 1px solid var(--pg-line); }
+	.seg button:last-child { border-right: 0; }
+	.readout { font: 12px/1.4 ui-monospace, "SF Mono", Menlo, monospace; color: var(--pg-muted); background: #f1eff5; border-radius: 6px; padding: 3px 8px; }
+	.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+	@media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+	.shot { position: relative; overflow: hidden; box-shadow: 0 0 0 1px var(--pg-line); border-radius: 10px; background: #fff; }
+	.shot img { display: block; position: absolute; max-width: none; }
+	.shot .ann { position: absolute; border: 2px dashed #d64545; border-radius: 6px; pointer-events: none; }
+	.shot .ann span { position: absolute; left: 0; top: 100%; margin-top: 3px; background: #d64545; color: #fff; font: 700 11px/1.2 -apple-system, sans-serif; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+	.shot .ann.up span { top: auto; bottom: 100%; margin: 0 0 3px; }
+	.shot .ann.right span { left: auto; right: 0; }
+	.shot-cap { font-size: 12px; color: var(--pg-muted); margin-top: 4px; }
+	kbd { font: 600 11px/1 ui-monospace, "SF Mono", Menlo, monospace; padding: 2px 5px; border-radius: 4px; border: 1px solid var(--pg-line); background: #faf9fc; color: var(--pg-fg); }
+
+	/* ===================== Mock tokens: real Kokobrain tokens ===================== */
+	/* Light = built-in Lavender Haze, dark = KokoBrain Default (theme.logic.ts, app.css) */
+	.mock {
+		--bg: #F3F0F8; --fg: #302840; --muted-fg: #645c74; --primary: #6848A8; --primary-fg: #ffffff;
+		--tab-bar: #edeaf2; --divider: #C0B8D0; --border: #D5D0E2; --accent: #D5D0E2; --muted: #DDD8E8;
+		--fe-bg: #e8e7ec; --rs-bg: #EAE6F2; --status-bg: #efecf4; --status-fg: #645c74;
+		--tab-active: #302840; --tab-inactive: #504868; --popover: #ffffff; --ring: #6848A8; --input-bg: #ffffff;
+		--elev-1: #3028400f; --elev-2: #3028401a; --elev-3: #30284029; --elev-ring: #30284014; --scrim: #30284040;
+		--yellow: #907900; --green: #357458; --red: #C83848; --orange: #b66737; --blue: #3868B0; --purple: #7848B8; --teal: #397a8e;
+		--sel: #E8E2F2; --danger: #C83848;
+		--rail-bg: color-mix(in oklch, var(--fe-bg) 96%, black);
+		--nav-bg: var(--fe-bg);
+		--list-bg: color-mix(in oklch, var(--fe-bg) 50%, var(--bg));
+		--shadow-md: 0 0 0 1px var(--elev-ring), 0 4px 12px -2px var(--elev-2), 0 2px 4px -2px var(--elev-1);
+		--shadow-xl: 0 0 0 1px var(--elev-ring), 0 16px 40px -8px var(--elev-3), 0 4px 12px -4px var(--elev-2);
+		--radius: 10px;
+		color: var(--fg);
+	}
+	html[data-theme="dark"] .mock {
+		--bg: #2a2e3d; --fg: #F8F8F2; --muted-fg: oklch(0.55 0.06 268); --primary: #9ba3da; --primary-fg: #10131f;
+		--tab-bar: #5a5c79; --divider: #383a4f; --border: #242835; --accent: #242835; --muted: oklch(0.28 0.025 272);
+		--fe-bg: #262938; --rs-bg: #2a2e3d; --status-bg: #21222e; --status-fg: oklch(0.55 0.06 268);
+		--tab-active: #bac5ee; --tab-inactive: #9ca3c7; --popover: #333745; --ring: #9ba3da; --input-bg: #3d4058;
+		--elev-1: #00000040; --elev-2: #00000073; --elev-3: #00000099; --elev-ring: #ffffff0f; --scrim: #0000008c;
+		--yellow: #fbbf24; --green: #4ade80; --red: #f3333b; --orange: #fb8336; --blue: #60a5fa; --purple: #a78bfa; --teal: #52c4c4;
+		--sel: oklch(0.28 0.025 272); --danger: #f3333b;
+		--rail-bg: oklch(from var(--fe-bg) calc(l - 0.06) c h);
+		--nav-bg: oklch(from var(--fe-bg) calc(l - 0.03) c h);
+		--list-bg: var(--fe-bg);
+	}
+	.mock { font: 14px/20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-user-select: none; user-select: none; }
+	.mock * { box-sizing: border-box; }
+	.mock .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+	.mock svg.ic { flex-shrink: 0; display: block; }
+	.mock button { font: inherit; color: inherit; }
+
+	.win {
+		position: relative; display: flex; flex-direction: column; overflow: hidden;
+		background: var(--bg); color: var(--fg);
+		border: 1px solid var(--divider); border-radius: 10px;
+		margin: 0 auto;
+	}
+	.band { display: flex; height: 40px; flex-shrink: 0; box-shadow: inset 0 -1px 0 var(--divider); background: var(--tab-bar); }
+	.band .stub { width: 150px; flex-shrink: 0; display: flex; align-items: center; padding: 0 14px; font-weight: 600; font-size: 15px; background: var(--list-bg); border-right: 1px solid var(--divider); }
+	.band .rshead { width: 210px; flex-shrink: 0; display: flex; align-items: center; padding: 0 14px; font-weight: 600; font-size: 15px; color: var(--primary); background: var(--rs-bg); border-left: 1px solid var(--divider); }
+	.body { display: flex; flex: 1; min-height: 0; }
+	.body .lstub { width: 150px; flex-shrink: 0; background: var(--list-bg); border-right: 1px solid var(--divider); padding: 10px 12px; }
+	.body .ed { flex: 1; min-width: 0; background: var(--bg); padding: 16px 20px; }
+	.body .rs { width: 210px; flex-shrink: 0; background: var(--rs-bg); border-left: 1px solid var(--divider); padding: 10px 14px; }
+	.sk { height: 9px; border-radius: 5px; background: color-mix(in srgb, var(--muted-fg) 22%, transparent); margin: 9px 0; }
+	.sk.h { height: 16px; width: 46%; background: color-mix(in srgb, var(--primary) 40%, transparent); margin-bottom: 14px; }
+
+	.ib { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; border: 0; background: none; cursor: default; flex-shrink: 0; color: var(--tab-inactive); transition: background .12s, color .12s; }
+	.ib:hover { background: var(--muted); color: var(--fg); }
+	.ib[aria-pressed="true"] { color: var(--fg); }
+	.ib:disabled { opacity: .35; pointer-events: none; }
+	.ib:focus-visible, .rs-toggle:focus-visible, .crumb:focus-visible, .tab:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+	.vdiv { width: 1px; height: 16px; background: var(--border); margin: 0 4px; flex-shrink: 0; }
+	.pane-toolbar { display: flex; height: 40px; flex-shrink: 0; align-items: center; gap: 4px; padding: 0 12px; border-bottom: 1px solid var(--divider); background: var(--bg); color: var(--tab-inactive); }
+	.pane-toolbar .crumbs { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; font-size: 12px; line-height: 16px; }
+	.crumbs .cur { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.crumbs .sep { opacity: .6; }
+	.crumb { border: 0; background: none; padding: 2px 4px; margin: 0 -4px; border-radius: 4px; font-size: 12px; line-height: 16px; color: var(--tab-inactive); cursor: default; }
+	.crumb:hover { background: var(--muted); color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+	.kbdm { font: 600 11px/1 ui-monospace, "SF Mono", Menlo, monospace; padding: 2px 5px; border-radius: 4px; background: color-mix(in srgb, var(--muted-fg) 18%, transparent); color: var(--muted-fg); }
+
+	/* right sidebar toggle */
+	.rs-toggle { position: absolute; right: 8px; top: 7px; z-index: 20; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 6px; background: none; cursor: default; color: var(--fg); }
+	.rs-toggle:hover { background: var(--accent); }
+	.win.legacy .rs-toggle:focus { outline: none; }
+	.win:not(.legacy) .rs-toggle[aria-pressed="true"] { background: var(--accent); }
+
+	/* tabs */
+	.strip { flex: 1; min-width: 0; display: flex; align-items: flex-end; padding: 4px 4px 0; gap: 2px; background: var(--tab-bar); }
+	.win:not(.legacy) .strip.reserve { padding-right: 40px; }
+	.scroll-wrap { position: relative; flex: 1; min-width: 0; display: flex; align-items: flex-end; }
+	.scroller { position: relative; display: flex; align-items: flex-end; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+	.scroller::-webkit-scrollbar { display: none; }
+	.win.legacy .scroller { scrollbar-width: auto; }
+	.win.legacy .scroller::-webkit-scrollbar { display: block; height: 0; }
+	.fade { position: absolute; top: -4px; bottom: 0; width: 34px; pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 5; }
+	.fade.l { left: 0; background: linear-gradient(90deg, var(--tab-bar) 20%, transparent); }
+	.fade.r { right: 0; background: linear-gradient(270deg, var(--tab-bar) 20%, transparent); }
+	.fade.on { opacity: 1; }
+	.tab { position: relative; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; font-size: 14px; border-bottom: 2px solid transparent; border-radius: 8px 8px 0 0; background: var(--tab-bar); color: var(--tab-inactive); cursor: default; flex: 0 1 220px; min-width: 100px; transition: background .12s; }
+	.tab.pinned { padding: 0 8px; flex: 0 0 auto; min-width: 0; }
+	.win.legacy .tab { flex: 0 0 auto; min-width: 0; }
+	.win.legacy .tab .name { max-width: 10rem; }
+	.tab:hover { background: color-mix(in srgb, var(--muted) 30%, var(--tab-bar)); }
+	.tab.active { background: var(--bg); color: var(--tab-active); border-bottom-color: var(--primary); }
+	.tab .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.tab .tic { color: var(--muted-fg); }
+	.tab .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--fg); flex-shrink: 0; }
+	.tab .x { margin-left: 4px; width: 18px; height: 18px; border: 0; background: none; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; opacity: 0; flex-shrink: 0; cursor: default; }
+	.tab:hover .x, .tab.active .x, .tab:focus-within .x { opacity: 1; }
+	.tab .x:hover { background: var(--muted); }
+	.win:not(.legacy) .tab { padding: 0 10px; }
+	.win:not(.legacy) .tab.pinned { padding: 0 8px; }
+	.win:not(.legacy) .tab .x { position: absolute; right: 4px; top: 50%; margin: 0; transform: translateY(-50%); background: color-mix(in srgb, var(--muted) 30%, var(--tab-bar)); }
+	.win:not(.legacy) .tab.active .x { background: var(--bg); }
+	.win:not(.legacy) .tab .x:hover { background: var(--muted); }
+	.tab.dragging { opacity: .4; }
+	.dropmark { position: absolute; top: 2px; bottom: 0; width: 3px; border-radius: 2px; background: var(--primary); z-index: 6; pointer-events: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 25%, transparent); }
+	.listbtn { height: 28px; width: 26px; margin-bottom: 2px; flex-shrink: 0; border: 0; border-radius: 6px; background: none; display: inline-flex; align-items: center; justify-content: center; color: var(--tab-inactive); cursor: default; position: relative; }
+	.listbtn:hover, .listbtn[aria-expanded="true"] { background: color-mix(in srgb, var(--muted) 60%, var(--tab-bar)); color: var(--fg); }
+	.listbtn:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+	.listbtn .cnt { position: absolute; top: -2px; right: -3px; background: var(--primary); color: var(--primary-fg); font-size: 9px; line-height: 12px; font-weight: 700; min-width: 12px; padding: 0 3px; border-radius: 6px; text-align: center; }
+	.pop { position: absolute; z-index: 40; background: var(--popover); color: var(--fg); border-radius: 10px; box-shadow: var(--shadow-xl); padding: 4px; font-size: 13px; }
+	.pop .mi { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; cursor: default; min-width: 0; }
+	.pop .mi:hover, .pop .mi.hl { background: var(--muted); }
+	.pop .mi .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.pop .mi .sub { color: var(--muted-fg); font-size: 11px; margin-left: 8px; flex-shrink: 0; }
+	.pop .mi.active .t { color: var(--primary); font-weight: 600; }
+	.pop .mi .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--fg); flex-shrink: 0; }
+	.pop .mi .dotslot { width: 8px; flex-shrink: 0; display: inline-flex; }
+	.pop .mi.danger { color: var(--danger); }
+	.pop .sepl { height: 1px; background: var(--border); margin: 4px -4px; }
+	.pop .hd { padding: 5px 8px 3px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted-fg); }
+	.tip { position: fixed; z-index: 1000; pointer-events: none; background: var(--popover); color: var(--fg); border-radius: 8px; box-shadow: var(--shadow-md); padding: 6px 9px; font-size: 12px; line-height: 16px; max-width: 320px; opacity: 0; transition: opacity .12s; }
+	.tip.on { opacity: 1; }
+	.tip b { display: block; font-weight: 600; }
+	.tip span { color: var(--muted-fg); word-break: break-all; }
+	.tip em { display: block; font-style: normal; color: var(--primary); margin-top: 2px; }
+
+	/* palette */
+	.scrim { position: absolute; inset: 0; z-index: 50; background: transparent; display: flex; justify-content: center; align-items: flex-start; padding-top: 52px; }
+	.palette { width: min(440px, 92%); background: var(--popover); border-radius: 12px; box-shadow: var(--shadow-xl); overflow: hidden; }
+	.palette .pin { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--muted-fg); }
+	.palette input { flex: 1; border: 0; background: none; outline: none; font: inherit; font-size: 14px; color: var(--fg); min-width: 0; -webkit-user-select: text; user-select: text; }
+	.palette .rows { max-height: 250px; overflow-y: auto; padding: 4px; }
+	.palette .row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; cursor: default; }
+	.palette .row .rt { flex: 1; min-width: 0; }
+	.palette .row .rt div:first-child { font-size: 14px; line-height: 18px; }
+	.palette .row .rt div:last-child { font-size: 11px; line-height: 14px; color: var(--muted-fg); }
+	.palette .row.sel { background: color-mix(in srgb, var(--primary) 16%, var(--popover)); }
+	.palette .row .stat { font-size: 11px; color: var(--muted-fg); }
+	.palette .row .stat.on { color: var(--green); }
+	.palette .empty { padding: 14px; text-align: center; color: var(--muted-fg); font-size: 13px; }
+	.palette .hint { display: flex; gap: 12px; padding: 6px 12px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted-fg); }
+
+	.toast { position: absolute; left: 50%; bottom: 14px; transform: translate(-50%, 10px); background: var(--popover); color: var(--fg); box-shadow: var(--shadow-xl); border-radius: 10px; padding: 8px 14px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; z-index: 70; white-space: nowrap; max-width: 90%; overflow: hidden; text-overflow: ellipsis; }
+	.toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+	/* rail / list common */
+	.rail { width: 150px; flex-shrink: 0; background: var(--rail-bg); padding: 10px 8px; overflow: hidden; }
+	.rail .sec { font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted-fg); padding: 10px 8px 4px; }
+	.rail .ri { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border-radius: 8px; font-size: 13px; line-height: 18px; cursor: default; color: var(--fg); }
+	.rail .ri:hover { background: color-mix(in srgb, var(--muted) 60%, transparent); }
+	.rail .ri.sel { background: color-mix(in srgb, var(--primary) 22%, transparent); color: var(--fg); font-weight: 500; }
+	.rail .ri .cnt { margin-left: auto; font-size: 10px; font-weight: 700; background: #3b82f6; color: #fff; border-radius: 999px; padding: 0 6px; line-height: 15px; }
+	.rail .ri .k { margin-left: auto; }
+	.rail .ri.new { animation: pulse-new 1.4s ease-out 1; }
+	@keyframes pulse-new { 0% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 45%, transparent); } 100% { box-shadow: 0 0 0 3px transparent; } }
+	.nl { width: 200px; flex-shrink: 0; background: var(--list-bg); border-right: 1px solid var(--divider); display: flex; flex-direction: column; min-height: 0; }
+	.nl .nlh { height: 40px; flex-shrink: 0; display: flex; align-items: center; padding: 0 12px; gap: 6px; font-size: 15px; font-weight: 600; box-shadow: inset 0 -1px 0 var(--divider); }
+	.nl .nlh small { font-size: 11px; font-weight: 500; color: var(--muted-fg); margin-left: auto; }
+	.nl .scope { font-size: 11px; line-height: 16px; padding: 4px 12px; color: var(--muted-fg); border-bottom: 1px solid var(--divider); }
+	.nl .rowsw { flex: 1; overflow-y: auto; padding: 4px; }
+	.nl .nr { display: block; position: relative; padding: 6px 10px; border-radius: 8px; cursor: default; border: 1px solid transparent; }
+	.nl .nr .rt { font-size: 14px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.nl .nr .rs2 { font-size: 11px; line-height: 14px; color: var(--muted-fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.nl .nr:hover { background: color-mix(in srgb, var(--muted) 50%, transparent); }
+	.nl .nr.cur { background: color-mix(in srgb, var(--primary) 16%, transparent); }
+	.nl .nr.cur .rt { color: var(--primary); }
+	.nl .nr.kfocus { outline: 2px solid var(--ring); outline-offset: -2px; }
+	.nl .nr.flash { animation: flash 1.6s ease-out 1; }
+	@keyframes flash { 0%, 30% { background: color-mix(in srgb, var(--yellow) 40%, transparent); } 100% { background: transparent; } }
+	.nl .nr input { width: 100%; border: 0; outline: 2px solid var(--ring); border-radius: 4px; background: var(--input-bg); color: var(--fg); font: inherit; font-size: 14px; padding: 0 4px; -webkit-user-select: text; user-select: text; }
+	.nbody { flex: 1; padding: 14px 22px; overflow: hidden; font-size: 13px; line-height: 21px; }
+	.nbody h4 { margin: 0 0 8px; font: 700 20px/26px ui-monospace, "SF Mono", Menlo, monospace; color: var(--primary); }
+	.nbody p { margin: 0 0 8px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; }
+	.nbody a.wl { color: var(--purple); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--purple) 45%, transparent); text-underline-offset: 2px; cursor: pointer; }
+	.nbody a.wl:hover { text-decoration-color: var(--purple); }
+
+	.focusbox { outline: 2px solid var(--ring); outline-offset: -2px; }
+	.fchip { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--primary) 18%, var(--bg)); color: var(--primary); }
+	.caret { display: inline-block; width: 2px; height: 14px; background: var(--fg); vertical-align: middle; animation: blink 1s steps(1) infinite; }
+	@keyframes blink { 50% { opacity: 0; } }
+
+	/* status bar */
+	.sbar { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; padding: 0 8px; border-top: 1px solid var(--border); background: var(--status-bg); color: var(--status-fg); font-size: 12px; line-height: 16px; }
+	.sbar .grp { display: flex; align-items: center; gap: 12px; }
+	.sbar .grp > *:not(:first-child)::before { content: ""; display: inline-block; width: 1px; height: 12px; margin-right: 12px; background: var(--status-fg); opacity: .3; vertical-align: middle; }
+	.sbar .sv { display: inline-flex; align-items: center; gap: 4px; }
+	.sbar .sv.mod { color: var(--muted-fg); }
+	.sbar .sv .pulse { animation: pulse 2s cubic-bezier(.4, 0, .6, 1) infinite; }
+	@keyframes pulse { 50% { opacity: .5; } }
+	.sbar .slot { min-width: 76px; justify-content: flex-start; }
+	.sbar .slot.none { animation: none; }
+
+	/* zoom */
+	.zoomchip { position: absolute; right: 12px; bottom: 36px; z-index: 30; display: inline-flex; align-items: center; gap: 6px; background: var(--popover); color: var(--fg); box-shadow: var(--shadow-md); border-radius: 999px; padding: 4px 11px 4px 9px; font-size: 12px; font-weight: 600; opacity: 0; transform: translateY(6px); transition: opacity .18s, transform .18s; border: 0; cursor: default; }
+	.zoomchip.on { opacity: 1; transform: none; }
+	.zoomchip:hover { color: var(--primary); }
+	.zoomchip .rst { font-weight: 400; color: var(--muted-fg); margin-left: 2px; display: none; }
+	.zoomchip:hover .rst { display: inline; }
+
+	/* menu bar (macOS) */
+	.macbar { display: flex; align-items: center; height: 26px; padding: 0 10px; gap: 2px; font: 13px/1 -apple-system, BlinkMacSystemFont, sans-serif; background: color-mix(in srgb, var(--tab-bar) 75%, var(--bg)); border-bottom: 1px solid var(--divider); position: relative; z-index: 60; color: var(--fg); }
+	.macbar .mb { padding: 4px 9px; border-radius: 5px; cursor: default; border: 0; background: none; font-weight: 400; }
+	.macbar .mb.first { font-weight: 700; }
+	.macbar .mb:hover, .macbar .mb.open { background: var(--primary); color: var(--primary-fg); }
+	.macbar .mb.new { box-shadow: 0 0 0 2px color-mix(in srgb, var(--green) 55%, transparent); }
+	.macmenu { position: absolute; top: 26px; min-width: 230px; background: var(--popover); border-radius: 8px; box-shadow: var(--shadow-xl); padding: 5px; font-size: 13px; z-index: 65; }
+	.macmenu .mm { display: flex; align-items: center; gap: 10px; padding: 3px 10px; border-radius: 4px; cursor: default; position: relative; line-height: 20px; }
+	.macmenu .mm:hover:not(.dis) { background: var(--primary); color: var(--primary-fg); }
+	.macmenu .mm.dis { color: var(--muted-fg); }
+	.macmenu .mm .sc { margin-left: auto; color: inherit; opacity: .6; }
+	.macmenu .msep { height: 1px; background: var(--border); margin: 4px 6px; }
+	.macmenu .sub { position: absolute; left: 100%; top: -5px; min-width: 210px; background: var(--popover); border-radius: 8px; box-shadow: var(--shadow-xl); padding: 5px; display: none; color: var(--fg); }
+	.macmenu .mm:hover > .sub { display: block; }
+	.macmenu .mm .sub .mm:hover { background: var(--primary); color: var(--primary-fg); }
+
+	/* right sidebar panels */
+	.panel { border-bottom: 1px solid var(--divider); }
+	.panel .ph { display: flex; align-items: center; gap: 6px; height: 40px; padding: 0 10px 0 12px; color: var(--primary); font-weight: 600; font-size: 14px; cursor: default; position: relative; }
+	.panel .ph .more { margin-left: auto; opacity: 0; width: 24px; height: 24px; }
+	.panel .ph:hover .more, .panel .ph .more[aria-expanded="true"], .panel .ph .more:focus-visible { opacity: 1; }
+	.panel .pb { padding: 4px 14px 12px 30px; font-size: 12px; color: var(--muted-fg); }
+
+	/* sheet */
+	.sheet { position: absolute; right: 0; top: 0; bottom: 0; width: min(560px, 96%); z-index: 55; background: var(--bg); box-shadow: var(--shadow-xl); display: flex; animation: slidein .2s ease-out; }
+	@keyframes slidein { from { transform: translateX(40px); opacity: 0; } }
+	.sheet .snav { width: 170px; background: var(--rs-bg); padding: 12px 10px; font-size: 13px; overflow: hidden; border-right: 1px solid var(--divider); }
+	.sheet .snav h5 { margin: 0 6px 8px; font-size: 18px; font-weight: 600; }
+	.sheet .snav .sh { font-size: 10px; font-weight: 700; letter-spacing: .06em; color: var(--muted-fg); padding: 10px 8px 3px; }
+	.sheet .snav .si { padding: 5px 8px; border-radius: 6px; }
+	.sheet .snav .si.sel { background: var(--accent); }
+	.sheet .scon { flex: 1; padding: 16px 18px; min-width: 0; }
+	.sheet .scon h5 { margin: 0 0 12px; font-size: 17px; font-weight: 600; }
+	.trow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--muted) 70%, var(--bg)); margin-bottom: 6px; }
+	.trow .tt { flex: 1; min-width: 0; font-size: 13px; }
+	.trow .tt small { display: block; color: var(--muted-fg); font-size: 11px; }
+	.sbtn { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); cursor: default; }
+	.sbtn:hover { background: var(--muted); }
+	.sbtn.danger { color: var(--danger); }
+	.emptyhint { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 20px; color: var(--muted-fg); }
+	.hintlist { margin-top: 14px; display: grid; gap: 4px; min-width: 280px; }
+	.hintrow { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; color: var(--fg); font-size: 13px; cursor: default; border: 1px solid transparent; }
+	.hintrow:hover { background: color-mix(in srgb, var(--muted) 60%, transparent); border-color: var(--border); }
+	.hintrow .kbdm { margin-left: auto; }
+	.hintrow .ic { color: var(--muted-fg); }
+
+	/* kanban/canvas/collection mock */
+	.lanes { display: flex; gap: 10px; padding: 12px; overflow: hidden; }
+	.lane { width: 180px; flex-shrink: 0; background: color-mix(in srgb, var(--muted) 55%, var(--bg)); border-radius: 10px; padding: 8px; }
+	.lane h6 { margin: 0 0 8px; font-size: 12.5px; font-weight: 600; padding: 0 2px; }
+	.lane h6 span { color: var(--muted-fg); font-weight: 400; margin-left: 4px; }
+	.card { background: var(--popover); border-radius: 8px; padding: 7px 9px; margin-bottom: 6px; font-size: 12.5px; line-height: 17px; box-shadow: var(--shadow-md); }
+	.card .tag { font-size: 10.5px; padding: 0 5px; border-radius: 4px; background: color-mix(in srgb, var(--purple) 18%, transparent); color: var(--purple); }
+	.canvasarea { position: relative; height: 270px; background-image: radial-gradient(color-mix(in srgb, var(--muted-fg) 35%, transparent) 1px, transparent 1px); background-size: 18px 18px; overflow: hidden; }
+	.cnode { position: absolute; border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 16px; border: 2px solid; background: color-mix(in srgb, var(--bg) 80%, transparent); }
+	.minimap { position: absolute; right: 10px; bottom: 10px; width: 96px; height: 62px; border-radius: 6px; background: color-mix(in srgb, var(--muted-fg) 40%, transparent); border: 2px solid var(--popover); }
+	.srcview { padding: 12px 0; font: 12px/18px ui-monospace, "SF Mono", Menlo, monospace; height: 270px; overflow: hidden; background: var(--bg); }
+	.srcview div { display: flex; }
+	.srcview div i { width: 36px; text-align: right; padding-right: 10px; color: var(--muted-fg); font-style: normal; opacity: .6; flex-shrink: 0; }
+	.srcview div span { white-space: pre; }
+	.vtable { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+	.vtable th { text-align: left; font-weight: 500; color: var(--muted-fg); padding: 8px 12px; border-bottom: 1px solid var(--divider); }
+	.vtable td { padding: 6px 12px; border-bottom: 1px solid var(--divider); }
+	.redline .pane-toolbar, .redline .band { outline: 1px dashed #d64545; outline-offset: -1px; position: relative; }
+	.redline .pane-toolbar::after, .redline .band .mrk::after { content: "h-10 / 40px"; position: absolute; right: 6px; bottom: 2px; font: 700 9px/1 -apple-system, sans-serif; color: #d64545; }
+	.chip { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border-radius: 6px; font-size: 12px; border: 1px solid var(--border); background: var(--bg); cursor: default; color: var(--tab-inactive); }
+	.chip:hover { background: var(--muted); color: var(--fg); }
+	.chip[aria-pressed="true"] { background: color-mix(in srgb, var(--primary) 16%, var(--bg)); color: var(--primary); border-color: transparent; }
+	.vsw { display: inline-flex; border-radius: 6px; background: var(--muted); padding: 2px; gap: 1px; }
+	.vsw button { border: 0; background: none; width: 24px; height: 22px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; color: var(--tab-inactive); cursor: default; }
+	.vsw button[aria-pressed="true"] { background: var(--bg); color: var(--primary); box-shadow: var(--shadow-sm, 0 1px 2px var(--elev-1)); }
+	.titlechip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tab-inactive); }
+	.titlechip b { font-weight: 600; color: var(--fg); }
+	.histchips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 12px; margin: 4px 0; }
+	.histchips .hc { padding: 1px 8px; border-radius: 999px; border: 1px solid var(--pg-line); background: #fff; }
+	.histchips .hc.now { background: var(--pg-accent); color: #fff; border-color: var(--pg-accent); font-weight: 700; }
+	.ctxmenu { position: absolute; z-index: 60; }
+	[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="topbar"><div class="topbar-in">
+	<h1>App shell: tabs, history, headers, status bar and menus</h1>
+	<nav aria-label="Proposals">
+		<a href="#P34">P34</a><a href="#P35">P35</a><a href="#P18">P18</a><a href="#P98">P98</a><a href="#P102">P102</a><a href="#P37">P37</a><a href="#P36">P36</a><a href="#P103">P103</a><a href="#P97">P97</a><a href="#P99">P99</a><a href="#P104">P104</a><a href="#P105">P105</a><a href="#P176">P176</a>
+	</nav>
+	<div class="themebtn" role="group" aria-label="Theme of the After recreations">
+		<button id="thLight" aria-pressed="true">Light</button><button id="thDark" aria-pressed="false">Dark</button>
+	</div>
+</div></div>
+
+<main>
+<p class="intro">Throwaway prototype for the design review. Each proposal shows the current state (a crop of the real app, or a faithful recreation) and the proposed state, with the real Kokobrain tokens (Lavender Haze for light, KokoBrain Default for dark). The Light/Dark switch above changes every recreation; the screenshots are light only. Hover a window, then use the shortcuts it lists.</p>
+
+<!-- =============================== CLEAR =============================== -->
+<div class="tier-h">Clear wins</div>
+
+<section class="prop" id="P34">
+	<header><span class="pid">P34</span><h2 class="ptitle">The tab strip has no overflow cue or control, fixed 160 px titles, and no reorder</h2><span class="badge">clear</span></header>
+	<p class="problem">With five or more tabs the strip scrolls silently: the edge tab is clipped, there is no list of tabs, tabs never shrink, cannot be reordered and have no tooltip.</p>
+	<div class="lbl before">Before <small>real app, 5 tabs open</small></div>
+	<div class="shot" style="aspect-ratio:1440/160"><img src="../screens/tabs-bar-several-light.png" alt="Tab strip with the left tab clipped" style="left:0;top:0;width:100%">
+		<div class="ann" style="left:36.5%;top:8%;width:6.6%;height:62%"><span>5th tab clipped, no cue</span></div>
+	</div>
+	<div class="lbl after">After <small>flex 220 to 100 px, edge fades, list of tabs, drag marker, full-path tooltip, wheel scrolls sideways</small></div>
+	<div class="ctrls">
+		<button id="p34-add">Open another tab</button><button id="p34-close">Close last tab</button><button id="p34-reset">Reset</button>
+		<label>Window width <input type="range" id="p34-w" min="600" max="1100" value="900"></label>
+		<span class="readout" id="p34-read"></span>
+	</div>
+	<div id="p34-host"></div>
+	<p class="note">Try it: open tabs until they shrink to 100 px and the strip starts to scroll (edge fades appear, the chevron shows a hidden count), drag a tab to reorder (pinned tabs stay first), hover a tab for the full path, scroll the wheel over the strip, open the list with the chevron.</p>
+</section>
+
+<section class="prop" id="P35">
+	<header><span class="pid">P35</span><h2 class="ptitle">There is no navigation history: every open adds a tab, and there is no Back</h2><span class="badge">clear</span></header>
+	<p class="problem">Following a link or clicking a row appends or focuses a tab, there is no Back or Forward, and "Open in new tab" does the same as a plain click.</p>
+	<div class="lbl before">Before <small>real app action bar: breadcrumb, star, check, source, more</small></div>
+	<div class="shot" style="aspect-ratio:650/100;max-width:650px"><img src="../screens/note-action-bar-light.png" alt="Action bar with no back or forward" style="left:0;top:0;width:100%">
+		<div class="ann" style="left:3%;top:30%;width:36%;height:34%"><span>no Back / Forward</span></div>
+	</div>
+	<div class="lbl after">After <small>Back and Forward in the action bar, a history per tab</small></div>
+	<div class="decision"><b>Owner decision:</b> should a plain click replace the active unpinned tab instead of adding one? Cmd+click, middle-click and "Open in new tab" always add a tab. Switch the policy below. <i>Downside of Replace:</i> a large behavior change (a tab you meant to keep gets overwritten, though Back undoes it). <i>Alternative:</i> keep today's behavior and only rename "Open in new tab" to "Open", relying on P34 for tab sprawl.</div>
+	<div class="ctrls">
+		<span class="seg" id="p35-mode"><button data-v="replace" aria-pressed="true">Plain click replaces the tab (proposed)</button><button data-v="add" aria-pressed="false">Plain click adds a tab (today)</button></span>
+		<button id="p35-reset">Reset</button>
+		<span class="note" style="margin:0">Shortcuts while hovering the window: <kbd>Cmd</kbd><kbd>Opt</kbd><kbd>Left</kbd> / <kbd>Right</kbd>, or mouse buttons 4 and 5. <kbd>Cmd</kbd><kbd>[</kbd> stays indent in the editor.</span>
+	</div>
+	<div id="p35-host"></div>
+	<div id="p35-hist" style="margin-top:8px"></div>
+	<p class="note">Click a link in the note, click a row in the list, Cmd+click a row, or right-click a row. Tab 2 keeps its own history.</p>
+</section>
+
+<!-- =============================== MODERATE =============================== -->
+<div class="tier-h">Moderate</div>
+
+<section class="prop" id="P18">
+	<header><span class="pid">P18</span><h2 class="ptitle">Every view builds its own header, and kanban, canvas and .view tabs lack note chrome</h2><span class="badge">moderate</span></header>
+	<p class="problem">Kanban, canvas and collection tabs have no title, the source toggle sits in a different corner for each, the canvas toolbar floats on a magic offset, and Cmd+\ does nothing for them.</p>
+	<div class="lbl before">Before <small>real app, kanban / canvas / .view</small></div>
+	<div class="grid2" style="grid-template-columns:repeat(3,1fr)">
+		<div><div class="shot" style="aspect-ratio:860/600"><img src="../screens/kanban-board-light.png" alt="Kanban before" style="left:-67.44%;top:0;width:167.44%">
+			<div class="ann" style="left:1.2%;top:6%;width:46%;height:4.2%"><span>no title</span></div>
+			<div class="ann up right" style="left:90%;top:93%;width:6.5%;height:6%"><span>source: bottom-right</span></div></div></div>
+		<div><div class="shot" style="aspect-ratio:860/600"><img src="../screens/canvas-view-light.png" alt="Canvas before" style="left:-67.44%;top:0;width:167.44%">
+			<div class="ann right" style="left:90.5%;top:7.5%;width:6.5%;height:6%"><span>source: top-right</span></div>
+			<div class="ann" style="left:1.2%;top:70%;width:4.2%;height:30%"><span>floating, magic offset</span></div></div></div>
+		<div><div class="shot" style="aspect-ratio:860/600"><img src="../screens/view-file-table-light.png" alt="View before" style="left:-67.44%;top:0;width:167.44%">
+			<div class="ann" style="left:1.2%;top:6%;width:30%;height:4.2%"><span>view tabs, no title</span></div>
+			<div class="ann up right" style="left:90%;top:93%;width:6.5%;height:6%"><span>source: bottom-right</span></div></div></div>
+	</div>
+	<div class="lbl after">After <small>one slim header row (the existing pane-toolbar) with title, view controls and the source toggle at the same end; Cmd+\ flips the tab's own source mode</small></div>
+	<div class="ctrls">
+		<span class="seg" id="p18-tab"><button data-v="kanban" aria-pressed="true">Board.kanban</button><button data-v="canvas" aria-pressed="false">Brainstorm.canvas</button><button data-v="view" aria-pressed="false">Active.view</button></span>
+		<button id="p18-red" aria-pressed="false">Show band heights</button>
+		<span class="note" style="margin:0">Click the source button or hover the window and press <kbd>Cmd</kbd><kbd>\</kbd>. Favorite and pin-to-rail are not added for these files (they write frontmatter).</span>
+	</div>
+	<div id="p18-host"></div>
+</section>
+
+<section class="prop" id="P98">
+	<header><span class="pid">P98</span><h2 class="ptitle">The right sidebar toggle covers the tab strip and is not accessible</h2><span class="badge">moderate</span></header>
+	<p class="problem">While the right sidebar is hidden, the toggle sits on top of the last tab and its close button; it has no pressed state and no focus ring.</p>
+	<div class="ctrls"><button id="p98-scroll">Scroll both strips to the end</button><span class="note" style="margin:0">Press Tab in the After window to see the focus ring, then Enter to toggle.</span></div>
+	<div class="lbl before">Before <small>recreation, right sidebar hidden</small></div>
+	<div id="p98-before"></div>
+	<div class="lbl after">After <small>the strip end is padded by the toggle width; the toggle has aria-pressed, a pressed fill and a focus ring</small></div>
+	<div id="p98-after"></div>
+</section>
+
+<section class="prop" id="P102">
+	<header><span class="pid">P102</span><h2 class="ptitle">Nothing in the open note leads back to where it lives</h2><span class="badge">moderate</span></header>
+	<p class="problem">The breadcrumb is static text with the .md extension, and nothing reveals the open note in the app's own note list (only Reveal in Finder).</p>
+	<div class="lbl before">Before <small>real app</small></div>
+	<div class="shot" style="aspect-ratio:650/100;max-width:650px"><img src="../screens/note-action-bar-light.png" alt="Static breadcrumb" style="left:0;top:0;width:100%">
+		<div class="ann" style="left:4%;top:30%;width:36%;height:34%"><span>static text, ends in .md</span></div>
+	</div>
+	<div class="lbl after">After <small>clickable type, folder and name; "Reveal in note list" in the More menu and the palette</small></div>
+	<div class="ctrls">
+		<label>Open note <select id="p102-note"></select></label>
+		<button id="p102-pal">Open palette (Reveal in note list)</button>
+		<button id="p102-reset">Reset list</button>
+	</div>
+	<div id="p102-host"></div>
+	<p class="note">Type segment opens the Types lens for that type; a folder segment opens the Files lens at that folder; "Reveal in note list" jumps to the note's folder, scrolls and highlights the row. The file name drops .md.</p>
+</section>
+
+<section class="prop" id="P37">
+	<header><span class="pid">P37</span><h2 class="ptitle">The keyboard can open a lens but not enter it; rail items have no shortcuts</h2><span class="badge">moderate</span></header>
+	<p class="problem">After "Go to Inbox" focus stays in the editor, "New here" has no command, and rail items have no direct keys.</p>
+	<div class="ctrls">
+		<span>Palette command:</span>
+		<button id="p37-inbox">Go to Inbox</button><button id="p37-today">Go to Today</button><button id="p37-new">New note here</button><button id="p37-reset">Reset</button>
+	</div>
+	<div class="grid2">
+		<div><div class="lbl before">Before <small>recreation</small></div><div id="p37-before"></div></div>
+		<div><div class="lbl after">After <small>focus lands on the first row; hover then press Up, Down, Enter</small></div><div id="p37-after"></div></div>
+	</div>
+	<div class="decision"><b>Owner decision:</b> direct keys for rail items. Pick which one to preview in the After rail. Cmd+1 and Cmd+2 stay as hide/show rail panels (ADR-0033) and Cmd+0 stays reset zoom, so Cmd+1..9 is not an option unless ADR-0033 is amended. <span class="ctrls" style="display:inline-flex;margin:0 0 0 8px"><span class="seg" id="p37-keys"><button data-v="ctrl" aria-pressed="true">Ctrl+1..9</button><button data-v="opt" aria-pressed="false">Cmd+Opt+1..9</button><button data-v="off" aria-pressed="false">None</button></span></span></div>
+</section>
+
+<section class="prop" id="P36">
+	<header><span class="pid">P36</span><h2 class="ptitle">'Calendar' names two places, and Tasks, Graph and Tags have no visible entry point</h2><span class="badge">moderate</span></header>
+	<p class="problem">The rail's "Calendar" is the periodic-notes navigator while the Calendar tab is the event calendar; Calendar Undo and Redo are filed under Navigation.</p>
+	<div class="lbl before">Before <small>real app: rail and palette filtered by "cal"</small></div>
+	<div class="grid2" style="grid-template-columns:190px minmax(0,512px);align-items:start">
+		<div class="shot" style="aspect-ratio:190/290"><img src="../screens/rail-calendar-light.png" alt="Rail before" style="left:0;top:-13.8%;width:757.9%">
+			<div class="ann" style="left:3%;top:76%;width:94%;height:10%"><span>"Calendar" rail lens</span></div></div>
+		<div class="shot" style="aspect-ratio:512/350"><img src="../screens/command-palette-filtered-light.png" alt="Palette before" style="left:-90.6%;top:-78.9%;width:281.25%">
+			<div class="ann" style="left:1.5%;top:18%;width:97%;height:29%"><span>Calendar: Undo / Redo filed under Navigation</span></div></div>
+	</div>
+	<div class="lbl after">After <small>rail item renamed, palette Calendar commands share a "Calendar" category</small></div>
+	<div class="ctrls">
+		<span>Rail name:</span><span class="seg" id="p36-name"><button data-v="Journal" aria-pressed="true">Journal</button><button data-v="Days" aria-pressed="false">Days</button></span>
+		<button id="p36-opt" aria-pressed="false">Optional: tab entries in the rail (Tasks, Graph, Tags)</button>
+		<button id="p36-pal">Open palette</button>
+	</div>
+	<div id="p36-host"></div>
+	<p class="note">The optional tab entries are hideable and reorderable in Settings > Layout, and need an ADR-0033 amendment because every rail pick is currently a lens. Tags gets a shortcut only if the owner wants one.</p>
+</section>
+
+<section class="prop" id="P103">
+	<header><span class="pid">P103</span><h2 class="ptitle">The macOS menu bar holds almost nothing</h2><span class="badge">moderate</span></header>
+	<p class="problem">Only KokoBrain, Edit and Window menus exist, and there is no way to switch vaults while one is open.</p>
+	<div class="lbl before">Before <small>recreation of the menus in lib.rs</small></div>
+	<div id="p103-before" style="min-height:230px"></div>
+	<div class="lbl after">After <small>a File menu with Open Vault and Open Recent, and "Switch vault" in the palette</small></div>
+	<div class="ctrls"><button id="p103-pal">Open palette ("switch")</button><span class="note" style="margin:0">Open the File menu, hover Open Recent.</span></div>
+	<div id="p103-after" style="min-height:260px"></div>
+</section>
+
+<!-- =============================== POLISH =============================== -->
+<div class="tier-h">Polish (last)</div>
+
+<section class="prop" id="P97">
+	<header><span class="pid">P97</span><h2 class="ptitle">The empty editor is a dead end beside empty sidebar chrome</h2><span class="badge">polish</span></header>
+	<p class="problem">With no tab open the editor shows one line of text next to a right sidebar that says "No file open" under three panel headers.</p>
+	<div class="lbl before">Before <small>real app</small></div>
+	<div class="shot" style="aspect-ratio:860/870;max-width:520px"><img src="../screens/editor-empty-state-light.png" alt="Empty editor before" style="left:-67.44%;top:0;width:167.44%">
+		<div class="ann" style="left:22%;top:48.5%;width:26%;height:4%"><span>one line</span></div>
+		<div class="ann right" style="left:71%;top:4.6%;width:28%;height:25%"><span>"No file open" + 3 panel headers</span></div></div>
+	<div class="lbl after">After <small>right sidebar hidden while no tab is open (saved setting untouched), a hint card with shortcuts</small></div>
+	<div class="ctrls"><button id="p97-open">Open a note</button><button id="p97-close">Close all tabs</button><span class="readout" id="p97-read"></span></div>
+	<div id="p97-host"></div>
+</section>
+
+<section class="prop" id="P99">
+	<header><span class="pid">P99</span><h2 class="ptitle">Zoom gives no feedback and is not persisted</h2><span class="badge">polish</span></header>
+	<p class="problem">Cmd+= changes the scale silently and it resets to 100% at the next launch.</p>
+	<div class="ctrls">
+		<button id="p99-in">Zoom in <kbd>Cmd</kbd><kbd>=</kbd></button><button id="p99-out">Zoom out <kbd>Cmd</kbd><kbd>-</kbd></button><button id="p99-rst">Reset <kbd>Cmd</kbd><kbd>0</kbd></button><button id="p99-relaunch">Relaunch the app</button><span class="readout" id="p99-read"></span>
+	</div>
+	<div class="grid2">
+		<div><div class="lbl before">Before <small>silent, resets on launch</small></div><div id="p99-before"></div></div>
+		<div><div class="lbl after">After <small>chip on change (click to reset), factor kept in settings</small></div><div id="p99-after"></div></div>
+	</div>
+</section>
+
+<section class="prop" id="P104">
+	<header><span class="pid">P104</span><h2 class="ptitle">Sidebar panels and feature settings can be reached only through the Settings sheet</h2><span class="badge">polish</span></header>
+	<p class="problem">Properties, Backlinks and Outgoing links can only be hidden in Settings > Layout; each header menu has nothing to hide the panel.</p>
+	<div class="lbl before">Before <small>real app right sidebar</small></div>
+	<div class="shot" style="aspect-ratio:250/330;max-width:250px"><img src="../screens/right-sidebar-default-light.png" alt="Right sidebar before" style="left:-476%;top:-169.7%;width:576%"><div class="ann" style="left:2%;top:18%;width:96%;height:32%"><span>no way to hide a panel here</span></div></div>
+	<div class="lbl after">After <small>palette toggles and "Hide panel" in each header menu</small></div>
+	<div class="ctrls"><button id="p104-pal">Open palette</button><button id="p104-reset">Show all panels</button><span class="note" style="margin:0">Hover a panel header and use its menu, or run a toggle from the palette.</span></div>
+	<div id="p104-host"></div>
+</section>
+
+<section class="prop" id="P105">
+	<header><span class="pid">P105</span><h2 class="ptitle">Trash can be browsed only from inside Settings</h2><span class="badge">polish</span></header>
+	<p class="problem">Archive is a lens while Trash is a Settings page; no command takes you there.</p>
+	<div class="lbl before">Before <small>real app: Settings, Trash</small></div>
+	<div class="shot" style="aspect-ratio:1440/900;max-width:620px"><img src="../screens/settings-trash-light.png" alt="Trash before" style="left:0;top:0;width:100%"><div class="ann" style="left:43%;top:57%;width:12%;height:4%"><span>only entry: Settings > Trash</span></div></div>
+	<div class="lbl after">After <small>"Open Trash" in the palette opens Settings straight on Trash</small></div>
+	<div class="ctrls"><button id="p105-pal">Open palette</button><button id="p105-reset">Reset trash</button></div>
+	<div id="p105-host"></div>
+</section>
+
+<section class="prop" id="P176">
+	<header><span class="pid">P176</span><h2 class="ptitle">The status bar is tall for passive text, and the save indicator pulses and shifts</h2><span class="badge">polish</span></header>
+	<p class="problem">32 px for 12 px text with nothing clickable, and "Modified" pulses and changes the width of the right group on every autosave.</p>
+	<div class="lbl before">Before <small>real app, right end of the status bar</small></div>
+	<div class="shot" style="aspect-ratio:440/38;max-width:700px"><img src="../screens/landing-today-light.png" alt="Status bar before" style="left:-227.3%;top:-2268%;width:327.3%"></div>
+	<div class="lbl after">Before vs After <small>live: both bars run the same autosave loop</small></div>
+	<div class="ctrls"><button id="p176-run" aria-pressed="true">Autosave loop: on</button><button id="p176-step">Toggle Saved / Modified once</button><span class="readout" id="p176-read"></span></div>
+	<div class="grid2">
+		<div><div class="lbl before" style="margin-top:4px">32 px, pulsing dot, shifting</div><div id="p176-before"></div></div>
+		<div><div class="lbl after" style="margin-top:4px">24 px, still dot, fixed-width slot</div><div id="p176-after"></div></div>
+	</div>
+</section>
+</main>
+<div id="tipRoot" class="mock"></div>
+<script>
+(function () {
+'use strict';
+
+/* ============================== utilities ============================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* lucide icon paths (24x24, stroke 2, round caps) */
+const ICONS = {
+	'x': '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+	'file-text': '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+	'pin': '<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>',
+	'list-checks': '<path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>',
+	'network': '<rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/>',
+	'layout-dashboard': '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+	'kanban': '<path d="M6 5v11"/><path d="M12 5v6"/><path d="M18 5v14"/>',
+	'calendar-range': '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M17 14h-6"/><path d="M13 18H7"/><path d="M7 14h.01"/><path d="M17 18h.01"/>',
+	'calendar': '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+	'panel-right': '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/>',
+	'chevron-down': '<path d="m6 9 6 6 6-6"/>',
+	'chevron-right': '<path d="m9 18 6-6-6-6"/>',
+	'arrow-left': '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+	'arrow-right': '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+	'star': '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
+	'circle-check': '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+	'code': '<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>',
+	'ellipsis': '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+	'folder-open': '<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>',
+	'folder': '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+	'copy': '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+	'link': '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+	'archive': '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+	'trash': '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
+	'plus': '<path d="M5 12h14"/><path d="M12 5v14"/>',
+	'search': '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+	'sort': '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>',
+	'list': '<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
+	'table': '<path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/>',
+	'grid': '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+	'sliders': '<line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/>',
+	'zoom-in': '<circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/>',
+	'zoom-out': '<circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="8" x2="14" y1="11" y2="11"/>',
+	'maximize': '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
+	'type': '<polyline points="4 7 4 4 20 4 20 7"/><line x1="9" x2="15" y1="20" y2="20"/><line x1="12" x2="12" y1="4" y2="20"/>',
+	'check': '<path d="M20 6 9 17l-5-5"/>',
+	'inbox': '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+	'sun': '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+	'layers': '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+	'hash': '<line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="16" x2="14" y1="3" y2="21"/>',
+	'eye-off': '<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>',
+	'rotate-ccw': '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+	'clock': '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+	'circle': '<circle cx="12" cy="12" r="10"/>',
+	'external': '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+	'image': '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+	'square': '<rect width="18" height="18" x="3" y="3" rx="2"/>',
+	'filter': '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
+	'columns': '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/>',
+	'command': '<path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/>',
+	'file-plus': '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M9 15h6"/><path d="M12 18v-6"/>',
+	'lock': '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+	'rail-toggle': '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/>'
+};
+function ic(name, size = 16, cls = '') {
+	return '<svg class="ic ' + cls + '" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
+}
+function hydrateIcons(root) {
+	$$('i[data-i]', root).forEach((el) => { el.outerHTML = ic(el.dataset.i, +(el.dataset.s || 16), el.dataset.c || ''); });
+}
+
+/* ============================== theme ============================== */
+function setTheme(t) {
+	document.documentElement.dataset.theme = t;
+	$('#thLight').setAttribute('aria-pressed', t === 'light');
+	$('#thDark').setAttribute('aria-pressed', t === 'dark');
+}
+$('#thLight').onclick = () => setTheme('light');
+$('#thDark').onclick = () => setTheme('dark');
+
+/* ============================== tooltip ============================== */
+const tipRoot = $('#tipRoot');
+const tip = document.createElement('div');
+tip.className = 'tip';
+tipRoot.appendChild(tip);
+let tipTimer;
+function showTip(target, html, delay) {
+	clearTimeout(tipTimer);
+	tipTimer = setTimeout(() => {
+		tip.innerHTML = html;
+		const r = target.getBoundingClientRect();
+		tip.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 340)) + 'px';
+		tip.style.top = r.bottom + 6 + 'px';
+		tip.classList.add('on');
+	}, delay == null ? 350 : delay);
+}
+function hideTip() { clearTimeout(tipTimer); tip.classList.remove('on'); }
+document.addEventListener('mouseover', (e) => {
+	const t = e.target.closest ? e.target.closest('[data-tip]') : null;
+	if (t) {
+		showTip(t, '<b>' + esc(t.dataset.tip) + '</b>' + (t.dataset.tip2 ? '<span>' + esc(t.dataset.tip2) + '</span>' : ''), 450);
+	}
+});
+document.addEventListener('mouseout', (e) => {
+	const t = e.target.closest ? e.target.closest('[data-tip]') : null;
+	if (t && !t.contains(e.relatedTarget)) hideTip();
+});
+document.addEventListener('mousedown', hideTip, true);
+
+/* ============================== keyboard routing: the window under the pointer ============================== */
+let hoverMock = null;
+document.addEventListener('mouseover', (e) => {
+	const m = e.target.closest ? e.target.closest('.mock') : null;
+	hoverMock = m && m._onKey ? m : null;
+});
+document.addEventListener('keydown', (e) => {
+	if (hoverMock && hoverMock._onKey(e)) { e.preventDefault(); }
+});
+
+/* ============================== toast ============================== */
+function toast(win, msg) {
+	let t = $('.toast', win);
+	if (!t) { t = document.createElement('div'); t.className = 'toast'; win.appendChild(t); }
+	t.textContent = msg;
+	t.classList.add('on');
+	clearTimeout(t._h);
+	t._h = setTimeout(() => t.classList.remove('on'), 2200);
+}
+
+/* ============================== palette ============================== */
+function openPalette(win, o) {
+	closePalette(win);
+	const scrim = document.createElement('div');
+	scrim.className = 'scrim';
+	scrim.innerHTML = '<div class="palette" role="dialog" aria-label="Command palette"><div class="pin">' + ic('search', 15) + '<input type="text" spellcheck="false"><button class="ib" aria-label="Close" style="width:22px;height:22px">' + ic('x', 14) + '</button></div><div class="rows"></div><div class="hint"><span>Up/Down navigate</span><span>Enter run</span><span>Esc close</span></div></div>';
+	win.appendChild(scrim);
+	const input = $('input', scrim);
+	const rowsEl = $('.rows', scrim);
+	let items = o.items;
+	let sel = 0;
+	let filtered = [];
+	input.placeholder = o.placeholder || 'Type a command...';
+	input.value = o.query || '';
+	function render() {
+		const terms = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+		filtered = items.filter((it) => terms.every((t) => (it.title + ' ' + (it.cat || '')).toLowerCase().includes(t)));
+		if (sel >= filtered.length) sel = Math.max(0, filtered.length - 1);
+		if (!filtered.length) { rowsEl.innerHTML = '<div class="empty">No command matches</div>'; return; }
+		rowsEl.innerHTML = filtered.map((it, i) => '<div class="row ' + (i === sel ? 'sel' : '') + '" data-i="' + i + '"><div class="rt"><div>' + esc(it.title) + '</div><div>' + esc(it.cat || '') + '</div></div>' + (it.stat ? '<span class="stat ' + (it.on ? 'on' : '') + '">' + esc(it.stat) + '</span>' : '') + (it.keys ? '<span class="kbdm">' + esc(it.keys) + '</span>' : '') + '</div>').join('');
+		const s = $('.row.sel', rowsEl);
+		if (s) s.scrollIntoView({ block: 'nearest' });
+	}
+	const ctl = {
+		close() { scrim.remove(); if (o.onClose) o.onClose(); },
+		setItems(next, placeholder) { items = next; sel = 0; input.value = ''; if (placeholder) input.placeholder = placeholder; render(); input.focus(); },
+		el: scrim
+	};
+	function run(i) { const it = filtered[i]; if (!it) return; o.onRun(it, ctl); }
+	input.addEventListener('input', () => { sel = 0; render(); });
+	input.addEventListener('keydown', (e) => {
+		e.stopPropagation();
+		if (e.key === 'ArrowDown') { sel = Math.min(filtered.length - 1, sel + 1); render(); e.preventDefault(); }
+		else if (e.key === 'ArrowUp') { sel = Math.max(0, sel - 1); render(); e.preventDefault(); }
+		else if (e.key === 'Enter') { run(sel); e.preventDefault(); }
+		else if (e.key === 'Escape') { ctl.close(); e.preventDefault(); }
+	});
+	rowsEl.addEventListener('click', (e) => { const r = e.target.closest('.row'); if (r) run(+r.dataset.i); });
+	rowsEl.addEventListener('mousemove', (e) => { const r = e.target.closest('.row'); if (r && +r.dataset.i !== sel) { sel = +r.dataset.i; $$('.row', rowsEl).forEach((x, i) => x.classList.toggle('sel', i === sel)); } });
+	$('.ib', scrim).onclick = () => ctl.close();
+	scrim.addEventListener('mousedown', (e) => { if (e.target === scrim) ctl.close(); });
+	win._pal = ctl;
+	render();
+	input.focus({ preventScroll: true });
+	return ctl;
+}
+function closePalette(win) { if (win._pal) { win._pal.el.remove(); win._pal = null; } }
+
+/* close any popover when clicking elsewhere */
+function onOutside(win, popEl, closeFn) {
+	const h = (e) => { if (!popEl.contains(e.target) && !(e.target.closest && e.target.closest('[data-popbtn]'))) { closeFn(); document.removeEventListener('mousedown', h, true); } };
+	setTimeout(() => document.addEventListener('mousedown', h, true), 0);
+}
+
+/* ============================== tabs mock (P34, P98) ============================== */
+const TAB_KIND_ICON = { note: 'file-text', kanban: 'kanban', canvas: 'layout-dashboard', tasks: 'list-checks', graph: 'network', cal: 'calendar-range' };
+const TAB_POOL = [
+	{ id: 'dash', name: 'Dashboard.md', path: 'Dashboard.md', kind: 'note', pinned: true },
+	{ id: 'daily', name: '2026-11-10.md', path: 'Daily/2026-11-10.md', kind: 'note' },
+	{ id: 'road', name: 'Roadmap.md', path: 'Projects/Roadmap.md', kind: 'note' },
+	{ id: 'board', name: 'Board.kanban', path: 'Projects/Board.kanban', kind: 'kanban' },
+	{ id: 'launch', name: 'Kokobrain Launch Plan.md', path: 'Projects/Kokobrain Launch Plan.md', kind: 'note', dirty: true },
+	{ id: 'brain', name: 'Brainstorm.canvas', path: 'Projects/Brainstorm.canvas', kind: 'canvas' },
+	{ id: 'web', name: 'Website Redesign.md', path: 'Projects/Website Redesign.md', kind: 'note' },
+	{ id: 'tasks', name: 'Tasks', path: 'Tasks (virtual tab)', kind: 'tasks', virtual: true },
+	{ id: 'okr', name: 'Q4 OKRs.md', path: 'Projects/Q4 OKRs.md', kind: 'note' },
+	{ id: 'ana', name: '1-1 with Ana.md', path: 'Events/1-1 with Ana.md', kind: 'note' },
+	{ id: 'graph', name: 'Graph', path: 'Graph (virtual tab)', kind: 'graph', virtual: true },
+	{ id: 'dr', name: 'Design review.md', path: 'Events/Design review.md', kind: 'note' },
+	{ id: 'health', name: 'Health.md', path: 'Areas/Health.md', kind: 'note', dirty: true },
+	{ id: 'welcome', name: 'Welcome.md', path: 'Welcome.md', kind: 'note' }
+];
+
+function tabsMock(host, o) {
+	const legacy = !!o.legacy;
+	const state = { tabs: o.tabs.map((id) => ({ ...TAB_POOL.find((t) => t.id === id) })), active: o.active || o.tabs[Math.min(2, o.tabs.length - 1)], sidebar: !!o.sidebar };
+	host.innerHTML = '<div class="mock"><div class="win ' + (legacy ? 'legacy' : '') + '" style="width:' + (o.width || 900) + 'px;max-width:100%">'
+		+ '<div class="band"><div class="stub">Projects</div>'
+		+ '<div class="strip"><div class="scroll-wrap"><div class="fade l"></div><div class="scroller" role="tablist"></div><div class="fade r"></div></div>' + (legacy ? '' : '<button class="listbtn" data-popbtn aria-label="List all tabs" aria-haspopup="menu" aria-expanded="false" data-tip="List all tabs">' + ic('chevron-down', 14) + '<span class="cnt" hidden></span></button>') + '</div>'
+		+ '<div class="rshead" hidden>Properties</div></div>'
+		+ '<div class="body" style="height:' + (o.bodyH || 128) + 'px"><div class="lstub"><div class="sk"></div><div class="sk" style="width:70%"></div><div class="sk" style="width:80%"></div></div><div class="ed"><div class="sk h"></div><div class="sk"></div><div class="sk" style="width:88%"></div><div class="sk" style="width:60%"></div></div><div class="rs" hidden><div class="sk" style="width:80%"></div><div class="sk" style="width:60%"></div></div></div>'
+		+ '<button class="rs-toggle" aria-label="Toggle right sidebar" aria-pressed="false" data-tip="Show right sidebar" data-tip2="Cmd+B">' + ic('panel-right', 14) + '</button>'
+		+ '</div></div>';
+	const root = $('.mock', host);
+	const win = $('.win', root);
+	const strip = $('.strip', win);
+	const scroller = $('.scroller', win);
+	const fadeL = $('.fade.l', win), fadeR = $('.fade.r', win);
+	const listbtn = $('.listbtn', win);
+	const toggle = $('.rs-toggle', win);
+	let dragId = null, dropIdx = null, marker = null;
+
+	if (legacy) { toggle.removeAttribute('aria-pressed'); toggle.removeAttribute('data-tip2'); toggle.title = 'Show right sidebar'; toggle.removeAttribute('data-tip'); }
+
+	function reserve() { strip.classList.toggle('reserve', !state.sidebar); }
+	function setSidebar(v) {
+		state.sidebar = v;
+		$('.rshead', win).hidden = !v;
+		$('.rs', win).hidden = !v;
+		if (!legacy) toggle.setAttribute('aria-pressed', v);
+		const label = v ? 'Hide right sidebar' : 'Show right sidebar';
+		if (legacy) toggle.title = label; else toggle.dataset.tip = label;
+		reserve();
+		measure();
+	}
+	toggle.onclick = () => setSidebar(!state.sidebar);
+
+	function tabHtml(t) {
+		const active = t.id === state.active;
+		const iconName = TAB_KIND_ICON[t.kind];
+		return '<div class="tab ' + (t.pinned ? 'pinned ' : '') + (active ? 'active' : '') + '" role="tab" tabindex="0" aria-selected="' + active + '" data-id="' + t.id + '"' + (legacy ? '' : ' draggable="true"') + '>'
+			+ (t.dirty && !t.virtual ? '<span class="dot" title="Unsaved changes"></span>' : '')
+			+ (t.pinned ? ic('pin', 12, 'tic') : '')
+			+ ic(iconName, 14, 'tic')
+			+ (!t.pinned ? '<span class="name">' + esc(t.name) + '</span><button class="x" aria-label="Close ' + esc(t.name) + '">' + ic('x', 12) + '</button>' : '')
+			+ '</div>';
+	}
+	function render() {
+		const sl = scroller.scrollLeft;
+		scroller.innerHTML = state.tabs.map(tabHtml).join('');
+		scroller.scrollLeft = sl;
+		measure();
+	}
+	function measure() {
+		const over = scroller.scrollWidth > scroller.clientWidth + 1;
+		if (!legacy) {
+			fadeL.classList.toggle('on', over && scroller.scrollLeft > 2);
+			fadeR.classList.toggle('on', over && scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 2);
+			const sr = scroller.getBoundingClientRect();
+			const hidden = $$('.tab', scroller).filter((t) => { const r = t.getBoundingClientRect(); return r.left < sr.left - 4 || r.right > sr.right + 4; }).length;
+			const cnt = $('.cnt', listbtn);
+			cnt.hidden = hidden === 0;
+			cnt.textContent = hidden;
+		}
+		if (o.onMeasure) {
+			const w = $$('.tab:not(.pinned)', scroller)[0];
+			o.onMeasure({ count: state.tabs.length, width: w ? Math.round(w.getBoundingClientRect().width) : 0, over });
+		}
+	}
+	function reveal() {
+		const el = $('.tab.active', scroller);
+		if (!el) return;
+		const pad = legacy ? 0 : 30, l = el.offsetLeft, r = l + el.offsetWidth;
+		if (l - pad < scroller.scrollLeft) scroller.scrollLeft = Math.max(0, l - pad);
+		else if (r + pad > scroller.scrollLeft + scroller.clientWidth) scroller.scrollLeft = r + pad - scroller.clientWidth;
+	}
+	function activate(id) { state.active = id; render(); reveal(); measure(); }
+	function close(id) {
+		const i = state.tabs.findIndex((t) => t.id === id);
+		if (i < 0) return;
+		state.tabs.splice(i, 1);
+		if (state.active === id) state.active = state.tabs.length ? state.tabs[Math.min(i, state.tabs.length - 1)].id : null;
+		render(); reveal(); measure();
+	}
+	scroller.addEventListener('click', (e) => {
+		const x = e.target.closest('.x');
+		const tab = e.target.closest('.tab');
+		if (!tab) return;
+		if (x) { e.stopPropagation(); close(tab.dataset.id); } else activate(tab.dataset.id);
+	});
+	scroller.addEventListener('keydown', (e) => {
+		const tab = e.target.closest('.tab');
+		if (tab && (e.key === 'Enter' || e.key === ' ')) { activate(tab.dataset.id); e.preventDefault(); const again = $('.tab.active', scroller); if (again) again.focus({ preventScroll: true }); }
+	});
+	scroller.addEventListener('scroll', measure);
+	window.addEventListener('resize', measure);
+
+	/* tooltips: full path, only for the After */
+	if (!legacy) {
+		scroller.addEventListener('mouseover', (e) => {
+			const tab = e.target.closest('.tab');
+			if (!tab || dragId) return;
+			const t = state.tabs.find((x) => x.id === tab.dataset.id);
+			showTip(tab, '<b>' + esc(t.name) + '</b><span>' + esc(t.path) + '</span>' + (t.dirty && !t.virtual ? '<em>Unsaved changes</em>' : '') + (t.pinned ? '<em>Pinned</em>' : ''), 400);
+		});
+		scroller.addEventListener('mouseout', (e) => { if (!e.relatedTarget || !e.relatedTarget.closest || !e.relatedTarget.closest('.tab')) hideTip(); });
+		/* wheel scrolls the strip sideways */
+		scroller.addEventListener('wheel', (e) => {
+			if (scroller.scrollWidth <= scroller.clientWidth) return;
+			if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { scroller.scrollLeft += e.deltaY; e.preventDefault(); }
+		}, { passive: false });
+
+		/* drag to reorder with a drop marker */
+		scroller.addEventListener('dragstart', (e) => {
+			const tab = e.target.closest('.tab');
+			if (!tab) return;
+			hideTip();
+			dragId = tab.dataset.id;
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('text/plain', dragId);
+			setTimeout(() => tab.classList.add('dragging'), 0);
+		});
+		scroller.addEventListener('dragover', (e) => {
+			if (!dragId) return;
+			e.preventDefault();
+			const els = $$('.tab', scroller);
+			let idx = els.length;
+			for (let i = 0; i < els.length; i++) { const r = els[i].getBoundingClientRect(); if (e.clientX < r.left + r.width / 2) { idx = i; break; } }
+			const pinCount = state.tabs.filter((t) => t.pinned).length;
+			const dragged = state.tabs.find((t) => t.id === dragId);
+			idx = dragged.pinned ? Math.min(idx, pinCount) : Math.max(idx, pinCount);
+			dropIdx = idx;
+			if (!marker) { marker = document.createElement('div'); marker.className = 'dropmark'; scroller.appendChild(marker); }
+			const x = idx < els.length ? els[idx].offsetLeft - 3 : els[els.length - 1].offsetLeft + els[els.length - 1].offsetWidth + 0;
+			marker.style.left = x + 'px';
+			const sr = scroller.getBoundingClientRect();
+			if (e.clientX < sr.left + 40) scroller.scrollLeft -= 14; else if (e.clientX > sr.right - 40) scroller.scrollLeft += 14;
+		});
+		const endDrag = () => { dragId = null; dropIdx = null; if (marker) { marker.remove(); marker = null; } $$('.tab.dragging', scroller).forEach((t) => t.classList.remove('dragging')); };
+		scroller.addEventListener('drop', (e) => {
+			e.preventDefault();
+			if (dragId == null || dropIdx == null) return endDrag();
+			const from = state.tabs.findIndex((t) => t.id === dragId);
+			let to = dropIdx;
+			if (to > from) to--;
+			if (from !== to) { const [m] = state.tabs.splice(from, 1); state.tabs.splice(to, 0, m); }
+			endDrag(); render();
+		});
+		scroller.addEventListener('dragend', endDrag);
+
+		/* list all tabs */
+		listbtn.onclick = () => {
+			const open = $('.pop.tablist', win);
+			if (open) { open.remove(); listbtn.setAttribute('aria-expanded', 'false'); return; }
+			const pop = document.createElement('div');
+			pop.className = 'pop tablist';
+			const wr = win.getBoundingClientRect(), br = listbtn.getBoundingClientRect();
+			pop.style.top = br.bottom - wr.top + 4 + 'px';
+			pop.style.right = Math.max(8, wr.right - br.right - 4) + 'px';
+			pop.style.width = '270px';
+			pop.style.maxHeight = Math.max(110, wr.height - (br.bottom - wr.top) - 14) + 'px';
+			pop.style.overflowY = 'auto';
+			pop.innerHTML = '<div class="hd">' + state.tabs.length + ' open tabs</div>' + state.tabs.map((t) => '<div class="mi ' + (t.id === state.active ? 'active' : '') + '" data-id="' + t.id + '"><span class="dotslot">' + (t.dirty && !t.virtual ? '<span class="dot"></span>' : '') + '</span>' + ic(TAB_KIND_ICON[t.kind], 14, 'tic') + '<span class="t">' + esc(t.name) + '</span>' + (t.pinned ? ic('pin', 11, 'tic') : '') + '</div>').join('');
+			win.appendChild(pop);
+			listbtn.setAttribute('aria-expanded', 'true');
+			const closeIt = () => { pop.remove(); listbtn.setAttribute('aria-expanded', 'false'); };
+			pop.addEventListener('click', (e) => { const mi = e.target.closest('.mi'); if (mi) { activate(mi.dataset.id); closeIt(); } });
+			onOutside(win, pop, closeIt);
+		};
+	}
+
+	/* context menu: pin / close */
+	scroller.addEventListener('contextmenu', (e) => {
+		const tab = e.target.closest('.tab');
+		if (!tab) return;
+		e.preventDefault();
+		$$('.pop.ctx', win).forEach((p) => p.remove());
+		const t = state.tabs.find((x) => x.id === tab.dataset.id);
+		const wr = win.getBoundingClientRect();
+		const pop = document.createElement('div');
+		pop.className = 'pop ctx';
+		pop.style.left = e.clientX - wr.left + 'px';
+		pop.style.top = e.clientY - wr.top + 'px';
+		pop.style.width = '170px';
+		pop.innerHTML = '<div class="mi" data-a="pin">' + ic('pin', 14) + '<span class="t">' + (t.pinned ? 'Unpin tab' : 'Pin tab') + '</span></div>' + (t.pinned ? '' : '<div class="mi" data-a="close">' + ic('x', 14) + '<span class="t">Close tab</span></div>');
+		win.appendChild(pop);
+		pop.onclick = (ev) => {
+			const mi = ev.target.closest('.mi');
+			if (!mi) return;
+			if (mi.dataset.a === 'pin') {
+				t.pinned = !t.pinned;
+				const rest = state.tabs.filter((x) => x.id !== t.id);
+				const pc = rest.filter((x) => x.pinned).length;
+				rest.splice(t.pinned ? pc : pc, 0, t);
+				state.tabs = rest;
+				render();
+			} else close(t.id);
+			pop.remove();
+		};
+		onOutside(win, pop, () => pop.remove());
+	});
+
+	reserve();
+	render();
+	reveal();
+	requestAnimationFrame(measure);
+	new ResizeObserver(measure).observe(scroller);
+
+	return {
+		root, win,
+		setSidebar,
+		setWidth(w) { win.style.width = w + 'px'; measure(); },
+		add() {
+			const next = TAB_POOL.find((t) => !state.tabs.some((x) => x.id === t.id));
+			if (!next) return false;
+			state.tabs.push({ ...next, pinned: false });
+			state.active = next.id;
+			render(); reveal(); measure();
+			return true;
+		},
+		closeLast() { if (state.tabs.length) close(state.tabs[state.tabs.length - 1].id); },
+		scrollEnd() { scroller.scrollLeft = scroller.scrollWidth; measure(); },
+		reset() {
+			state.tabs = o.tabs.map((id) => ({ ...TAB_POOL.find((t) => t.id === id) }));
+			state.active = o.active || o.tabs[Math.min(2, o.tabs.length - 1)];
+			scroller.scrollLeft = 0;
+			render(); reveal(); measure();
+		}
+	};
+}
+
+/* ----- P34 ----- */
+(function () {
+	const read = $('#p34-read');
+	const m = tabsMock($('#p34-host'), {
+		tabs: ['dash', 'daily', 'road', 'board', 'launch', 'web'], active: 'road', width: 900, bodyH: 230,
+		onMeasure: (s) => { read.textContent = s.count + ' tabs, tab width ' + s.width + ' px (max 220, min 100)' + (s.over ? ', strip scrolls' : ''); }
+	});
+	$('#p34-add').onclick = () => { if (!m.add()) toast(m.win, 'No more tabs in the sample vault'); };
+	$('#p34-close').onclick = () => m.closeLast();
+	$('#p34-reset').onclick = () => m.reset();
+	$('#p34-w').oninput = (e) => m.setWidth(+e.target.value);
+	m.setWidth(900);
+})();
+
+/* ----- P98 ----- */
+const p98ids = ['dash', 'daily', 'road', 'board', 'launch', 'brain', 'web', 'tasks', 'okr'];
+const p98b = tabsMock($('#p98-before'), { legacy: true, tabs: p98ids, active: 'okr', width: 760, sidebar: false, bodyH: 60 });
+const p98a = tabsMock($('#p98-after'), { legacy: false, tabs: p98ids, active: 'okr', width: 760, sidebar: false, bodyH: 60 });
+$('#p98-scroll').onclick = () => { p98b.scrollEnd(); p98a.scrollEnd(); };
+setTimeout(() => { p98b.scrollEnd(); p98a.scrollEnd(); }, 60);
+
+/* ============================== note window (P35, P102) ============================== */
+const NOTES = {
+	road: { title: 'Roadmap', type: 'Project', folder: 'Projects', lines: ['The plan ties together the {{launch|Kokobrain Launch Plan}} and the {{redesign|Website Redesign}}.', 'Quarter goals live in {{okr|Q4 OKRs}}.'] },
+	launch: { title: 'Kokobrain Launch Plan', type: 'Project', folder: 'Projects', lines: ['Follows the {{road|Roadmap}} and feeds from the {{sync|2026-11-09 Design sync}}.', 'A calm, fast launch beats a loud one.'] },
+	redesign: { title: 'Website Redesign', type: 'Project', folder: 'Projects', lines: ['Part of the {{road|Roadmap}}.', 'Review notes: {{sync|2026-11-09 Design sync}}.'] },
+	okr: { title: 'Q4 OKRs', type: 'Project', folder: 'Projects', lines: ['Feeds the {{launch|Kokobrain Launch Plan}}.'] },
+	sync: { title: '2026-11-09 Design sync', type: 'Meeting', folder: 'Meetings', lines: ['Decided on tabs, see {{redesign|Website Redesign}}.', 'Sleep experiment in the {{sleep|Sleep log}}.'] },
+	sleep: { title: 'Sleep log', type: 'Note', folder: 'Areas/Health', lines: ['Back to the {{sync|2026-11-09 Design sync}}.'] },
+	welcome: { title: 'Welcome', type: 'Note', folder: '', lines: ['Start with the {{road|Roadmap}}.'] }
+};
+for (let d = 1; d <= 6; d++) NOTES['d' + d] = { title: '2026-11-0' + d, type: 'Daily', folder: 'Daily', lines: ['Daily note.'] };
+
+function noteWindow(host, o) {
+	const S = { tabs: [{ id: 1, hist: [o.start], i: 0 }, ...(o.second ? [{ id: 2, hist: [o.second], i: 0 }] : [])], active: 1, nextId: o.second ? 3 : 2, lens: o.lens || { kind: 'all' }, mode: 'replace' };
+	host.innerHTML = '<div class="mock"><div class="win" style="width:' + (o.width || 880) + 'px;max-width:100%;height:' + (o.height || 330) + 'px">'
+		+ '<div style="display:flex;flex:1;min-height:0"><div class="nl"><div class="nlh"></div><div class="scope"></div><div class="rowsw" style="position:relative"></div></div>'
+		+ '<div style="flex:1;min-width:0;display:flex;flex-direction:column"><div class="band"><div class="strip"><div class="scroller" style="gap:2px"></div></div></div><div class="pane-toolbar" data-bar></div><div class="nbody"></div></div></div>'
+		+ '</div></div>';
+	const root = $('.mock', host), win = $('.win', root);
+	const nlh = $('.nlh', win), scope = $('.scope', win), rowsw = $('.rowsw', win), scroller = $('.scroller', win), bar = $('[data-bar]', win), body = $('.nbody', win);
+	const tabOf = () => S.tabs.find((t) => t.id === S.active);
+	const curId = (t) => (t || tabOf()).hist[(t || tabOf()).i];
+	const hist = () => o.history && S.mode === 'replace';
+
+	function visible() {
+		const l = S.lens;
+		return Object.keys(NOTES).filter((id) => {
+			const n = NOTES[id];
+			if (l.kind === 'all') return true;
+			if (l.kind === 'types') return n.type === l.value;
+			return n.folder === l.value || n.folder.startsWith(l.value + '/');
+		});
+	}
+	function renderList(flashCur) {
+		const l = S.lens;
+		nlh.innerHTML = '<span>' + ({ all: 'Notes', types: 'Types', files: 'Files' }[l.kind]) + '</span><small>' + visible().length + '</small>';
+		scope.textContent = l.kind === 'all' ? 'all notes' : l.kind === 'types' ? 'type: ' + l.value : 'in ' + (l.value || 'vault root') + '/';
+		const cur = curId();
+		rowsw.innerHTML = visible().map((id) => '<div class="nr ' + (id === cur ? 'cur' : '') + '" data-id="' + id + '"><div class="rt">' + esc(NOTES[id].title) + '</div><div class="rs2">' + esc(NOTES[id].type) + ' · ' + esc(NOTES[id].folder || 'vault root') + '</div></div>').join('');
+		if (flashCur) {
+			const row = $('.nr.cur', rowsw);
+			if (row) { rowsw.scrollTop = row.offsetTop - rowsw.clientHeight / 2 + row.offsetHeight / 2; row.classList.add('flash'); }
+		}
+	}
+	function renderTabs() {
+		scroller.innerHTML = S.tabs.map((t) => '<div class="tab ' + (t.id === S.active ? 'active' : '') + '" data-id="' + t.id + '" style="flex:0 1 190px;min-width:90px">' + ic('file-text', 14, 'tic') + '<span class="name">' + esc(NOTES[curId(t)].title) + '.md</span><button class="x" aria-label="Close tab" style="opacity:' + (S.tabs.length > 1 ? 1 : 0) + '">' + ic('x', 12) + '</button></div>').join('');
+	}
+	function crumbs(n, id) {
+		if (o.crumbs !== 'clickable') return '<span class="shrink" data-testid="type">' + esc(n.type) + '</span><span class="sep">›</span><span class="cur">' + esc(n.title) + '.md</span>';
+		const parts = n.folder ? n.folder.split('/') : [];
+		let acc = '';
+		let h = '<button class="crumb" data-go="type" data-tip="Show all ' + esc(n.type) + ' notes" data-tip2="Opens the Types lens">' + esc(n.type) + '</button>';
+		parts.forEach((p) => { acc = acc ? acc + '/' + p : p; h += '<span class="sep">›</span><button class="crumb" data-go="folder" data-v="' + esc(acc) + '" data-tip="Show ' + esc(acc) + '/ in Files" data-tip2="Opens the Files lens at this folder">' + esc(p) + '</button>'; });
+		return h + '<span class="sep">›</span><span class="cur" title="' + esc(n.title) + '">' + esc(n.title) + '</span>';
+	}
+	function renderBar() {
+		const t = tabOf(), id = curId(), n = NOTES[id];
+		let h = '';
+		if (o.history) {
+			const prev = t.i > 0 ? NOTES[t.hist[t.i - 1]].title : null, next = t.i < t.hist.length - 1 ? NOTES[t.hist[t.i + 1]].title : null;
+			h += '<button class="ib" data-act="back" aria-label="Back"' + (hist() && prev ? ' data-tip="Back to ' + esc(prev) + '" data-tip2="Cmd+Opt+Left"' : ' disabled') + '>' + ic('arrow-left', 16) + '</button>';
+			h += '<button class="ib" data-act="fwd" aria-label="Forward"' + (hist() && next ? ' data-tip="Forward to ' + esc(next) + '" data-tip2="Cmd+Opt+Right"' : ' disabled') + '>' + ic('arrow-right', 16) + '</button><span class="vdiv"></span>';
+		}
+		h += '<div class="crumbs">' + crumbs(n, id) + '</div>';
+		h += '<button class="ib" aria-label="Add to favorites" data-tip="Add to favorites" data-tip2="Cmd+D">' + ic('star', 16) + '</button>';
+		h += '<button class="ib" aria-label="Set note as organized" data-tip="Set note as organized" data-tip2="Cmd+E">' + ic('circle-check', 16) + '</button><span class="vdiv"></span>';
+		h += '<button class="ib" aria-label="Show raw Markdown" data-tip="Show raw Markdown" data-tip2="Cmd+\\">' + ic('code', 16) + '</button><span class="vdiv"></span>';
+		h += '<button class="ib" data-act="more" data-popbtn aria-label="More note actions" aria-haspopup="menu" data-tip="More note actions">' + ic('ellipsis', 16) + '</button>';
+		bar.innerHTML = h;
+	}
+	function renderBody() {
+		const n = NOTES[curId()];
+		body.innerHTML = '<h4># ' + esc(n.title) + '</h4>' + n.lines.map((l) => '<p>' + esc(l).replace(/\{\{(\w+)\|([^}]+)\}\}/g, '<a class="wl" data-go-note="$1">$2</a>') + '</p>').join('');
+	}
+	function renderAll(flash) { renderTabs(); renderBar(); renderBody(); renderList(flash); if (o.onChange) o.onChange(S); }
+
+	function open(id, how) {
+		const t = tabOf();
+		if (o.history && S.mode === 'add') {
+			const ex = S.tabs.find((x) => curId(x) === id);
+			if (ex) S.active = ex.id; else { S.tabs.push({ id: S.nextId, hist: [id], i: 0 }); S.active = S.nextId++; }
+		} else if (how === 'newtab') {
+			S.tabs.push({ id: S.nextId, hist: [id], i: 0 }); S.active = S.nextId++;
+		} else if (curId(t) !== id) {
+			t.hist = t.hist.slice(0, t.i + 1); t.hist.push(id); t.i++;
+		}
+		renderAll();
+	}
+	function back() { const t = tabOf(); if (hist() && t.i > 0) { t.i--; renderAll(); } }
+	function fwd() { const t = tabOf(); if (hist() && t.i < t.hist.length - 1) { t.i++; renderAll(); } }
+	function reveal() {
+		const n = NOTES[curId()];
+		S.lens = { kind: 'files', value: n.folder };
+		renderList(true);
+		toast(win, 'Files lens at ' + (n.folder || 'vault root') + '/, row highlighted');
+	}
+
+	body.addEventListener('click', (e) => { const a = e.target.closest('[data-go-note]'); if (a) open(a.dataset.goNote, e.metaKey || e.ctrlKey ? 'newtab' : 'plain'); });
+	rowsw.addEventListener('click', (e) => { const r = e.target.closest('.nr'); if (r) open(r.dataset.id, e.metaKey || e.ctrlKey ? 'newtab' : 'plain'); });
+	rowsw.addEventListener('auxclick', (e) => { const r = e.target.closest('.nr'); if (r && e.button === 1) { e.preventDefault(); open(r.dataset.id, 'newtab'); } });
+	rowsw.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); });
+	rowsw.addEventListener('contextmenu', (e) => {
+		const r = e.target.closest('.nr');
+		if (!r || !o.history) return;
+		e.preventDefault();
+		$$('.pop.ctx', win).forEach((p) => p.remove());
+		const wr = win.getBoundingClientRect();
+		const pop = document.createElement('div');
+		pop.className = 'pop ctx';
+		pop.style.left = e.clientX - wr.left + 'px';
+		pop.style.top = e.clientY - wr.top + 'px';
+		pop.style.width = '230px';
+		const today = S.mode === 'add';
+		pop.innerHTML = (today ? '' : '<div class="mi" data-a="plain">' + ic('file-text', 14) + '<span class="t">Open</span></div>') + '<div class="mi" data-a="newtab">' + ic('plus', 14) + '<span class="t">Open in new tab</span>' + (today ? '<span class="sub">same as a click</span>' : '') + '</div>';
+		win.appendChild(pop);
+		pop.onclick = (ev) => { const mi = ev.target.closest('.mi'); if (!mi) return; open(r.dataset.id, mi.dataset.a); pop.remove(); };
+		onOutside(win, pop, () => pop.remove());
+	});
+	scroller.addEventListener('click', (e) => {
+		const tab = e.target.closest('.tab');
+		if (!tab) return;
+		const id = +tab.dataset.id;
+		if (e.target.closest('.x')) { if (S.tabs.length > 1) { const i = S.tabs.findIndex((t) => t.id === id); S.tabs.splice(i, 1); if (S.active === id) S.active = S.tabs[Math.min(i, S.tabs.length - 1)].id; renderAll(); } return; }
+		S.active = id; renderAll();
+	});
+	bar.addEventListener('click', (e) => {
+		const c = e.target.closest('.crumb');
+		if (c) {
+			const n = NOTES[curId()];
+			if (c.dataset.go === 'type') { S.lens = { kind: 'types', value: n.type }; toast(win, 'Types lens: ' + n.type + ' (' + visible().length + ' notes)'); }
+			else { S.lens = { kind: 'files', value: c.dataset.v }; toast(win, 'Files lens at ' + c.dataset.v + '/ (' + visible().length + ' notes)'); }
+			renderList(true);
+			return;
+		}
+		const b = e.target.closest('[data-act]');
+		if (!b) return;
+		if (b.dataset.act === 'back') back();
+		else if (b.dataset.act === 'fwd') fwd();
+		else if (b.dataset.act === 'more') openMore(b);
+	});
+	function openMore(btn) {
+		if ($('.pop.more', win)) { $('.pop.more', win).remove(); return; }
+		const wr = win.getBoundingClientRect(), br = btn.getBoundingClientRect();
+		const pop = document.createElement('div');
+		pop.className = 'pop more';
+		pop.style.top = br.bottom - wr.top + 4 + 'px';
+		pop.style.right = wr.right - br.right + 'px';
+		pop.style.width = '244px';
+		pop.innerHTML = (o.reveal ? '<div class="mi" data-a="reveal">' + ic('list', 15) + '<span class="t">Reveal in note list</span><span class="kbdm" style="color:var(--green)">new</span></div>' : '')
+			+ '<div class="mi" data-a="x">' + ic('folder-open', 15) + '<span class="t">Reveal in Finder</span></div>'
+			+ '<div class="mi" data-a="x">' + ic('copy', 15) + '<span class="t">Copy path</span></div>'
+			+ '<div class="mi" data-a="x">' + ic('link', 15) + '<span class="t">Copy deeplink</span></div><div class="sepl"></div>'
+			+ '<div class="mi" data-a="x">' + ic('archive', 15) + '<span class="t">Archive this note</span></div>'
+			+ '<div class="mi danger" data-a="x">' + ic('trash', 15) + '<span class="t">Delete this note</span></div>';
+		win.appendChild(pop);
+		pop.onclick = (e) => { const mi = e.target.closest('.mi'); if (!mi) return; pop.remove(); if (mi.dataset.a === 'reveal') reveal(); else toast(win, '(prototype) action not wired'); };
+		onOutside(win, pop, () => pop.remove());
+	}
+	root._onKey = (e) => {
+		if (!o.history) return false;
+		if ((e.metaKey || e.ctrlKey) && e.altKey && e.key === 'ArrowLeft') { back(); return true; }
+		if ((e.metaKey || e.ctrlKey) && e.altKey && e.key === 'ArrowRight') { fwd(); return true; }
+		return false;
+	};
+	const mouseNav = (e) => { if (!o.history) return; if (e.button === 3) { e.preventDefault(); back(); } else if (e.button === 4) { e.preventDefault(); fwd(); } };
+	root.addEventListener('mouseup', mouseNav);
+	root.addEventListener('auxclick', mouseNav);
+	renderAll();
+	return {
+		S, win, root, reveal, open, back, fwd,
+		setMode(m) { S.mode = m; renderAll(); },
+		setNote(id) { const t = tabOf(); t.hist = [id]; t.i = 0; renderAll(); },
+		reset() { S.tabs = [{ id: 1, hist: [o.start], i: 0 }, ...(o.second ? [{ id: 2, hist: [o.second], i: 0 }] : [])]; S.active = 1; S.nextId = o.second ? 3 : 2; S.lens = o.lens || { kind: 'all' }; renderAll(); },
+		resetLens() { S.lens = o.lens || { kind: 'all' }; renderList(); },
+		palette() {
+			openPalette(win, {
+				query: 'reveal',
+				items: [{ id: 'reveal', title: 'Reveal in note list', cat: 'Navigation' }, { id: 'a', title: 'Reveal in Finder', cat: 'Navigation' }, { id: 'b', title: 'Open Quick Switcher', cat: 'Navigation', keys: 'Cmd+O' }, { id: 'c', title: 'Copy Path', cat: 'Note' }],
+				onRun: (it, ctl) => { ctl.close(); if (it.id === 'reveal') reveal(); else toast(win, '(prototype) ' + it.title); }
+			});
+		}
+	};
+}
+
+/* ----- P35 ----- */
+(function () {
+	const hist = $('#p35-hist');
+	function paintHist(S) {
+		hist.innerHTML = S.tabs.map((t) => '<div class="histchips"><b style="font-size:12px;min-width:72px">Tab ' + t.id + (t.id === S.active ? ' (active)' : '') + '</b>' + t.hist.map((id, i) => (i ? '<span style="color:#9a96a6">›</span>' : '') + '<span class="hc ' + (i === t.i ? 'now' : '') + '">' + esc(NOTES[id].title) + '</span>').join('') + '</div>').join('');
+	}
+	const m = noteWindow($('#p35-host'), { history: true, crumbs: 'static', start: 'road', second: 'welcome', width: 900, height: 320, lens: { kind: 'all' }, onChange: paintHist });
+	const mode = $('#p35-mode');
+	mode.onclick = (e) => {
+		const b = e.target.closest('button'); if (!b) return;
+		$$('button', mode).forEach((x) => x.setAttribute('aria-pressed', x === b));
+		m.setMode(b.dataset.v);
+		toast(m.win, b.dataset.v === 'add' ? 'Today: every open adds or focuses a tab, no history' : 'Proposed: a plain click navigates inside the tab');
+	};
+	$('#p35-reset').onclick = () => m.reset();
+})();
+
+/* ----- P102 ----- */
+(function () {
+	const m = noteWindow($('#p102-host'), { history: false, crumbs: 'clickable', reveal: true, start: 'sleep', width: 900, height: 330, lens: { kind: 'files', value: 'Meetings' } });
+	const sel = $('#p102-note');
+	['sleep', 'launch', 'sync', 'welcome'].forEach((id) => { const op = document.createElement('option'); op.value = id; op.textContent = (NOTES[id].folder ? NOTES[id].folder + '/' : '') + NOTES[id].title; sel.appendChild(op); });
+	sel.onchange = () => m.setNote(sel.value);
+	$('#p102-pal').onclick = () => m.palette();
+	$('#p102-reset').onclick = () => m.resetLens();
+})();
+
+/* ============================== P18: headers for kanban, canvas, collection ============================== */
+(function () {
+	const host = $('#p18-host');
+	const FILES = {
+		kanban: { icon: 'kanban', kind: 'Kanban', name: 'Board', file: 'Board.kanban' },
+		canvas: { icon: 'layout-dashboard', kind: 'Canvas', name: 'Brainstorm', file: 'Brainstorm.canvas' },
+		view: { icon: 'table', kind: 'View', name: 'Active', file: 'Active.view' }
+	};
+	const SRC = {
+		kanban: ['---', 'kanban-plugin: board', '---', '', '## Backlog', '- [ ] Types navigator polish #design', '- [ ] Mobile capture spike #research', '', '## In progress', '- [ ] Calendar week view #calendar @{2026-11-14}', '- [ ] Settings dialog audit #design @{2026-11-11}', '', '## Review', '- [ ] Onboarding tour #docs @{2026-11-12}'],
+		canvas: ['{', '  "nodes": [', '    { "id": "q", "type": "text", "x": 40, "y": 30, "width": 230, "height": 80,', '      "text": "# Driving question" },', '    { "id": "h", "type": "text", "x": 420, "y": 20, "text": "Hypothesis" },', '    { "id": "n", "type": "file", "file": "Meetings/2026-11-09 Design sync.md" }', '  ],', '  "edges": [ { "fromNode": "q", "toNode": "h", "label": "leads to" } ]', '}'],
+		view: ['name: Active', 'views:', '  - name: Projects', '    source: type = "Project"', '    columns: [file.name, status, priority, due]', '    sort: priority asc', '    filter: status != "done"']
+	};
+	const S = { tab: 'kanban', src: { kanban: false, canvas: false, view: false }, kview: 'board', redline: false };
+	host.innerHTML = '<div class="mock"><div class="win" style="width:900px;max-width:100%"><div class="band"><span class="mrk"></span><div class="strip"><div class="scroller" style="gap:2px"></div></div></div><div class="pane-toolbar" data-bar></div><div data-content></div></div></div>';
+	const root = $('.mock', host), win = $('.win', root), scroller = $('.scroller', win), bar = $('[data-bar]', win), content = $('[data-content]', win);
+
+	function tabs() {
+		scroller.innerHTML = ['kanban', 'canvas', 'view'].map((k) => '<div class="tab ' + (S.tab === k ? 'active' : '') + '" data-k="' + k + '" style="flex:0 1 180px;min-width:100px">' + ic(FILES[k].icon, 14, 'tic') + '<span class="name">' + FILES[k].file + '</span></div>').join('');
+	}
+	function toolbar() {
+		const f = FILES[S.tab];
+		let ctl = '';
+		if (S.tab === 'kanban') {
+			ctl = '<span class="vsw" role="group" aria-label="Board view">' + [['board', 'grid'], ['list', 'list'], ['table', 'table']].map((v) => '<button data-kv="' + v[0] + '" aria-pressed="' + (S.kview === v[0]) + '" aria-label="' + v[0] + ' view">' + ic(v[1], 13) + '</button>').join('') + '</span>'
+				+ '<button class="ib" aria-label="Sort" data-tip="Sort cards">' + ic('sort', 15) + '</button><span class="chip" style="width:120px;color:var(--muted-fg)">' + ic('search', 12) + ' Filter cards</span>';
+		} else if (S.tab === 'canvas') {
+			ctl = [['type', 'Add text'], ['file-text', 'Add note'], ['link', 'Add link'], ['image', 'Add image'], ['square', 'Add group']].map((a) => '<button class="ib" aria-label="' + a[1] + '" data-tip="' + a[1] + '">' + ic(a[0], 15) + '</button>').join('')
+				+ '<span class="vdiv"></span><button class="ib" aria-label="Zoom out" data-tip="Zoom out">' + ic('zoom-out', 15) + '</button><button class="ib" aria-label="Zoom in" data-tip="Zoom in">' + ic('zoom-in', 15) + '</button><button class="ib" aria-label="Fit view" data-tip="Fit view">' + ic('maximize', 15) + '</button>';
+		} else {
+			ctl = '<span class="chip" aria-pressed="true" style="background:color-mix(in srgb,var(--primary) 16%,var(--bg));color:var(--primary);border-color:transparent">Projects</span><button class="ib" aria-label="Add view" data-tip="Add view">' + ic('plus', 14) + '</button><span style="font-size:12px;color:var(--muted-fg);margin:0 4px">4 results</span>'
+				+ '<button class="ib" aria-label="Sort" data-tip="Sort">' + ic('sort', 15) + '</button><button class="ib" aria-label="Filter" data-tip="Filter">' + ic('filter', 15) + '</button><button class="ib" aria-label="Columns" data-tip="Columns">' + ic('columns', 15) + '</button>';
+		}
+		const on = S.src[S.tab];
+		bar.innerHTML = '<div class="crumbs">' + ic(f.icon, 14) + '<span>' + f.kind + '</span><span class="sep">›</span><span class="cur">' + f.name + '</span></div>' + ctl
+			+ '<span class="vdiv"></span><button class="ib" data-src aria-pressed="' + on + '" aria-label="' + (on ? 'Back to the rendered view' : 'Show source') + '" data-tip="' + (on ? 'Back to the ' + f.kind.toLowerCase() + ' view' : 'Show source') + '" data-tip2="Cmd+\\"' + (on ? ' style="background:var(--muted)"' : '') + '>' + ic('code', 16) + '</button>';
+	}
+	function body() {
+		if (S.src[S.tab]) { content.innerHTML = '<div class="srcview">' + SRC[S.tab].map((l, i) => '<div><i>' + (i + 1) + '</i><span>' + esc(l) + '</span></div>').join('') + '</div>'; return; }
+		if (S.tab === 'kanban') {
+			const lanes = [['Backlog', ['Types navigator polish', 'Mobile capture spike']], ['In progress', ['Calendar week view', 'Settings dialog audit']], ['Review', ['Onboarding tour']]];
+			if (S.kview === 'board') content.innerHTML = '<div class="lanes" style="height:270px">' + lanes.map((l) => '<div class="lane"><h6>' + l[0] + '<span>' + l[1].length + '</span></h6>' + l[1].map((c) => '<div class="card">' + c + '<div style="margin-top:3px"><span class="tag">#design</span></div></div>').join('') + '</div>').join('') + '</div>';
+			else if (S.kview === 'list') content.innerHTML = '<div style="padding:12px 16px;height:270px;overflow:hidden">' + lanes.map((l) => '<div style="font-weight:600;font-size:12.5px;margin:6px 0 2px">' + l[0] + '</div>' + l[1].map((c) => '<div style="padding:4px 8px;font-size:13px;border-bottom:1px solid var(--divider)">' + c + '</div>').join('')).join('') + '</div>';
+			else content.innerHTML = '<div style="height:270px;overflow:hidden"><table class="vtable"><tr><th>card</th><th>lane</th></tr>' + lanes.map((l) => l[1].map((c) => '<tr><td>' + c + '</td><td>' + l[0] + '</td></tr>').join('')).join('') + '</table></div>';
+		} else if (S.tab === 'canvas') {
+			content.innerHTML = '<div class="canvasarea"><div class="cnode" style="left:40px;top:22px;width:360px;height:215px;border-style:dashed;border-color:color-mix(in srgb,var(--blue) 60%,transparent);background:color-mix(in srgb,var(--blue) 8%,transparent)"><span style="color:var(--muted-fg);font-size:11px">Research</span></div>'
+				+ '<div class="cnode" style="left:60px;top:60px;width:230px;height:70px;border-color:var(--red)"><b style="color:var(--primary);font-size:15px">Driving question</b><br>What makes a note app feel calm?</div>'
+				+ '<div class="cnode" style="left:60px;top:145px;width:230px;height:70px;border-color:var(--green)">2026-11-09 Design sync.md</div>'
+				+ '<div class="cnode" style="left:470px;top:40px;width:230px;height:70px;border-color:var(--yellow)"><b>Hypothesis</b><br>Fewer chrome elements, faster feedback.</div>'
+				+ '<div class="cnode" style="left:470px;top:140px;width:230px;height:60px;border-color:var(--orange)">Prototype the rail without labels</div><div class="minimap"></div></div>';
+		} else {
+			content.innerHTML = '<div style="height:270px;overflow:hidden"><table class="vtable"><tr><th>file.name</th><th>status</th><th>priority</th><th>due</th></tr><tr><td>Kokobrain Launch Plan.md</td><td>active</td><td>1</td><td>2026-12-01</td></tr><tr><td>Q4 OKRs.md</td><td>planned</td><td>2</td><td>-</td></tr><tr><td>Roadmap.md</td><td>active</td><td>2</td><td>2026-12-15</td></tr><tr><td>Website Redesign.md</td><td>active</td><td>3</td><td>2026-11-30</td></tr></table></div>';
+		}
+	}
+	function paint() { tabs(); toolbar(); body(); win.classList.toggle('redline', S.redline); }
+	function toggleSrc() { S.src[S.tab] = !S.src[S.tab]; paint(); toast(win, FILES[S.tab].file + ': ' + (S.src[S.tab] ? 'source mode' : 'rendered view') + ' (this tab only)'); }
+	scroller.onclick = (e) => { const t = e.target.closest('.tab'); if (t) { S.tab = t.dataset.k; paint(); } };
+	bar.addEventListener('click', (e) => {
+		if (e.target.closest('[data-src]')) return toggleSrc();
+		const kv = e.target.closest('[data-kv]'); if (kv) { S.kview = kv.dataset.kv; paint(); }
+	});
+	root._onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key === '\\') { toggleSrc(); return true; } return false; };
+	const seg = $('#p18-tab');
+	seg.onclick = (e) => { const b = e.target.closest('button'); if (!b) return; $$('button', seg).forEach((x) => x.setAttribute('aria-pressed', x === b)); S.tab = b.dataset.v; paint(); };
+	$('#p18-red').onclick = (e) => { S.redline = !S.redline; e.currentTarget.setAttribute('aria-pressed', S.redline); paint(); };
+	paint();
+})();
+
+/* ============================== P36: rail rename + palette category ============================== */
+(function () {
+	const host = $('#p36-host');
+	const S = { name: 'Journal', opt: false, sel: 'Files' };
+	host.innerHTML = '<div class="mock"><div class="win" style="width:900px;max-width:100%;height:370px"><div style="display:flex;flex:1;min-height:0"><div class="rail" style="display:flex;flex-direction:column;width:180px"></div><div style="flex:1;padding:22px 28px" data-info></div></div></div></div>';
+	const root = $('.mock', host), win = $('.win', root), rail = $('.rail', win), info = $('[data-info]', win);
+	function item(name, icon, color, extra) {
+		return '<div class="ri ' + (S.sel === name ? 'sel' : '') + '" data-n="' + name + '"' + (extra && extra.tip ? ' data-tip="' + extra.tip + '"' : '') + '>' + ic(icon, 15) .replace('class="ic ', 'style="color:' + color + '" class="ic ') + '<span>' + name + '</span>' + ((extra && extra.cnt) ? '<span class="cnt">' + extra.cnt + '</span>' : '') + ((extra && extra.tab) ? '<span class="k" style="opacity:.55" data-tip="Opens a tab">' + ic('external', 12) + '</span>' : '') + '</div>';
+	}
+	function paint() {
+		rail.innerHTML = '<div class="sec" style="padding-top:2px">Workspace</div>' + item('Search', 'search', 'var(--muted-fg)') + item('Inbox', 'inbox', 'var(--blue)', { cnt: 4 }) + item('Today', 'sun', 'var(--orange)') + item('Favorites', 'star', 'var(--yellow)')
+			+ '<div class="sec">Browse</div>' + item('Types', 'layers', 'var(--purple)') + item(S.name, 'calendar', 'var(--red)', { tip: 'Periodic notes navigator' }) + item('Files', 'folder', 'var(--teal)')
+			+ (S.opt ? '<div class="sec">Views <span style="opacity:.6;text-transform:none;letter-spacing:0">(optional)</span></div>' + item('Tasks', 'list-checks', 'var(--green)', { tab: 1 }) + item('Graph', 'network', 'var(--blue)', { tab: 1 }) + item('Tags', 'hash', 'var(--orange)', { tab: 1 }) : '')
+			+ '<div style="margin-top:auto">' + item('Archive', 'archive', 'var(--muted-fg)') + '</div>';
+		const desc = { Journal: 'Periodic-notes navigator: daily, weekly and monthly notes. A rail lens.', Days: 'Periodic-notes navigator: daily, weekly and monthly notes. A rail lens.', Tasks: 'Opens the Tasks tab (same as Cmd+Shift+T).', Graph: 'Opens the Graph tab (same as Cmd+G).', Tags: 'Opens the Tags tab (no shortcut today).' };
+		info.innerHTML = '<div style="font-size:12px;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.06em;font-weight:600">You selected</div><div style="font-size:18px;font-weight:600;margin:2px 0 6px">' + esc(S.sel) + '</div><div style="color:var(--muted-fg);max-width:420px">' + (desc[S.sel] || 'A rail lens.') + '</div>'
+			+ '<div style="margin-top:22px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;max-width:440px;font-size:13px">' + ic('calendar-range', 16, '') + '<div style="margin-top:6px"><b>Calendar</b> now means one thing only: the event calendar tab. Open it with <span class="kbdm">Cmd+Shift+C</span> or the palette command "Toggle Calendar View".</div></div>';
+	}
+	rail.onclick = (e) => { const r = e.target.closest('.ri'); if (!r) return; const n = r.dataset.n; S.sel = n; paint(); if (['Tasks', 'Graph', 'Tags'].includes(n)) toast(win, 'Opened the ' + n + ' tab'); };
+	function items() {
+		const J = S.name;
+		return [
+			{ title: 'Go to ' + J, cat: 'Navigation' }, { title: 'Toggle Calendar View', cat: 'Calendar', keys: 'Cmd+Shift+C' }, { title: 'Calendar: Go to Today', cat: 'Calendar' },
+			{ title: 'Calendar: Undo', cat: 'Calendar' }, { title: 'Calendar: Redo', cat: 'Calendar' }, { title: 'New Calendar Event', cat: 'Calendar' },
+			{ title: 'Go to Inbox', cat: 'Navigation' }, { title: 'Go to Today', cat: 'Navigation' }, { title: 'Toggle Tasks View', cat: 'Navigation', keys: 'Cmd+Shift+T' }, { title: 'Toggle Graph View', cat: 'Navigation', keys: 'Cmd+G' }, { title: 'Toggle Tags View', cat: 'Navigation' }
+		];
+	}
+	function pal() { openPalette(win, { query: 'cal', items: items(), onRun: (it, ctl) => { ctl.close(); toast(win, '(prototype) ' + it.title); } }); }
+	const seg = $('#p36-name');
+	seg.onclick = (e) => { const b = e.target.closest('button'); if (!b) return; $$('button', seg).forEach((x) => x.setAttribute('aria-pressed', x === b)); S.name = b.dataset.v; if (S.sel === 'Journal' || S.sel === 'Days') S.sel = S.name; paint(); };
+	$('#p36-opt').onclick = (e) => { S.opt = !S.opt; e.currentTarget.setAttribute('aria-pressed', S.opt); paint(); };
+	$('#p36-pal').onclick = pal;
+	paint();
+	pal();
+})();
+
+/* ============================== P37: focus after Go to X, New note here ============================== */
+(function () {
+	const DATA = {
+		Inbox: ['capture-2026-11-09-09-12', 'capture-2026-11-09-17-40', 'capture-2026-11-10-08-05', 'Meeting scribbles'],
+		Today: ['2026-11-10', '1-1 with Ana', 'Dashboard', 'Design review'],
+		Types: ['Project', 'Person', 'Meeting', 'Event'],
+		Files: ['Areas', 'Daily', 'Meetings', 'Projects']
+	};
+	const KEYS = ['Inbox', 'Today', 'Types', 'Files'];
+	let keysMode = 'ctrl';
+	const mocks = [];
+	function make(host, after) {
+		const S = { lens: 'Today', focus: 'editor', kidx: 0, note: '2026-11-10', extra: {} };
+		host.innerHTML = '<div class="mock"><div class="win" style="width:100%;height:290px"><div style="display:flex;flex:1;min-height:0"><div class="rail" style="width:130px;display:flex;flex-direction:column"></div><div class="nl" style="width:170px"><div class="nlh"></div><div class="rowsw"></div></div><div style="flex:1;min-width:0;display:flex;flex-direction:column"><div class="band"><div class="strip"></div></div><div class="nbody" data-ed></div></div></div></div></div><div style="margin-top:6px;font-size:12px;color:var(--pg-muted)">Focus now: <span class="fchip" data-fc>editor</span></div>';
+		const root = $('.mock', host), win = $('.win', root), rail = $('.rail', win), nlh = $('.nlh', win), rows = $('.rowsw', win), ed = $('[data-ed]', win), fc = $('[data-fc]', host);
+		function list() { return (S.extra[S.lens] || []).concat(DATA[S.lens]); }
+		function paint() {
+			rail.innerHTML = KEYS.map((k, i) => '<div class="ri ' + (S.lens === k ? 'sel' : '') + '" data-n="' + k + '">' + ic({ Inbox: 'inbox', Today: 'sun', Types: 'layers', Files: 'folder' }[k], 14) + '<span>' + k + '</span>' + (after && keysMode !== 'off' ? '<span class="kbdm k" style="font-size:10px">' + (keysMode === 'ctrl' ? '⌃' : '⌘⌥') + (i + 1) + '</span>' : '') + '</div>').join('');
+			nlh.innerHTML = '<span>' + S.lens + '</span><small>' + list().length + '</small>' + (after ? '<button class="ib" data-newhere aria-label="New note here" data-tip="New note here" style="width:22px;height:22px">' + ic('plus', 14) + '</button>' : '');
+			rows.innerHTML = list().map((t, i) => '<div class="nr ' + (t === S.note ? 'cur' : '') + (S.focus === 'list' && i === S.kidx ? ' kfocus' : '') + '" data-i="' + i + '"><div class="rt">' + esc(t) + '</div><div class="rs2">just now</div></div>').join('');
+			ed.classList.toggle('focusbox', S.focus === 'editor');
+			ed.innerHTML = '<h4># ' + esc(S.note) + '</h4><p>Review PRs 2026-11-10 <span class="caret"' + (S.focus === 'editor' ? '' : ' style="visibility:hidden"') + '></span></p><p>Morning stand-up</p>';
+			rail.classList.toggle('focusbox', S.focus === 'rail');
+			rows.classList.toggle('focusbox', false);
+			fc.textContent = S.focus === 'list' ? 'first row of the list' : S.focus;
+		}
+		function goTo(lens) {
+			S.lens = lens; S.kidx = 0;
+			if (after) S.focus = 'list';
+			paint();
+			toast(win, 'Go to ' + lens + (after ? ': focus on the first row' : ': focus unchanged'));
+		}
+		function newHere() {
+			if (!after) { toast(win, 'No "New note here" command exists today'); return; }
+			const row = document.createElement('div');
+			row.className = 'nr';
+			row.innerHTML = '<input value="Untitled" aria-label="Note name">';
+			rows.prepend(row);
+			const inp = $('input', row);
+			inp.focus(); inp.select();
+			let done = false;
+			const commit = (ok) => { if (done) return; done = true; if (ok && inp.value.trim()) { const t = inp.value.trim(); (S.extra[S.lens] = S.extra[S.lens] || []).unshift(t); S.note = t; S.focus = 'editor'; toast(win, 'Created "' + t + '" in ' + S.lens); } paint(); };
+			inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') commit(true); else if (e.key === 'Escape') commit(false); });
+			inp.addEventListener('blur', () => commit(false));
+		}
+		rail.onclick = (e) => { const r = e.target.closest('.ri'); if (r) goTo(r.dataset.n); };
+		rows.onclick = (e) => { const r = e.target.closest('.nr'); if (!r || $('input', r)) return; S.kidx = +r.dataset.i; S.note = list()[S.kidx]; S.focus = after ? 'editor' : 'editor'; paint(); };
+		host.addEventListener('click', (e) => { if (e.target.closest('[data-newhere]')) newHere(); });
+		root._onKey = (e) => {
+			if (after && keysMode !== 'off' && /^Digit[1-4]$/.test(e.code) && ((keysMode === 'ctrl' && e.ctrlKey && !e.metaKey && !e.altKey) || (keysMode === 'opt' && e.metaKey && e.altKey))) { goTo(KEYS[+e.code.slice(5) - 1]); return true; }
+			if (S.focus === 'list' && after) {
+				if (e.key === 'ArrowDown') { S.kidx = Math.min(list().length - 1, S.kidx + 1); paint(); return true; }
+				if (e.key === 'ArrowUp') { S.kidx = Math.max(0, S.kidx - 1); paint(); return true; }
+				if (e.key === 'Enter') { S.note = list()[S.kidx]; S.focus = 'editor'; paint(); return true; }
+			} else if (!after && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { toast(win, 'The arrow keys move the editor cursor, not the list'); return true; }
+			return false;
+		};
+		paint();
+		const api = { goTo, newHere, reset() { S.lens = 'Today'; S.focus = 'editor'; S.note = '2026-11-10'; S.extra = {}; S.kidx = 0; paint(); }, repaint: paint };
+		mocks.push(api);
+		return api;
+	}
+	make($('#p37-before'), false);
+	make($('#p37-after'), true);
+	$('#p37-inbox').onclick = () => mocks.forEach((m) => m.goTo('Inbox'));
+	$('#p37-today').onclick = () => mocks.forEach((m) => m.goTo('Today'));
+	$('#p37-new').onclick = () => mocks.forEach((m) => m.newHere());
+	$('#p37-reset').onclick = () => mocks.forEach((m) => m.reset());
+	const seg = $('#p37-keys');
+	seg.onclick = (e) => { const b = e.target.closest('button'); if (!b) return; $$('button', seg).forEach((x) => x.setAttribute('aria-pressed', x === b)); keysMode = b.dataset.v; mocks.forEach((m) => m.repaint()); };
+})();
+
+/* ============================== P97: empty editor ============================== */
+(function () {
+	const host = $('#p97-host');
+	const S = { tabs: false };
+	host.innerHTML = '<div class="mock"><div class="win" style="width:900px;max-width:100%;height:330px"><div class="band"><div class="stub">Projects</div><div class="strip"><div class="scroller" data-tabs></div></div><div class="rshead" data-rsh>Properties</div></div><div class="body"><div class="lstub"><div class="sk"></div><div class="sk" style="width:70%"></div><div class="sk" style="width:80%"></div></div><div class="ed" data-ed style="padding:0"></div><div class="rs" data-rs><div style="font-size:12px;color:var(--muted-fg);text-align:center;padding:14px 0">No file open</div></div></div><button class="rs-toggle" aria-label="Toggle right sidebar" aria-pressed="true" data-tip="Hide right sidebar" data-tip2="Cmd+B">' + ic('panel-right', 14) + '</button></div></div>';
+	const root = $('.mock', host), win = $('.win', root), ed = $('[data-ed]', win), rs = $('[data-rs]', win), rsh = $('[data-rsh]', win), tabs = $('[data-tabs]', win), tg = $('.rs-toggle', win);
+	const saved = { rightSidebarVisible: true };
+	let userHidden = false;
+	const read = $('#p97-read');
+	function paint() {
+		const rsOn = S.tabs && saved.rightSidebarVisible;
+		rs.hidden = !rsOn; rsh.hidden = !rsOn; tg.hidden = !S.tabs;
+		tg.setAttribute('aria-pressed', saved.rightSidebarVisible);
+		$('.strip', win).classList.toggle('reserve', S.tabs && !saved.rightSidebarVisible);
+		tabs.innerHTML = S.tabs ? '<div class="tab active" style="flex:0 1 200px">' + ic('file-text', 14, 'tic') + '<span class="name">Untitled.md</span><button class="x" aria-label="Close">' + ic('x', 12) + '</button></div>' : '';
+		rs.innerHTML = S.tabs ? '<div class="sk" style="width:80%"></div><div class="sk" style="width:60%"></div><div class="sk" style="width:70%"></div>' : '';
+		if (S.tabs) ed.innerHTML = '<div style="padding:16px 20px"><div class="sk h"></div><div class="sk"></div><div class="sk" style="width:88%"></div><div class="sk" style="width:60%"></div></div>';
+		else ed.innerHTML = '<div class="emptyhint"><div style="font-size:15px;font-weight:600;color:var(--fg)">No note open</div><div style="font-size:13px">Pick one of these to start</div><div class="hintlist">'
+			+ '<div class="hintrow" data-a="qs">' + ic('search', 16) + '<span>Quick switcher</span><span class="kbdm">Cmd+O</span></div>'
+			+ '<div class="hintrow" data-a="cp">' + ic('command', 16) + '<span>Command palette</span><span class="kbdm">Cmd+P</span></div>'
+			+ '<div class="hintrow" data-a="nn">' + ic('file-plus', 16) + '<span>New note</span><span class="kbdm">Cmd+N</span></div></div></div>';
+		read.textContent = 'saved rightSidebarVisible: ' + saved.rightSidebarVisible + ' | shown now: ' + !!rsOn;
+	}
+	ed.onclick = (e) => {
+		const r = e.target.closest('.hintrow'); if (!r) return;
+		if (r.dataset.a === 'nn') { S.tabs = true; paint(); toast(win, 'New note created'); }
+		else if (r.dataset.a === 'cp') openPalette(win, { items: [{ title: 'Open Quick Switcher', cat: 'Navigation', keys: 'Cmd+O' }, { title: 'New File', cat: 'File' }, { title: 'Toggle Right Sidebar', cat: 'Layout', keys: 'Cmd+B' }], onRun: (it, c) => { c.close(); toast(win, '(prototype) ' + it.title); } });
+		else toast(win, 'Quick switcher opens here');
+	};
+	tabs.onclick = (e) => { if (e.target.closest('.x')) { S.tabs = false; paint(); } };
+	tg.onclick = () => { saved.rightSidebarVisible = !saved.rightSidebarVisible; tg.dataset.tip = saved.rightSidebarVisible ? 'Hide right sidebar' : 'Show right sidebar'; paint(); };
+	$('#p97-open').onclick = () => { S.tabs = true; paint(); };
+	$('#p97-close').onclick = () => { S.tabs = false; paint(); };
+	paint();
+})();
+
+/* ============================== P176: status bar ============================== */
+(function () {
+	const pos = { before: {}, after: {} };
+	const readEl = $('#p176-read');
+	let saved = true, timer = null;
+	function make(host, after) {
+		host.innerHTML = '<div class="mock"><div class="win" style="width:100%"><div style="height:110px;padding:14px 18px"><div class="sk h"></div><div class="sk"></div><div class="sk" style="width:80%"></div></div><div class="sbar" style="height:' + (after ? 24 : 32) + 'px"><div class="grp"><span class="sv">' + ic('search', 12) + ' 37 notes indexed</span></div><div class="grp"><span class="sv slot" data-sv></span><span data-words>33 words</span><span>178 characters</span><span>1 min read</span></div></div></div></div>';
+		const win = $('.win', host), sv = $('[data-sv]', host), words = $('[data-words]', host);
+		function paint() {
+			if (saved) { sv.className = 'sv' + (after ? ' slot' : ''); sv.innerHTML = ic('circle-check', 12) + 'Saved'; }
+			else { sv.className = 'sv mod' + (after ? ' slot' : ''); sv.innerHTML = ic('circle', 12, after ? '' : 'pulse').replace('<svg ', '<svg fill="currentColor" ') + 'Modified'; }
+			pos[after ? 'after' : 'before'][saved ? 'saved' : 'mod'] = Math.round(words.getBoundingClientRect().left);
+		}
+		return { paint };
+	}
+	const b = make($('#p176-before'), false), a = make($('#p176-after'), true);
+	function tick() {
+		saved = !saved; b.paint(); a.paint();
+		const sh = (k) => (pos[k].saved != null && pos[k].mod != null) ? Math.abs(pos[k].saved - pos[k].mod) : 0;
+		readEl.textContent = '"33 words" moves: before ' + sh('before') + ' px, after ' + sh('after') + ' px | bar: 32 px vs 24 px (8 px more editor)';
+	}
+	tick(); tick();
+	const loop = $('#p176-run');
+	function start() { timer = setInterval(tick, 1400); }
+	loop.onclick = () => { if (timer) { clearInterval(timer); timer = null; loop.setAttribute('aria-pressed', 'false'); loop.textContent = 'Autosave loop: off'; } else { start(); loop.setAttribute('aria-pressed', 'true'); loop.textContent = 'Autosave loop: on'; } };
+	$('#p176-step').onclick = tick;
+	start();
+})();
+
+/* ============================== P99: zoom chip ============================== */
+(function () {
+	const LEVELS = [0.5, 0.67, 0.75, 0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0];
+	const S = { idx: 5, savedIdx: 5, beforeIdx: 5 };
+	const read = $('#p99-read');
+	const wins = {};
+	function make(host, after) {
+		host.innerHTML = '<div class="mock"><div class="win" style="width:100%;height:260px"><div data-z style="width:100%;height:100%;display:flex;flex-direction:column"><div class="band" style="height:40px"><div class="strip"><div class="scroller"><div class="tab active" style="flex:0 1 190px">' + ic('file-text', 14, 'tic') + '<span class="name">Roadmap.md</span></div></div></div></div><div style="flex:1;padding:14px 20px;overflow:hidden"><div style="font:700 20px/26px ui-monospace,Menlo,monospace;color:var(--primary);margin-bottom:8px"># Roadmap</div><div style="font:12.5px/20px ui-monospace,Menlo,monospace">The plan ties together the launch plan<br>and the website redesign. Quarter goals<br>live in Q4 OKRs and the design sync.</div></div><div class="sbar" style="height:24px"><div class="grp"><span class="sv">' + ic('search', 12) + ' 37 notes indexed</span></div><div class="grp"><span class="sv">' + ic('circle-check', 12) + 'Saved</span></div></div></div>'
+			+ (after ? '<button class="zoomchip" aria-label="Reset zoom to 100%">' + ic('zoom-in', 13) + '<span data-pct>100%</span><span class="rst">click to reset</span></button>' : '') + '</div></div>';
+		const root = $('.mock', host), z = $('[data-z]', host), chip = $('.zoomchip', host);
+		let t;
+		function apply(i, showChip) {
+			z.style.zoom = LEVELS[i];
+			if (chip && showChip) {
+				$('[data-pct]', chip).textContent = Math.round(LEVELS[i] * 100) + '%';
+				chip.classList.add('on'); clearTimeout(t); t = setTimeout(() => chip.classList.remove('on'), 1500);
+			}
+		}
+		if (chip) chip.onclick = () => change(5);
+		root._onKey = (e) => {
+			if (!(e.metaKey || e.ctrlKey)) return false;
+			if (e.key === '=' || e.key === '+') { change(Math.min(LEVELS.length - 1, S.idx + 1)); return true; }
+			if (e.key === '-') { change(Math.max(0, S.idx - 1)); return true; }
+			if (e.key === '0') { change(5); return true; }
+			return false;
+		};
+		wins[after ? 'after' : 'before'] = { apply };
+	}
+	function info() { read.textContent = 'zoom ' + Math.round(LEVELS[S.idx] * 100) + '% | stored in settings: Before none, After ' + Math.round(LEVELS[S.savedIdx] * 100) + '%'; }
+	function change(i) { S.idx = i; S.savedIdx = i; wins.before.apply(i, false); wins.after.apply(i, true); info(); }
+	make($('#p99-before'), false);
+	make($('#p99-after'), true);
+	$('#p99-in').onclick = () => change(Math.min(LEVELS.length - 1, S.idx + 1));
+	$('#p99-out').onclick = () => change(Math.max(0, S.idx - 1));
+	$('#p99-rst').onclick = () => change(5);
+	$('#p99-relaunch').onclick = () => { S.idx = S.savedIdx; wins.before.apply(5, false); wins.after.apply(S.savedIdx, false); info(); };
+	info();
+})();
+
+/* ============================== P103: menu bar ============================== */
+(function () {
+	const RECENTS = [['personal', '/Users/me/Notes/personal'], ['second-brain', '/Users/me/Work/second-brain'], ['archive-2024', '/Users/me/Docs/archive-2024']];
+	function menus(after) {
+		const m = [];
+		m.push({ n: 'KokoBrain', first: true, items: [['About KokoBrain'], ['-'], ['Settings...', '⌘,'], ['-'], ['Services', '', 'dis'], ['-'], ['Hide KokoBrain', '⌘H'], ['Hide Others', '⌥⌘H'], ['Show All'], ['-'], ['Quit KokoBrain', '⌘Q']] });
+		if (after) m.push({ n: 'File', isNew: true, items: [['Open Vault...', '', 'open'], ['Open Recent', '', 'recent']] });
+		m.push({ n: 'Edit', items: [['Undo', '⌘Z'], ['Redo', '⇧⌘Z'], ['-'], ['Cut', '⌘X'], ['Copy', '⌘C'], ['Paste', '⌘V'], ['Select All', '⌘A']] });
+		m.push({ n: 'Window', items: [['Minimize', '⌘M'], ['Zoom'], ['-'], ['Enter Full Screen', '⌃⌘F']] });
+		return m;
+	}
+	function make(host, after) {
+		const M = menus(after);
+		host.innerHTML = '<div class="mock"><div class="win" style="width:760px;max-width:100%;height:' + (after ? 270 : 240) + 'px;overflow:visible"><div class="macbar">' + M.map((x, i) => '<button class="mb ' + (x.first ? 'first ' : '') + (x.isNew ? 'new' : '') + '" data-i="' + i + '" data-popbtn>' + x.n + '</button>').join('') + '</div><div style="padding:18px 22px;color:var(--muted-fg);font-size:13px">' + (after ? 'The vault stays open while you switch: the app asks to close the current one first.' : 'Open the menus: there is no File menu and nothing about vaults.') + '</div></div></div>';
+		const root = $('.mock', host), win = $('.win', root), bar = $('.macbar', win);
+		let openI = -1, menuEl = null;
+		function closeMenu() { if (menuEl) menuEl.remove(); menuEl = null; openI = -1; $$('.mb', bar).forEach((b) => b.classList.remove('open')); }
+		function showMenu(i) {
+			closeMenu(); openI = i;
+			const b = $$('.mb', bar)[i]; b.classList.add('open');
+			const el = document.createElement('div');
+			el.className = 'macmenu';
+			el.style.left = b.offsetLeft + 'px';
+			el.innerHTML = M[i].items.map((it) => {
+				if (it[0] === '-') return '<div class="msep"></div>';
+				if (it[2] === 'recent') return '<div class="mm" data-r="1"><span>' + it[0] + '</span><span class="sc">' + ic('chevron-right', 12) + '</span><div class="sub">' + RECENTS.map((r, k) => '<div class="mm" data-vault="' + r[0] + '"><span style="width:14px;display:inline-flex">' + (k === 0 ? ic('check', 13) : '') + '</span><span>' + r[0] + '</span></div>').join('') + '</div></div>';
+				return '<div class="mm ' + (it[2] === 'dis' ? 'dis' : '') + '" data-t="' + esc(it[0]) + '"><span>' + it[0] + '</span><span class="sc">' + (it[1] || '') + '</span></div>';
+			}).join('');
+			win.appendChild(el); menuEl = el;
+			el.onclick = (e) => {
+				const mm = e.target.closest('.mm'); if (!mm || mm.classList.contains('dis') || mm.dataset.r) return;
+				const v = mm.dataset.vault; closeMenu();
+				if (v) toast(win, v === 'personal' ? 'personal is already open' : 'Closing the current vault, opening ' + v);
+				else if (mm.dataset.t === 'Open Vault...') toast(win, 'Opens the native folder picker');
+				else toast(win, '(prototype) ' + mm.dataset.t);
+			};
+			onOutside(win, el, closeMenu);
+		}
+		bar.onclick = (e) => { const b = e.target.closest('.mb'); if (!b) return; const i = +b.dataset.i; if (openI === i) closeMenu(); else showMenu(i); };
+		bar.onmouseover = (e) => { const b = e.target.closest('.mb'); if (b && openI >= 0 && +b.dataset.i !== openI) showMenu(+b.dataset.i); };
+		return { win };
+	}
+	make($('#p103-before'), false);
+	const a = make($('#p103-after'), true);
+	function pal() {
+		const win = a.win;
+		let stage = 0;
+		openPalette(win, {
+			query: 'switch',
+			items: [{ title: 'Switch vault', cat: 'Vault' }, { title: 'Open vault...', cat: 'Vault' }, { title: 'Open Settings', cat: 'Settings', keys: 'Cmd+,' }],
+			onRun: (it, ctl) => {
+				if (stage === 0 && it.title === 'Switch vault') { stage = 1; ctl.setItems(RECENTS.map((r, i) => ({ title: r[0], cat: r[1], stat: i === 0 ? 'Current' : '', on: i === 0 })), 'Select a vault...'); }
+				else if (stage === 1) { ctl.close(); toast(win, it.title === 'personal' ? 'personal is already open' : 'Closing the current vault, opening ' + it.title); }
+				else { ctl.close(); toast(win, it.title === 'Open vault...' ? 'Opens the native folder picker' : '(prototype) ' + it.title); }
+			}
+		});
+	}
+	$('#p103-pal').onclick = pal;
+})();
+
+/* ============================== P104: panels ============================== */
+(function () {
+	const host = $('#p104-host');
+	const PANELS = [['props', 'Properties', 'sliders'], ['toc', 'Table of contents', 'list'], ['back', 'Backlinks', 'link'], ['out', 'Outgoing links', 'arrow-right']];
+	const S = { hidden: new Set(), open: new Set(['props']) };
+	host.innerHTML = '<div class="mock"><div class="win" style="width:900px;max-width:100%;height:420px"><div class="body" style="flex:1"><div class="lstub" style="width:150px"><div class="sk"></div><div class="sk" style="width:70%"></div></div><div class="ed"><div class="sk h"></div><div class="sk"></div><div class="sk" style="width:88%"></div><div class="sk" style="width:60%"></div></div><div class="rs" data-rs style="width:290px;padding:0"></div></div></div></div>';
+	const root = $('.mock', host), win = $('.win', root), rs = $('[data-rs]', win);
+	function paint() {
+		const shown = PANELS.filter((p) => !S.hidden.has(p[0]));
+		rs.innerHTML = shown.length ? shown.map((p) => '<div class="panel" data-p="' + p[0] + '"><div class="ph" data-t="1">' + ic(S.open.has(p[0]) ? 'chevron-down' : 'chevron-right', 14) + '<span>' + p[1] + '</span><button class="ib more" data-more aria-label="' + p[1] + ' menu" aria-haspopup="menu" data-popbtn>' + ic('ellipsis', 15) + '</button></div>'
+			+ (S.open.has(p[0]) ? '<div class="pb">' + (p[0] === 'props' ? 'type: Project<br>due: 01/12/2026<br>owner: Diego<br>status: active' : 'No entries in the sample note') + '</div>' : '') + '</div>').join('') : '<div style="padding:30px 16px;text-align:center;color:var(--muted-fg);font-size:12.5px">All panels are hidden. Show them again from the palette.</div>';
+	}
+	rs.addEventListener('click', (e) => {
+		const more = e.target.closest('[data-more]');
+		const hd = e.target.closest('.ph');
+		if (more) {
+			e.stopPropagation();
+			const id = more.closest('.panel').dataset.p;
+			const old = $('.pop.pm', win); if (old) { old.remove(); return; }
+			const wr = win.getBoundingClientRect(), br = more.getBoundingClientRect();
+			const pop = document.createElement('div'); pop.className = 'pop pm';
+			pop.style.top = br.bottom - wr.top + 4 + 'px'; pop.style.right = wr.right - br.right + 'px'; pop.style.width = '200px';
+			pop.innerHTML = '<div class="mi" data-a="hide">' + ic('eye-off', 14) + '<span class="t">Hide panel</span></div>' + (id === 'props' ? '<div class="mi" data-a="cfg">' + ic('sliders', 14) + '<span class="t">Configure types...</span></div>' : '') + '<div class="sepl"></div><div class="mi" style="color:var(--muted-fg);font-size:11px;cursor:default">Settings > Layout still works</div>';
+			win.appendChild(pop);
+			pop.onclick = (ev) => { const mi = ev.target.closest('.mi'); if (!mi || !mi.dataset.a) return; pop.remove(); if (mi.dataset.a === 'hide') { S.hidden.add(id); paint(); toast(win, PANELS.find((p) => p[0] === id)[1] + ' panel hidden (palette: Toggle to bring it back)'); } else toast(win, 'Opens Settings > Types'); };
+			onOutside(win, pop, () => pop.remove());
+			return;
+		}
+		if (hd) { const id = hd.parentNode.dataset.p; if (S.open.has(id)) S.open.delete(id); else S.open.add(id); paint(); }
+	});
+	function pal() {
+		const mk = () => [['props', 'Properties'], ['back', 'Backlinks'], ['out', 'Outgoing links'], ['toc', 'Table of Contents']].map((p) => ({ id: p[0], title: 'Toggle ' + p[1] + (p[0] === 'toc' ? '' : ' Panel'), cat: 'Layout', stat: S.hidden.has(p[0]) ? 'Hidden' : 'Shown', on: !S.hidden.has(p[0]) }));
+		openPalette(win, { query: 'toggle', items: mk(), onRun: (it, ctl) => { if (S.hidden.has(it.id)) S.hidden.delete(it.id); else S.hidden.add(it.id); paint(); ctl.close(); toast(win, it.title + ': ' + (S.hidden.has(it.id) ? 'hidden' : 'shown')); } });
+	}
+	$('#p104-pal').onclick = pal;
+	$('#p104-reset').onclick = () => { S.hidden.clear(); paint(); };
+	paint();
+})();
+
+/* ============================== P105: Open Trash ============================== */
+(function () {
+	const host = $('#p105-host');
+	const INIT = [['Old meeting notes.md', 'Meetings/', '2 days ago'], ['Draft pricing.md', 'Projects/', '5 days ago'], ['Untitled 3.md', 'Inbox/', 'last week']];
+	let trash = INIT.map((x) => x.slice());
+	host.innerHTML = '<div class="mock"><div class="win" style="width:900px;max-width:100%;height:340px"><div class="band"><div class="stub">Today</div><div class="strip"><div class="scroller"><div class="tab active" style="flex:0 1 190px">' + ic('file-text', 14, 'tic') + '<span class="name">2026-11-10.md</span><button class="x">' + ic('x', 12) + '</button></div></div></div></div><div class="body"><div class="lstub"><div class="sk"></div><div class="sk" style="width:70%"></div></div><div class="ed"><div class="sk h"></div><div class="sk"></div><div class="sk" style="width:80%"></div></div></div></div></div>';
+	const root = $('.mock', host), win = $('.win', root);
+	function sheet() {
+		let s = $('.sheet', win);
+		if (!s) { s = document.createElement('div'); s.className = 'sheet'; win.appendChild(s); }
+		const nav = [['GENERAL', ['Appearance', 'Editor', 'Layout']], ['VAULT', ['Files & Folders', 'File History', 'Auto Organize', 'Trash']]];
+		s.innerHTML = '<div class="snav"><h5>Settings</h5>' + nav.map((g) => '<div class="sh">' + g[0] + '</div>' + g[1].map((i) => '<div class="si ' + (i === 'Trash' ? 'sel' : '') + '">' + i + '</div>').join('')).join('') + '</div><div class="scon"><div style="display:flex;align-items:center"><h5 style="flex:1;margin:0 0 12px">Trash</h5><button class="ib" data-x aria-label="Close settings">' + ic('x', 16) + '</button></div>'
+			+ (trash.length ? trash.map((t, i) => '<div class="trow"><span class="tt">' + t[0] + '<small>from ' + t[1] + ' · ' + t[2] + '</small></span><button class="sbtn" data-r="' + i + '">Restore</button><button class="sbtn danger" data-d="' + i + '">Delete permanently</button></div>').join('') + '<div style="margin-top:10px"><button class="sbtn danger" data-e>Empty trash</button></div>'
+				: '<div class="emptyhint" style="height:200px">' + ic('trash', 36) + '<div>Trash is empty</div></div>') + '</div>';
+		s.onclick = (e) => {
+			if (e.target.closest('[data-x]')) return s.remove();
+			const r = e.target.closest('[data-r]'), d = e.target.closest('[data-d]'), em = e.target.closest('[data-e]');
+			if (r) { const t = trash.splice(+r.dataset.r, 1)[0]; sheet(); toast(win, 'Restored ' + t[0]); }
+			else if (d) { trash.splice(+d.dataset.d, 1); sheet(); }
+			else if (em) { trash = []; sheet(); }
+		};
+	}
+	root._onKey = (e) => { if (e.key === 'Escape' && $('.sheet', win)) { $('.sheet', win).remove(); return true; } return false; };
+	function pal() {
+		openPalette(win, { query: 'trash', items: [{ title: 'Open Trash', cat: 'Settings' }, { title: 'Open Settings', cat: 'Settings', keys: 'Cmd+,' }, { title: 'Archive this note', cat: 'Note' }], onRun: (it, ctl) => { ctl.close(); if (it.title === 'Open Trash') sheet(); else toast(win, '(prototype) ' + it.title); } });
+	}
+	$('#p105-pal').onclick = pal;
+	$('#p105-reset').onclick = () => { trash = INIT.map((x) => x.slice()); if ($('.sheet', win)) sheet(); };
+})();
+
+hydrateIcons(document);
+})();
+</script>
+</body>
+</html>

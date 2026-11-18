@@ -8,7 +8,7 @@ Kokobrain collects the checkbox items in your notes and presents them in a singl
 
 ## Tasks View
 
-Open the Tasks View with **Cmd+Shift+T**, or search for **"Toggle Tasks View"** in the Command Palette.
+Open the Tasks View with **Cmd+Shift+T**, with **Tasks** on the rail (see [The Rail](01-getting-started.md#the-rail)), or search for **"Toggle Tasks View"** in the Command Palette.
 
 The Tasks View is a *virtual tab*: it is not a file on disk. It is built on the fly from the checkbox lines (`- [ ]`, `- [x]`, and other statuses) in your notes, limited by the [sources](#sources) and the filters below. With the default source card, only tasks under a heading containing `#to-list` are listed. By default tasks are grouped by their source file, and the notes are listed in path order, with numbers compared as numbers (`note 9` comes before `note 10`). Under the Note grouping, ticking a task does not move its note; under the other groupings a ticked task can move to another group, for example to Done under the Status grouping when done tasks are shown.
 

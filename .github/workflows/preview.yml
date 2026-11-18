@@ -1,0 +1,300 @@
+name: Preview
+
+# Builds the long-lived `preview` branch (main plus feature branches under test)
+# into the fixed pre-release tag `preview`, the way nightly.yml builds main into
+# `nightly`. Every push to main first merges main into preview. That push uses
+# GITHUB_TOKEN, which starts no new workflow run, so the build job of this same
+# run builds what the sync job pushed.
+
+permissions:
+  contents: read
+
+on:
+  push:
+    # main: merge it into preview, then build. preview: feature branches merged by hand.
+    branches: [main, preview]
+    # Everything but docs, and under .github/ only what this workflow runs.
+    paths:
+      - "**"
+      - ".*"
+      - ".*/**"
+      - "!**/*.md"
+      - "!.scratch/**"
+      - "!help/**"
+      - "!LICENSE"
+      - "!.github/**"
+      - ".github/workflows/preview.yml"
+      - ".github/actions/setup/**"
+      - ".github/actions/publish-checksums/**"
+  workflow_dispatch:
+# A push to preview cancels the running run, whose build it makes outdated.
+# A main push or a manual run never cancels one, so a burst of main pushes
+# cannot keep every build from publishing. A run cancelled mid-publish leaves
+# old and new assets side by side and the tag behind; the next run's snapshot
+# and prune clean that up. A cancel inside the seconds where tauri-action
+# replaces latest.json leaves none until the next run publishes. A cancelled
+# run from a main push that had not pushed its sync yet, or a pending one a
+# newer run replaces, leaves preview behind main until the next main push.
+concurrency:
+  group: preview
+  cancel-in-progress: ${{ github.event_name == 'push' && github.ref == 'refs/heads/preview' }}
+
+jobs:
+  guard:
+    name: Repository guard
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+    steps:
+      - name: Ensure we're on the canonical repo
+        run: |
+          if [ "${{ github.repository }}" != "diegorv/koko.brain" ]; then
+            echo "::notice::Skipping preview build on fork ${{ github.repository }}"
+            exit 1
+          fi
+          echo "Confirmed: ${{ github.repository }}"
+
+      # Unlike nightly.yml, release-flow commits (version bump, release tag) are
+      # synced and built: release.yml builds no preview, and skipping them would
+      # leave preview on the old base version, below the new stable.
+      - name: Skip if commit on main asks to
+        id: check
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message || '' }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "push" ] && [ "$REF" = "refs/heads/main" ] && [[ "$COMMIT_MSG" == *"[skip nightly]"* ]]; then
+            echo "::notice::Detected [skip nightly] marker in commit body. Skipping preview."
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Proceeding: $EVENT_NAME on $REF."
+          echo "should_build=true" >> "$GITHUB_OUTPUT"
+
+  sync:
+    name: Merge main into preview
+    needs: [guard]
+    if: needs.guard.outputs.should_build == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      sha: ${{ steps.sync.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: refs/heads/preview
+          fetch-depth: 0
+
+      # Merges with --no-ff and pushes without force; on a conflict it aborts
+      # and fails with the files and the commands to resolve it by hand.
+      - name: Merge origin/main into preview
+        id: sync
+        run: bash scripts/preview-branch.sh sync
+
+  build-macos:
+    name: Build macOS preview
+    needs: [guard, sync]
+    # sync is skipped on a preview push or a manual run; a failed sync (conflict) stops the build.
+    if: ${{ !cancelled() && needs.guard.outputs.should_build == 'true' && (needs.sync.result == 'success' || needs.sync.result == 'skipped') }}
+    runs-on: macos-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      # The release profile's codegen-units = 1 compiles the kokobrain crate on
+      # one core. Preview trades a slightly slower binary for a
+      # parallel build; stable releases keep the release profile as is.
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
+    steps:
+      # The head the sync job pushed, the pushed head of a direct preview push,
+      # or the current preview head for a manual run.
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.sync.outputs.sha || (github.event_name == 'push' && github.ref == 'refs/heads/preview' && github.sha) || 'refs/heads/preview' }}
+          fetch-depth: 0
+
+      # Own cache key: the codegen-units override changes every crate's
+      # artifacts, and preview's dependencies can differ from main's.
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          mods-repo-read-token: ${{ secrets.MODS_REPO_READ_TOKEN }}
+          rust-cache-key: macos-preview-aarch64
+
+      - name: Compute preview version
+        id: ver
+        run: |
+          set -euo pipefail
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          FULL_SHA=$(git rev-parse HEAD)
+          BASE_VERSION=$(jq -r '.version' package.json)
+          COMMIT_COUNT=$(git rev-list --count "${BASE_VERSION}..HEAD")
+          # Same function Vite uses for __BUILD_INFO__, so the updater version and the UI agree.
+          PREVIEW_VERSION=$(node --input-type=module -e "
+            import { resolveVersion } from './src/lib/utils/build-info.js';
+            console.log(resolveVersion({ pkgVersion: process.argv[1], gitHash: process.argv[2], commitCount: process.argv[3], channel: 'preview' }));
+          " "$BASE_VERSION" "$SHORT_SHA" "$COMMIT_COUNT")
+          {
+            echo "short_sha=${SHORT_SHA}"
+            echo "full_sha=${FULL_SHA}"
+            echo "commit_count=${COMMIT_COUNT}"
+            echo "base_version=${BASE_VERSION}"
+            echo "preview_version=${PREVIEW_VERSION}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Computed preview version: ${PREVIEW_VERSION}"
+
+      - name: Patch tauri.conf.json with preview version
+        run: |
+          set -euo pipefail
+          PREVIEW_VERSION="${{ steps.ver.outputs.preview_version }}"
+          jq --arg v "$PREVIEW_VERSION" '.version = $v' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
+          mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+          echo "--- package.json (unpatched) ---"
+          jq '{ name, version }' package.json
+          echo "--- tauri.conf.json ---"
+          jq '{ productName, version }' src-tauri/tauri.conf.json
+
+      - name: Generate preview release body
+        id: body
+        run: |
+          set -euo pipefail
+          MERGED=$(bash scripts/preview-branch.sh merged)
+          {
+            echo "body<<PREVIEW_BODY_EOF"
+            echo "## Preview build from \`preview\` @ \`${{ steps.ver.outputs.short_sha }}\`"
+            echo ""
+            echo "**Version:** \`${{ steps.ver.outputs.preview_version }}\`"
+            echo "**Commit:** [${{ steps.ver.outputs.short_sha }}](https://github.com/${{ github.repository }}/commit/${{ steps.ver.outputs.full_sha }})"
+            echo ""
+            echo "This build is \`main\` plus the features under test listed below."
+            echo ""
+            echo "### Branches merged into \`preview\` that are not in \`main\`"
+            echo ""
+            if [ -n "$MERGED" ]; then
+              printf '%s\n' "$MERGED" | sed 's/^/- /'
+            else
+              echo "None: this build is \`main\` only."
+            fi
+            echo ""
+            echo "### Pre-release"
+            echo ""
+            echo "This is an automated build of \`main\` plus features under test. It may be broken or"
+            echo "incomplete. Use the **Stable** channel for everyday work; switch to **Preview**"
+            echo "in Settings → Update only if you want to test these features."
+            echo ""
+            echo "### Verify download integrity"
+            echo ""
+            echo "\`\`\`bash"
+            echo "shasum -a 256 <downloaded-file>"
+            echo "\`\`\`"
+            echo ""
+            echo "Compare the output with the matching entry in the checksums block appended"
+            echo "below (also uploaded as \`checksums-sha256.txt\`)."
+            echo "PREVIEW_BODY_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Never delete the release up front: a failed build would 404 the updater.
+      - name: Snapshot current preview assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # REST ids, not `gh release view` GraphQL ids, or every DELETE 404s.
+          gh api repos/${{ github.repository }}/releases/tags/preview --jq '.assets[].id' > stale-asset-ids.txt 2>/dev/null || true
+          echo "Recorded $(wc -l < stale-asset-ids.txt | tr -d ' ') existing asset(s)."
+          gh release edit preview --draft=false 2>/dev/null || true
+
+      - name: Build Tauri app
+        id: tauri
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          KOKO_RELEASE_CHANNEL: preview
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: preview
+          releaseName: "Preview Build (${{ steps.ver.outputs.short_sha }})"
+          args: "--target aarch64-apple-darwin"
+          releaseBody: ${{ steps.body.outputs.body }}
+          releaseDraft: false
+          prerelease: true
+
+      - name: Publish checksums
+        uses: ./.github/actions/publish-checksums
+        with:
+          tag: preview
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prune stale assets and re-assert the pre-release flag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          while read -r asset_id; do
+            [ -n "$asset_id" ] || continue
+            if gh api -X DELETE "repos/${{ github.repository }}/releases/assets/$asset_id" >/dev/null 2>&1; then
+              echo "Deleted stale asset $asset_id"
+            else
+              echo "Asset $asset_id already replaced or gone; skipping"
+            fi
+          done < stale-asset-ids.txt
+          gh release edit preview --prerelease
+
+      - name: Verify preview latest.json is reachable and well-formed
+        run: |
+          set -euo pipefail
+          URL="https://github.com/diegorv/koko.brain/releases/download/preview/latest.json"
+          EXPECTED_VERSION="${{ steps.ver.outputs.preview_version }}"
+          RAW=""
+          for attempt in 1 2 3 4 5; do
+            if FETCHED=$(curl --fail --silent --show-error --location "$URL"); then
+              GOT_VERSION=$(printf '%s' "$FETCHED" | jq -r '.version')
+              if [ "$GOT_VERSION" = "$EXPECTED_VERSION" ]; then
+                RAW="$FETCHED"
+                echo "Fetched latest.json for $EXPECTED_VERSION on attempt $attempt"
+                break
+              fi
+              echo "Attempt $attempt served version '$GOT_VERSION', want '$EXPECTED_VERSION'; backing off 6s..."
+            else
+              echo "Attempt $attempt failed to fetch; backing off 6s..."
+            fi
+            sleep 6
+          done
+          if [ -z "$RAW" ]; then
+            echo "::error::latest.json never advertised '$EXPECTED_VERSION' after 5 attempts: $URL"
+            exit 1
+          fi
+          echo "--- latest.json ---"
+          printf '%s\n' "$RAW" | jq .
+
+          BUNDLE_URL=$(printf '%s' "$RAW" | jq -r '.platforms["darwin-aarch64"].url')
+          SIGNATURE=$(printf '%s' "$RAW" | jq -r '.platforms["darwin-aarch64"].signature')
+          if [ -z "$BUNDLE_URL" ] || [ "$BUNDLE_URL" = "null" ]; then
+            echo "::error::latest.json missing platforms[darwin-aarch64].url"
+            exit 1
+          fi
+          if [ -z "$SIGNATURE" ] || [ "$SIGNATURE" = "null" ]; then
+            echo "::error::latest.json missing platforms[darwin-aarch64].signature"
+            exit 1
+          fi
+          echo "Smoke check passed: version=$GOT_VERSION, bundle=$BUNDLE_URL, signature length=${#SIGNATURE}"
+
+      # Last on purpose, so a failed build leaves the tag on the published assets.
+      # Moves the tag only: the preview branch is never force-pushed.
+      - name: Point the preview tag at this commit
+        run: |
+          set -euo pipefail
+          git push --force origin "HEAD:refs/tags/preview"

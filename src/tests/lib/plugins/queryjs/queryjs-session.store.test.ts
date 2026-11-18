@@ -176,15 +176,76 @@ describe('queryjsSessionStore', () => {
 		});
 
 		it('keeps autoRunOnFirstOpen markers intact (the on-save invariant)', () => {
-			// Critical: notifyAfterSave calls clearResults so the next render
-			// hits ▶ Run for the saved file in 'first-open' policy. If clearResults
-			// also wiped autoRun markers, first-open would silently auto-run again.
+			// Critical: notifyAfterSave calls clearResults. If it also wiped the
+			// autoRun markers, first-open would auto-run every block of the file
+			// again, edited ones included, instead of only the stale ones.
 			queryjsSessionStore.markAutoRun('/vault/a.md');
 			queryjsSessionStore.markAutoRun('/vault/b.md');
 			queryjsSessionStore.setResult('/vault/note.md', 'hash-1', makeEl('x'));
 			queryjsSessionStore.clearResults();
 			expect(queryjsSessionStore.hasAutoRun('/vault/a.md')).toBe(true);
 			expect(queryjsSessionStore.hasAutoRun('/vault/b.md')).toBe(true);
+		});
+
+		it('marks every dropped result stale, keyed on file and script', () => {
+			queryjsSessionStore.setResult('/vault/note.md', 'a', makeEl('A'));
+			queryjsSessionStore.setResult('/vault/other.md', 'b', makeEl('B'));
+			queryjsSessionStore.clearResults();
+			expect(queryjsSessionStore.isStale('/vault/note.md', 'a')).toBe(true);
+			expect(queryjsSessionStore.isStale('/vault/other.md', 'b')).toBe(true);
+			expect(queryjsSessionStore.isStale('/vault/other.md', 'a')).toBe(false);
+			expect(queryjsSessionStore.staleResults.size).toBe(2);
+		});
+
+		it('with nothing cached leaves nothing stale', () => {
+			queryjsSessionStore.clearResults();
+			expect(queryjsSessionStore.staleResults.size).toBe(0);
+		});
+	});
+
+	describe('stale results', () => {
+		it('starts empty', () => {
+			expect(queryjsSessionStore.staleResults.size).toBe(0);
+			expect(queryjsSessionStore.isStale('/vault/note.md', 'a')).toBe(false);
+		});
+
+		it('a fresh result for the key clears its stale mark only', () => {
+			queryjsSessionStore.setResult('/vault/note.md', 'a', makeEl('A'));
+			queryjsSessionStore.setResult('/vault/note.md', 'b', makeEl('B'));
+			queryjsSessionStore.clearResults();
+			queryjsSessionStore.setResult('/vault/note.md', 'a', makeEl('A2'));
+			expect(queryjsSessionStore.isStale('/vault/note.md', 'a')).toBe(false);
+			expect(queryjsSessionStore.isStale('/vault/note.md', 'b')).toBe(true);
+		});
+
+		it('clearStale drops the stale mark of that key only', () => {
+			queryjsSessionStore.setResult('/vault/note.md', 'a', makeEl('A'));
+			queryjsSessionStore.setResult('/vault/note.md', 'b', makeEl('B'));
+			queryjsSessionStore.clearResults();
+			queryjsSessionStore.clearStale('/vault/note.md', 'a');
+			expect(queryjsSessionStore.isStale('/vault/note.md', 'a')).toBe(false);
+			expect(queryjsSessionStore.isStale('/vault/note.md', 'b')).toBe(true);
+		});
+
+		it('clearStale on a key that is not stale changes nothing', () => {
+			queryjsSessionStore.clearStale('/vault/note.md', 'a');
+			expect(queryjsSessionStore.staleResults.size).toBe(0);
+		});
+
+		it('invalidatePath drops the stale marks of that file only', () => {
+			queryjsSessionStore.setResult('/vault/a.md', 'x', makeEl('A'));
+			queryjsSessionStore.setResult('/vault/b.md', 'x', makeEl('B'));
+			queryjsSessionStore.clearResults();
+			queryjsSessionStore.invalidatePath('/vault/a.md');
+			expect(queryjsSessionStore.isStale('/vault/a.md', 'x')).toBe(false);
+			expect(queryjsSessionStore.isStale('/vault/b.md', 'x')).toBe(true);
+		});
+
+		it('reset drops every stale mark', () => {
+			queryjsSessionStore.setResult('/vault/note.md', 'a', makeEl('A'));
+			queryjsSessionStore.clearResults();
+			queryjsSessionStore.reset();
+			expect(queryjsSessionStore.staleResults.size).toBe(0);
 		});
 	});
 });

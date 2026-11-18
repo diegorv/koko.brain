@@ -14,6 +14,6 @@ test src/tests/lib/plugins/queryjs/queryjs.service.test.ts imports src/lib/plugi
 ## symbols
 sym src/lib/plugins/queryjs/queryjs.service.ts:4 fn loadExternalScript(absolutePath: string): Promise<string> L3 | Loads a .js script file from the vault
 by src/lib/plugins/queryjs/queryjs.service.ts:loadExternalScript <- src/lib/plugins/mods/mod-app.service.ts:92 in createModKb ref
-by src/lib/plugins/queryjs/queryjs.service.ts:loadExternalScript <- src/lib/plugins/queryjs/queryjs-block-widget.ts:253 in QueryjsBlockWidget.execute ref
+by src/lib/plugins/queryjs/queryjs.service.ts:loadExternalScript <- src/lib/plugins/queryjs/queryjs-block-widget.ts:262 in QueryjsBlockWidget.execute ref
 ## effects
 fx src/lib/plugins/queryjs/queryjs.service.ts:5 tauri-fs.readTextFile in loadExternalScript

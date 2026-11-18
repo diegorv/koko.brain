@@ -9,7 +9,7 @@ imp src/lib/plugins/quick-capture/quick-capture.service.ts:5 -> src/lib/features
 imp src/lib/plugins/quick-capture/quick-capture.service.ts:6 -> src/lib/features/deep-link/deep-link.types.ts type:CaptureAction,type:CaptureKind
 imp src/lib/plugins/quick-capture/quick-capture.service.ts:7 -> src/lib/utils/debug.ts debug,error
 ## imported-by
-imp src/routes/(app)/+layout.svelte:15 -> src/lib/plugins/quick-capture/quick-capture.service.ts registerQuickCaptureListener
+imp src/routes/(app)/+layout.svelte:16 -> src/lib/plugins/quick-capture/quick-capture.service.ts registerQuickCaptureListener
 ## reach
 in2 src/lib/plugins/quick-capture/quick-capture.service.ts 0 files in 0 modules: -
 out2 src/lib/plugins/quick-capture/quick-capture.service.ts 16 files in 9 modules: src/lib/contracts(2) src/lib/core/editor(2) src/lib/core/filesystem(2) src/lib/core/note-creator(2) src/lib/core/settings(2) +4 modules
@@ -18,7 +18,7 @@ test src/tests/lib/plugins/quick-capture/quick-capture.service.test.ts imports s
 ## symbols
 sym src/lib/plugins/quick-capture/quick-capture.service.ts:17 interface QuickCaptureDetectedPayload L24 | Partial `CaptureAction` shape the Rust side (`quick_capture::commands` and the global-shortcut dispatcher in `lib.rs`) emits on `qc:capture-detected`, built wi…
 sym src/lib/plugins/quick-capture/quick-capture.service.ts:51 fn registerQuickCaptureListener(): () => void L32 | Registers the Tauri event listener that routes a Rust-detected clipboard capture into kokobrain's `executeAction` pipeline.
-by src/lib/plugins/quick-capture/quick-capture.service.ts:registerQuickCaptureListener <- src/routes/(app)/+layout.svelte:63 in $effect@62 call
+by src/lib/plugins/quick-capture/quick-capture.service.ts:registerQuickCaptureListener <- src/routes/(app)/+layout.svelte:68 in $effect@67 call
 sym src/lib/plugins/quick-capture/quick-capture.service.ts:91 fn handleDetectedCapture(payload: QuickCaptureDetectedPayload): Promise<void> L8 | Handles a single detected capture: fills `vault` from the active vault and dispatches via `executeAction`.
 sym src/lib/plugins/quick-capture/quick-capture.service.ts:126 fn buildCaptureAction(payload: QuickCaptureDetectedPayload, vaultName: string): CaptureAction | null L48 | Assemble a typed `CaptureAction` from the Rust payload + the active vault name.
 ## locals

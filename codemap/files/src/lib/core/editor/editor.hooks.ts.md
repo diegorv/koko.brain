@@ -21,7 +21,7 @@ imp src/lib/features/auto-organize/auto-organize.service.ts:3 -> src/lib/core/ed
 imp src/lib/features/deep-link/deep-link.service.ts:14 -> src/lib/core/editor/editor.hooks.ts markRecentSave,notifyAfterSave
 imp src/lib/features/file-history/file-history.service.ts:8 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:6 -> src/lib/core/editor/editor.hooks.ts notifyNoteCreated
-imp src/lib/features/rail-shell/FilesNavigator.svelte:19 -> src/lib/core/editor/editor.hooks.ts notifyNoteCreated
+imp src/lib/features/rail-shell/FilesNavigator.svelte:22 -> src/lib/core/editor/editor.hooks.ts notifyNoteCreated
 imp src/lib/features/rail-shell/new-note.service.ts:2 -> src/lib/core/editor/editor.hooks.ts notifyNoteCreated
 imp src/lib/features/search/SemanticIndexStatus.svelte:9 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver
 imp src/lib/features/search/search.service.ts:7 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver
@@ -31,7 +31,7 @@ imp src/lib/features/type-definitions/type-definitions.service.ts:14 -> src/lib/
 imp src/lib/plugins/mods/mod-vault.service.ts:4 -> src/lib/core/editor/editor.hooks.ts markRecentSave,notifyAfterSave
 imp src/lib/plugins/mods/mods-host.service.ts:5 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver,addNoteCreatedObserver
 ## reach
-in2 src/lib/core/editor/editor.hooks.ts 68 files in 31 modules: src/lib/app(9) src/lib/features/event-calendar(5) src/lib/core/filesystem(4) src/lib/features/properties(4) src/lib/features/canvas(3) +26 modules: q impact src/lib/core/editor/editor.hooks.ts --depth 2
+in2 src/lib/core/editor/editor.hooks.ts 69 files in 31 modules: src/lib/app(9) src/lib/features/event-calendar(5) src/lib/core/filesystem(4) src/lib/features/properties(4) src/lib/features/canvas(3) +26 modules: q impact src/lib/core/editor/editor.hooks.ts --depth 2
 out2 src/lib/core/editor/editor.hooks.ts 6 files in 3 modules: src/lib/contracts(2) src/lib/core/settings(2) src/lib/utils(2)
 ## tests
 test src/tests/lib/core/editor/editor.hooks.test.ts imports src/lib/core/editor/editor.hooks.ts mirror
@@ -93,7 +93,7 @@ sym src/lib/core/editor/editor.hooks.ts:52 fn addAfterSaveObserver(observer: Aft
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/auto-organize/auto-organize.service.ts:208 in registerAutoOrganizeHook call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/file-history/file-history.service.ts:192 in registerFileHistoryHook call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/search/SemanticIndexStatus.svelte:23 in (script) call
-by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/search/search.service.ts:303 in registerSearchIndexHook call
+by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/search/search.service.ts:367 in registerSearchIndexHook call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/todoist-sync/sync-scheduler.service.ts:90 in startAutoSync call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/plugins/mods/mods-host.service.ts:630 in createModContext call
 sym src/lib/core/editor/editor.hooks.ts:67 fn notifyAfterSave(filePath: string, content: string): void L26 | Notifies all after-save observers.
@@ -106,10 +106,10 @@ sym src/lib/core/editor/editor.hooks.ts:98 type NoteCreatedObserver L1 | Called 
 sym src/lib/core/editor/editor.hooks.ts:104 fn addNoteCreatedObserver(observer: NoteCreatedObserver): () => void L7 | Adds a note-created observer.
 by src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver <- src/lib/plugins/mods/mods-host.service.ts:681 in createModContext call
 sym src/lib/core/editor/editor.hooks.ts:119 fn notifyNoteCreated(filePath: string): void L9 | Notifies the note-created observers.
-by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/app/commands.ts:157 in getBuiltInCommands call
+by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/app/commands.ts:160 in getBuiltInCommands call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/core/note-creator/note-creator.service.ts:130 in openOrCreateNote call
-by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/quick-switcher/QuickSwitcher.svelte:57 in createAndOpenNote call
-by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/rail-shell/FilesNavigator.svelte:129 in handleNewFile call
+by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/quick-switcher/QuickSwitcher.svelte:110 in createAndOpenNote call
+by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/rail-shell/FilesNavigator.svelte:170 in handleNewFile call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/rail-shell/new-note.service.ts:41 in createNoteHere call
 sym src/lib/core/editor/editor.hooks.ts:130 fn resetHooks(): void L8 | Removes all hooks and observers.
 by src/lib/core/editor/editor.hooks.ts:resetHooks <- src/lib/app/lifecycle/app-lifecycle.service.ts:651 in teardownVault call

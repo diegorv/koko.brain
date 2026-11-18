@@ -5,7 +5,7 @@ file src/lib/utils/menu-action.types.ts types L21 module src/lib/utils in2 t0
 imp src/lib/features/note-list/NoteRowMenu.svelte:29 -> src/lib/utils/menu-action.types.ts type:MenuActionItem
 imp src/lib/features/rail-shell/rail-shell.types.ts:220 -> src/lib/utils/menu-action.types.ts type:MenuActionTarget,type:MenuActionItem
 ## reach
-in2 src/lib/utils/menu-action.types.ts 15 files in 2 modules: src/lib/features/rail-shell(13) src/lib/plugins/calendar(2)
+in2 src/lib/utils/menu-action.types.ts 16 files in 2 modules: src/lib/features/rail-shell(14) src/lib/plugins/calendar(2)
 out2 src/lib/utils/menu-action.types.ts 0 files in 0 modules: -
 ## symbols
 sym src/lib/utils/menu-action.types.ts:2 interface MenuActionTarget L6 | The clicked note or folder, captured when a menu action is invoked.

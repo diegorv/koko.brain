@@ -21,4 +21,4 @@ call src/lib/core/settings/update-check.service.ts:24 in maybeAutoCheckForUpdate
 call src/lib/core/settings/update-check.service.ts:27 in maybeAutoCheckForUpdates -> src/lib/core/settings/settings.store.svelte.ts:settingsStore.updateUpdates mcall
 call src/lib/core/settings/update-check.service.ts:35 in maybeAutoCheckForUpdates -> src/lib/utils/debug.ts:error call
 ## effects
-ipc-call src/lib/core/settings/update-check.service.ts:24 in maybeAutoCheckForUpdates -> ipc:check_for_update_on_channel -> src-tauri/src/commands/update_channel.rs:88
+ipc-call src/lib/core/settings/update-check.service.ts:24 in maybeAutoCheckForUpdates -> ipc:check_for_update_on_channel -> src-tauri/src/commands/update_channel.rs:95

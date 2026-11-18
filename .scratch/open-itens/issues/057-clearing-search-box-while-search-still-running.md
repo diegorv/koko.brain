@@ -6,7 +6,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -26,3 +26,5 @@
 **Second opinion (audit 2026-11-05, round 2):** upheld (ux, low). performSearch bumps searchVersion (:128) and returns on an empty query before setSearching (:130-135). The older call's finally clears isSearching only when searchVersion === version (:271-274). SearchPanel.svelte:115-118 checks isSearching before the empty-query hint. +layout.svelte:170-180 runs performSearch for an empty query too. The trigger needs a slow search (semantic or hybrid), so likelihood is low. Corrections to apply while implementing: The second criterion says 'existing test at :285 stays green' as if that test pinned 'a newer non-empty search still owns isSearching'. search.service.test.ts:285 is only 'sets isSearching to false after completion', and no existing test covers an older call finishing while a newer one runs. Ask for a new test for that case.
 
 ## Comments
+
+- 2026-11-17, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/finders-ux/issues/05-search-keeps-results-while-searching.md`.

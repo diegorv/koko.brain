@@ -10,7 +10,7 @@ imp src/lib/plugins/quick-capture/composer-editor-host.service.ts:4 -> src/lib/c
 imp src/routes/composer/+page.svelte:9 -> src/lib/plugins/quick-capture/composer-editor-host.service.ts createComposerEditorHost
 ## reach
 in2 src/lib/plugins/quick-capture/composer-editor-host.service.ts 0 files in 0 modules: -
-out2 src/lib/plugins/quick-capture/composer-editor-host.service.ts 6 files in 4 modules: src/lib/contracts(3) src/lib/core/filesystem(1) src/lib/types(1) src/lib/utils(1)
+out2 src/lib/plugins/quick-capture/composer-editor-host.service.ts 7 files in 4 modules: src/lib/contracts(3) src/lib/utils(2) src/lib/core/filesystem(1) src/lib/types(1)
 ## tests
 test src/tests/lib/plugins/quick-capture/composer-editor-host.service.test.ts imports src/lib/plugins/quick-capture/composer-editor-host.service.ts mirror
 ## symbols

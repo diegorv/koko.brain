@@ -39,6 +39,8 @@ export function openGraphTab(): void {
 		editorStore.setActiveIndex(existingIndex);
 		return;
 	}
+	// A new graph tab starts at depth 1; focusing an open one keeps its depth.
+	graphViewStore.setLocalDepth(1);
 	editorStore.addTab({
 		path: GRAPH_VIRTUAL_PATH,
 		name: 'Graph View',

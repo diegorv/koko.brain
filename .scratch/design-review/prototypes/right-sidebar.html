@@ -1,0 +1,1322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Right sidebar: properties, relationships, backlinks, outgoing and TOC</title>
+<style>
+	:root {
+		--pg-bg: #f4f2f8;
+		--pg-card: #ffffff;
+		--pg-fg: #231f2e;
+		--pg-muted: #6b6480;
+		--pg-line: #d9d4e4;
+		--pg-accent: #6848a8;
+		--pg-before: #a8323f;
+		--pg-after: #1d6f4d;
+		--pg-code: #ece8f4;
+	}
+	body[data-theme="dark"] {
+		--pg-bg: #14151d;
+		--pg-card: #1d1f2b;
+		--pg-fg: #ececf3;
+		--pg-muted: #9aa0bd;
+		--pg-line: #333650;
+		--pg-accent: #a99be0;
+		--pg-before: #f08a94;
+		--pg-after: #6fd9a6;
+		--pg-code: #272a3b;
+	}
+	* { box-sizing: border-box; }
+	html { scroll-behavior: smooth; }
+	body {
+		margin: 0;
+		background: var(--pg-bg);
+		color: var(--pg-fg);
+		font: 15px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+	}
+	.top {
+		position: sticky;
+		top: 0;
+		z-index: 50;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 12px 20px;
+		padding: 10px 24px;
+		background: color-mix(in srgb, var(--pg-card) 94%, transparent);
+		backdrop-filter: blur(8px);
+		border-bottom: 1px solid var(--pg-line);
+	}
+	.top h1 { margin: 0; font-size: 16px; font-weight: 650; flex: 1 1 320px; }
+	.seg { display: inline-flex; border: 1px solid var(--pg-line); border-radius: 8px; overflow: hidden; }
+	.seg button {
+		font: 500 13px/1 inherit; font-family: inherit;
+		padding: 7px 12px;
+		border: 0;
+		background: transparent;
+		color: var(--pg-fg);
+		cursor: pointer;
+	}
+	.seg button + button { border-left: 1px solid var(--pg-line); }
+	.seg button[aria-pressed="true"] { background: var(--pg-accent); color: #fff; }
+	body[data-theme="dark"] .seg button[aria-pressed="true"] { color: #14151d; }
+	.top nav { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; width: 100%; }
+	.top nav a { color: var(--pg-muted); text-decoration: none; padding: 2px 6px; border-radius: 4px; }
+	.top nav a:hover { color: var(--pg-fg); background: var(--pg-code); }
+	main { max-width: 1180px; margin: 0 auto; padding: 24px 24px 80px; }
+	.intro { color: var(--pg-muted); margin: 0 0 8px; max-width: 80ch; }
+	.tier-h { margin: 56px 0 4px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--pg-muted); font-weight: 650; border-bottom: 1px solid var(--pg-line); padding-bottom: 6px; }
+	.prop {
+		background: var(--pg-card);
+		border: 1px solid var(--pg-line);
+		border-radius: 12px;
+		padding: 20px 22px 24px;
+		margin: 20px 0;
+	}
+	.prop > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+	.pid { font: 700 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--pg-accent); color: #fff; padding: 5px 8px; border-radius: 6px; }
+	body[data-theme="dark"] .pid { color: #14151d; }
+	.prop h2 { margin: 0; font-size: 18px; line-height: 1.3; flex: 1 1 360px; }
+	.badges { display: flex; gap: 6px; }
+	.badge { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; border: 1px solid var(--pg-line); color: var(--pg-muted); }
+	.badge.clear { color: var(--pg-after); border-color: currentColor; }
+	.badge.moderate { color: #a8741a; border-color: currentColor; }
+	body[data-theme="dark"] .badge.moderate { color: #e7b45c; }
+	.prop .why { margin: 8px 0 2px; color: var(--pg-muted); font-size: 14px; max-width: 100ch; }
+	.prop .why b { color: var(--pg-fg); font-weight: 600; }
+	.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 14px 0 6px; font-size: 13px; color: var(--pg-muted); }
+	.controls .seg button { font-size: 12px; padding: 6px 10px; }
+	.controls label { display: inline-flex; align-items: center; gap: 8px; }
+	.controls output { font-variant-numeric: tabular-nums; color: var(--pg-fg); min-width: 5ch; }
+	.cmp { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; margin-top: 14px; }
+	.cell { flex: 0 0 auto; max-width: 100%; }
+	.cap { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+	.cap i { font-style: normal; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--pg-muted); }
+	.cap.before { color: var(--pg-before); }
+	.cap.after { color: var(--pg-after); }
+	.note { font-size: 12.5px; color: var(--pg-muted); margin: 8px 0 0; max-width: 46ch; }
+	.note code, .why code { background: var(--pg-code); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+	.shot { position: relative; overflow: hidden; border: 1px solid #cfc9dc; background: #fff; }
+	.shot img { position: absolute; max-width: none; display: block; }
+	.metric { margin-top: 10px; font-size: 12.5px; color: var(--pg-muted); }
+	.metric b { color: var(--pg-fg); }
+	.kbd { font: 600 11px/1 ui-monospace, Menlo, monospace; border: 1px solid var(--pg-line); border-bottom-width: 2px; border-radius: 4px; padding: 2px 5px; color: var(--pg-fg); background: var(--pg-code); }
+
+	/* ---------- Kokobrain right sidebar recreation ---------- */
+	.sbx {
+		--bg: #EAE6F2; --fg: #302840; --muted: #8078A0; --accent: #DDD8E8; --primary: #6848A8;
+		--divider: #C0B8D0; --tabinactive: #504868; --inputbg: #E2DDEC; --destructive: #C83848;
+		--popover: #FFFFFF; --border: #D5D0E2; --ring: #6848A8; --ring-edge: #30284014;
+		--shadow: 0 0 0 1px #30284014, 0 4px 12px -2px #3028401a, 0 2px 4px -2px #3028400f;
+		--t-blue: #3868B0; --t-purple: #7848B8; --t-teal: #397a8e; --t-orange: #b66737; --t-gray: #645c74; --t-green: #408868;
+		position: relative;
+		flex: none;
+		width: var(--w, 250px);
+		background: var(--bg);
+		color: var(--fg);
+		font: 400 14px/20px -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+		border: 1px solid var(--divider);
+	}
+	body[data-theme="dark"] .sbx {
+		--bg: #2a2e3d; --fg: #F8F8F2; --muted: oklch(0.55 0.06 268); --accent: oklch(0.28 0.025 272);
+		--primary: oklch(0.73 0.08 278); --divider: #383a4f; --tabinactive: #9ca3c7; --inputbg: #3d4058;
+		--destructive: oklch(0.628 0.225 25); --popover: oklch(0.22 0.025 273); --border: oklch(0.28 0.025 272);
+		--ring: oklch(0.73 0.08 278); --ring-edge: #ffffff0f;
+		--shadow: 0 0 0 1px #ffffff0f, 0 4px 12px -2px #00000073, 0 2px 4px -2px #00000040;
+		--t-blue: #60a5fa; --t-purple: #a78bfa; --t-teal: #52c4c4; --t-orange: #fb8336; --t-gray: #95a0b9; --t-green: #4ade80;
+	}
+	.sbx *, .sbx *::before, .sbx *::after { box-sizing: border-box; }
+	:where(.sbx) button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; text-align: left; cursor: pointer; }
+	:where(.sbx) input { font: inherit; color: inherit; margin: 0; }
+	.sbx :focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+	.sbx .ic { flex: none; display: block; }
+	.sb-scroll { height: var(--h, 700px); overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--divider) transparent; position: relative; }
+	.sec-h {
+		display: flex; align-items: center; gap: 4px;
+		height: 40px; width: 100%; padding: 0 12px;
+		border-bottom: 1px solid var(--divider);
+		background: var(--bg);
+		position: sticky; top: 0; z-index: 4;
+	}
+	.sbx.nostick .sec-h { position: static; }
+	button.sec-h:hover { background: color-mix(in srgb, var(--accent) 50%, var(--bg)); }
+	.sec-h .chev { width: 14px; height: 14px; flex: none; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+	.sec-h .chev svg { transition: transform .15s; }
+	.sec-h[aria-expanded="true"] .chev svg { transform: rotate(90deg); }
+	.sec-h h2 { margin: 0; font-size: 15px; line-height: 22px; font-weight: 600; color: var(--primary); }
+	.sec-b { padding: 8px; border-bottom: 1px solid var(--divider); container-type: inline-size; container-name: pb; }
+	.empty { margin: 0; padding: 16px 8px; text-align: center; font-size: 12px; line-height: 16px; color: var(--muted); }
+	.slabel { font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: .025em; text-transform: uppercase; color: var(--muted); }
+	.pos { position: relative; }
+
+	/* property rows */
+	.prow { position: relative; border-radius: 6px; padding: 6px 8px; }
+	.prow:hover { background: color-mix(in srgb, var(--accent) 50%, transparent); }
+	.pmain { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+	.icc { flex: none; display: flex; align-items: center; justify-content: center; color: var(--tabinactive); border-radius: 4px; }
+	button.icc { padding: 2px; margin: -2px; }
+	button.icc:hover { background: var(--accent); color: var(--fg); }
+	.p-key {
+		flex: 2 1 0; min-width: 0; height: 24px; padding: 0 4px; background: transparent; border: 0; outline: 0;
+		border-radius: 4px; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
+	}
+	.p-key:focus { color: var(--fg); box-shadow: inset 0 -1px 0 var(--ring); }
+	.p-key[aria-invalid="true"] { color: var(--fg); box-shadow: inset 0 0 0 1px var(--destructive); background: color-mix(in srgb, var(--destructive) 8%, transparent); }
+	.p-val {
+		flex: 3 1 0; min-width: 0; height: 24px; padding: 0 10px; border: 0; border-radius: 6px; outline: 0; background: transparent;
+		font-weight: 500; color: color-mix(in srgb, var(--fg) 70%, transparent); text-overflow: ellipsis;
+	}
+	.p-val:focus { background: var(--inputbg); }
+	.p-bool { flex: 3 1 0; min-width: 0; display: flex; align-items: center; gap: 8px; font-weight: 500; color: color-mix(in srgb, var(--fg) 70%, transparent); }
+	.pv { flex: 3 1 0; min-width: 0; position: relative; }
+	.p-type {
+		display: flex; align-items: center; gap: 6px; width: 100%; height: 24px; padding: 0 10px; border-radius: 6px;
+		background: var(--inputbg); font-weight: 500; color: color-mix(in srgb, var(--fg) 70%, transparent);
+	}
+	.p-type:hover { background: var(--accent); }
+	.p-type span.t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.p-type .ic:last-child { margin-left: auto; opacity: .6; }
+	.p-type.ph { background: transparent; border: 1px dashed var(--divider); color: var(--muted); font-weight: 400; }
+	.p-type.ph:hover { border-color: var(--primary); color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, transparent); }
+	.p-del, .p-acts button {
+		padding: 2px; border-radius: 2px; opacity: 0; transition: opacity .12s; color: var(--muted); flex: none; line-height: 0;
+	}
+	.prow:hover .p-del, .prow:focus-within .p-del, .prow:hover .p-acts, .prow:focus-within .p-acts,
+	.prow:hover .p-acts button, .prow:focus-within .p-acts button, .prow:hover .chip .x, .prow:focus-within .chip .x { opacity: 1; }
+	.p-del:hover, .p-acts button:hover, .chip .x:hover, .rel-l .x:hover { background: color-mix(in srgb, var(--destructive) 12%, transparent); color: var(--destructive); }
+	.p-acts button.plus:hover { background: var(--accent); color: var(--fg); }
+	.prow:not(.legacy) .p-acts {
+		position: absolute; right: 6px; top: 6px; display: flex; gap: 2px; padding: 2px; border-radius: 6px; opacity: 0;
+		background: color-mix(in srgb, var(--bg) 88%, transparent);
+	}
+	.prow:not(.legacy) .p-acts button { opacity: 1; }
+	.prow:not(.legacy):hover .p-acts, .prow:not(.legacy):focus-within .p-acts { opacity: 1; }
+	.p-spacer { flex: 3 1 0; min-width: 0; }
+	.p-err { margin: 2px 0 0 0; padding-left: 22px; font-size: 12px; line-height: 16px; color: var(--destructive); }
+	.p-err::before { content: ""; }
+	.prow.legacy .p-spacer16 { width: 16px; flex: none; }
+	@container pb (max-width: 215px) {
+		.prow:not(.legacy) .pmain { display: grid; grid-template-columns: 14px minmax(0, 1fr); column-gap: 8px; row-gap: 0; align-items: center; }
+		.prow:not(.legacy) .pmain > .icc { grid-row: 1 / span 2; align-self: start; margin-top: 5px; }
+		.prow:not(.legacy) .pmain > .p-key,
+		.prow:not(.legacy) .pmain > .p-val,
+		.prow:not(.legacy) .pmain > .p-bool,
+		.prow:not(.legacy) .pmain > .pv,
+		.prow:not(.legacy) .pmain > .p-spacer { grid-column: 2; }
+		.prow:not(.legacy) .p-key { padding-left: 10px; font-size: 12px; line-height: 16px; height: 18px; }
+		.prow:not(.legacy) .p-spacer { display: none; }
+		.prow:not(.legacy) .p-acts { top: 4px; }
+	}
+
+	/* chips */
+	.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; padding: 8px; border-radius: 6px; background: var(--accent); }
+	.chip { display: flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0; padding: 4px 4px 4px 8px; border-radius: 6px; background: var(--inputbg); }
+	.chip .ic { color: var(--muted); }
+	.chip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: color-mix(in srgb, var(--fg) 80%, transparent); }
+	.chip .x { padding: 2px; border-radius: 2px; opacity: 0; color: var(--muted); line-height: 0; }
+	.chip.addchip { padding: 4px 10px 4px 8px; background: transparent; border: 1px dashed var(--divider); color: var(--muted); }
+	.chip.addchip:hover { color: var(--primary); border-color: var(--primary); }
+	.chip-edit { display: flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 6px; background: var(--inputbg); box-shadow: 0 0 0 1px var(--ring); min-width: 0; max-width: 100%; }
+	.chip-edit input { background: transparent; border: 0; outline: 0; min-width: 4ch; width: 12ch; color: var(--fg); }
+	.chip-in { display: flex; align-items: center; gap: 6px; width: 100%; padding: 4px 8px; border-radius: 6px; background: var(--inputbg); }
+	.chip-in input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; }
+	.chip-in input::placeholder { color: color-mix(in srgb, var(--muted) 60%, transparent); }
+
+	.add-row {
+		display: flex; align-items: center; gap: 6px; width: 100%; margin-top: 4px; padding: 6px 8px; border-radius: 6px;
+		color: color-mix(in srgb, var(--tabinactive) 65%, transparent); transition: background .12s, color .12s;
+	}
+	.add-row:hover { color: var(--tabinactive); background: color-mix(in srgb, var(--accent) 50%, transparent); }
+	.add-form { margin-top: 4px; padding: 6px 8px; }
+	.add-form .af-row { display: flex; align-items: center; gap: 6px; }
+	.add-form input.k {
+		flex: 1; min-width: 0; height: 24px; padding: 0 6px; background: transparent; border: 1px solid var(--border); border-radius: 3px; outline: 0;
+	}
+	.add-form input.k:focus { border-color: var(--ring); }
+	.add-form input.k[aria-invalid="true"] { border-color: var(--destructive); }
+	.af-types { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 0 20px; }
+	.af-types button {
+		display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border-radius: 6px; font-size: 12px;
+		background: var(--inputbg); color: color-mix(in srgb, var(--fg) 75%, transparent); border: 1px solid transparent;
+	}
+	.af-types button[aria-checked="true"] { border-color: var(--primary); color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, var(--inputbg)); }
+	.af-act { display: flex; gap: 6px; margin: 8px 0 0 20px; }
+	.btn-sm { height: 24px; padding: 0 10px; border-radius: 6px; font-size: 12px; background: var(--inputbg); }
+	.btn-sm.primary { background: var(--primary); color: #fff; }
+	body[data-theme="dark"] .btn-sm.primary { color: #21222e; }
+
+	/* relationships */
+	.rel-sep { height: 1px; background: var(--border); margin: 8px 0; }
+	.rel-h { margin: 0 0 4px; padding: 0 8px; }
+	.rel-g { padding: 4px 8px; }
+	.rel-gh { display: flex; align-items: center; gap: 4px; }
+	.rel-gh .slabel, .rel-gh .rel-lab { flex: 1; }
+	.rel-lab { font-size: 13px; line-height: 18px; color: var(--muted); }
+	.rel-plus { margin-left: auto; padding: 2px; border-radius: 2px; color: var(--muted); line-height: 0; }
+	.rel-plus:hover { background: var(--accent); }
+	.rel-new .rel-plus { opacity: 0; transition: opacity .12s; }
+	.rel-new .rel-g:hover .rel-plus, .rel-new .rel-g:focus-within .rel-plus { opacity: 1; }
+	.rel-l { display: flex; align-items: center; gap: 6px; padding: 2px 4px; border-radius: 6px; margin-top: 2px; }
+	.rel-l:hover { background: var(--accent); }
+	.rel-l .go { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+	.rel-l .go span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.rel-l .x { padding: 2px; border-radius: 2px; opacity: 0; line-height: 0; color: var(--muted); }
+	.rel-l:hover .x, .rel-l:focus-within .x { opacity: 1; }
+	.rel-new .add-row { margin-top: 4px; }
+	.rel-new .rel-h { margin-top: 8px; }
+
+	/* menus and picker */
+	.menu {
+		position: absolute; z-index: 20; left: 0; top: calc(100% + 4px); min-width: 170px; padding: 4px;
+		background: var(--popover); border-radius: 8px; box-shadow: var(--shadow); border: 1px solid var(--border);
+	}
+	.menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border-radius: 6px; font-size: 13px; line-height: 18px; }
+	.menu button:hover, .menu button.cur { background: var(--accent); }
+	.menu .chk { margin-left: auto; color: var(--muted); }
+	.menu .mh { padding: 4px 8px 2px; }
+	.menu.up { top: auto; bottom: calc(100% + 4px); }
+	.tdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+
+	/* link rows */
+	.grp-h { display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; border-radius: 6px; font-weight: 500; }
+	.grp-h:hover { background: var(--accent); }
+	.grp-h .ic:first-child { transition: transform .15s; }
+	.grp-h[aria-expanded="true"] .ic:first-child { transform: rotate(90deg); }
+	.grp-h .cnt { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--muted); }
+	.grp-list { padding-left: 8px; margin-top: 4px; display: flex; flex-direction: column; gap: 2px; }
+	.grp + .grp { margin-top: 8px; }
+	.lrow { display: flex; align-items: flex-start; gap: 6px; width: 100%; padding: 4px 8px; border-radius: 6px; }
+	.lrow:hover { background: var(--accent); }
+	.lrow > .ic { margin-top: 3px; color: var(--muted); }
+	.lrow .l-main { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+	.lrow .l-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.lrow .l-sub { font-size: 12px; line-height: 16px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.lrow .l-snip {
+		margin-top: 2px; font-size: 12px; line-height: 16px; color: var(--muted);
+		display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+	}
+	.lrow .lk { color: var(--primary); }
+	.lrow.legacy { display: block; }
+	.lrow.legacy .l-t1 { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+	.lrow.legacy .l-t1 span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.lrow.legacy .l-t1 .ic { color: var(--muted); }
+	.lrow.legacy .l-snip1 { padding-left: 20px; font-size: 12px; line-height: 1.625; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.lrow.legacy .l-snip1 .lk { color: var(--primary); }
+	.lrow.l-inline { align-items: center; }
+	.lrow.l-inline .l-title { flex: 0 1 auto; }
+	.lrow.l-inline .l-sub1 { flex: 0 1 auto; min-width: 0; font-size: 14px; line-height: 20px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.lrow.l-inline > .ic { margin-top: 0; }
+	.lrow.dead { cursor: default; opacity: .6; }
+	.lrow.dead:hover { background: transparent; }
+	.lrow.dead .ic, .lrow.dead .l-title { color: var(--destructive); }
+	.lrow.broken .ic { color: var(--destructive); }
+	.lrow.broken .mk { margin-left: auto; align-self: center; font-size: 11px; line-height: 16px; padding: 0 6px; border-radius: 4px; border: 1px solid var(--divider); color: var(--muted); display: inline-flex; align-items: center; gap: 4px; flex: none; }
+	.lrow.broken:hover .mk, .lrow.broken:focus-visible .mk { border-color: var(--primary); color: var(--primary); }
+	.glbl { display: flex; align-items: center; gap: 6px; margin: 10px 8px 4px; }
+	.glbl .cnt { margin-left: auto; font-size: 11px; color: var(--muted); }
+	.toast-s { margin: 8px 8px 0; padding: 6px 8px; border-radius: 6px; font-size: 12px; line-height: 16px; background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--fg); }
+	.skel { height: 12px; border-radius: 4px; margin: 10px 8px; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 40%, var(--bg)), var(--accent)); background-size: 200% 100%; animation: sh 1s linear infinite; }
+	@keyframes sh { to { background-position: -200% 0; } }
+
+	/* toc */
+	.toc { display: flex; flex-direction: column; gap: 2px; }
+	.toc button {
+		position: relative; display: flex; align-items: center; gap: 4px; width: 100%; padding: 5px 8px 5px var(--pl); border-radius: 6px; user-select: none;
+	}
+	.toc button:hover { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
+	.toc button .tt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.toc button .ic { color: var(--muted); }
+	.toc button.il {
+		background-image: repeating-linear-gradient(to right, transparent 0 12px, color-mix(in oklch, var(--muted) 40%, transparent) 12px 13px, transparent 13px 16px);
+		background-size: calc(var(--d, 0) * 16px) 100%; background-repeat: no-repeat;
+	}
+	.toc button[aria-current="true"] { background-color: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); font-weight: 600; box-shadow: inset 2px 0 0 var(--primary); }
+
+	/* info */
+	.info-row { display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: 8px; padding: 2px 8px; }
+	.info-row .l { color: var(--muted); flex: none; }
+	.info-row .v { flex: 1 0 auto; max-width: 100%; text-align: right; color: var(--tabinactive); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.info-row.legacy { flex-wrap: nowrap; align-items: center; }
+	.info-row.legacy .v { flex: 1 1 0; min-width: 0; }
+	.info-old { padding: 8px; }
+	.info-old h2 { margin: 0 0 4px; padding: 0 8px; display: flex; align-items: center; gap: 6px; font-size: 15px; line-height: 22px; font-weight: 600; color: var(--primary); }
+	.guide { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--destructive); z-index: 9; pointer-events: none; }
+
+	/* picker */
+	.pk-stage { position: relative; min-height: 396px; }
+	.pk-head { display: flex; align-items: center; gap: 4px; padding: 8px 16px; }
+	.pop { position: absolute; z-index: 20; left: 0; top: 40px; width: 256px; background: var(--popover); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+	.pop input.q { display: block; width: 100%; height: 32px; padding: 0 12px; border: 0; border-bottom: 1px solid var(--border); background: transparent; outline: 0; font-size: 13px; }
+	.pop input.q:focus-visible { outline: 0; box-shadow: inset 0 -2px 0 var(--ring); }
+	.pk-list { max-height: 216px; overflow-y: auto; scrollbar-width: thin; }
+	.pk-row { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; }
+	.pk-row .nm { display: block; font-size: 13px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.pk-row .pa { display: block; font-size: 11px; line-height: 16px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.pk-row .tx { min-width: 0; }
+	.pk-row:hover { background: var(--accent); }
+	.pk-row.active { background: var(--accent); box-shadow: inset 2px 0 0 var(--primary); }
+	.pk-g { padding: 6px 8px 2px; }
+	.pk-foot { display: flex; gap: 10px; padding: 5px 10px; font-size: 11px; line-height: 16px; color: var(--muted); border-top: 1px solid var(--border); }
+	.pk-foot b { font-weight: 600; color: var(--fg); }
+	.pk-res { margin: 0 16px; padding: 6px 8px; font-size: 12px; border-radius: 6px; background: color-mix(in srgb, var(--primary) 12%, transparent); }
+
+	/* mini note for toc */
+	.mini { width: 300px; height: 360px; overflow-y: auto; position: relative; padding: 16px 18px; background: #fff; border: 1px solid #cfc9dc; color: #302840; font: 13px/1.5 ui-monospace, Menlo, monospace; scrollbar-width: thin; }
+	body[data-theme="dark"] .mini { background: #2a2e3d; color: #F8F8F2; border-color: #383a4f; }
+	.mini h3 { margin: 0 0 6px; font-size: 16px; color: #6848A8; }
+	body[data-theme="dark"] .mini h3 { color: #E8A5FF; }
+	.mini p { margin: 0 0 80px; opacity: .8; }
+	.palette { position: absolute; z-index: 30; left: 50%; top: 14px; transform: translateX(-50%); width: 300px; background: var(--popover, #fff); }
+	.pal { position: absolute; z-index: 30; left: 12px; top: 12px; width: 280px; background: #fff; color: #302840; border-radius: 10px; box-shadow: 0 0 0 1px #30284014, 0 16px 40px -8px #30284029; overflow: hidden; font: 13px/18px -apple-system, system-ui, sans-serif; }
+	body[data-theme="dark"] .pal { background: #1c1f2c; color: #F8F8F2; box-shadow: 0 0 0 1px #ffffff0f, 0 16px 40px -8px #00000099; }
+	.pal .pi { padding: 8px 12px; border-bottom: 1px solid #C0B8D0; color: #504868; }
+	body[data-theme="dark"] .pal .pi { border-color: #383a4f; color: #9ca3c7; }
+	.pal button { display: flex; width: 100%; padding: 6px 12px; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; text-align: left; gap: 8px; }
+	.pal button:hover { background: #DDD8E8; }
+	body[data-theme="dark"] .pal button:hover { background: #3d4058; }
+	.pal button small { margin-left: auto; opacity: .55; font-size: 11px; }
+	.stagebox { position: relative; display: flex; gap: 0; }
+	@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } html { scroll-behavior: auto; } }
+	@media (max-width: 720px) { main { padding: 16px 12px 60px; } .prop { padding: 14px; } }
+</style>
+</head>
+<body data-theme="light">
+
+<header class="top">
+	<h1>Right sidebar: properties, relationships, backlinks, outgoing and TOC</h1>
+	<div class="seg" role="group" aria-label="Theme of the AFTER recreations">
+		<button type="button" data-theme-btn="light" aria-pressed="true">Light (Lavender Haze)</button>
+		<button type="button" data-theme-btn="dark" aria-pressed="false">Dark (KokoBrain)</button>
+	</div>
+	<nav aria-label="Proposals">
+		<a href="#overview">Overview</a>
+		<a href="#P43">P43</a><a href="#P45">P45</a><a href="#P72">P72</a>
+		<a href="#P121">P121</a><a href="#P74">P74</a><a href="#P115">P115</a><a href="#P71">P71</a><a href="#P44">P44</a><a href="#P46">P46</a>
+		<a href="#P75">P75</a><a href="#P122">P122</a><a href="#P123">P123</a><a href="#P177">P177</a>
+	</nav>
+</header>
+
+<main>
+	<p class="intro">Every proposal below has a BEFORE (a screenshot of the real app, or a recreation of the current behaviour when no screenshot shows it) and an interactive AFTER. The theme toggle switches the page and the AFTER recreations; BEFORE screenshots are always the light Lavender Haze theme. Tokens come from <code>src/app.css</code> and the built-in themes. Proposals are ordered clear, moderate, then polish.</p>
+
+	<section id="overview" class="prop">
+		<header><span class="pid">All</span><h2>The sidebar at normal (250 px) and narrow widths, before and after</h2></header>
+		<p class="why">AFTER here has P43, P45, P121, P177 and the link panel changes together. Open Table of contents, Backlinks and Outgoing links to see sticky headers, two-line rows and the current-heading highlight. The BEFORE narrow screenshot is the 1024 px window (166 px sidebar); AFTER narrow is 200 px.</p>
+		<div class="demo" id="d-overview"></div>
+	</section>
+
+	<h3 class="tier-h">Clear improvements</h3>
+
+	<article class="prop" id="P43">
+		<header><span class="pid">P43</span><h2>Properties collapses, section headers stick, and empty Relationships shrinks to one row</h2><span class="badges"><span class="badge clear">Clear</span><span class="badge">Effort M</span></span></header>
+		<p class="why"><b>Problem.</b> Properties is a static section, and an empty Relationships block adds about 120 px on every note, so Table of contents and Backlinks fall below the fold and headers scroll away. <b>Proposal.</b> Collapsible Properties with remembered state, sticky headers, and one "Add relationship" row that becomes grouped links only when a group has links.</p>
+		<div class="demo" id="d43"></div>
+	</article>
+
+	<article class="prop" id="P45">
+		<header><span class="pid">P45</span><h2>Untyped notes get a "Set type" row, and Add property asks for a key and a type</h2><span class="badges"><span class="badge clear">Clear</span><span class="badge">Effort M</span></span></header>
+		<p class="why"><b>Problem.</b> The type row exists only when <code>_type</code> exists, new properties are always text, and the row icon is not a control. <b>Proposal.</b> Always show the type row, let the row icon open a type menu, and add a type picker to the Add property form.</p>
+		<div class="demo" id="d45"></div>
+	</article>
+
+	<article class="prop" id="P72">
+		<header><span class="pid">P72</span><h2>Relationship backlinks show even when a note has no linked mentions</h2><span class="badges"><span class="badge clear">Clear</span><span class="badge">Effort S</span></span></header>
+		<p class="why"><b>Problem.</b> The empty state checks only linked mentions, so a note with only typed relationship backlinks says "No backlinks found" and hides real data. <b>Proposal.</b> Show the empty state only when both lists are empty and render the two groups independently.</p>
+		<div class="demo" id="d72"></div>
+	</article>
+
+	<h3 class="tier-h">Moderate improvements</h3>
+
+	<article class="prop" id="P121">
+		<header><span class="pid">P121</span><h2>At narrow widths the key sits above the value instead of being cut to "t..."</h2><span class="badges"><span class="badge moderate">Moderate</span><span class="badge">Effort M</span></span></header>
+		<p class="why"><b>Problem.</b> Key, value and a reserved remove button squeeze each other, plus a 16 px spacer on the type row. <b>Proposal.</b> A container query stacks key over value below about 220 px, and the remove button leaves the flow (it overlays the row on hover). Drag the slider.</p>
+		<div class="demo" id="d121"></div>
+	</article>
+
+	<article class="prop" id="P74">
+		<header><span class="pid">P74</span><h2>Link rows have two lines and clean snippets</h2><span class="badges"><span class="badge moderate">Moderate</span><span class="badge">Effort M</span></span></header>
+		<p class="why"><b>Problem.</b> Path, alias and heading share one truncated line, and snippets are raw markdown (<code># Roadmap Linked from [[Welc...</code>). <b>Proposal.</b> Title, then a muted folder and heading line with a path tooltip; snippets lose <code>#</code> and <code>[[ ]]</code> and clamp to two lines.</p>
+		<div class="demo" id="d74"></div>
+	</article>
+
+	<article class="prop" id="P115">
+		<header><span class="pid">P115</span><h2>The TOC highlights the current heading and drops its decorative chevrons</h2><span class="badges"><span class="badge moderate">Moderate</span><span class="badge">Effort M</span></span></header>
+		<p class="why"><b>Problem.</b> Chevrons do nothing, there is no current-heading cue, and no palette command. <b>Proposal.</b> Remove the chevrons, add scroll-spy with <code>aria-current</code>, and a "Go to heading" palette command. Scroll the note on the left. The existing collapse on tab switch is deliberate; keeping the TOC open across tabs is an owner decision, not part of this prototype.</p>
+		<div class="demo" id="d115"></div>
+	</article>
+
+	<article class="prop" id="P71">
+		<header><span class="pid">P71</span><h2>Backlinks (and Outgoing links) stay open across note switches</h2><span class="badges"><span class="badge moderate">Moderate</span><span class="badge">Effort M</span></span></header>
+		<p class="why"><b>Problem.</b> Both panels collapse on every path change. <b>Proposal.</b> Remember open or closed; while open, refetch for the new note; while closed, fetch nothing (so no count badge on collapsed headers, which would need an eager fetch). Switch notes and watch the fetch counters.</p>
+		<div class="demo" id="d71"></div>
+	</article>
+
+	<article class="prop" id="P44">
+		<header><span class="pid">P44</span><h2>A refused property rename or add reverts and says why</h2><span class="badges"><span class="badge moderate">Moderate</span><span class="badge">Effort S</span></span></header>
+		<p class="why"><b>Problem.</b> The key input keeps text that was never saved, with no Enter or Escape. <b>Proposal.</b> Enter commits, Escape reverts, a duplicate or blank key reverts, and a duplicate shows an inline message. Try renaming <code>status</code> to <code>priority</code>, then try Add property with <code>owner</code>.</p>
+		<div class="demo" id="d44"></div>
+	</article>
+
+	<article class="prop" id="P46">
+		<header><span class="pid">P46</span><h2>The relationship picker works from the keyboard and lists recents first</h2><span class="badges"><span class="badge moderate">Moderate</span><span class="badge">Effort S</span></span></header>
+		<p class="why"><b>Problem.</b> Only Escape works, selection is mouse-down only, and an empty query shows the first 20 files alphabetically. <b>Proposal.</b> An active row driven by Up and Down, Enter to pick, <code>aria-activedescendant</code> on the input, and recent files first, like the Quick Switcher.</p>
+		<div class="demo" id="d46"></div>
+	</article>
+
+	<h3 class="tier-h">Polish</h3>
+
+	<article class="prop" id="P75">
+		<header><span class="pid">P75</span><h2>Unresolved outgoing links become create buttons in a "Broken links" group</h2><span class="badges"><span class="badge">Polish</span><span class="badge">Effort M</span></span></header>
+		<p class="why"><b>Problem.</b> Unresolved links are dead, dimmed red rows with no action. <b>Proposal.</b> Group them under "Broken links", make each a button that creates the note, and drop the opacity. Click one.</p>
+		<div class="demo" id="d75"></div>
+	</article>
+
+	<article class="prop" id="P122">
+		<header><span class="pid">P122</span><h2>Chips edit in place on double-click, and an empty list shows "+ Add"</h2><span class="badges"><span class="badge">Polish</span><span class="badge">Effort M</span></span></header>
+		<p class="why"><b>Problem.</b> Chips are static, so a typo means delete and retype, and an empty list shows only the key. <b>Proposal.</b> Double-click a chip to edit in place (Enter or blur saves, Escape cancels); an empty list shows a visible "+ Add" chip. Enter in the add field still keeps it open.</p>
+		<div class="demo" id="d122"></div>
+	</article>
+
+	<article class="prop" id="P123">
+		<header><span class="pid">P123</span><h2>Info dates use the short format and fit</h2><span class="badges"><span class="badge">Polish</span><span class="badge">Effort S</span></span></header>
+		<p class="why"><b>Problem.</b> "November 10, 2026, 10:00" is clipped to "November 10, 2026, 1...". <b>Proposal.</b> Use "Nov 10, 2026, 10:00"; the full value stays in the existing tooltip (hover a value). At very narrow widths the value wraps under its label instead of clipping.</p>
+		<div class="demo" id="d123"></div>
+	</article>
+
+	<article class="prop" id="P177">
+		<header><span class="pid">P177</span><h2>The Info header matches its siblings, and Relationships children use sentence-case labels</h2><span class="badges"><span class="badge">Polish</span><span class="badge">Effort S</span></span></header>
+		<p class="why"><b>Problem.</b> Info hand-rolls its header with an icon, so its title starts at a different x, and Relationships plus its three children are identical uppercase labels. <b>Proposal.</b> Render Info through the same section header (keep the chevron slot), keep "Relationships" as the group label, and show children as 13 px sentence-case muted labels. Toggle the alignment guide.</p>
+		<div class="demo" id="d177"></div>
+	</article>
+</main>
+
+<script>
+"use strict";
+/* ============================== helpers ============================== */
+const ICONS = {
+	"chevron-right": '<path d="m9 18 6-6-6-6"/>',
+	"chevron-down": '<path d="m6 9 6 6 6-6"/>',
+	"plus": '<path d="M5 12h14"/><path d="M12 5v14"/>',
+	"x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+	"blocks": '<rect width="7" height="7" x="14" y="3" rx="1"/><path d="M10 21V8a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1H3"/>',
+	"type": '<polyline points="4 7 4 4 20 4 20 7"/><line x1="9" x2="15" y1="20" y2="20"/><line x1="12" x2="12" y1="4" y2="20"/>',
+	"hash": '<line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="16" x2="14" y1="3" y2="21"/>',
+	"calendar": '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+	"toggle-left": '<rect width="20" height="12" x="2" y="6" rx="6" ry="6"/><circle cx="8" cy="12" r="2"/>',
+	"list": '<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
+	"tag": '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+	"file-text": '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+	"file-plus": '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 15h6"/><path d="M12 18v-6"/>',
+	"link": '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+	"git-branch": '<line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
+	"alert-circle": '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+	"info": '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+	"check": '<path d="M20 6 9 17l-5-5"/>',
+	"search": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+};
+const ic = (n, s = 14, c = "") => `<svg class="ic ${c}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const $ = (s, r = document) => r.querySelector(s);
+const shot = (file, x, y, w, h, natW = 1440) =>
+	`<div class="shot" style="width:${w}px;height:${h}px"><img src="../screens/${file}.png" alt="Current app: ${file}" style="left:-${x}px;top:-${y}px;width:${natW}px"></div>`;
+const cell = (kind, label, sub, body, note) =>
+	`<div class="cell"><p class="cap ${kind}">${label}${sub ? `<i>${sub}</i>` : ""}</p>${body}${note ? `<p class="note">${note}</p>` : ""}</div>`;
+const seg = (items, act, cur, attr = "data-v") =>
+	`<div class="seg" role="group">${items.map(([v, l]) => `<button type="button" data-click="${act}" ${attr}="${esc(v)}" aria-pressed="${String(v) === String(cur)}">${esc(l)}</button>`).join("")}</div>`;
+const basename = (p) => p.split("/").pop();
+const dirname = (p) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
+
+/* ============================== mount ============================== */
+function mount(root, state, render, extra = {}, post) {
+	const ctx = { state, root, rendering: false };
+	ctx.sbs = () => Object.values(state.sbs || {});
+	ctx.sb = (el) => {
+		const w = el.closest("[data-sid]");
+		return w && state.sbs ? state.sbs[w.dataset.sid] : undefined;
+	};
+	ctx.update = () => {
+		const a = document.activeElement;
+		let fid = null, ss = null, se = null;
+		if (a && root.contains(a) && a.dataset && a.dataset.fid) {
+			fid = a.dataset.fid;
+			ss = a.selectionStart;
+			se = a.selectionEnd;
+		}
+		const scrolls = [...root.querySelectorAll(".sb-scroll")].map((n) => n.scrollTop);
+		const pk = [...root.querySelectorAll(".pk-list")].map((n) => n.scrollTop);
+		ctx.rendering = true;
+		root.innerHTML = render(state, ctx);
+		ctx.rendering = false;
+		root.querySelectorAll(".sb-scroll").forEach((n, i) => { n.scrollTop = scrolls[i] || 0; });
+		root.querySelectorAll(".pk-list").forEach((n, i) => { n.scrollTop = pk[i] || 0; });
+		let focused = false;
+		if (fid) {
+			const n = root.querySelector(`[data-fid="${CSS.escape(fid)}"]`);
+			if (n) {
+				n.focus({ preventScroll: true });
+				try { n.setSelectionRange(ss, se); } catch (_) { /* not a text input */ }
+				focused = true;
+			}
+		}
+		if (!focused) {
+			const af = root.querySelector("[data-autofocus]");
+			if (af && (document.activeElement === document.body || !root.contains(document.activeElement))) {
+				af.focus({ preventScroll: true });
+				if (af.select && af.dataset.autofocus === "select") af.select();
+			}
+		}
+		if (post) post(root, state, ctx);
+	};
+	const events = [["click", "click"], ["dblclick", "dblclick"], ["input", "input"], ["change", "change"], ["keydown", "keydown"], ["focusout", "blur"], ["mousedown", "mousedown"], ["mouseover", "hover"]];
+	for (const [dom, name] of events) {
+		root.addEventListener(dom, (ev) => {
+			const el = ev.target.closest ? ev.target.closest(`[data-${name}]`) : null;
+			if (!el || !root.contains(el)) return;
+			if (ctx.rendering && name === "blur") return;
+			const fn = extra[el.getAttribute(`data-${name}`)] || H[el.getAttribute(`data-${name}`)];
+			if (!fn) return;
+			const r = fn(el, ev, ctx, ctx.sb(el));
+			if (r !== false) ctx.update();
+		});
+	}
+	root.addEventListener("keydown", (ev) => {
+		if (ev.key === "Escape" && ctx.sbs().some((s) => s.menu)) {
+			ctx.sbs().forEach((s) => { s.menu = null; });
+			ctx.update();
+		}
+	});
+	document.addEventListener("click", (ev) => {
+		if (!ev.target.closest || ev.target.closest("[data-popup],[data-popup-trigger]")) return;
+		let changed = false;
+		ctx.sbs().forEach((s) => { if (s.menu) { s.menu = null; changed = true; } });
+		if (changed) ctx.update();
+	});
+	ctx.update();
+	return ctx;
+}
+
+/* ============================== data ============================== */
+const TYPES = [["Project", "--t-blue"], ["Person", "--t-purple"], ["Meeting", "--t-teal"], ["Event", "--t-orange"], ["Note", "--t-gray"]];
+const PTYPES = [["text", "Text", "type"], ["number", "Number", "hash"], ["date", "Date", "calendar"], ["boolean", "Checkbox", "toggle-left"], ["list", "List", "list"]];
+const PICON = { text: "type", number: "hash", date: "calendar", boolean: "toggle-left", list: "list" };
+const RELS = [["belongs", "Belongs to"], ["related", "Related to"], ["has", "Has many"]];
+const REL_POOL = ["Roadmap", "Q4 OKRs", "Website Redesign", "Ana Souza"];
+const baseProps = () => [
+	{ key: "due", type: "date", value: "01/12/2026" },
+	{ key: "owner", type: "text", value: "Diego" },
+	{ key: "priority", type: "number", value: "1" },
+	{ key: "rating", type: "number", value: "4" },
+	{ key: "status", type: "text", value: "active" },
+	{ key: "tags", type: "list", value: ["plan", "launch", "kokobrain"] },
+];
+const TOC = [
+	{ t: "Kokobrain Launch Plan", l: 1 }, { t: "Milestones", l: 2 }, { t: "Tasks", l: 2 }, { t: "Code", l: 2 }, { t: "Metrics", l: 2 }, { t: "Embedded", l: 2 },
+];
+const M = (name, folder, heading, before, link, after) => ({ name, folder, heading, before, link, after });
+const NOTE_DATA = {
+	"Kokobrain Launch Plan": {
+		mentions: [
+			M("Roadmap", "Projects", "Roadmap", "Milestones are tracked in ", "Kokobrain Launch Plan", " and reviewed every Friday with the whole team."),
+			M("Q4 OKRs", "Projects", "Key results", "KR2 depends on the ", "Kokobrain Launch Plan", " reaching the release candidate by Nov 21."),
+			M("2026-11-09 Design sync", "Meetings", "Decisions", "Agreed to freeze scope in ", "Kokobrain Launch Plan", "."),
+		],
+		rels: [],
+	},
+	"Q4 OKRs": {
+		mentions: [M("Kokobrain Launch Plan", "Projects", "Milestones", "Quarterly goals live in ", "Q4 OKRs", ", see the objectives table.")],
+		rels: [{ name: "Website Redesign", type: "belongs to" }],
+	},
+	"Roadmap": {
+		mentions: [],
+		rels: [{ name: "Kokobrain Launch Plan", type: "related to" }, { name: "Q4 OKRs", type: "has many" }],
+	},
+	"Website Redesign": { mentions: [], rels: [] },
+};
+const baseOut = () => [
+	{ alias: "the roadmap", target: "Projects/Roadmap", ok: true },
+	{ target: "Meetings/2026-11-09 Design sync", ok: true },
+	{ target: "Projects/Website Redesign", heading: "Open questions", ok: true },
+	{ target: "People/Ana Souza", ok: true },
+	{ target: "Projects/Launch checklist", ok: false },
+	{ alias: "pricing tiers", target: "Areas/Pricing", heading: "Tiers", ok: false },
+];
+const mdRaw = (m) => `# ${m.heading} ${m.before}[[${m.link}]]${m.after}`;
+
+function newSb(o = {}) {
+	return Object.assign({
+		w: 250, h: 700, sections: ["props", "toc", "bl", "ol", "info"], legacy: new Set(),
+		props: baseProps(), type: "Project",
+		open: { props: true, toc: false, bl: false, ol: false },
+		grp: { lm: true, rel: true }, rels: { belongs: [], related: [], has: [] },
+		note: "Kokobrain Launch Plan", out: baseOut(), tocCur: 1,
+		typed: {}, err: {}, adding: null, addErr: "", menu: null, editChip: null, addItem: null,
+		fetches: 0, loading: false, toast: "", showGuide: false,
+		noType: false, noAdd: false, noRel: false, relOnly: false,
+	}, o);
+}
+
+/* ============================== sidebar renderer ============================== */
+function section(s, key, title, body, collapsible = true) {
+	const open = collapsible ? s.open[key] : true;
+	const hdr = collapsible
+		? `<button class="sec-h" type="button" data-click="toggleSec" data-sec="${key}" aria-expanded="${open}"><span class="chev">${ic("chevron-right")}</span><h2>${title}</h2></button>`
+		: `<div class="sec-h"><span class="chev"></span><h2>${title}</h2></div>`;
+	return `<section data-sec-k="${key}">${hdr}${open ? `<div class="sec-b">${body}</div>` : ""}</section>`;
+}
+
+function typeRow(s) {
+	const L = s.legacy, legacy = L.has("p121");
+	const info = TYPES.find((t) => t[0] === s.type);
+	const btn = s.type
+		? `<button class="p-type" type="button" data-click="typeMenu" data-popup-trigger aria-haspopup="menu" aria-expanded="${s.menu === "type"}"><i class="tdot" style="background:var(${info ? info[1] : "--t-gray"})"></i><span class="t">${esc(s.type)}</span>${ic("chevron-down", 12)}</button>`
+		: `<button class="p-type ph" type="button" data-click="typeMenu" data-popup-trigger aria-haspopup="menu" aria-expanded="${s.menu === "type"}"><span class="t">Set type</span>${ic("chevron-down", 12)}</button>`;
+	const menu = s.menu === "type"
+		? `<div class="menu" data-popup role="menu">${TYPES.map(([n, v]) => `<button type="button" role="menuitem" data-click="pickType" data-v="${n}" class="${s.type === n ? "cur" : ""}"><i class="tdot" style="background:var(${v})"></i>${n}${s.type === n ? `<span class="chk">${ic("check", 14)}</span>` : ""}</button>`).join("")}</div>`
+		: "";
+	return `<div class="prow ${legacy ? "legacy" : ""}"><div class="pmain"><span class="icc">${ic("blocks")}</span><span class="p-key" style="display:flex;align-items:center;color:var(--muted)">type</span><div class="pv">${btn}${menu}</div>${legacy ? '<span class="p-spacer16"></span>' : ""}</div></div>`;
+}
+
+function chipsHtml(s, p) {
+	const L = s.legacy, old = L.has("p122"), items = p.value, adding = s.addItem === p.key;
+	if (old && !items.length && !adding) return "";
+	const chips = items.map((it, i) => {
+		if (!old && s.editChip && s.editChip.key === p.key && s.editChip.i === i) {
+			return `<div class="chip-edit">${ic("tag", 12)}<input data-fid="ce:${esc(p.key)}:${i}" data-autofocus="select" data-pk="${esc(p.key)}" data-i="${i}" value="${esc(it)}" data-keydown="chipKey" data-blur="chipBlur" aria-label="Edit item"></div>`;
+		}
+		return `<div class="chip" data-pk="${esc(p.key)}" data-i="${i}" ${old ? "" : 'data-dblclick="chipEdit" title="Double-click to edit"'} data-chip>${ic("tag", 12)}<span>${esc(it)}</span><button class="x" type="button" data-click="chipDel" data-pk="${esc(p.key)}" data-i="${i}" title="Remove item" aria-label="Remove ${esc(it)}">${ic("x", 10)}</button></div>`;
+	}).join("");
+	let tail = "";
+	if (adding) {
+		tail = `<div class="chip-in">${ic("tag", 12)}<input data-fid="ai:${esc(p.key)}" data-autofocus="1" data-pk="${esc(p.key)}" placeholder="Add item..." data-keydown="itemKey" data-blur="itemBlur" aria-label="Add item"></div>`;
+	} else if (!old && !items.length) {
+		tail = `<button class="chip addchip" type="button" data-click="itemAdd" data-pk="${esc(p.key)}">${ic("plus", 12)}<span>Add</span></button>`;
+	}
+	return `<div class="chips">${chips}${tail}</div>`;
+}
+
+function propRow(s, p) {
+	const L = s.legacy, l121 = L.has("p121"), l44 = L.has("p44"), l45 = L.has("p45");
+	const pk = esc(p.key);
+	const ico = l45
+		? `<span class="icc">${ic(PICON[p.type])}</span>`
+		: `<button class="icc" type="button" data-click="ptMenu" data-pk="${pk}" data-popup-trigger title="Change property type" aria-label="Change type of ${pk}, now ${p.type}" aria-haspopup="menu">${ic(PICON[p.type])}</button>`;
+	const kv = l44 ? (s.typed[p.key] ?? p.key) : p.key;
+	const bad = !l44 && s.err[p.key];
+	const key = `<input class="p-key" data-fid="k:${pk}" data-pk="${pk}" value="${esc(kv)}" data-keydown="keyKey" data-blur="keyBlur" data-input="keyInput" aria-label="Property name" placeholder="key" ${bad ? `aria-invalid="true" aria-describedby="e-${pk}"` : ""}>`;
+	let val, acts = "";
+	if (p.type === "boolean") {
+		val = `<label class="p-bool"><input type="checkbox" ${p.value ? "checked" : ""} data-pk="${pk}" data-change="boolChange"><span>${p.value}</span></label>`;
+	} else if (p.type === "list") {
+		val = `<span class="p-spacer"></span>`;
+	} else {
+		val = `<input class="p-val" data-pk="${pk}" data-input="valInput" value="${esc(p.value)}" placeholder="--" aria-label="Value of ${pk}">`;
+	}
+	const plus = p.type === "list" ? `<button class="plus" type="button" data-click="itemAdd" data-pk="${pk}" title="Add item" aria-label="Add item">${ic("plus", 12)}</button>` : "";
+	const del = `<button class="p-del" type="button" data-click="delProp" data-pk="${pk}" title="Remove property" aria-label="Remove ${pk}">${ic("x", 12)}</button>`;
+	if (l121) acts = plus.replace('class="plus"', 'class="p-del plus"') + del;
+	else acts = `<span class="p-acts">${plus}${del.replace('class="p-del"', "")}</span>`;
+	const menu = s.menu === `pt:${p.key}`
+		? `<div class="menu" data-popup role="menu" style="left:8px;top:32px"><p class="slabel mh">Property type</p>${PTYPES.map(([v, l, i]) => `<button type="button" role="menuitem" data-click="pickPt" data-pk="${pk}" data-v="${v}" class="${p.type === v ? "cur" : ""}">${ic(i)}${l}${p.type === v ? `<span class="chk">${ic("check", 14)}</span>` : ""}</button>`).join("")}</div>`
+		: "";
+	const err = bad ? `<p class="p-err" id="e-${pk}" role="alert">${esc(s.err[p.key])}</p>` : "";
+	return `<div class="prow ${l121 ? "legacy" : ""}"><div class="pmain">${ico}${key}${val}${acts}</div>${err}${p.type === "list" ? chipsHtml(s, p) : ""}${menu}</div>`;
+}
+
+function addProp(s) {
+	const L = s.legacy;
+	if (!s.adding) return `<button class="add-row" type="button" data-click="addOpen">${ic("plus")}Add property</button>`;
+	const bad = !L.has("p44") && s.addErr;
+	const input = `<input class="k" data-fid="add-key" data-autofocus="1" value="${esc(s.adding.key)}" placeholder="Property name..." data-keydown="addKey" data-input="addInput" aria-label="New property name" ${bad ? 'aria-invalid="true" aria-describedby="add-err"' : ""}>`;
+	if (L.has("p45")) return `<div class="add-form"><div class="af-row">${ic("plus")}${input}</div>${bad ? `<p class="p-err" id="add-err" role="alert">${esc(s.addErr)}</p>` : ""}</div>`;
+	return `<div class="add-form"><div class="af-row">${ic("plus")}${input}</div>${bad ? `<p class="p-err" id="add-err" role="alert">${esc(s.addErr)}</p>` : ""}
+		<div class="af-types" role="radiogroup" aria-label="Property type">${PTYPES.map(([v, l, i]) => `<button type="button" role="radio" aria-checked="${s.adding.type === v}" data-click="addType" data-v="${v}">${ic(i, 12)}${l}</button>`).join("")}</div>
+		<div class="af-act"><button class="btn-sm primary" type="button" data-click="addCommit">Add</button><button class="btn-sm" type="button" data-click="addCancel">Cancel</button></div></div>`;
+}
+
+function relLinkOld(s, k, name) {
+	return `<div class="rel-l"><button class="go" type="button">${ic("file-text", 14)}<span>${esc(name)}</span></button><button class="x" type="button" data-click="relDel" data-k="${k}" data-n="${esc(name)}" title="Remove" aria-label="Remove ${esc(name)}">${ic("x", 10)}</button></div>`;
+}
+
+function relBlock(s) {
+	const L = s.legacy, any = RELS.some(([k]) => s.rels[k].length);
+	if (L.has("p43") || L.has("p177")) {
+		return `<div data-rel-wrap><div class="rel-sep"></div><h3 class="slabel rel-h">Relationships</h3>${RELS.map(([k, lab]) => `<div class="rel-g"><div class="rel-gh"><span class="slabel">${lab}</span><button class="rel-plus" type="button" data-click="relPlus" data-k="${k}" title="Add link" aria-label="Add ${lab} link">${ic("plus", 12)}</button></div>${s.rels[k].map((n) => relLinkOld(s, k, n)).join("")}</div>`).join("")}</div>`;
+	}
+	const groups = RELS.filter(([k]) => s.rels[k].length).map(([k, lab]) => `<div class="rel-g"><div class="rel-gh"><span class="rel-lab">${lab}</span><button class="rel-plus" type="button" data-click="relPlus" data-k="${k}" title="Add ${lab.toLowerCase()} link" aria-label="Add ${lab} link">${ic("plus", 12)}</button></div>${s.rels[k].map((n) => relLinkOld(s, k, n)).join("")}</div>`).join("");
+	const menu = s.menu === "rel" ? `<div class="menu up" data-popup role="menu">${RELS.map(([k, lab]) => `<button type="button" role="menuitem" data-click="relPick" data-k="${k}">${ic("git-branch", 14)}${lab}</button>`).join("")}</div>` : "";
+	return `<div class="rel-new" data-rel-wrap>${any ? `<h3 class="slabel rel-h">Relationships</h3>${groups}` : ""}<div class="pos"><button class="add-row" type="button" data-click="relMenu" data-popup-trigger aria-haspopup="menu" aria-expanded="${s.menu === "rel"}">${ic("plus")}Add relationship</button>${menu}</div></div>`;
+}
+
+function propsBody(s) {
+	if (s.relOnly) return relBlock(s);
+	const L = s.legacy;
+	let h = "";
+	if (!s.noType && (!L.has("p45") || s.type)) h += typeRow(s);
+	h += [...s.props].sort((a, b) => a.key.localeCompare(b.key)).map((p) => propRow(s, p)).join("");
+	if (!s.noAdd) h += addProp(s);
+	if (!s.noRel) h += relBlock(s);
+	return h;
+}
+
+/* ---- links ---- */
+function mentionRow(s, m) {
+	if (s.legacy.has("p74")) {
+		const raw = `# ${m.heading} ${m.before}`;
+		return `<div class="pos"><button class="lrow legacy" type="button"><div class="l-t1">${ic("file-text")}<span>${esc(m.name)}</span></div><p class="l-snip1" style="margin:0">${esc(raw)}<span class="lk">[[${esc(m.link)}]]</span>${esc(m.after)}</p></button></div>`;
+	}
+	return `<button class="lrow" type="button" title="${esc(m.folder + "/" + m.name)}">${ic("file-text")}<span class="l-main"><span class="l-title">${esc(m.name)}</span><span class="l-sub">${esc(m.folder)} · ${esc(m.heading)}</span><span class="l-snip">${esc(m.before)}<span class="lk">${esc(m.link)}</span>${esc(m.after)}</span></span></button>`;
+}
+
+function grp(s, key, icon, label, count, inner) {
+	const open = s.grp[key];
+	return `<div class="grp"><button class="grp-h" type="button" data-click="toggleGrp" data-g="${key}" aria-expanded="${open}">${ic("chevron-right")}${ic(icon)}<span>${label}</span><span class="cnt">${count}</span></button>${open ? `<div class="grp-list">${inner}</div>` : ""}</div>`;
+}
+
+function blBody(s) {
+	if (s.loading) return `<div class="skel" style="width:70%"></div><div class="skel" style="width:90%"></div><div class="skel" style="width:55%"></div>`;
+	const d = NOTE_DATA[s.note] || { mentions: [], rels: [] };
+	const noM = !d.mentions.length, noR = !d.rels.length;
+	if (s.legacy.has("p72") ? noM : (noM && noR)) return `<p class="empty">No backlinks found</p>`;
+	let h = "";
+	if (!noM) h += grp(s, "lm", "link", "Linked mentions", d.mentions.length, d.mentions.map((m) => mentionRow(s, m)).join(""));
+	if (!noR) {
+		h += grp(s, "rel", "git-branch", "Relationships", d.rels.length, d.rels.map((r) => `<button class="lrow l-inline" type="button" style="align-items:center">${ic("file-text")}<span class="l-title" style="flex:1 1 auto">${esc(r.name)}</span><span class="l-sub" style="flex:none;margin-left:auto;font-size:12px;line-height:16px;padding-left:8px">${esc(r.type)}</span></button>`).join(""));
+	}
+	return h;
+}
+
+function outRow(s, l, i) {
+	const heading = l.heading ? ` › ${l.heading}` : "";
+	if (s.legacy.has("p74")) {
+		return `<button class="lrow l-inline" type="button">${ic("file-text")}<span class="l-title">${esc(l.alias ?? l.target)}</span>${l.heading ? `<span class="l-sub1">${esc("› " + l.heading)}</span>` : ""}</button>`;
+	}
+	const sub = (dirname(l.target) + heading).replace(/^ › /, "› ");
+	return `<button class="lrow" type="button" title="${esc(l.target + (l.heading ? "#" + l.heading : ""))}">${ic("file-text")}<span class="l-main"><span class="l-title">${esc(l.alias ?? basename(l.target))}</span>${sub ? `<span class="l-sub">${esc(sub)}</span>` : ""}</span></button>`;
+}
+
+function olBody(s) {
+	if (s.legacy.has("p75")) {
+		const rows = s.out.map((l, i) => l.ok ? outRow(s, l, i)
+			: `<div class="lrow l-inline dead">${ic("alert-circle")}<span class="l-title">${esc(l.alias ?? l.target)}</span>${l.heading ? `<span class="l-sub1">${esc("› " + l.heading)}</span>` : ""}</div>`).join("");
+		return `<div style="display:flex;flex-direction:column;gap:2px">${rows}</div>`;
+	}
+	const ok = s.out.map((l, i) => ({ l, i })).filter((x) => x.l.ok), bad = s.out.map((l, i) => ({ l, i })).filter((x) => !x.l.ok);
+	let h = ok.length ? `<div style="display:flex;flex-direction:column;gap:2px">${ok.map((x) => outRow(s, x.l, x.i)).join("")}</div>` : "";
+	if (bad.length) {
+		h += `<div class="glbl"><span class="slabel">Broken links</span><span class="cnt">${bad.length}</span></div><div style="display:flex;flex-direction:column;gap:2px">${bad.map((x) => `<button class="lrow broken" type="button" data-click="create" data-i="${x.i}" title="Create ${esc(x.l.target)}.md">${ic("alert-circle")}<span class="l-main"><span class="l-title">${esc(x.l.alias ?? basename(x.l.target))}</span><span class="l-sub">${esc(dirname(x.l.target) || "Vault root")}${x.l.heading ? " › " + esc(x.l.heading) : ""}</span></span><span class="mk">${ic("file-plus", 11)}Create</span></button>`).join("")}</div>`;
+	}
+	if (s.toast) h += `<p class="toast-s" role="status">${esc(s.toast)}</p>`;
+	return h || `<p class="empty">No outgoing links</p>`;
+}
+
+function tocBody(s) {
+	const old = s.legacy.has("p115");
+	return `<div class="toc">${TOC.map((h, i) => {
+		const d = h.l - 1;
+		return `<button type="button" class="${d > 0 ? "il" : ""}" style="--pl:${d * 16 + 8}px;--d:${d}" data-click="tocGo" data-i="${i}" title="${esc(h.t)}" ${!old && i === s.tocCur ? 'aria-current="true"' : ""}>${old ? ic("chevron-right") : ""}<span class="tt">${esc(h.t)}</span></button>`;
+	}).join("")}</div>`;
+}
+
+function infoRows(s) {
+	const old = s.legacy.has("p123");
+	const d = old ? "November 10, 2026, 10:00" : "Nov 10, 2026, 10:00";
+	const rows = [["Modified", d], ["Created", d], ["Words", "242"], ["Size", "1.8 KB"]];
+	return rows.map(([l, v]) => `<div class="info-row ${old ? "legacy" : ""}" data-testid="note-info-row"><span class="l">${l}</span><span class="v" title="${esc(v)}">${v}</span></div>`).join("");
+}
+
+function infoSection(s) {
+	if (s.legacy.has("p177")) return `<section><div class="info-old"><h2>${ic("info")}Info</h2>${infoRows(s)}</div></section>`;
+	return `<section><div class="sec-h"><span class="chev"></span><h2>Info</h2></div><div class="sec-b" style="border-bottom:0">${infoRows(s)}</div></section>`;
+}
+
+function renderSidebar(s, sid = "a") {
+	const L = s.legacy, S = s.sections;
+	let h = "";
+	if (S.includes("props")) h += section(s, "props", "Properties", propsBody(s), !L.has("p43"));
+	if (S.includes("toc")) h += section(s, "toc", "Table of contents", tocBody(s));
+	if (S.includes("bl")) h += section(s, "bl", "Backlinks", `<div style="max-height:50vh;overflow-y:auto">${blBody(s)}</div>`);
+	if (S.includes("ol")) h += section(s, "ol", "Outgoing links", `<div style="max-height:50vh;overflow-y:auto">${olBody(s)}</div>`);
+	if (S.includes("info")) h += infoSection(s);
+	const guide = s.showGuide ? `<div class="guide" style="left:30px" aria-hidden="true"></div>` : "";
+	return `<div class="sbx ${L.has("p43") ? "nostick" : ""}" data-sid="${sid}" style="--w:${s.w}px"><div class="sb-scroll" style="--h:${s.h}px">${h}</div>${guide}</div>`;
+}
+
+/* ============================== handlers ============================== */
+function fetchSb(c, sb) {
+	sb.fetches++;
+	if (sb.simLoad) {
+		sb.loading = true;
+		setTimeout(() => { sb.loading = false; c.update(); }, 550);
+	}
+}
+function commitKey(el, sb) {
+	const old = el.dataset.pk, nu = el.value.trim(), l44 = sb.legacy.has("p44");
+	if (nu === old) { delete sb.typed[old]; return; }
+	if (!nu) {
+		if (l44) sb.typed[old] = el.value;
+		return;
+	}
+	const dup = sb.props.some((p) => p.key !== old && p.key.toLowerCase() === nu.toLowerCase());
+	if (dup) {
+		if (l44) sb.typed[old] = el.value;
+		else sb.err[old] = `A property named ${nu} already exists`;
+		return;
+	}
+	const p = sb.props.find((x) => x.key === old);
+	if (p) p.key = nu;
+	delete sb.typed[old];
+	delete sb.err[old];
+}
+function newValue(type) { return type === "list" ? [] : type === "boolean" ? false : ""; }
+function nextRel(sb) {
+	const used = new Set(RELS.flatMap(([k]) => sb.rels[k]));
+	return REL_POOL.find((n) => !used.has(n)) || "Ana Souza";
+}
+function addItemTo(sb, key, text, c) {
+	const t = text.trim();
+	if (!t) return;
+	const p = sb.props.find((x) => x.key === key);
+	if (p) p.value = [...p.value, t];
+}
+
+const H = {
+	toggleSec(el, ev, c, sb) {
+		const k = el.dataset.sec;
+		sb.open[k] = !sb.open[k];
+		if (sb.open[k] && (k === "bl" || k === "ol")) fetchSb(c, sb);
+	},
+	toggleGrp(el, ev, c, sb) { sb.grp[el.dataset.g] = !sb.grp[el.dataset.g]; },
+	tocGo(el, ev, c, sb) { sb.tocCur = Number(el.dataset.i); },
+	/* type row and property type menus */
+	typeMenu(el, ev, c, sb) { sb.menu = sb.menu === "type" ? null : "type"; },
+	pickType(el, ev, c, sb) { sb.type = el.dataset.v; sb.menu = null; },
+	ptMenu(el, ev, c, sb) { const m = `pt:${el.dataset.pk}`; sb.menu = sb.menu === m ? null : m; },
+	pickPt(el, ev, c, sb) {
+		const p = sb.props.find((x) => x.key === el.dataset.pk);
+		if (p) {
+			const t = el.dataset.v;
+			const was = p.type;
+			p.type = t;
+			if (t === "list") p.value = Array.isArray(p.value) ? p.value : (p.value ? [String(p.value)] : []);
+			else if (t === "boolean") p.value = Boolean(p.value) && p.value !== "false";
+			else p.value = Array.isArray(p.value) ? p.value.join(", ") : (was === "boolean" ? "" : p.value);
+		}
+		sb.menu = null;
+	},
+	/* key rename */
+	keyKey(el, ev, c, sb) {
+		if (sb.legacy.has("p44")) return false;
+		if (ev.key === "Enter") { ev.preventDefault(); commitKey(el, sb); }
+		else if (ev.key === "Escape") { ev.preventDefault(); el.value = el.dataset.pk; delete sb.err[el.dataset.pk]; el.blur(); }
+		else return false;
+	},
+	keyBlur(el, ev, c, sb) { if (!el.isConnected) return false; commitKey(el, sb); },
+	keyInput(el, ev, c, sb) {
+		if (sb.legacy.has("p44")) return false;
+		if (sb.err[el.dataset.pk]) {
+			delete sb.err[el.dataset.pk];
+			el.removeAttribute("aria-invalid");
+			const e = el.closest(".prow").querySelector(".p-err");
+			if (e) e.remove();
+		}
+		return false;
+	},
+	valInput(el, ev, c, sb) { const p = sb.props.find((x) => x.key === el.dataset.pk); if (p) p.value = el.value; return false; },
+	boolChange(el, ev, c, sb) { const p = sb.props.find((x) => x.key === el.dataset.pk); if (p) p.value = el.checked; },
+	delProp(el, ev, c, sb) { sb.props = sb.props.filter((x) => x.key !== el.dataset.pk); },
+	/* add property */
+	addOpen(el, ev, c, sb) { sb.adding = { key: "", type: "text" }; sb.addErr = ""; },
+	addInput(el, ev, c, sb) {
+		sb.adding.key = el.value;
+		if (sb.addErr) { sb.addErr = ""; el.removeAttribute("aria-invalid"); const e = el.closest(".add-form").querySelector(".p-err"); if (e) e.remove(); }
+		return false;
+	},
+	addKey(el, ev, c, sb) {
+		if (ev.key === "Enter") { ev.preventDefault(); H.addCommit(el, ev, c, sb); }
+		else if (ev.key === "Escape") { sb.adding = null; sb.addErr = ""; }
+		else return false;
+	},
+	addType(el, ev, c, sb) { sb.adding.key = $("[data-fid='add-key']", c.root)?.value ?? sb.adding.key; sb.adding.type = el.dataset.v; },
+	addCommit(el, ev, c, sb) {
+		const k = (sb.adding.key || "").trim();
+		if (!k) return;
+		if (sb.props.some((p) => p.key.toLowerCase() === k.toLowerCase())) {
+			if (!sb.legacy.has("p44")) sb.addErr = `A property named ${k} already exists`;
+			return;
+		}
+		const t = sb.legacy.has("p45") ? "text" : sb.adding.type;
+		sb.props.push({ key: k, type: t, value: newValue(t) });
+		sb.adding = null; sb.addErr = "";
+	},
+	addCancel(el, ev, c, sb) { sb.adding = null; sb.addErr = ""; },
+	/* relationships */
+	relMenu(el, ev, c, sb) { sb.menu = sb.menu === "rel" ? null : "rel"; },
+	relPick(el, ev, c, sb) { sb.rels[el.dataset.k].push(nextRel(sb)); sb.menu = null; },
+	relPlus(el, ev, c, sb) { sb.rels[el.dataset.k].push(nextRel(sb)); },
+	relDel(el, ev, c, sb) { sb.rels[el.dataset.k] = sb.rels[el.dataset.k].filter((n) => n !== el.dataset.n); },
+	/* chips */
+	chipEdit(el, ev, c, sb) { sb.editChip = { key: el.dataset.pk, i: Number(el.dataset.i) }; },
+	chipKey(el, ev, c, sb) {
+		if (ev.key === "Enter") { ev.preventDefault(); H.chipCommit(el, sb); }
+		else if (ev.key === "Escape") { ev.preventDefault(); sb.editChip = null; }
+		else return false;
+	},
+	chipBlur(el, ev, c, sb) { if (!sb.editChip) return false; H.chipCommit(el, sb); },
+	chipCommit(el, sb) {
+		const p = sb.props.find((x) => x.key === el.dataset.pk), i = Number(el.dataset.i), t = el.value.trim();
+		if (p) { const items = [...p.value]; if (t) items[i] = t; else items.splice(i, 1); p.value = items; }
+		sb.editChip = null;
+	},
+	chipDel(el, ev, c, sb) {
+		ev.stopPropagation();
+		const p = sb.props.find((x) => x.key === el.dataset.pk);
+		if (p) { const items = [...p.value]; items.splice(Number(el.dataset.i), 1); p.value = items; }
+	},
+	itemAdd(el, ev, c, sb) { sb.addItem = el.dataset.pk; },
+	itemKey(el, ev, c, sb) {
+		if (ev.key === "Enter") { ev.preventDefault(); addItemTo(sb, el.dataset.pk, el.value, c); el.value = ""; return true; }
+		if (ev.key === "Escape") { sb.addItem = null; return true; }
+		return false;
+	},
+	itemBlur(el, ev, c, sb) {
+		if (!sb.addItem) return false;
+		addItemTo(sb, el.dataset.pk, el.value, c);
+		sb.addItem = null;
+	},
+	create(el, ev, c, sb) {
+		const l = sb.out[Number(el.dataset.i)];
+		l.ok = true;
+		sb.toast = `Created ${basename(l.target)}.md in ${dirname(l.target) || "the vault root"}`;
+	},
+};
+/* item keydown must not re-render with stale value when Enter was handled: itemKey returns true to re-render */
+
+/* ============================== demos ============================== */
+const A = (o) => newSb(o);
+const mk = (id, state, render, extra, post) => mount($(id), state, render, extra, post);
+
+/* ---------- overview ---------- */
+(function () {
+	const st = { sbs: { n: A({ w: 250, h: 828, sections: ["props", "toc", "bl", "ol", "info"] }), w: A({ w: 200, h: 628 }) } };
+	st.sbs.n.open.props = true; st.sbs.w.open.props = true;
+	mk("#d-overview", st, (s) => `<div class="cmp" style="gap:22px">
+		${cell("before", "Before", "normal, 250 px", shot("right-sidebar-default-light", 1190, 40, 250, 828))}
+		${cell("after", "After", "normal, 250 px", renderSidebar(s.sbs.n, "n"))}
+		${cell("before", "Before", "narrow, 166 px (1024 window)", shot("narrow-1024x700-editor-light", 858, 40, 166, 628, 1024))}
+		${cell("after", "After", "narrow, 200 px", renderSidebar(s.sbs.w, "w"))}
+	</div>`);
+})();
+
+/* ---------- P43 ---------- */
+(function () {
+	const a = A({ h: 700 });
+	a.open.toc = true; a.open.bl = true; a.open.ol = true;
+	const st = { sbs: { a }, rels: false };
+	const setRels = () => { a.rels = st.rels ? { belongs: ["Roadmap"], related: ["Q4 OKRs", "Ana Souza"], has: [] } : { belongs: [], related: [], has: [] }; };
+	mk("#d43", st, (s) => `
+		<div class="controls">
+			<span>Relationships:</span>${seg([["0", "Empty (daily case)"], ["1", "Has links"]], "relState", s.rels ? "1" : "0")}
+			<button class="kbd" type="button" data-click="collapseProps" style="cursor:pointer">${a.open.props ? "Collapse Properties" : "Expand Properties"}</button>
+			<span>Scroll the sidebar: headers stay pinned.</span>
+		</div>
+		<div class="cmp">
+			${cell("before", "Before", "all closed", shot("right-sidebar-default-light", 1190, 40, 250, 700), "Static Properties, three empty groups, panels pushed to the fold.")}
+			${cell("before", "Before", "panels open, scrolled", shot("right-sidebar-crop-light", 0, 0, 249, 700, 249), "Section headers scroll out of reach; each open panel makes it worse.")}
+			${cell("after", "After", "", renderSidebar(a), "")}
+		</div>
+		<p class="metric">Relationships block when empty: <b>121 px</b> in the screenshot (separator through the last group). After: <b id="relh">...</b> (one Add relationship row).</p>`,
+		{
+			relState: (el, ev, c) => { st.rels = el.dataset.v === "1"; setRels(); },
+			collapseProps: () => { a.open.props = !a.open.props; },
+		},
+		(root) => {
+			const w = $("[data-rel-wrap]", root), out = $("#relh", root);
+			if (out) out.textContent = w ? (st.rels ? "n/a with links, grouped rows only" : `${Math.round(w.getBoundingClientRect().height)} px`) : "0 px (Properties collapsed)";
+		});
+})();
+
+/* ---------- P45 ---------- */
+(function () {
+	const b = A({ h: 470, sections: ["props"], noRel: true, legacy: new Set(["p45"]), type: null });
+	const a = A({ h: 470, sections: ["props"], noRel: true, type: null });
+	const st = { sbs: { b, a }, typed: false };
+	mk("#d45", st, (s) => `
+		<div class="controls"><span>Note:</span>${seg([["0", "Untyped note"], ["1", "Typed note (Project)"]], "typed", s.typed ? "1" : "0")}<span>Then try the row icons, the type row, and Add property.</span></div>
+		<div class="cmp">
+			${cell("before", "Before", "no type row, add is text only", renderSidebar(b, "b"), "An untyped note has no way to get a type here, and the icon is not a control.")}
+			${cell("after", "After", "Set type, type menu, typed add", renderSidebar(a, "a"), "Click a row icon for the type menu. Add property: name plus a type.")}
+		</div>`,
+		{ typed: (el, ev, c, sb) => { st.typed = el.dataset.v === "1"; b.type = a.type = st.typed ? "Project" : null; } });
+})();
+
+/* ---------- P72 ---------- */
+(function () {
+	const mkS = (legacy) => { const s = A({ h: 360, sections: ["bl"], legacy: legacy ? new Set(["p72"]) : new Set(), note: "Roadmap" }); s.open.bl = true; return s; };
+	const b = mkS(true), a = mkS(false);
+	const st = { sbs: { b, a }, note: "Roadmap" };
+	const cases = [["Kokobrain Launch Plan", "Mentions only"], ["Roadmap", "Relationships only"], ["Q4 OKRs", "Both"], ["Website Redesign", "Neither"]];
+	mk("#d72", st, (s) => `
+		<div class="controls"><span>Note has:</span>${seg(cases, "note", s.note)}</div>
+		<div class="cmp">
+			${cell("before", "Before", "", renderSidebar(b, "b"), s.note === "Roadmap" ? "Real data (2 relationship backlinks) hidden behind 'No backlinks found'." : "")}
+			${cell("after", "After", "", renderSidebar(a, "a"), s.note === "Roadmap" ? "Empty state only when both lists are empty." : "")}
+		</div>`,
+		{ note: (el) => { st.note = b.note = a.note = el.dataset.v; } });
+})();
+
+/* ---------- P121 ---------- */
+(function () {
+	const mkS = (legacy) => A({ h: 440, w: 200, sections: ["props"], noRel: true, noAdd: true, legacy: legacy ? new Set(["p121", "p45"]) : new Set() });
+	const b = mkS(true), a = mkS(false);
+	const st = { sbs: { b, a }, w: 200 };
+	mk("#d121", st, (s) => `
+		<div class="controls"><label>Sidebar width <input type="range" min="150" max="300" step="2" value="${s.w}" data-input="width" data-fid="w121" aria-label="Sidebar width"> <output>${s.w} px</output></label>${seg([["166", "166 (1024 window)"], ["200", "200"], ["250", "250"]], "wset", String(s.w))}</div>
+		<div class="cmp">
+			${cell("before", "Before", "real app, 1024 px window", shot("narrow-1024x700-editor-light", 858, 40, 166, 440, 1024))}
+			${cell("before", "Before", "recreation at the slider width", renderSidebar(b, "b"), "Key and value squeeze each other; the remove slot is always reserved.")}
+			${cell("after", "After", "at the slider width", renderSidebar(a, "a"), "Below about 234 px of sidebar the key sits above the value; wider, side by side with the remove button overlaid on hover.")}
+		</div>`,
+		{
+			width: (el, ev, c) => {
+				st.w = Number(el.value); b.w = a.w = st.w;
+				const o = el.parentElement.querySelector("output"); if (o) o.textContent = `${st.w} px`;
+				c.root.querySelectorAll(".sbx").forEach((n) => n.style.setProperty("--w", `${st.w}px`));
+				return false;
+			},
+			wset: (el) => { st.w = Number(el.dataset.v); b.w = a.w = st.w; },
+		});
+})();
+
+/* ---------- P74 ---------- */
+(function () {
+	const mkS = (legacy, w) => { const s = A({ h: 560, w, sections: ["bl", "ol"], legacy: legacy ? new Set(["p74"]) : new Set() }); s.open.bl = true; s.open.ol = true; s.out = s.out.filter((l) => l.ok); return s; };
+	const st = { sbs: { b: mkS(true, 250), a: mkS(false, 250) }, w: 250 };
+	mk("#d74", st, (s) => `
+		<div class="controls"><span>Width:</span>${seg([["250", "250 px"], ["200", "200 px"]], "w74", String(s.w))}<span>Hover a row for the path tooltip.</span></div>
+		<div class="cmp">
+			${cell("before", "Before", "real app", shot("right-sidebar-all-expanded-light", 1190, 540, 250, 320), "Raw '# Roadmap Linked from [[Welc...', and the target and heading share one cut-off line.")}
+			${cell("before", "Before", "recreation", renderSidebar(s.sbs.b, "b"))}
+			${cell("after", "After", "", renderSidebar(s.sbs.a, "a"))}
+		</div>`,
+		{ w74: (el) => { st.w = Number(el.dataset.v); st.sbs.b.w = st.sbs.a.w = st.w; } });
+})();
+
+/* ---------- P115 (custom, scroll-spy) ---------- */
+(function () {
+	const root = $("#d115");
+	const heads = TOC.map((h, i) => ({ ...h, i }));
+	const note = heads.map((h) => `<h${h.l + 1} data-h="${h.i}" style="font-size:${h.l === 1 ? 18 : 15}px">${esc(h.t)}</h${h.l + 1}><p>${h.l === 1 ? "A calm, fast launch beats a loud one. Ship the editor polish first." : "Section body text. This note is long enough to scroll, so the sidebar can follow the heading you are reading."}</p>`).join("");
+	const sb = A({ h: 330, sections: ["toc"] });
+	sb.open.toc = true;
+	root.innerHTML = `
+		<div class="controls"><button class="kbd" type="button" id="p115pal" style="cursor:pointer">Cmd+P: Go to heading</button><span>Scroll the note, or click a heading in the TOC.</span></div>
+		<div class="cmp">
+			${cell("before", "Before", "real app", shot("right-sidebar-all-expanded-light", 1190, 296, 250, 250), "Chevrons do nothing, no current heading, no cue where you are.")}
+			${cell("after", "After", "", `<div class="stagebox"><div class="pos"><div class="mini" id="p115note" tabindex="0" aria-label="Note preview">${note}</div><div class="pal" id="p115pw" hidden></div></div><div id="p115sb"></div></div>`, "No chevrons; the current heading has a left bar, tint, semibold and aria-current.")}
+		</div>`;
+	const sbEl = $("#p115sb", root), noteEl = $("#p115note", root), pal = $("#p115pw", root);
+	sbEl.innerHTML = renderSidebar(sb, "a");
+	const btns = [...sbEl.querySelectorAll(".toc button")];
+	const hs = [...noteEl.querySelectorAll("[data-h]")];
+	function setCur(i) {
+		btns.forEach((b, j) => { if (j === i) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current"); });
+	}
+	function spy() {
+		let cur = 0;
+		hs.forEach((h, i) => { if (h.offsetTop <= noteEl.scrollTop + 24) cur = i; });
+		if (noteEl.scrollTop + noteEl.clientHeight >= noteEl.scrollHeight - 2) cur = hs.length - 1;
+		setCur(cur);
+	}
+	function go(i) { noteEl.scrollTo({ top: hs[i].offsetTop - 8, behavior: "smooth" }); }
+	noteEl.addEventListener("scroll", spy);
+	btns.forEach((b, i) => b.addEventListener("click", () => go(i)));
+	function closePal() { pal.hidden = true; }
+	function openPal() {
+		pal.hidden = false;
+		pal.innerHTML = `<div class="pi">&gt; Go to heading</div>${heads.map((h) => `<button type="button" data-i="${h.i}">${esc(h.t)}<small>H${h.l}</small></button>`).join("")}`;
+		pal.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { go(Number(b.dataset.i)); closePal(); }));
+	}
+	$("#p115pal", root).addEventListener("click", () => (pal.hidden ? openPal() : closePal()));
+	document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePal(); });
+	spy();
+})();
+
+/* ---------- P71 ---------- */
+(function () {
+	const mkS = (legacy) => { const s = A({ h: 420, sections: ["bl", "ol"], simLoad: true, legacy: legacy ? new Set(["p71"]) : new Set() }); s.open.bl = true; s.fetches = 1; s.out = s.out.filter((l) => l.ok).slice(0, 3); return s; };
+	const b = mkS(true), a = mkS(false);
+	const st = { sbs: { b, a }, note: "Kokobrain Launch Plan" };
+	const notes = Object.keys(NOTE_DATA).map((n) => [n, n]);
+	mk("#d71", st, (s) => `
+		<div class="controls"><span>Switch to note:</span>${seg(notes, "sw", s.note)}<span>Open Backlinks in either column, then switch.</span></div>
+		<div class="cmp">
+			${cell("before", "Before", "collapses on every switch", renderSidebar(b, "b"), `Backlinks fetches so far: <b>${b.fetches}</b>`)}
+			${cell("after", "After", "state is remembered", renderSidebar(a, "a"), `Backlinks fetches so far: <b>${a.fetches}</b>. A closed panel never fetches.`)}
+		</div>`,
+		{
+			sw: (el, ev, c) => {
+				st.note = el.dataset.v;
+				for (const sb of [b, a]) {
+					sb.note = st.note;
+					if (sb.legacy.has("p71")) { sb.open.bl = false; sb.open.ol = false; }
+					else { if (sb.open.bl || sb.open.ol) fetchSb(c, sb); }
+				}
+			},
+		});
+	/* note text uses innerHTML for <b>; cell() passes the note string through unchanged */
+})();
+
+/* ---------- P44 ---------- */
+(function () {
+	const mkS = (legacy) => A({ h: 380, sections: ["props"], noRel: true, noType: true, legacy: legacy ? new Set(["p44", "p45"]) : new Set(), props: baseProps().filter((p) => ["owner", "priority", "status"].includes(p.key)) });
+	const b = mkS(true), a = mkS(false);
+	mk("#d44", { sbs: { b, a } }, () => `
+		<div class="cmp">
+			${cell("before", "Before", "", renderSidebar(b, "b"), "Rename status to priority and click away: the field keeps 'priority', the note still has 'status'. Add property with a duplicate name does nothing and says nothing.")}
+			${cell("after", "After", "", renderSidebar(a, "a"), "Enter commits, Escape reverts, a duplicate or blank key reverts, and the message names the key (aria-invalid, role alert).")}
+		</div>`);
+})();
+
+/* ---------- P46 (custom) ---------- */
+(function () {
+	const NOTES = [
+		["Roadmap", "Projects/Roadmap.md"], ["Q4 OKRs", "Projects/Q4 OKRs.md"], ["Website Redesign", "Projects/Website Redesign.md"],
+		["2026-11-09 Design sync", "Meetings/2026-11-09 Design sync.md"], ["Ana Souza", "People/Ana Souza.md"], ["Diego", "People/Diego.md"],
+		["Kokobrain Launch Plan", "Projects/Kokobrain Launch Plan.md"], ["Brainstorm", "Areas/Brainstorm.canvas"], ["Active", "Areas/Active.view"],
+		["Welcome", "Welcome.md"], ["Weekly review", "Daily/Weekly review.md"], ["Inbox capture", "Inbox/Capture.md"],
+	];
+	const RECENT = ["Roadmap", "Q4 OKRs", "2026-11-09 Design sync"];
+	const alpha = [...NOTES].sort((x, y) => x[0].localeCompare(y[0]));
+	function score(q, n) { const a = n.toLowerCase(), b = q.toLowerCase(); if (a.startsWith(b)) return 0; if (a.includes(b)) return 1; let i = 0; for (const ch of a) if (ch === b[i]) i++; return i === b.length ? 2 : -1; }
+	function listFor(side, q) {
+		if (side === "b") return { rows: alpha.filter((n) => !q || score(q, n[0]) >= 0).slice(0, 20) };
+		if (!q) {
+			const rec = RECENT.map((r) => NOTES.find((n) => n[0] === r));
+			return { rec, rows: alpha.filter((n) => !RECENT.includes(n[0])), flat: [...rec, ...alpha.filter((n) => !RECENT.includes(n[0]))] };
+		}
+		const hits = NOTES.map((n) => ({ n, s: score(q, n[0]), r: RECENT.includes(n[0]) ? 0 : 1 })).filter((x) => x.s >= 0).sort((x, y) => x.s - y.s || x.r - y.r || x.n[0].localeCompare(y.n[0])).map((x) => x.n);
+		return { rows: hits, flat: hits };
+	}
+	const st = { sbs: {}, b: { open: true, q: "", res: "" }, a: { open: true, q: "", act: 0, res: "" } };
+	const row = (n, i, side, active) => {
+		const id = `pk-${side}-${i}`;
+		return `<div class="pk-row ${active ? "active" : ""}" role="option" id="${id}" aria-selected="${active ? "true" : "false"}" data-${side === "a" ? "mousedown" : "mousedown"}="pkPick" data-side="${side}" data-n="${esc(n[0])}" ${side === "a" ? `data-hover="pkHover" data-i="${i}"` : ""}>${ic("file-text", 14, "")}<span class="tx"><span class="nm">${esc(n[0])}</span><span class="pa">${esc(n[1])}</span></span></div>`;
+	};
+	function picker(side) {
+		const S = st[side];
+		const head = `<div class="pk-head"><span class="rel-lab" style="font-size:11px;font-weight:600;letter-spacing:.025em;text-transform:uppercase;color:var(--muted)">Belongs to</span><button class="rel-plus" type="button" data-click="pkToggle" data-side="${side}" aria-label="Add link" aria-expanded="${S.open}" style="opacity:1">${ic("plus", 12)}</button></div>`;
+		let pop = "";
+		if (S.open) {
+			const L = listFor(side, S.q);
+			let rows = "";
+			if (side === "b") rows = L.rows.length ? L.rows.map((n, i) => row(n, i, "b", false)).join("") : `<p class="empty">No files found</p>`;
+			else if (!S.q) {
+				rows = `<p class="slabel pk-g">Recent</p>${L.rec.map((n, i) => row(n, i, "a", i === S.act)).join("")}<p class="slabel pk-g">All notes</p>${L.rows.map((n, i) => row(n, i + L.rec.length, "a", i + L.rec.length === S.act)).join("")}`;
+			} else rows = L.rows.length ? L.rows.map((n, i) => row(n, i, "a", i === S.act)).join("") : `<p class="empty">No files found</p>`;
+			pop = `<div class="pop" data-popup><input class="q" data-fid="q-${side}" data-autofocus="1" value="${esc(S.q)}" placeholder="Search notes..." aria-label="Search notes" data-input="pkInput" data-keydown="pkKey" data-side="${side}" ${side === "a" ? `role="combobox" aria-expanded="true" aria-controls="pk-list-a" aria-activedescendant="pk-a-${S.act}" aria-autocomplete="list"` : ""}><div class="pk-list" id="pk-list-${side}" role="listbox" aria-label="Notes">${rows}</div>${side === "a" ? `<div class="pk-foot"><span><b>Up</b> <b>Down</b> move</span><span><b>Enter</b> link</span><span><b>Esc</b> close</span></div>` : ""}</div>`;
+		}
+		const res = S.res ? `<p class="pk-res" role="status" style="position:absolute;top:56px;left:0;right:0">Linked ${esc(S.res)} under Belongs to</p>` : "";
+		return `<div class="sbx" style="--w:278px"><div class="pk-stage">${head}${res}${pop}</div></div>`;
+	}
+	function pick(side, name) { st[side].res = name; st[side].open = false; st[side].q = ""; st[side].act = 0; }
+	mk("#d46", st, () => `
+		<div class="cmp">
+			${cell("before", "Before", "recreation of the current popover", picker("b"), "First 20 files alphabetically, no active row. Arrow keys and Enter do nothing; only a mouse press picks.")}
+			${cell("after", "After", "", picker("a"), "Type to filter, Up and Down to move, Enter to link, Esc to close. Recent files come first for an empty query.")}
+		</div>`,
+		{
+			pkToggle: (el) => { const S = st[el.dataset.side]; S.open = !S.open; S.res = ""; },
+			pkInput: (el) => { const S = st[el.dataset.side]; S.q = el.value; S.act = 0; },
+			pkHover: (el) => { const i = Number(el.dataset.i); if (st.a.act === i) return false; st.a.act = i; },
+			pkPick: (el, ev) => { ev.preventDefault(); pick(el.dataset.side, el.dataset.n); },
+			pkKey: (el, ev) => {
+				const side = el.dataset.side, S = st[side];
+				if (ev.key === "Escape") { S.open = false; return; }
+				if (side === "b") return false;
+				const flat = listFor("a", S.q).flat || [];
+				if (ev.key === "ArrowDown") { ev.preventDefault(); S.act = Math.min(flat.length - 1, S.act + 1); }
+				else if (ev.key === "ArrowUp") { ev.preventDefault(); S.act = Math.max(0, S.act - 1); }
+				else if (ev.key === "Enter") { ev.preventDefault(); if (flat[S.act]) pick("a", flat[S.act][0]); }
+				else return false;
+			},
+		},
+		(root) => {
+			const act = $(".pk-row.active", root), box = $("#pk-list-a", root);
+			if (act && box) {
+				const t = act.offsetTop, b = t + act.offsetHeight;
+				if (t < box.scrollTop) box.scrollTop = t - 24;
+				else if (b > box.scrollTop + box.clientHeight) box.scrollTop = b - box.clientHeight + 4;
+			}
+		});
+})();
+
+/* ---------- P75 ---------- */
+(function () {
+	const mkS = (legacy) => { const s = A({ h: 400, sections: ["ol"], legacy: legacy ? new Set(["p75"]) : new Set() }); s.open.ol = true; return s; };
+	mk("#d75", { sbs: { b: mkS(true), a: mkS(false) } }, (s) => `
+		<div class="cmp">
+			${cell("before", "Before", "", renderSidebar(s.sbs.b, "b"), "Dimmed red divs, no action, mixed in with real links.")}
+			${cell("after", "After", "", renderSidebar(s.sbs.a, "a"), "Click a broken link to create the note; it moves to the resolved list.")}
+		</div>`);
+})();
+
+/* ---------- P122 ---------- */
+(function () {
+	const props = (n) => [{ key: "tags", type: "list", value: n ? ["plan", "launch", "kokobrain"] : [] }];
+	const mkS = (legacy) => A({ h: 250, sections: ["props"], noRel: true, noType: true, noAdd: true, props: props(true), legacy: legacy ? new Set(["p122", "p45"]) : new Set() });
+	const b = mkS(true), a = mkS(false);
+	const st = { sbs: { b, a }, full: true };
+	mk("#d122", st, (s) => `
+		<div class="controls"><span>Tags list:</span>${seg([["1", "3 items"], ["0", "Empty"]], "lst", s.full ? "1" : "0")}<span>Double-click a chip in AFTER to edit it. Hover shows the remove button.</span></div>
+		<div class="cmp">
+			${cell("before", "Before", "real app", shot("right-sidebar-default-light", 1190, 330, 250, 125))}
+			${cell("before", "Before", "recreation", renderSidebar(b, "b"), "Static chips; an empty list is just the key and a hover-only +.")}
+			${cell("after", "After", "", renderSidebar(a, "a"), "Chips edit in place. Empty shows a visible '+ Add' chip.")}
+		</div>`,
+		{ lst: (el) => { st.full = el.dataset.v === "1"; b.props = props(st.full); a.props = props(st.full); b.addItem = a.addItem = a.editChip = null; } });
+})();
+
+/* ---------- P123 ---------- */
+(function () {
+	const mkS = (legacy, w) => A({ h: 160, w, sections: ["info"], legacy: legacy ? new Set(["p123"]) : new Set() });
+	const st = { sbs: { b: mkS(true, 250), a: mkS(false, 250) }, w: 250 };
+	mk("#d123", st, (s) => `
+		<div class="controls"><span>Width:</span>${seg([["250", "250 px"], ["200", "200 px"]], "w123", String(s.w))}</div>
+		<div class="cmp">
+			${cell("before", "Before", "real app", shot("right-sidebar-default-light", 1190, 738, 250, 130), "'November 10, 2026, 1...' loses the time.")}
+			${cell("before", "Before", "recreation", renderSidebar(s.sbs.b, "b"))}
+			${cell("after", "After", "", renderSidebar(s.sbs.a, "a"), "Short format fits at 250 px; wraps under its label at 200 px. The tooltip still holds the long value.")}
+		</div>`,
+		{ w123: (el) => { st.w = Number(el.dataset.v); st.sbs.b.w = st.sbs.a.w = st.w; } });
+})();
+
+/* ---------- P177 ---------- */
+(function () {
+	const mkS = (legacy) => {
+		const s = A({ h: 480, sections: ["props", "toc", "bl", "ol", "info"], relOnly: true, legacy: legacy ? new Set(["p177", "p43"]) : new Set(), showGuide: false });
+		s.rels = { belongs: ["Roadmap"], related: ["Q4 OKRs", "Ana Souza"], has: [] };
+		return s;
+	};
+	const b = mkS(true), a = mkS(false);
+	const st = { sbs: { b, a }, guide: false };
+	mk("#d177", st, (s) => `
+		<div class="controls"><label><input type="checkbox" data-change="guide" ${s.guide ? "checked" : ""}> Show alignment guide at the section title x</label></div>
+		<div class="cmp">
+			${cell("before", "Before", "real app", shot("right-sidebar-default-light", 1190, 490, 250, 310), "Info starts about 6 px right of its siblings with an icon; parent and children share one label style.")}
+			${cell("before", "Before", "recreation", renderSidebar(b, "b"))}
+			${cell("after", "After", "", renderSidebar(a, "a"), "Same header as its siblings; empty groups are not rendered; children read as row labels.")}
+		</div>`,
+		{ guide: (el) => { st.guide = el.checked; b.showGuide = a.showGuide = st.guide; } });
+})();
+
+/* ============================== theme toggle ============================== */
+document.querySelectorAll("[data-theme-btn]").forEach((btn) => {
+	btn.addEventListener("click", () => {
+		document.body.dataset.theme = btn.dataset.themeBtn;
+		document.querySelectorAll("[data-theme-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+	});
+});
+</script>
+</body>
+</html>

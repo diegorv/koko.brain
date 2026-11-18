@@ -125,7 +125,7 @@
 	);
 	let showsTypesNavigator = $derived(railItem.item === TYPES_RAIL_ITEM);
 	let showsFilesNavigator = $derived(railItem.item === FILES_RAIL_ITEM);
-	/** The plugin-registered navigator (Calendar) of the active rail item, if any; its lens is `railItem.lens` */
+	/** The plugin-registered navigator (Days) of the active rail item, if any; its lens is `railItem.lens` */
 	let registeredNavigator = $derived(railRegistryStore.navigators.find((n) => n.id === railItem.item) ?? null);
 	/** Whether a navigator pane sits between the rail and the note list */
 	let showsNavigator = $derived(showsTypesNavigator || showsFilesNavigator || registeredNavigator !== null);
@@ -201,8 +201,10 @@
 		<!-- The tabs in hidesRightSidebar always hide the right sidebar, so its toggle would do nothing there. -->
 		{#if !hidesRightSidebar(editorStore.activeTabPath)}
 			<button
-				class="absolute right-2 top-[7px] z-20 shrink-0 rounded-md size-6 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 cursor-default"
+				class="absolute right-2 top-[7px] z-20 shrink-0 rounded-md size-6 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground cursor-default focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 {settingsStore.layout.rightSidebarVisible ? 'bg-accent text-accent-foreground' : 'dark:hover:bg-accent/50'}"
 				onclick={toggleRightSidebar}
+				aria-label="Right sidebar"
+				aria-pressed={settingsStore.layout.rightSidebarVisible}
 				title={settingsStore.layout.rightSidebarVisible ? 'Hide right sidebar' : 'Show right sidebar'}
 			>
 				<PanelRight class="size-3.5" />

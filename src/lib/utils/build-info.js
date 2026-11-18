@@ -3,13 +3,13 @@
 // at config-load time without needing a TS transpile step. checkJs + allowJs
 // in tsconfig.json type-check this file alongside the rest of the codebase.
 
-/** @typedef {'stable' | 'nightly'} ReleaseChannel */
+/** @typedef {'stable' | 'nightly' | 'preview'} ReleaseChannel */
 
 /**
  * @typedef {Object} VersionInputs
  * @property {string} pkgVersion - Version field from package.json (e.g. "2.8.0").
  * @property {string} gitHash - Short git sha for the build (e.g. "34158e03").
- * @property {string} commitCount - Commits since the stable tag `pkgVersion`. Only used for nightly builds.
+ * @property {string} commitCount - Commits since the stable tag `pkgVersion`. Only used for nightly and preview builds.
  * @property {ReleaseChannel} channel - Active release channel.
  */
 
@@ -36,19 +36,24 @@
  * built on an earlier one. A patch bump here would put every nightly above
  * 4.0.0 and order them by the restarting count alone.
  *
+ * Preview: the nightly rules with `preview` as the identifier, e.g.
+ * "2.8.1-preview.12.34158e03". Semver compares the identifier as a string
+ * before the count, so every preview sorts above every nightly of the same
+ * base and below the next stable (ADR-0039).
+ *
  * @param {VersionInputs} inputs
  * @returns {string}
  */
 export function resolveVersion(inputs) {
 	const { pkgVersion, gitHash, commitCount, channel } = inputs;
-	if (channel === 'nightly') {
+	if (channel === 'nightly' || channel === 'preview') {
 		if (pkgVersion.includes('-')) {
-			return `${pkgVersion}.nightly.${commitCount}.${gitHash}`;
+			return `${pkgVersion}.${channel}.${commitCount}.${gitHash}`;
 		}
 		const match = pkgVersion.match(/^(\d+)\.(\d+)\.(\d+)/);
 		const [, major, minor, patch] = match || ['', '0', '0', '0'];
-		const nightlyBase = `${major}.${minor}.${Number(patch) + 1}`;
-		return `${nightlyBase}-nightly.${commitCount}.${gitHash}`;
+		const prereleaseBase = `${major}.${minor}.${Number(patch) + 1}`;
+		return `${prereleaseBase}-${channel}.${commitCount}.${gitHash}`;
 	}
 	return pkgVersion;
 }
@@ -61,14 +66,14 @@ export function resolveVersion(inputs) {
  *   dropped because the nightly version string already ends with the
  *   git hash as its semver tiebreaker, and repeating it would render
  *   "2.8.1-nightly.12.fc788c2d (fc788c2d) (...)" with a
- *   duplicate hash.
+ *   duplicate hash. Preview follows the same pattern for the same reason.
  *
  * @param {VersionInputs & { buildTime: string }} inputs
  * @returns {string}
  */
 export function formatBuildInfo(inputs) {
 	const version = resolveVersion(inputs);
-	const shaSegment = inputs.channel === 'nightly' ? '' : `(${inputs.gitHash}) `;
+	const shaSegment = inputs.channel === 'stable' ? `(${inputs.gitHash}) ` : '';
 	return `${version} ${shaSegment}(${inputs.buildTime})`;
 }
 
@@ -77,14 +82,15 @@ export function formatBuildInfo(inputs) {
  *
  * Unknown / missing values default to "stable". Treats the env var as
  * case-insensitive so `KOKO_RELEASE_CHANNEL=Nightly` works the same as
- * `nightly`.
+ * `nightly` (and `Preview` as `preview`).
  *
  * @param {string | undefined} value
  * @returns {ReleaseChannel}
  */
 export function parseReleaseChannel(value) {
-	if (value && value.toLowerCase() === 'nightly') {
-		return 'nightly';
+	const normalized = value?.toLowerCase();
+	if (normalized === 'nightly' || normalized === 'preview') {
+		return normalized;
 	}
 	return 'stable';
 }
@@ -102,8 +108,7 @@ export function parseReleaseChannel(value) {
  * @returns {string}
  */
 export function channelLabel(channel) {
-	if (channel === 'dev') return 'DEV';
-	return channel === 'nightly' ? 'NIGHTLY' : 'STABLE';
+	return channel.toUpperCase();
 }
 
 /**

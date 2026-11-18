@@ -1,9 +1,10 @@
 # file card src/lib/core/filesystem/file-entries.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/filesystem/file-entries.logic.ts ' codemap/files
-file src/lib/core/filesystem/file-entries.logic.ts logic L77 module src/lib/core/filesystem in12 t3
+file src/lib/core/filesystem/file-entries.logic.ts logic L105 module src/lib/core/filesystem in12 t3
 ## imports
 imp src/lib/core/filesystem/file-entries.logic.ts:1 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode
 imp src/lib/core/filesystem/file-entries.logic.ts:2 -> src/lib/utils/fuzzy-match.ts fuzzyMatch
+imp src/lib/core/filesystem/file-entries.logic.ts:3 -> src/lib/utils/path.ts relativePath
 ## imported-by
 imp src/lib/app/editor-host.ts:7 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree,type:FileEntry
 imp src/lib/core/filesystem/link-updater.service.ts:8 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree
@@ -12,8 +13,8 @@ imp src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:1 -> sr
 imp src/lib/features/canvas/CanvasFilePicker.svelte:3 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree,filterAndRank
 imp src/lib/features/properties/PropertiesView.svelte:14 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree
 imp src/lib/features/properties/RelationshipSearch.svelte:7 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree,filterAndRank
-imp src/lib/features/quick-switcher/QuickSwitcher.svelte:13 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree,filterAndRank
-imp src/lib/features/rail-shell/RailNoteList.svelte:33 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree
+imp src/lib/features/quick-switcher/QuickSwitcher.svelte:19 -> src/lib/core/filesystem/file-entries.logic.ts entryFolder,flattenFileTree,filterAndRank,splitRecentFiles,type:FileEntry
+imp src/lib/features/rail-shell/RailNoteList.svelte:35 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree
 imp src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:4 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree
 imp src/lib/plugins/kanban/kanban.service.ts:8 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree
 imp src/lib/plugins/quick-capture/composer-editor-host.service.ts:2 -> src/lib/core/filesystem/file-entries.logic.ts type:FileEntry
@@ -27,26 +28,33 @@ test src/tests/lib/features/event-calendar/event-calendar.model.test.ts imports 
 test src/tests/lib/core/markdown-editor/extensions/wikilink/completion.logic.test.ts imports-type src/lib/core/filesystem/file-entries.logic.ts
 test src/tests/lib/plugins/quick-capture/composer-editor.test.ts imports-type src/lib/core/filesystem/file-entries.logic.ts
 ## symbols
-sym src/lib/core/filesystem/file-entries.logic.ts:4 interface FileEntry L5
+sym src/lib/core/filesystem/file-entries.logic.ts:5 interface FileEntry L5
 by src/lib/core/filesystem/file-entries.logic.ts:FileEntry <- src/lib/app/editor-host.ts:7 in (module) import
 by src/lib/core/filesystem/file-entries.logic.ts:FileEntry <- src/lib/core/markdown-editor/editor-host.ts:3 in (module) import
 by src/lib/core/filesystem/file-entries.logic.ts:FileEntry <- src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:1 in (module) import
+by src/lib/core/filesystem/file-entries.logic.ts:FileEntry <- src/lib/features/quick-switcher/QuickSwitcher.svelte:24 in (script) import
 by src/lib/core/filesystem/file-entries.logic.ts:FileEntry <- src/lib/plugins/quick-capture/composer-editor-host.service.ts:2 in (module) import
-sym src/lib/core/filesystem/file-entries.logic.ts:10 fn flattenFileTree(nodes: FileTreeNode[]): FileEntry[] L17
+sym src/lib/core/filesystem/file-entries.logic.ts:11 fn flattenFileTree(nodes: FileTreeNode[]): FileEntry[] L17
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/app/editor-host.ts:80 in treeLinkIndex call
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/core/filesystem/link-updater.service.ts:41 in updateLinksAfterRename call
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/canvas/CanvasFilePicker.svelte:21 in allFiles=$derived call
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/properties/PropertiesView.svelte:61 in relLinksMap=$derived call
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/properties/RelationshipSearch.svelte:24 in allFiles=$derived call
-by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/quick-switcher/QuickSwitcher.svelte:21 in allFiles=$derived call
-by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/rail-shell/RailNoteList.svelte:572 in allPaths=$derived call
+by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/quick-switcher/QuickSwitcher.svelte:32 in allFiles=$derived call
+by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/rail-shell/RailNoteList.svelte:581 in allPaths=$derived call
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:28 in files=$derived call
 more by 1 not shown: src/lib/plugins/kanban(1): q importers src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree
-sym src/lib/core/filesystem/file-entries.logic.ts:29 const MAX_RESULTS L1 | Maximum number of results rendered by the quick switcher.
-sym src/lib/core/filesystem/file-entries.logic.ts:31 fn filterAndRank(query: string, files: FileEntry[], recentPaths: string[]): FileEntry[] L47
+sym src/lib/core/filesystem/file-entries.logic.ts:30 const MAX_RESULTS L1 | Maximum number of results rendered by the quick switcher.
+sym src/lib/core/filesystem/file-entries.logic.ts:38 fn entryFolder(vaultPath: string, path: string): string L5 | The folder holding a file, relative to the vault.
+by src/lib/core/filesystem/file-entries.logic.ts:entryFolder <- src/lib/features/quick-switcher/QuickSwitcher.svelte:131 in (markup) markup
+sym src/lib/core/filesystem/file-entries.logic.ts:51 fn splitRecentFiles(files: FileEntry[], recentPaths: string[]): { recent: FileEntry[]; rest: FileEntry[] } L15 | The quick switcher's empty-query groups.
+by src/lib/core/filesystem/file-entries.logic.ts:splitRecentFiles <- src/lib/features/quick-switcher/QuickSwitcher.svelte:56 in recentGroups=$derived call
+sym src/lib/core/filesystem/file-entries.logic.ts:67 fn filterAndRank(query: string, files: FileEntry[], recentPaths: string[]): FileEntry[] L39
 by src/lib/core/filesystem/file-entries.logic.ts:filterAndRank <- src/lib/features/canvas/CanvasFilePicker.svelte:25 in filtered=$derived call
 by src/lib/core/filesystem/file-entries.logic.ts:filterAndRank <- src/lib/features/properties/RelationshipSearch.svelte:25 in results=$derived call
-by src/lib/core/filesystem/file-entries.logic.ts:filterAndRank <- src/lib/features/quick-switcher/QuickSwitcher.svelte:23 in filteredFiles=$derived call
+by src/lib/core/filesystem/file-entries.logic.ts:filterAndRank <- src/lib/features/quick-switcher/QuickSwitcher.svelte:48 in filteredFiles=$derived call
 ## calls
-call src/lib/core/filesystem/file-entries.logic.ts:16 in flattenFileTree -> src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree call
-call src/lib/core/filesystem/file-entries.logic.ts:53 in filterAndRank -> src/lib/utils/fuzzy-match.ts:fuzzyMatch call
+call src/lib/core/filesystem/file-entries.logic.ts:17 in flattenFileTree -> src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree call
+call src/lib/core/filesystem/file-entries.logic.ts:39 in entryFolder -> src/lib/utils/path.ts:relativePath call
+call src/lib/core/filesystem/file-entries.logic.ts:73 in filterAndRank -> src/lib/core/filesystem/file-entries.logic.ts:splitRecentFiles call
+call src/lib/core/filesystem/file-entries.logic.ts:81 in filterAndRank -> src/lib/utils/fuzzy-match.ts:fuzzyMatch call

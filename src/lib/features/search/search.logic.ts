@@ -6,6 +6,36 @@ import { relativePath, stem } from '#lib/utils/path.js';
 const TAG_OPERATOR_REGEX = /tag:(\S+)/g;
 const PATH_OPERATOR_REGEX = /path:(\S+)/g;
 
+// Result caps, one per search path. A search that gets back as many rows as
+// its cap sets `searchStore.resultsCapped`, and the panel reads "N+ results".
+
+/**
+ * Rows a Text search shows: the rows `search_fts` returns for plain words,
+ * or the `tag:` / `path:` matches kept from its candidate list when the
+ * words carry operators.
+ */
+export const FTS_MAX_RESULTS = 50;
+/**
+ * `maxResults` sent to `search_fts` when the words carry `tag:` / `path:`
+ * operators. Rust applies its `LIMIT` before the operators filter the rows
+ * in JS, so this is set high enough to be uncapped in practice: a match
+ * ranked past `FTS_MAX_RESULTS` for the bare words is still found. Not the
+ * vault entry count, which is 0 before the index is built (`LIMIT 0`).
+ */
+export const FTS_OPERATOR_CANDIDATE_LIMIT = 100_000;
+/**
+ * Chunks `search_semantic` returns. It also drops chunks under its
+ * `minScore`, so a list can be cut without reaching this cap and then shows
+ * no "+": that under-report is accepted.
+ */
+export const SEMANTIC_MAX_RESULTS = 20;
+/** Chunks `search_hybrid` returns */
+export const HYBRID_MAX_RESULTS = 20;
+/** Notes an operator-only query (`tag:` / `path:`, no text) returns */
+export const OPERATOR_ONLY_MAX_RESULTS = 100;
+/** Notes the in-memory fallback returns when the FTS index fails */
+export const FALLBACK_MAX_RESULTS = 100;
+
 export function parseSearchQuery(raw: string): SearchQuery {
 	const tags: string[] = [];
 	const paths: string[] = [];
@@ -23,6 +53,24 @@ export function parseSearchQuery(raw: string): SearchQuery {
 	text = text.replace(TAG_OPERATOR_REGEX, '').replace(PATH_OPERATOR_REGEX, '').trim();
 
 	return { text, tags, paths };
+}
+
+/**
+ * Shortest query, in code points, that Semantic and Hybrid search answer.
+ * Mirrors the `chars().count() < 3` early return of `search_semantic` and
+ * `search_hybrid` in `src-tauri/src/commands/semantic.rs:804` and `:991`.
+ */
+export const SEMANTIC_MIN_QUERY_CHARS = 3;
+
+/**
+ * True when Semantic or Hybrid search would return nothing because the query
+ * is too short. Measures what `performSearch` sends (the text left after the
+ * `tag:`/`path:` operators, or the raw query when nothing is left), trimmed
+ * like Rust does.
+ */
+export function isBelowSemanticMinimum(raw: string): boolean {
+	const sent = parseSearchQuery(raw).text.trim() || raw;
+	return [...sent.trim()].length < SEMANTIC_MIN_QUERY_CHARS;
 }
 
 // Re-exported from the centralized sanitize utility for backwards compatibility.
@@ -165,7 +213,7 @@ export function performOperatorOnlySearch(
 	entries: { path: string; tags: string[] }[],
 	query: SearchQuery,
 	vaultPath: string,
-	maxResults: number = 100,
+	maxResults: number = OPERATOR_ONLY_MAX_RESULTS,
 ): SearchResult[] {
 	if (query.tags.length === 0 && query.paths.length === 0) return [];
 	const results: SearchResult[] = [];
@@ -198,7 +246,7 @@ export function performSearchOverFiles(
 	noteContents: Map<string, string>,
 	query: SearchQuery,
 	vaultPath: string,
-	maxResults: number = 100,
+	maxResults: number = FALLBACK_MAX_RESULTS,
 ): SearchResult[] {
 	const results: SearchResult[] = [];
 

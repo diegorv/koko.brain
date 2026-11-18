@@ -5,7 +5,7 @@ file src/lib/core/settings/rail-pin.logic.ts logic L22 module src/lib/core/setti
 imp src/lib/features/rail-shell/lens.logic.ts:3 -> src/lib/core/settings/rail-pin.logic.ts TYPE_PIN_PREFIX,VIEW_PIN_PREFIX,typePinKey,viewPinKey
 imp src/lib/features/type-definitions/type-definitions.service.ts:16 -> src/lib/core/settings/rail-pin.logic.ts typePinKey
 ## reach
-in2 src/lib/core/settings/rail-pin.logic.ts 25 files in 9 modules: src/lib/features/rail-shell(11) src/lib/app(6) src/lib/features/event-calendar(2) src/lib/features/note-list(1) src/lib/features/search(1) +4 modules: q impact src/lib/core/settings/rail-pin.logic.ts --depth 2
+in2 src/lib/core/settings/rail-pin.logic.ts 27 files in 10 modules: src/lib/features/rail-shell(12) src/lib/app(6) src/lib/features/event-calendar(2) src/lib/features/note-list(1) src/lib/features/quick-switcher(1) +5 modules: q impact src/lib/core/settings/rail-pin.logic.ts --depth 2
 out2 src/lib/core/settings/rail-pin.logic.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/core/settings/rail-pin.logic.test.ts imports src/lib/core/settings/rail-pin.logic.ts mirror

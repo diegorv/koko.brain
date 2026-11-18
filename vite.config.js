@@ -16,7 +16,7 @@ const pkg = JSON.parse(readFileSync("./package.json", "utf-8"));
 let gitHash = "unknown";
 try { gitHash = execSync("git rev-parse --short HEAD").toString().trim(); } catch {}
 
-// Commits since the stable tag named by package.json; only nightly builds read it.
+// Commits since the stable tag named by package.json; only nightly and preview builds read it.
 let commitCount = "0";
 try { commitCount = execSync(`git rev-list --count ${pkg.version}..HEAD`).toString().trim(); } catch {}
 

@@ -2,7 +2,7 @@
 
 Visualize the connections between your notes as an interactive knowledge graph.
 
-**Shortcut:** `Cmd+G` or Command Palette → **"Toggle Graph View"**
+**Shortcut:** `Cmd+G`, **Graph** on the rail (see [The Rail](01-getting-started.md#the-rail)), or Command Palette → **"Toggle Graph View"**
 
 ---
 
@@ -36,7 +36,7 @@ Shows **all** notes and connections in the vault. This gives you a bird's-eye vi
 
 ### Local Mode
 
-Shows only the **current note** and its direct neighbors (1 hop away). This is useful for focusing on a specific cluster of related notes without the noise of the full graph.
+Shows only the **current note** and the notes within a few links of it. The **Depth** stepper in the controls panel sets how many links away the graph reaches, from 1 (direct neighbors only) to 3. Depth starts at 1 each time you open the graph tab, and stays as you set it while the tab is open. This is useful for focusing on a specific cluster of related notes without the noise of the full graph.
 
 ## Filters
 
@@ -59,7 +59,7 @@ A separate **Display** panel controls how edges are drawn:
 |---------|-------------|
 | **Arrows** | Toggle directional arrows on edges (bidirectional arrows for mutual links) |
 
-The controls panel also includes **Zoom In / Zoom Out** buttons and a **Close** button.
+The controls panel also includes **Zoom In / Zoom Out** buttons. Close the graph with the **X** on its tab or with `Cmd+G`.
 
 ## Layout
 

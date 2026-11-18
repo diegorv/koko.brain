@@ -60,8 +60,8 @@ test.describe('Collection block', () => {
 		await expectTabActive(page, 'Roadmap');
 		await expect(page.locator('.cm-content')).toContainText('The current high-level plan.');
 
-		await page.locator('.editor-tabs-bar [role="tab"]', { hasText: 'Active.md' }).click();
-		await expectTabActive(page, 'Active.md');
+		await page.locator('.editor-tabs-bar [role="tab"]', { hasText: 'Active' }).click();
+		await expectTabActive(page, 'Active');
 		await expect(page.locator('.cm-lp-collection-block .cm-lp-collection-header')).toHaveText('Active (1)');
 		await expect.poll(() => blockRows(page)).toEqual(['Roadmap.md | active']);
 		await expect(page.locator('.cm-content')).not.toContainText('filters:');

@@ -12,6 +12,7 @@ This document describes every GitHub Actions workflow in `.github/workflows/`, w
 - [Release](#release-releaseyml)
 - [Main checks](#main-checks-main-checksyml)
 - [Nightly](#nightly-nightlyyml)
+- [Preview](#preview-previewyml)
 - [Cache Cleanup](#cache-cleanup-cache-cleanupyml)
 - [Wiki Sync](#wiki-sync-sync-wikiyml)
 - [Run All Checks](#run-all-checks-run-allyml)
@@ -103,7 +104,7 @@ The frontend layer end-to-end against the Tauri mock layer in `e2e/mocks/`. The 
 
 ## Secret Scan (`secrets.yml`)
 
-Gitleaks over the pushed commits. Split out of `ci.yml` so it runs on every push and PR, docs-only ones included (a secret pasted into a `.md` or a `.scratch` note leaks as easily as one in code), while CI, E2E, Nightly and Commit policy skip docs-only changes.
+Gitleaks over the pushed commits. Split out of `ci.yml` so it runs on every push and PR, docs-only ones included (a secret pasted into a `.md` or a `.scratch` note leaks as easily as one in code), while CI, E2E, Nightly, Preview and Commit policy skip docs-only changes.
 
 **Triggers**
 
@@ -300,6 +301,32 @@ Concurrency is `group: nightly, cancel-in-progress: false`: a running build alwa
 
 ---
 
+## Preview (`preview.yml`)
+
+Pre-release build of the long-lived `preview` branch (`main` plus feature branches under test) for the Preview channel. The branch rules, how a feature branch joins it and how to resolve a sync conflict are in [docs/RELEASE-CHANNELS.md § The preview branch](docs/RELEASE-CHANNELS.md#the-preview-branch).
+
+**Triggers**
+
+- `push` to `main` or `preview`, with the same ordered `paths` filter as `nightly.yml` (its own file instead of `nightly.yml`).
+- `workflow_dispatch` (rebuilds the current `preview` head).
+
+**Jobs**
+
+| Job ID | Runner | What it does |
+|---|---|---|
+| `guard` | ubuntu-24.04 | The canonical-repo check of `nightly.yml`, on every event. On a push to `main` it skips the run only for a `[skip nightly]` marker in the commit message. Unlike Nightly, a `chore: bump version` commit or a release tag at the SHA is synced and built: `release.yml` builds no preview, and skipping the bump would leave `preview` on the old base version, below the new stable. The version step counts commits from the new tag, so a build that checks out before the tag reaches origin fails, and so does every later one until the tag is pushed. On the canonical repo, a push to `preview` or a manual run always builds. |
+| `sync` | ubuntu-24.04 | Pushes to `main` only. Runs `scripts/preview-branch.sh sync`: checks out `preview`, `git merge --no-ff origin/main` as `github-actions[bot]`, pushes without force. Skips the merge and the push when `main` is already in `preview`. On a conflict it aborts and fails with the files and the commands to fix it by hand, and no build runs. |
+| `build-macos` | macos-latest | Runs after `sync` (or with `sync` skipped) in the same run, because a `GITHUB_TOKEN` push starts no new run. Builds the `preview` head `sync` reports (the merge it pushed, or the current head when there was nothing to merge), the pushed `preview` head, or the current `preview` head for a manual run. Same steps as Nightly's `build-macos` with `KOKO_RELEASE_CHANNEL=preview`, the version from `resolveVersion(..., channel: 'preview')`, the fixed tag `preview`, the release name `Preview Build (<sha>)` and its own rust-cache key `macos-preview-aarch64`. The release body lists the branches merged into `preview` that are not in `main` (`scripts/preview-branch.sh merged`). |
+
+Concurrency is `group: preview`, with `cancel-in-progress` true only for a push to `preview`: that push cancels the running run, whose build it makes outdated. A push to `main` or a manual run waits for the running run, as in Nightly, so a burst of `main` pushes cannot keep every build from publishing. A run cancelled during publishing leaves the previous build's assets next to the new ones and the tag behind, and the next run's snapshot and prune clean that up. A cancel inside the few seconds in which `tauri-action` deletes and re-uploads `latest.json` leaves the release without one, so the updater gets a 404 until the next run publishes. When a run from a push to `main` is cancelled before its sync pushed, or a newer run replaces it while pending, that sync is dropped and `preview` lags `main` until the next push to `main`.
+
+**What Preview does NOT test**
+
+- **Nothing on the `preview` head.** CI, E2E, Secret Scan, Security, Privacy and Commit policy run only on pushes and PRs to `main`, so neither the merge result nor a commit pushed straight to `preview` gets them. A feature branch is checked only if it has an open PR to `main`.
+- Same gaps as Nightly otherwise: nothing gates the build, no `.app` smoke test, no post-publish auto-update verification.
+
+---
+
 ## Cache Cleanup (`cache-cleanup.yml`)
 
 Keeps the repository under GitHub's 10 GB Actions cache limit. CodeQL's default setup saves a ~175 MB overlay database per push and never prunes them; past the limit GitHub evicts the least recently used entries, which were the Rust caches `ci.yml` depends on.
@@ -389,7 +416,7 @@ Steps: install pnpm, install Node.js 22 with pnpm-store cache, run `pnpm install
 
 ### `.github/actions/publish-checksums`
 
-Composite action used by `release.yml` and `nightly.yml` after `tauri-action`. Hashes the macOS bundles, uploads `checksums-sha256.txt` with `--clobber` and replaces the `## Checksums (SHA256)` block at the end of the release body.
+Composite action used by `release.yml`, `nightly.yml` and `preview.yml` after `tauri-action`. Hashes the macOS bundles, uploads `checksums-sha256.txt` with `--clobber` and replaces the `## Checksums (SHA256)` block at the end of the release body.
 
 Inputs: `tag` (release to publish to) and `token` (contents:write).
 
@@ -430,13 +457,13 @@ The npm and cargo cooldowns match the pnpm `minimumReleaseAge` (5 days), so Depe
 
 CI, Security, and Privacy use path filters to skip when only documentation changed:
 
-- `pr.yml` uses `paths-ignore`: `**/*.md`, `.scratch/**`, `help/**`, `LICENSE`. The push entry points (`main-checks.yml`, `nightly.yml`, `security.yml`, `commit-policy.yml`, which applies the same list to PRs) use an ordered `paths` filter instead: everything, minus that docs list, minus `.github/**`, plus the workflow's own file and the files it runs (`nightly.yml`: `.github/actions/setup/**`, `.github/actions/publish-checksums/**`; `main-checks.yml`: `ci.yml`, `e2e.yml`, `.github/actions/setup/**`; `security.yml`: `.github/actions/setup/**`). A workflow change is still validated by its own run, but editing one workflow no longer starts the nightly build and every other check. Inside `ci.yml` the `frontend` and `rust` filters likewise count only `ci.yml` and `.github/actions/setup/**` from `.github/`. A docs-only push therefore runs only `secrets.yml` (plus `sync-wiki.yml` when it touches `help/documentation/**` or `help/examples/**`, `privacy.yml` when it touches `PRIVACY.md`, and CodeQL's default setup, which has no path filter).
+- `pr.yml` uses `paths-ignore`: `**/*.md`, `.scratch/**`, `help/**`, `LICENSE`. The push entry points (`main-checks.yml`, `nightly.yml`, `preview.yml`, `security.yml`, `commit-policy.yml`, which applies the same list to PRs) use an ordered `paths` filter instead: everything, minus that docs list, minus `.github/**`, plus the workflow's own file and the files it runs (`nightly.yml` and `preview.yml`: `.github/actions/setup/**`, `.github/actions/publish-checksums/**`; `main-checks.yml`: `ci.yml`, `e2e.yml`, `.github/actions/setup/**`; `security.yml`: `.github/actions/setup/**`). A workflow change is still validated by its own run, but editing one workflow no longer starts the nightly build and every other check. Inside `ci.yml` the `frontend` and `rust` filters likewise count only `ci.yml` and `.github/actions/setup/**` from `.github/`. A docs-only push therefore runs only `secrets.yml` (plus `sync-wiki.yml` when it touches `help/documentation/**` or `help/examples/**`, `privacy.yml` when it touches `PRIVACY.md`, and CodeQL's default setup, which has no path filter).
 - Inside `pr.yml` and `ci.yml`, `dorny/paths-filter` decides which suites run; a skipped suite counts as passed in the `PR success` / `CI success` aggregates.
 - Privacy's own push trigger uses an allow-list of source paths; it only cares about code that can make network calls.
 
 ### Concurrency
 
-Most workflows have a `concurrency:` group keyed on `${{ github.ref }}` with `cancel-in-progress: true` (newer commits supersede older runs). The exceptions use `cancel-in-progress: false`: Wiki Sync (every push's docs are meaningful work; serialize, do not drop), Release, Nightly (fixed group `nightly`: a cancelled build publishes nothing; GitHub keeps only the newest push pending), and Commit policy and Secret Scan (one group per SHA, because each scans the pushed range). Cache Cleanup uses a fixed group that cancels in progress.
+Most workflows have a `concurrency:` group keyed on `${{ github.ref }}` with `cancel-in-progress: true` (newer commits supersede older runs). The exceptions use `cancel-in-progress: false`: Wiki Sync (every push's docs are meaningful work; serialize, do not drop), Release, Nightly (fixed group `nightly`: a cancelled build publishes nothing; GitHub keeps only the newest push pending), Preview (fixed group `preview`, so a burst of `main` pushes cannot keep every build from publishing; only a push to `preview` cancels the running run), and Commit policy and Secret Scan (one group per SHA, because each scans the pushed range). Cache Cleanup uses a fixed group that cancels in progress.
 
 ### Runner images
 

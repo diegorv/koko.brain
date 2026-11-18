@@ -32,7 +32,7 @@ by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/set
 by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/FileHistorySection.svelte:16 in (markup) mount +2
 by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/FilesSection.svelte:11 in (markup) mount +2
 by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/HeadingTypographyEditor.svelte:60 in (markup) mount +3
-by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/OneOnOneSection.svelte:24 in (markup) mount +5
+by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/OneOnOneSection.svelte:28 in (markup) mount +5
 by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/PeriodicNotesSection.svelte:22 in (markup) mount +12
 by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/QuickCaptureSection.svelte:38 in (markup) mount +2
 more by 10 not shown: src/lib/core/settings(4) src/lib/features/auto-organize(1) src/lib/features/event-calendar(1) src/lib/features/rail-shell(1) src/lib/features/search(1) src/lib/features/todoist-sync(1) src/lib/plugins/queryjs(1): q importers src/lib/core/settings/sections/SettingItem.svelte:default
@@ -53,12 +53,12 @@ mount src/lib/core/settings/sections/HeadingTypographyEditor.svelte:60 SettingIt
 mount src/lib/core/settings/sections/HeadingTypographyEditor.svelte:73 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/HeadingTypographyEditor.svelte:86 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/HeadingTypographyEditor.svelte:103 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/OneOnOneSection.svelte:24 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/OneOnOneSection.svelte:36 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/OneOnOneSection.svelte:50 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/OneOnOneSection.svelte:62 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/OneOnOneSection.svelte:74 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/OneOnOneSection.svelte:88 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/OneOnOneSection.svelte:28 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/OneOnOneSection.svelte:40 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/OneOnOneSection.svelte:54 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/OneOnOneSection.svelte:66 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/OneOnOneSection.svelte:78 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/OneOnOneSection.svelte:92 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:22 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:37 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:44 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte

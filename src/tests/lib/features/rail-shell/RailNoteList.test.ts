@@ -133,6 +133,15 @@ describe('RailNoteList', () => {
 		return rows().map((el) => el.querySelector('.truncate')?.textContent?.trim() ?? '');
 	}
 
+	/** The title and hint of the empty state behind `hook`. */
+	function emptyText(hook = 'data-note-list-empty'): { title?: string; hint?: string } {
+		const root = target.querySelector(`[${hook}]`);
+		return {
+			title: root?.querySelector('[data-empty-state-title]')?.textContent ?? undefined,
+			hint: root?.querySelector('[data-empty-state-hint]')?.textContent ?? undefined,
+		};
+	}
+
 	async function chooseMenuItem(title: string, label: string) {
 		row(title).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
 		await settle();
@@ -373,12 +382,12 @@ describe('RailNoteList', () => {
 		expect(wrapper.className).not.toMatch(/(^|\s)rounded(\s|$)/);
 	});
 
-	it('shows an empty state when the Inbox is empty', async () => {
+	it('says Inbox zero and how to mark a note organized when the Inbox is empty', async () => {
 		typeDefinitionsStore.setEntries([entryV2('/vault/done.md', { organized: true })]);
 		await mountList();
 
 		expect(rows()).toHaveLength(0);
-		expect(target.querySelector('[data-note-list-empty]')?.textContent?.trim()).toBe('No notes here');
+		expect(emptyText()).toEqual({ title: 'Inbox zero', hint: 'Notes not marked organized show here. Mark one with ⌘E.' });
 	});
 
 	it('updates when the entries snapshot changes', async () => {
@@ -414,7 +423,8 @@ describe('RailNoteList', () => {
 		const HUB = '/vault/Hub.md';
 
 		function expectLoading() {
-			expect(target.querySelector('[data-note-list-loading]')?.textContent?.trim()).toBe('Loading...');
+			expect(target.querySelector('[data-note-list-loading] [data-empty-state-title]')?.textContent).toBe('Loading notes');
+			expect(target.querySelector('[data-note-list-loading] .animate-spin')).not.toBeNull();
 			expect(target.querySelector('[data-note-list-empty]')).toBeNull();
 			expect(target.querySelector('[data-note-list-group-empty]')).toBeNull();
 			expect(rows()).toEqual([]);
@@ -513,7 +523,7 @@ describe('RailNoteList', () => {
 			typeDefinitionsStore.setEntries([]);
 			await settle();
 			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
-			expect(target.querySelector('[data-note-list-empty]')?.textContent?.trim()).toBe('No notes here');
+			expect(emptyText().title).toBe('Inbox zero');
 		});
 
 		it('a built-in lens does not wait for the property index: a failed whole read leaves Inbox working', async () => {
@@ -869,7 +879,7 @@ describe('RailNoteList', () => {
 			typeDefinitionsStore.setEntries([entryV2('/vault/other.md')]);
 			await mountList(neighbourhoodLens(HUB));
 			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('');
-			expect(target.querySelector('[data-note-list-empty]')?.textContent?.trim()).toBe('No notes here');
+			expect(emptyText().title).toBe('This note is no longer in the vault');
 			expect(rows()).toEqual([]);
 		});
 
@@ -932,13 +942,16 @@ describe('RailNoteList', () => {
 			typeDefinitionsStore.setEntries([entryV2(ALPHA)]);
 			await settle();
 			expect(rows()).toHaveLength(0);
-			expect(target.querySelector('[data-note-list-empty]')?.textContent?.trim()).toBe('No notes here');
+			expect(emptyText()).toEqual({
+				title: 'Nothing archived',
+				hint: 'Archive a note from the ... menu above it. Archived notes leave Inbox and Today.',
+			});
 		});
 
-		it('shows the empty state over an empty snapshot', async () => {
+		it('says how to star a note over an empty Favorites', async () => {
 			typeDefinitionsStore.setEntries([]);
 			await mountList(FAVORITES_LENS);
-			expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+			expect(emptyText()).toEqual({ title: 'No favorites yet', hint: 'Star a note with ⌘D, the star above the note, or its row menu.' });
 		});
 	});
 
@@ -994,10 +1007,65 @@ describe('RailNoteList', () => {
 			expect(openFileInEditor).not.toHaveBeenCalled();
 		});
 
-		it('shows an empty list with no New here before a type is picked', async () => {
+		it('says there are no types yet, with no New here, for the bare Types lens', async () => {
 			await mountList(TYPES_LENS);
-			expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+			expect(emptyText().title).toBe('No types yet');
 			expect(target.querySelector('[data-note-list-new]')).toBeNull();
+		});
+
+		describe('the archived filter empties the list', () => {
+			async function pickArchived(mode: 'active' | 'all' | 'archived') {
+				target.querySelector<HTMLButtonElement>('[data-note-list-archived]')!.click();
+				await settle();
+				document.querySelector<HTMLButtonElement>(`[data-archived-option="${mode}"]`)!.click();
+				await settle();
+			}
+
+			function emptyAction(): HTMLButtonElement | null {
+				return target.querySelector<HTMLButtonElement>('[data-note-list-empty] [data-empty-state-action]');
+			}
+
+			it('"Only archived" with nothing archived offers Show active, which lists the active notes', async () => {
+				const entries = ENTRIES.filter((e) => !e.archived);
+				typeDefinitionsStore.setEntries(entries);
+				typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap(entries));
+				await mountList(PROJECT);
+				await pickArchived('archived');
+
+				expect(rows()).toEqual([]);
+				expect(emptyText().title).toBe('No archived Project notes');
+				expect(emptyAction()?.textContent?.trim()).toBe('Show active');
+
+				emptyAction()!.click();
+				await settle();
+				expect(rowTitles()).toEqual(['beta', 'alpha']);
+				expect(target.querySelector('[data-note-list-archived]')?.getAttribute('data-note-list-archived')).toBe('active');
+			});
+
+			it('"Hide archived" over a type whose only note is archived says so and offers Show archived, which lists it', async () => {
+				const entries = [entryV2('/vault/Project.md', { isA: 'Type' }), entryV2('/vault/shelved.md', { isA: 'Project', archived: true })];
+				typeDefinitionsStore.setEntries(entries);
+				typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap(entries));
+				await mountList(PROJECT);
+
+				expect(rows()).toEqual([]);
+				expect(emptyText().title).toBe('All 1 Project notes are archived');
+				expect(emptyAction()?.textContent?.trim()).toBe('Show archived');
+
+				emptyAction()!.click();
+				await settle();
+				expect(rowTitles()).toEqual(['shelved']);
+				expect(target.querySelector('[data-note-list-archived]')?.getAttribute('data-note-list-archived')).toBe('all');
+			});
+
+			it('a type with no notes at all says so and points at +', async () => {
+				const entries = [entryV2('/vault/Project.md', { isA: 'Type' })];
+				typeDefinitionsStore.setEntries(entries);
+				typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap(entries));
+				await mountList(PROJECT);
+				expect(emptyText()).toEqual({ title: 'No Project notes yet', hint: 'Use + to create one.' });
+				expect(emptyAction()).toBeNull();
+			});
 		});
 	});
 
@@ -1027,12 +1095,27 @@ describe('RailNoteList', () => {
 		});
 
 		it("lists the folder's direct files of every kind with the rule \"in <folder>/\"", async () => {
+			const now = new Date(2026, 9, 31, 9, 15).getTime();
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(now);
+			try {
+				typeDefinitionsStore.setEntries([entryV2(ALPHA, { isA: 'Project', modifiedAt: now / 1000 - 2 * 3600 }), entryV2(BETA)]);
+				await mountList({ kind: 'folder', target: WORK });
+				expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Work');
+				expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('in Work/');
+				expect(rowTitles()).toEqual(['alpha', 'Board', 'Tasks', 'Open', 'Spec', 'Shot']);
+				expect(rowTitles()).not.toContain('Deep');
+				// The list is titled with the folder, so a note row shows its modified time only.
+				expect(row('alpha').querySelector('[data-note-row-subtitle]')?.textContent).toBe('2h ago');
+				expect(row('Board').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Canvas');
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('gives a note row with no modified time no second line', async () => {
 			await mountList({ kind: 'folder', target: WORK });
-			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Work');
-			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('in Work/');
-			expect(rowTitles()).toEqual(['alpha', 'Board', 'Tasks', 'Open', 'Spec', 'Shot']);
-			expect(rowTitles()).not.toContain('Deep');
-			expect(row('alpha').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Work');
+			expect(row('alpha').querySelector('[data-note-row-subtitle]')).toBeNull();
 			expect(row('Board').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Canvas');
 		});
 

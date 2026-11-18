@@ -6,7 +6,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -38,3 +38,4 @@ A text search shows only its own results: a query with no hits says No results f
 ## Comments
 
 - 2026-11-06: Issue 24 merged in by the owner after the challenge review; its criteria are above.
+- 2026-11-17, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/finders-ux/issues/16-text-search-operators-before-cap-nested-tags.md`.

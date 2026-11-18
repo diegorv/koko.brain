@@ -8,7 +8,7 @@
 
 **Stale in the text below:** CollectionView 'about lines 585-590' is now line 688 (a second copy at RailNoteList.svelte:862; CollectionView:502 has a variant without role=alert).
 
-**What to build:** About 30 empty states come in 5 sizes, errors reuse empty copy, and there are about 12 chip recipes. Add three primitives under `src/lib/components/ui/`: `EmptyState` (title, optional description and action, plus a compact variant), `InlineAlert` (extracted from the already-correct pattern in `CollectionView.svelte`, about lines 585-590) and `Badge` (neutral, primary, status, count). Migrate one call site of each as the proof.
+**What to build:** Errors reuse empty copy and there are about 12 chip recipes. Add two primitives under `src/lib/components/ui/`: `InlineAlert` (extracted from the already-correct pattern in `CollectionView.svelte`, about lines 585-590) and `Badge` (neutral, primary, status, count). Migrate one call site of each as the proof. The `EmptyState` primitive moved to `.scratch/shell-sidebars-ux/issues/12-note-list-empty-states-cause.md`.
 
 **Blocked by:** none
 
@@ -30,3 +30,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/59-empty-error-badge-primitives.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-17, triage: partly replaced. The `EmptyState` half moved to `.scratch/shell-sidebars-ux/issues/12-note-list-empty-states-cause.md`. The `InlineAlert` and `Badge` halves stay here; they belong to the feedback-components group (review P16 and P93 in `.scratch/design-review/review.md`).

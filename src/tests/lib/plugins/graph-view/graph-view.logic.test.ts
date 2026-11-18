@@ -9,6 +9,8 @@ import {
 	getUniqueTags,
 	graphPalette,
 	FALLBACK_GRAPH_PALETTE,
+	selectLabels,
+	type LabelCandidate,
 } from '#lib/plugins/graph-view/graph-view.logic.js';
 import type { GraphData, GraphNode } from '#lib/plugins/graph-view/graph-view.types.js';
 import { KOKOBRAIN_DEFAULT_THEME, LAVENDER_HAZE_THEME } from '#lib/core/settings/theme.logic.js';
@@ -474,5 +476,97 @@ describe('graphPalette', () => {
 		expect(contrastRatio(palette.nodeDimmed, valid.editorBg)!).toBeLessThan(contrastRatio(palette.node, valid.editorBg)!);
 		expect(contrastRatio(palette.labelDimmed, valid.editorBg)!).toBeLessThan(contrastRatio(palette.label, valid.editorBg)!);
 		expect(contrastRatio(palette.edge, valid.editorBg)!).toBeLessThan(contrastRatio(palette.node, valid.editorBg)!);
+	});
+});
+
+describe('selectLabels', () => {
+	/** A 100x10 label at (x, y), unforced, with degree 0 unless overridden. */
+	const label = (id: string, x: number, y: number, overrides: Partial<LabelCandidate> = {}): LabelCandidate => ({
+		id,
+		x,
+		y,
+		width: 100,
+		height: 10,
+		degree: 0,
+		forced: false,
+		...overrides,
+	});
+
+	it('keeps only the higher-degree one of two overlapping labels', () => {
+		const selected = selectLabels([label('a', 0, 0, { degree: 1 }), label('b', 50, 5, { degree: 3 })]);
+
+		expect([...selected]).toEqual(['b']);
+	});
+
+	it('breaks a degree tie by id', () => {
+		const selected = selectLabels([label('b', 0, 0, { degree: 2 }), label('a', 50, 5, { degree: 2 })]);
+
+		expect([...selected]).toEqual(['a']);
+	});
+
+	it('keeps a forced label that overlaps a higher-degree one', () => {
+		const selected = selectLabels([label('hub', 0, 0, { degree: 9 }), label('hovered', 50, 5, { forced: true })]);
+
+		expect([...selected]).toEqual(['hovered']);
+	});
+
+	it('keeps every forced label even when they overlap each other', () => {
+		const selected = selectLabels([
+			label('a', 0, 0, { forced: true }),
+			label('b', 10, 2, { forced: true }),
+			label('c', 20, 4, { forced: true }),
+		]);
+
+		expect(selected).toEqual(new Set(['a', 'b', 'c']));
+	});
+
+	it('keeps every label when none overlap', () => {
+		// d touches a's corner, which is not an overlap.
+		const selected = selectLabels([label('a', 0, 0), label('b', 0, 20), label('c', 200, 0), label('d', 100, 10)]);
+
+		expect(selected).toEqual(new Set(['a', 'b', 'c', 'd']));
+	});
+
+	it('keeps a label drawn over another node position when it overlaps no other label', () => {
+		// a's rectangle covers (50, 5), where b's node sits; b's label is below its node.
+		const selected = selectLabels([label('a', 0, 0, { degree: 5 }), label('b', 0, 20)]);
+
+		expect(selected).toEqual(new Set(['a', 'b']));
+	});
+
+	it('returns an empty set for no candidates', () => {
+		expect(selectLabels([])).toEqual(new Set());
+	});
+
+	it('matches a brute-force all-pairs greedy pass on random labels, including negative coordinates', () => {
+		// Seeded LCG so a failure reproduces.
+		let seed = 42;
+		const rand = () => {
+			seed = (seed * 1664525 + 1013904223) >>> 0;
+			return seed / 2 ** 32;
+		};
+		const overlap = (a: LabelCandidate, b: LabelCandidate) =>
+			a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+		const bruteForce = (candidates: LabelCandidate[]) => {
+			const placed = candidates.filter((c) => c.forced);
+			const rest = candidates
+				.filter((c) => !c.forced)
+				.sort((a, b) => b.degree - a.degree || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+			for (const c of rest) if (!placed.some((p) => overlap(c, p))) placed.push(c);
+			return new Set(placed.map((c) => c.id));
+		};
+
+		for (let round = 0; round < 50; round++) {
+			const candidates = Array.from({ length: 80 }, (_, i) =>
+				label(`n${String(i).padStart(2, '0')}`, rand() * 1000 - 500, rand() * 600 - 300, {
+					width: 5 + rand() * 200,
+					height: 5 + rand() * 20,
+					degree: Math.floor(rand() * 5),
+					forced: rand() < 0.05,
+				}),
+			);
+
+			expect(selectLabels(candidates)).toEqual(bruteForce(candidates));
+		}
 	});
 });

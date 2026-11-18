@@ -1,7 +1,7 @@
 # file card src/lib/app/AppShell.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/app/AppShell.svelte ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, mounts, mounted-at, calls, effects
-file src/lib/app/AppShell.svelte component L314 module src/lib/app in1 t2
+file src/lib/app/AppShell.svelte component L316 module src/lib/app in1 t2
 ## imports
 imp src/lib/app/AppShell.svelte:4 -> src/lib/utils/log.service.ts appendLog
 imp src/lib/app/AppShell.svelte:5 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
@@ -40,41 +40,41 @@ imp src/lib/app/AppShell.svelte:54 -> src/lib/core/editor/editor.store.svelte.ts
 imp src/lib/app/AppShell.svelte:55 -> src/lib/core/layout/layout.service.ts toggleRightSidebar
 imp src/lib/app/AppShell.svelte:56 -> src/lib/core/layout/layout.logic.ts hidesRightSidebar,isRightSidebarShown
 ## imported-by
-imp src/routes/(app)/+layout.svelte:24 -> src/lib/app/AppShell.svelte default
+imp src/routes/(app)/+layout.svelte:25 -> src/lib/app/AppShell.svelte default
 ## reach
 in2 src/lib/app/AppShell.svelte 0 files in 0 modules: -
-out2 src/lib/app/AppShell.svelte 119 files in 32 modules: src/lib/features/rail-shell(17) src/lib/features/collection(10) src/lib/components(9) src/lib/features/file-icons(8) src/lib/core/filesystem(7) +27 modules
+out2 src/lib/app/AppShell.svelte 130 files in 32 modules: src/lib/features/rail-shell(19) src/lib/components(11) src/lib/features/collection(10) src/lib/features/file-icons(8) src/lib/core/filesystem(7) +27 modules
 ## tests
 test src/tests/lib/app/AppShell.test.ts imports src/lib/app/AppShell.svelte mirror
 test src/tests/lib/app/meta-bind-open-view.test.ts imports src/lib/app/AppShell.svelte
 ## symbols
-sym src/lib/app/AppShell.svelte:1 component AppShell props:children L314
-by src/lib/app/AppShell.svelte:default <- src/routes/(app)/+layout.svelte:185 in (markup) mount
+sym src/lib/app/AppShell.svelte:1 component AppShell props:children L316
+by src/lib/app/AppShell.svelte:default <- src/routes/(app)/+layout.svelte:190 in (markup) mount
 ## locals
 local src/lib/app/AppShell.svelte:92 fn handleRightSidebarResize(size: number) L3
 local src/lib/app/AppShell.svelte:96 fn handleNoteListResize(size: number) L3
 local src/lib/app/AppShell.svelte:100 fn handleNavigatorResize(size: number) L3
 ## mounts
-mount src/lib/app/AppShell.svelte:201 Rail -> src/lib/features/rail-shell/Rail.svelte
-mount src/lib/app/AppShell.svelte:217 TypesNavigator -> src/lib/features/rail-shell/TypesNavigator.svelte
-mount src/lib/app/AppShell.svelte:223 FilesNavigator -> src/lib/features/rail-shell/FilesNavigator.svelte
-mount src/lib/app/AppShell.svelte:246 SearchPanel -> src/lib/features/search/SearchPanel.svelte
-mount src/lib/app/AppShell.svelte:248 RailNoteList -> src/lib/features/rail-shell/RailNoteList.svelte
-mount src/lib/app/AppShell.svelte:262 EditorView -> src/lib/app/EditorView.svelte
-mount src/lib/app/AppShell.svelte:277 ScrollArea -> src/lib/components/ui/scroll-area/scroll-area.svelte
-mount src/lib/app/AppShell.svelte:279 PropertiesView -> src/lib/features/properties/PropertiesView.svelte
-mount src/lib/app/AppShell.svelte:282 TableOfContentsPanel -> src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte
-mount src/lib/app/AppShell.svelte:285 BacklinksPanel -> src/lib/features/backlinks/BacklinksPanel.svelte
-mount src/lib/app/AppShell.svelte:288 OutgoingLinksPanel -> src/lib/features/outgoing-links/OutgoingLinksPanel.svelte
-mount src/lib/app/AppShell.svelte:291 NoteInfo -> src/lib/features/properties/NoteInfo.svelte
-mount src/lib/app/AppShell.svelte:302 StatusBar -> src/lib/core/status-bar/StatusBar.svelte
-mount src/lib/app/AppShell.svelte:304 SearchStatus -> src/lib/features/search/SearchStatus.svelte
-mount src/lib/app/AppShell.svelte:305 SemanticIndexStatus -> src/lib/features/search/SemanticIndexStatus.svelte
-mount src/lib/app/AppShell.svelte:308 TodoistSyncStatus -> src/lib/features/todoist-sync/TodoistSyncStatus.svelte
-mount src/lib/app/AppShell.svelte:309 SaveStatus -> src/lib/core/status-bar/SaveStatus.svelte
-mount src/lib/app/AppShell.svelte:310 WordCount -> src/lib/plugins/word-count/WordCount.svelte
+mount src/lib/app/AppShell.svelte:203 Rail -> src/lib/features/rail-shell/Rail.svelte
+mount src/lib/app/AppShell.svelte:219 TypesNavigator -> src/lib/features/rail-shell/TypesNavigator.svelte
+mount src/lib/app/AppShell.svelte:225 FilesNavigator -> src/lib/features/rail-shell/FilesNavigator.svelte
+mount src/lib/app/AppShell.svelte:248 SearchPanel -> src/lib/features/search/SearchPanel.svelte
+mount src/lib/app/AppShell.svelte:250 RailNoteList -> src/lib/features/rail-shell/RailNoteList.svelte
+mount src/lib/app/AppShell.svelte:264 EditorView -> src/lib/app/EditorView.svelte
+mount src/lib/app/AppShell.svelte:279 ScrollArea -> src/lib/components/ui/scroll-area/scroll-area.svelte
+mount src/lib/app/AppShell.svelte:281 PropertiesView -> src/lib/features/properties/PropertiesView.svelte
+mount src/lib/app/AppShell.svelte:284 TableOfContentsPanel -> src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte
+mount src/lib/app/AppShell.svelte:287 BacklinksPanel -> src/lib/features/backlinks/BacklinksPanel.svelte
+mount src/lib/app/AppShell.svelte:290 OutgoingLinksPanel -> src/lib/features/outgoing-links/OutgoingLinksPanel.svelte
+mount src/lib/app/AppShell.svelte:293 NoteInfo -> src/lib/features/properties/NoteInfo.svelte
+mount src/lib/app/AppShell.svelte:304 StatusBar -> src/lib/core/status-bar/StatusBar.svelte
+mount src/lib/app/AppShell.svelte:306 SearchStatus -> src/lib/features/search/SearchStatus.svelte
+mount src/lib/app/AppShell.svelte:307 SemanticIndexStatus -> src/lib/features/search/SemanticIndexStatus.svelte
+mount src/lib/app/AppShell.svelte:310 TodoistSyncStatus -> src/lib/features/todoist-sync/TodoistSyncStatus.svelte
+mount src/lib/app/AppShell.svelte:311 SaveStatus -> src/lib/core/status-bar/SaveStatus.svelte
+mount src/lib/app/AppShell.svelte:312 WordCount -> src/lib/plugins/word-count/WordCount.svelte
 ## mounted-at
-mount src/routes/(app)/+layout.svelte:185 AppShell -> src/lib/app/AppShell.svelte
+mount src/routes/(app)/+layout.svelte:190 AppShell -> src/lib/app/AppShell.svelte
 ## calls
 call src/lib/app/AppShell.svelte:61 in rightSidebarShown=$derived -> src/lib/core/layout/layout.logic.ts:isRightSidebarShown call
 call src/lib/app/AppShell.svelte:69 in $effect@66 -> src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder call
@@ -105,13 +105,13 @@ call src/lib/app/AppShell.svelte:187 in (markup) -> src/lib/features/rail-shell/
 call src/lib/app/AppShell.svelte:187 in (markup) -> src/lib/features/rail-shell/rail-items.logic.ts:railHeaderPad markup
 call src/lib/app/AppShell.svelte:189 in (markup) -> src/lib/core/layout/layout.logic.ts:hidesRightSidebar markup
 call src/lib/app/AppShell.svelte:192 in (markup) -> src/lib/core/layout/layout.service.ts:toggleRightSidebar markup
-call src/lib/app/AppShell.svelte:203 in (markup) -> src/lib/app/rail-navigation.ts:selectRailItem markup
-call src/lib/app/AppShell.svelte:212 in (markup) -> src/lib/app/AppShell.svelte:handleNavigatorResize markup
-call src/lib/app/AppShell.svelte:220 in (markup) -> src/lib/core/settings/settings.store.svelte.ts:settingsStore.updateLayout markup +3
-call src/lib/app/AppShell.svelte:225 in (markup) -> src/lib/features/rail-shell/lens.logic.ts:parseExpandedFolders markup
-call src/lib/app/AppShell.svelte:229 in (markup) -> src/lib/features/rail-shell/lens.logic.ts:toggleExpandedFolder markup
-call src/lib/app/AppShell.svelte:243 in (markup) -> src/lib/app/AppShell.svelte:handleNoteListResize markup
-call src/lib/app/AppShell.svelte:273 in (markup) -> src/lib/app/AppShell.svelte:handleRightSidebarResize markup
+call src/lib/app/AppShell.svelte:205 in (markup) -> src/lib/app/rail-navigation.ts:selectRailItem markup
+call src/lib/app/AppShell.svelte:214 in (markup) -> src/lib/app/AppShell.svelte:handleNavigatorResize markup
+call src/lib/app/AppShell.svelte:222 in (markup) -> src/lib/core/settings/settings.store.svelte.ts:settingsStore.updateLayout markup +3
+call src/lib/app/AppShell.svelte:227 in (markup) -> src/lib/features/rail-shell/lens.logic.ts:parseExpandedFolders markup
+call src/lib/app/AppShell.svelte:231 in (markup) -> src/lib/features/rail-shell/lens.logic.ts:toggleExpandedFolder markup
+call src/lib/app/AppShell.svelte:245 in (markup) -> src/lib/app/AppShell.svelte:handleNoteListResize markup
+call src/lib/app/AppShell.svelte:275 in (markup) -> src/lib/app/AppShell.svelte:handleRightSidebarResize markup
 ## effects
 fx src/lib/app/AppShell.svelte:66 svelte.$effect in (script)
 fx src/lib/app/AppShell.svelte:85 timer.requestAnimationFrame in (script)

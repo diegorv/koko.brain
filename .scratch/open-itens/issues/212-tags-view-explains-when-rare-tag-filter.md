@@ -17,7 +17,7 @@ The header count keeps meaning "tags in the vault" and does not change.
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -37,3 +37,4 @@ The header count keeps meaning "tags in the vault" and does not change.
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/13-tags-filtered-empty-state.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-17, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/finders-ux/issues/09-tags-header-showing-x-of-y.md`.

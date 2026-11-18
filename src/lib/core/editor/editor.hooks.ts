@@ -31,7 +31,7 @@ const recentSaves = new Map<string, ReturnType<typeof setTimeout>>();
  * Used by the file watcher to skip redundant full index rebuilds.
  * Called automatically by `notifyAfterSave`, but should also be called
  * directly when creating files outside the normal save flow (e.g. note
- * creator, file explorer "New File") to prevent the watcher from
+ * creator, file explorer "New note") to prevent the watcher from
  * triggering a full rebuild for a file the editor just wrote.
  */
 export function markRecentSave(path: string): void {

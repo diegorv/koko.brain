@@ -6,7 +6,7 @@
 
 **Blocked by:** 014
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -32,3 +32,4 @@
 
 - 2026-11-06: scoped to the frontend and blocked by 12 by the owner after the challenge review.
 - 2026-11-06: gate set to frontend only, matching its scope, after the order review.
+- 2026-11-17, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/shell-sidebars-ux/issues/07-outgoing-broken-links-group.md`. Its "clicking an attachment row opens the file" criterion is revised there: binary rows are drawn resolved and are not buttons.

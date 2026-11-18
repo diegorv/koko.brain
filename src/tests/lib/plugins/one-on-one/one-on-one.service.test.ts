@@ -213,7 +213,7 @@ describe('createOneOnOneNote', () => {
 			buildContent: expect.any(Function),
 		});
 		const { buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
-		expect(buildContent?.('# 1:1\n')).toBe('---\n_related_to: "[[Alice]]"\n---\n# 1:1\n');
+		expect(buildContent?.('# 1:1\n')).toBe('---\n_related_to: "[[Alice]]"\nkind: one-on-one\n---\n# 1:1\n');
 	});
 
 	it('marks the note unorganized, after the person link, while Explicit organization is on', async () => {
@@ -223,7 +223,7 @@ describe('createOneOnOneNote', () => {
 
 		const { buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
 		const written = buildContent!('---\ndate: 2026-02-18\n---\n# 1:1\n');
-		expect(written).toBe('---\n_organized: false\n_related_to: "[[Alice]]"\ndate: 2026-02-18\n---\n# 1:1\n');
+		expect(written).toBe('---\n_organized: false\n_related_to: "[[Alice]]"\nkind: one-on-one\ndate: 2026-02-18\n---\n# 1:1\n');
 		expect(written.match(/^_organized:/gm)).toHaveLength(1);
 	});
 

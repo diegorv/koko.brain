@@ -15,13 +15,23 @@
 	import SettingItem from './SettingItem.svelte';
 
 	/**
-	 * Canonical GitHub Releases page for the stable channel. Used as a
-	 * manual fallback link in the downgrade UI — the primary path is the
-	 * in-app downgrade flow below, but if the in-app download fails (CDN
-	 * lag, signature mismatch, …) the user still needs a way to reach
-	 * the official DMG.
+	 * GitHub Releases page of each channel. Used as a manual fallback link
+	 * in the downgrade UI. The primary path is the in-app downgrade flow
+	 * below, but if the in-app download fails (CDN lag, signature mismatch,
+	 * …) the user still needs a way to reach the official DMG.
 	 */
-	const STABLE_DOWNLOAD_URL = 'https://github.com/diegorv/koko.brain/releases/latest';
+	const RELEASES_URL: Record<ReleaseChannel, string> = {
+		stable: 'https://github.com/diegorv/koko.brain/releases/latest',
+		nightly: 'https://github.com/diegorv/koko.brain/releases/tag/nightly',
+		preview: 'https://github.com/diegorv/koko.brain/releases/tag/preview',
+	};
+
+	/**
+	 * Version order of the channels for the same base: semver ranks the
+	 * prerelease identifiers `nightly` < `preview`, both below the next
+	 * stable and above the stable they build on (ADR-0039).
+	 */
+	const CHANNEL_RANK: Record<ReleaseChannel, number> = { stable: 0, nightly: 1, preview: 2 };
 
 	/** Base URL of a commit page; the changelog appends the short sha. */
 	const COMMIT_URL = 'https://github.com/diegorv/koko.brain/commit';
@@ -50,6 +60,11 @@
 			value: 'nightly',
 			label: 'Nightly',
 			description: 'Built from the latest commit on main. May be unstable.',
+		},
+		{
+			value: 'preview',
+			label: 'Preview',
+			description: 'Built from main plus features under test. May be unstable.',
 		},
 	];
 
@@ -111,33 +126,43 @@
 	}
 
 	/**
-	 * True when the installed build is nightly but the user has picked
-	 * the stable channel for updates. This is the only state where the
-	 * in-app updater can't help — the installed version is already
-	 * semver-greater than any stable release of the same base version,
-	 * so "Check for updates" will always report "up to date" against
-	 * stable. The "Reinstall Stable" button below opens the GitHub
-	 * Releases page so the user can download the canonical stable DMG.
+	 * The chosen channel when it ranks below the installed build's channel,
+	 * else null. In that state the regular check always reports "up to
+	 * date": the installed version is semver-greater than any release of
+	 * the chosen channel on the same base. The "Install <channel>
+	 * (downgrade)" button below installs it in-app instead.
 	 */
-	const needsManualReinstall = $derived(
-		__APP_CHANNEL__ === 'nightly' && settingsStore.updates.channel === 'stable',
+	const downgradeTarget = $derived(
+		CHANNEL_RANK[__APP_CHANNEL__] > CHANNEL_RANK[settingsStore.updates.channel]
+			? settingsStore.updates.channel
+			: null,
 	);
+
+	/**
+	 * What a downgrade to `target` takes away: a preview build loses the
+	 * features under test, and going to Stable loses what main gained
+	 * since the last Stable tag.
+	 */
+	function downgradeLosses(target: ReleaseChannel): string {
+		const losses: string[] = [];
+		if (__APP_CHANNEL__ === 'preview') losses.push('the features under test that are not on main yet');
+		if (target === 'stable') losses.push('any changes that landed on main since the last Stable tag');
+		return losses.join(' and ');
+	}
 
 	/**
 	 * Run the channel-aware check + download flow.
 	 *
-	 * `allowDowngrades` is only used by the "Install Stable" path on
-	 * a nightly build (where the installed nightly version sorts
-	 * semver-greater than any same-base stable release and the default
-	 * comparator would report "up to date" instead of installing). For
-	 * the regular "Check for updates" path it stays false so an
-	 * accidental rollback can't happen.
+	 * `allowDowngrades` is only used by the downgrade path (where the
+	 * installed version sorts semver-greater than any same-base release of
+	 * the lower-ranked channel and the default comparator would report "up
+	 * to date" instead of installing). For the regular "Check for updates"
+	 * path it stays false so an accidental rollback can't happen.
 	 *
-	 * `forceChannel` lets the downgrade path target the stable channel
-	 * regardless of the user's current setting — the button only shows
-	 * when `settings.updates.channel === 'stable'` anyway, but passing
-	 * it explicitly makes the intent obvious at the call site and
-	 * decouples the flow from the setting's state at click time.
+	 * `forceChannel` lets the downgrade path name its target channel
+	 * explicitly: it equals the chosen channel anyway, but passing it
+	 * makes the intent obvious at the call site and decouples the flow
+	 * from the setting's state at click time.
 	 */
 	async function checkForUpdates(
 		opts: { allowDowngrades?: boolean; forceChannel?: ReleaseChannel } = {},
@@ -190,26 +215,37 @@
 	}
 
 	/**
-	 * Confirm + run the nightly → stable in-app downgrade.
+	 * Confirm + run the in-app downgrade to `target`.
 	 *
 	 * Uses the native `ask` dialog so the destructive intent is gated
 	 * by an OS-level prompt — the user has to explicitly click OK
 	 * before any network call or install happens. On confirm, runs the
 	 * same `checkForUpdates` flow with `allowDowngrades: true` so the
 	 * default semver comparator's "newer-only" rule is overridden.
+	 *
+	 * A preview build warns about settings: `saveSettings` writes only the
+	 * keys the running build knows, so the older build drops preview-only
+	 * keys (ADR-0039).
 	 */
-	async function confirmInstallStable() {
+	async function confirmDowngrade(target: ReleaseChannel) {
+		const installed = channelOptionLabel(__APP_CHANNEL__);
+		const label = channelOptionLabel(target);
+		const until = target === 'stable' ? ', until the next Stable release ships' : '';
+		const settingsNote =
+			__APP_CHANNEL__ === 'preview'
+				? `Your vault is unaffected, but settings that only Preview builds know are dropped when the ${label} build saves your settings.`
+				: 'Your vault and settings are unaffected.';
 		const ok = await ask(
-			`This will replace your Nightly build (${__BUILD_INFO__}) with the latest Stable release. You will lose any changes that landed on main since the last Stable tag, until the next Stable release ships. Your vault and settings are unaffected.\n\nContinue?`,
+			`This will replace your ${installed} build (${__BUILD_INFO__}) with the latest ${label} ${target === 'stable' ? 'release' : 'build'}. You will lose ${downgradeLosses(target)}${until}. ${settingsNote}\n\nContinue?`,
 			{
-				title: 'Install Stable (downgrade)',
+				title: `Install ${label} (downgrade)`,
 				kind: 'warning',
-				okLabel: 'Install Stable',
+				okLabel: `Install ${label}`,
 				cancelLabel: 'Cancel',
 			},
 		);
 		if (!ok) return;
-		await checkForUpdates({ allowDowngrades: true, forceChannel: 'stable' });
+		await checkForUpdates({ allowDowngrades: true, forceChannel: target });
 	}
 
 	/**
@@ -282,16 +318,18 @@
 		</Select.Root>
 	</SettingItem>
 
-	{#if needsManualReinstall}
+	{#if downgradeTarget}
+		{@const target = downgradeTarget}
+		{@const label = channelOptionLabel(target)}
 		<SettingItem
-			label="Install Stable"
-			description="You're on a Nightly build but the updater is set to Stable. Auto-update normally won't downgrade, so click below to install the latest Stable in-app. You'll lose any changes that landed on main since the last Stable tag."
+			label={`Install ${label}`}
+			description={`You're on a ${channelOptionLabel(__APP_CHANNEL__)} build but the updater is set to ${label}. Auto-update normally won't downgrade, so click below to install the latest ${label} in-app. You'll lose ${downgradeLosses(target)}.`}
 		>
 			<div class="flex items-center gap-2">
-				<Button variant="outline" size="sm" onclick={confirmInstallStable}>
-					Install Stable (downgrade)
+				<Button variant="outline" size="sm" onclick={() => confirmDowngrade(target)}>
+					Install {label} (downgrade)
 				</Button>
-				<Button variant="ghost" size="sm" onclick={() => openUrl(STABLE_DOWNLOAD_URL)} title="Open the GitHub Releases page if the in-app install fails">
+				<Button variant="ghost" size="sm" onclick={() => openUrl(RELEASES_URL[target])} title="Open the GitHub Releases page if the in-app install fails">
 					Releases page
 				</Button>
 			</div>

@@ -32,7 +32,7 @@ imp src/lib/app/tauri-listeners.service.ts:12 -> src/lib/features/type-definitio
 imp src/lib/features/event-calendar/EventCalendarSection.svelte:18 -> src/lib/features/type-definitions/type-definitions.service.ts createTypeDefinition,refreshTypeDefinitions
 imp src/lib/features/event-calendar/event-calendar.service.ts:31 -> src/lib/features/type-definitions/type-definitions.service.ts createTypedNote
 imp src/lib/features/note-list/NoteRowMenu.svelte:25 -> src/lib/features/type-definitions/type-definitions.service.ts showViewInViews,ViewWriteError
-imp src/lib/features/rail-shell/RailNoteList.svelte:35 -> src/lib/features/type-definitions/type-definitions.service.ts updateViewListProperties,updateViewToolbarKey,ViewWriteConflict,ViewWriteError
+imp src/lib/features/rail-shell/RailNoteList.svelte:37 -> src/lib/features/type-definitions/type-definitions.service.ts updateViewListProperties,updateViewToolbarKey,ViewWriteConflict,ViewWriteError
 imp src/lib/features/rail-shell/TypesNavigator.svelte:35 -> src/lib/features/type-definitions/type-definitions.service.ts createNoteOfType,createTypeDefinition,removeViewIcon,renameType,setViewRailPin,updateViewIcon,updateViewIconColors,ViewWriteError
 imp src/lib/features/rail-shell/new-note.service.ts:9 -> src/lib/features/type-definitions/type-definitions.service.ts createTypedNote
 imp src/lib/features/type-definitions/ViewDialog.svelte:17 -> src/lib/features/type-definitions/type-definitions.service.ts createView,editView
@@ -78,7 +78,7 @@ by src/lib/features/type-definitions/type-definitions.service.ts:createView <- s
 sym src/lib/features/type-definitions/type-definitions.service.ts:291 type ViewWriteReason L1 | Why a `.view` rewrite refused or failed: - `save-failed`: saving the open tab failed.
 sym src/lib/features/type-definitions/type-definitions.service.ts:301 class ViewWriteError extends Error L13 | Typed failure of `rewriteViewFile`.
 by src/lib/features/type-definitions/type-definitions.service.ts:ViewWriteError <- src/lib/features/note-list/NoteRowMenu.svelte:99 in handleShowInViews ref
-by src/lib/features/type-definitions/type-definitions.service.ts:ViewWriteError <- src/lib/features/rail-shell/RailNoteList.svelte:332 in persistViewState ref +1
+by src/lib/features/type-definitions/type-definitions.service.ts:ViewWriteError <- src/lib/features/rail-shell/RailNoteList.svelte:341 in persistViewState ref +1
 by src/lib/features/type-definitions/type-definitions.service.ts:ViewWriteError <- src/lib/features/rail-shell/TypesNavigator.svelte:203 in handleRailPin ref
 sym src/lib/features/type-definitions/type-definitions.service.ts:350 fn rewriteViewFile(path: string, transform: (base: string) => string, options: RewriteViewOptions = {}): Promise<boolean> L15 | Rewrites the `.view` at `path` to `transform(base)`.
 by src/lib/features/type-definitions/type-definitions.service.ts:rewriteViewFile <- src/lib/app/EditorView.svelte:90 in (markup) markup
@@ -91,13 +91,13 @@ by src/lib/features/type-definitions/type-definitions.service.ts:setViewRailPin 
 sym src/lib/features/type-definitions/type-definitions.service.ts:475 fn showViewInViews(path: string): Promise<void> L4 | Shows the hidden `.view` at `path` in Views (`showViewInViewsYaml` removes `_visible` and `_open_in_editor`).
 by src/lib/features/type-definitions/type-definitions.service.ts:showViewInViews <- src/lib/features/note-list/NoteRowMenu.svelte:96 in handleShowInViews call
 sym src/lib/features/type-definitions/type-definitions.service.ts:485 fn updateViewListProperties(path: string, properties: readonly string[]): Promise<void> L3 | Saves the property columns the rail note list shows for the `.view` at `path` (`_list_properties_display`; an empty list removes the key).
-by src/lib/features/type-definitions/type-definitions.service.ts:updateViewListProperties <- src/lib/features/rail-shell/RailNoteList.svelte:486 in handlePropertiesChange call
+by src/lib/features/type-definitions/type-definitions.service.ts:updateViewListProperties <- src/lib/features/rail-shell/RailNoteList.svelte:495 in handlePropertiesChange call
 sym src/lib/features/type-definitions/type-definitions.service.ts:490 fn removeViewIcon(path: string): Promise<void> L3 | Removes _icon, _color, and _title_color from a .view YAML file.
 by src/lib/features/type-definitions/type-definitions.service.ts:removeViewIcon <- src/lib/features/rail-shell/TypesNavigator.svelte:183 in handleIconRemove call
 sym src/lib/features/type-definitions/type-definitions.service.ts:495 class ViewWriteConflict extends Error L13 | A toolbar edit refused because its key in the `.view` changed since the toolbar read it.
-by src/lib/features/type-definitions/type-definitions.service.ts:ViewWriteConflict <- src/lib/features/rail-shell/RailNoteList.svelte:330 in persistViewState ref
+by src/lib/features/type-definitions/type-definitions.service.ts:ViewWriteConflict <- src/lib/features/rail-shell/RailNoteList.svelte:339 in persistViewState ref
 sym src/lib/features/type-definitions/type-definitions.service.ts:518 fn updateViewToolbarKey<K extends ToolbarKey>(path: string, key: K, next: ToolbarValues[K], base: string): Promise<CollectionDefinition> L16 | Writes one key of the rail toolbar (`applyToolbarEdit`) to the `.view` at `path`, through `rewriteViewFile`, so the bytes it checks are a dirty tab's buffer or…
-by src/lib/features/type-definitions/type-definitions.service.ts:updateViewToolbarKey <- src/lib/features/rail-shell/RailNoteList.svelte:325 in persistViewState call
+by src/lib/features/type-definitions/type-definitions.service.ts:updateViewToolbarKey <- src/lib/features/rail-shell/RailNoteList.svelte:334 in persistViewState call
 sym src/lib/features/type-definitions/type-definitions.service.ts:541 fn editView(path: string, edit: ViewEdit): Promise<void> L9 | Saves the Edit view dialog: rewrites the label and filters of the `.view` at `path` (`updateViewEditYaml`), keeping its filename and every other key, then refr…
 by src/lib/features/type-definitions/type-definitions.service.ts:editView <- src/lib/features/type-definitions/ViewDialog.svelte:145 in save call
 ## locals

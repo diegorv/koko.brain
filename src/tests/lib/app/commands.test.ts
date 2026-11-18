@@ -91,17 +91,32 @@ import { toKey } from '#lib/features/event-calendar/event-calendar-dates.logic.j
 import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
 import CalendarDays from '@lucide/svelte/icons/calendar-days';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
+import { registerCalendarRail } from '#lib/plugins/calendar/calendar-rail.service.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { modCommandsStore } from '#lib/plugins/mods/mod-commands.store.svelte.js';
 import { claudeStore } from '#lib/features/claude-code/claude.store.svelte.js';
+import { eventCalendarStore } from '#lib/features/event-calendar/event-calendar.store.svelte.js';
+import { createEventHistory, pushOp, takeUndo } from '#lib/features/event-calendar/event-calendar-history.logic.js';
+import { filterAndRankCommands } from '#lib/features/command-palette/command-palette.logic.js';
+import type { HistoryOp } from '#lib/features/event-calendar/event-calendar.types.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
+
+/** A recorded move of an event note the calendar has not loaded. */
+const MOVE_OP: HistoryOp = {
+	kind: 'update',
+	label: 'Move event',
+	path: '/vault/standup.md',
+	before: { title: 'Standup', date: '2026-11-08', start: 540, end: 570, allDay: false, color: 'blue', location: '' },
+	after: { title: 'Standup', date: '2026-11-08', start: 780, end: 810, allDay: false, color: 'blue', location: '' },
+};
 
 describe('getBuiltInCommands', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		eventCalendarStore.reset();
 		clearLocalStorage();
 		vaultStore._reset();
 		editorStore.reset();
@@ -132,10 +147,21 @@ describe('getBuiltInCommands', () => {
 		expect(modCommandsStore.list).toEqual([]);
 	});
 
-	it('returns 45 built-in commands with no navigator, no pin and no view', () => {
+	it('returns 46 built-in commands with no vault, no navigator, no pin, no view and no calendar history', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(45);
+		expect(commands).toHaveLength(46);
+	});
+
+	it('names the creators "New <kind>" in sentence case, under their unchanged ids', () => {
+		const labels = new Map(getBuiltInCommands().map((c) => [c.id, c.label]));
+
+		expect(['file-explorer:new-file', 'file-explorer:new-folder', 'canvas:new', 'kanban:new'].map((id) => labels.get(id))).toEqual([
+			'New note',
+			'New folder',
+			'New canvas',
+			'New kanban board',
+		]);
 	});
 
 	it('includes Toggle Favorite (Cmd+D) and Toggle Organized (Cmd+E) acting on the active note', () => {
@@ -181,21 +207,62 @@ describe('getBuiltInCommands', () => {
 		expect(eventCalendarViewStore.focusedDate).toBe(toKey(new Date()));
 	});
 
-	it('includes "Calendar: Undo" and "Calendar: Redo" without shortcuts', async () => {
+	it('lists neither "Calendar: Undo" nor "Calendar: Redo" with an empty calendar history', () => {
+		const ids = getBuiltInCommands().map((c) => c.id);
+
+		expect(ids).not.toContain('event-calendar:undo');
+		expect(ids).not.toContain('event-calendar:redo');
+	});
+
+	it('lists "Calendar: Undo" without a shortcut after a recorded calendar change, and it runs the undo', async () => {
+		eventCalendarStore.setHistory(pushOp(createEventHistory(), MOVE_OP));
 		const commands = getBuiltInCommands();
 		const undo = commands.find((c) => c.id === 'event-calendar:undo');
-		const redo = commands.find((c) => c.id === 'event-calendar:redo');
 
-		expect(undo?.label).toBe('Calendar: Undo');
-		expect(redo?.label).toBe('Calendar: Redo');
-		expect(undo?.shortcut).toBeUndefined();
-		expect(redo?.shortcut).toBeUndefined();
+		expect(undo).toMatchObject({ label: 'Calendar: Undo', category: 'Calendar' });
+		expect(undo!.shortcut).toBeUndefined();
+		expect(commands.some((c) => c.id === 'event-calendar:redo')).toBe(false);
 
 		undo!.action();
-		redo!.action();
-		await vi.waitFor(() => expect(vi.mocked(toast).mock.calls).toEqual([['Nothing to undo'], ['Nothing to redo']]));
+		// The note is not loaded, so the undo reports it left the calendar.
+		await vi.waitFor(() =>
+			expect(vi.mocked(toast.error).mock.calls).toEqual([['Event was moved or renamed outside the calendar; cannot undo']]),
+		);
 		// The palette commands do not open the Calendar tab.
 		expect(editorStore.tabs.some((t) => t.path === EVENT_CALENDAR_VIRTUAL_PATH)).toBe(false);
+	});
+
+	it('lists "Calendar: Redo" without a shortcut after an undo, and it runs the redo', async () => {
+		// The history an undo leaves: the op moved to the redo stack.
+		eventCalendarStore.setHistory(takeUndo(pushOp(createEventHistory(), MOVE_OP))!.history);
+		const commands = getBuiltInCommands();
+		const redo = commands.find((c) => c.id === 'event-calendar:redo');
+
+		expect(redo).toMatchObject({ label: 'Calendar: Redo', category: 'Calendar' });
+		expect(redo!.shortcut).toBeUndefined();
+		expect(commands.some((c) => c.id === 'event-calendar:undo')).toBe(false);
+
+		redo!.action();
+		await vi.waitFor(() =>
+			expect(vi.mocked(toast.error).mock.calls).toEqual([['Event was moved or renamed outside the calendar; cannot redo']]),
+		);
+		expect(editorStore.tabs.some((t) => t.path === EVENT_CALENDAR_VIRTUAL_PATH)).toBe(false);
+	});
+
+	it('does not rank Calendar: Undo or Redo for "cal" while the calendar history is empty', () => {
+		const labels = filterAndRankCommands('cal', getBuiltInCommands(), []).map((c) => c.label);
+
+		expect(labels).toContain('Calendar: Go to Today');
+		expect(labels).not.toContain('Calendar: Undo');
+		expect(labels).not.toContain('Calendar: Redo');
+	});
+
+	it('files New Calendar Event, Go to Today, Undo and Redo under Calendar', () => {
+		eventCalendarStore.setHistory({ ...createEventHistory(), undo: [MOVE_OP], redo: [MOVE_OP] });
+		const commands = getBuiltInCommands();
+		const ids = ['event-calendar:new-event', 'event-calendar:today', 'event-calendar:undo', 'event-calendar:redo'];
+
+		expect(ids.map((id) => commands.find((c) => c.id === id)?.category)).toEqual(['Calendar', 'Calendar', 'Calendar', 'Calendar']);
 	});
 
 	it('includes a toggle-calendar command that opens and closes the Calendar tab', () => {
@@ -507,6 +574,72 @@ describe('getBuiltInCommands', () => {
 		expect(settingsPanelStore.isOpen).toBe(true);
 	});
 
+	describe('right panel toggles', () => {
+		/** The four panel flags, to assert that a toggle moves only its own */
+		function panelFlags() {
+			const { propertiesVisible, backlinksVisible, outgoingLinksVisible, tableOfContentsVisible } = settingsStore.layout;
+			return { propertiesVisible, backlinksVisible, outgoingLinksVisible, tableOfContentsVisible };
+		}
+
+		it.each([
+			['layout:toggle-properties', 'Toggle Properties Panel', 'propertiesVisible'],
+			['layout:toggle-backlinks', 'Toggle Backlinks Panel', 'backlinksVisible'],
+			['layout:toggle-outgoing-links', 'Toggle Outgoing Links Panel', 'outgoingLinksVisible'],
+		] as const)('%s is "%s" in Layout and flips only %s, twice back to the start', (id, label, flag) => {
+			vaultStore.open('/vault');
+			const command = getBuiltInCommands().find((c) => c.id === id);
+			expect(command).toMatchObject({ label, category: 'Layout' });
+			const before = panelFlags();
+
+			command!.action();
+			expect(panelFlags()).toEqual({ ...before, [flag]: !before[flag] });
+			command!.action();
+			expect(panelFlags()).toEqual(before);
+		});
+
+		it('turning a panel on from the palette shows a hidden right sidebar', () => {
+			vaultStore.open('/vault');
+			settingsStore.updateLayout({ rightSidebarVisible: false, backlinksVisible: false });
+
+			getBuiltInCommands().find((c) => c.id === 'layout:toggle-backlinks')!.action();
+
+			expect(settingsStore.layout.backlinksVisible).toBe(true);
+			expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+		});
+	});
+
+	describe('Open Trash', () => {
+		const openTrash = () => getBuiltInCommands().find((c) => c.id === 'settings:open-trash');
+
+		it('is "Open Trash" in Settings and opens the Settings sheet on Trash; a second run keeps it there', () => {
+			vaultStore.open('/vault');
+			expect(openTrash()).toMatchObject({ label: 'Open Trash', category: 'Settings' });
+
+			openTrash()!.action();
+			expect(settingsPanelStore.isOpen).toBe(true);
+			expect(settingsPanelStore.activeSection).toBe('trash');
+
+			openTrash()!.action();
+			expect(settingsPanelStore.isOpen).toBe(true);
+			expect(settingsPanelStore.activeSection).toBe('trash');
+		});
+
+		it('moves an open Settings sheet from another section to Trash', () => {
+			vaultStore.open('/vault');
+			settingsPanelStore.open('editor');
+
+			openTrash()!.action();
+
+			expect(settingsPanelStore.isOpen).toBe(true);
+			expect(settingsPanelStore.activeSection).toBe('trash');
+		});
+
+		it('does not exist while no vault is open', () => {
+			expect(vaultStore.isOpen).toBe(false);
+			expect(openTrash()).toBeUndefined();
+		});
+	});
+
 });
 
 describe('getBuiltInCommands rail commands', () => {
@@ -556,6 +689,17 @@ describe('getBuiltInCommands rail commands', () => {
 			['rail:go-to:archive', 'Go to Archive'],
 		]);
 		expect(goTo().every((c) => c.category === 'Navigation')).toBe(true);
+	});
+
+	it('names the registered day navigator "Go to Days", keeps "Toggle Calendar View", and has no Go to for the Tabs items', () => {
+		const unregister = registerCalendarRail();
+		const labels = getBuiltInCommands().map((c) => c.label);
+
+		expect(labels).toContain('Go to Days');
+		expect(labels).toContain('Toggle Calendar View');
+		for (const label of ['Go to Calendar', 'Go to Tasks', 'Go to Graph', 'Go to Tags']) expect(labels).not.toContain(label);
+		expect(goTo().map((c) => c.id)).toEqual(expect.not.arrayContaining(['rail:go-to:tab:tasks', 'rail:go-to:tab:graph', 'rail:go-to:tab:tags']));
+		unregister();
 	});
 
 	it('adds a navigator registered and a pin added after the first build the next time the list is built', () => {

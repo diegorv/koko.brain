@@ -5,12 +5,15 @@
 	import Folder from '@lucide/svelte/icons/folder';
 	import Inbox from '@lucide/svelte/icons/inbox';
 	import Layers from '@lucide/svelte/icons/layers';
+	import ListChecks from '@lucide/svelte/icons/list-checks';
+	import Network from '@lucide/svelte/icons/network';
 	import PanelLeft from '@lucide/svelte/icons/panel-left';
 	import Puzzle from '@lucide/svelte/icons/puzzle';
 	import Search from '@lucide/svelte/icons/search';
 	import Star from '@lucide/svelte/icons/star';
 	import Sun from '@lucide/svelte/icons/sun';
 	import Table from '@lucide/svelte/icons/table';
+	import Tag from '@lucide/svelte/icons/tag';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -31,12 +34,15 @@
 		parseRailOrder,
 		parseRailStyle,
 		parseRailWidth,
+		GRAPH_TAB_RAIL_ITEM,
 		RAIL_PIN_COLOR,
 		RAIL_WIDTH,
 		railActionColor,
 		railFormWidth,
 		railItemColor,
 		railItems,
+		TAGS_TAB_RAIL_ITEM,
+		TASKS_TAB_RAIL_ITEM,
 		type RailItem,
 	} from './rail-items.logic';
 	import { railRegistryStore } from './rail-registry.store.svelte';
@@ -72,6 +78,9 @@
 		types: Layers,
 		files: Folder,
 		archive: Archive,
+		[TASKS_TAB_RAIL_ITEM]: ListChecks,
+		[GRAPH_TAB_RAIL_ITEM]: Network,
+		[TAGS_TAB_RAIL_ITEM]: Tag,
 	};
 
 	/**
@@ -91,6 +100,8 @@
 	let topItems = $derived(items.filter((i) => i.group === 'top'));
 	/** The items that open a navigator, below the divider. */
 	let navigatorItems = $derived(items.filter((i) => i.group === 'navigator'));
+	/** The items that open a tab (Tasks, Graph, Tags), after the navigators. */
+	let tabItems = $derived(items.filter((i) => i.group === 'tabs'));
 	let pinnedItems = $derived(items.flatMap((i) => (i.pin ? [i.pin] : [])));
 	/** Pinned to the bottom of the rail, below the flexible gap. */
 	let bottomItems = $derived(items.filter((i) => i.group === 'bottom'));
@@ -153,7 +164,8 @@
 			key: item.key,
 			label: item.label,
 			color: railItemColor(item.key),
-			active: item.key === activeItem,
+			// A Tabs item is never picked, so it follows the active tab instead.
+			active: item.tabPath ? editorStore.activeTabPath === item.tabPath : item.key === activeItem,
 			count: item.key === 'inbox' && showsInboxBadge ? inboxCount : 0,
 			item,
 			select: () => onSelect(item.key),
@@ -188,6 +200,7 @@
 
 	let topRows = $derived(topItems.map(itemRow));
 	let navigatorRows = $derived(navigatorItems.map(itemRow));
+	let tabRows = $derived(tabItems.map(itemRow));
 	let pinRows = $derived(pinnedItems.map(pinRow));
 	let actionRows = $derived(railRegistryStore.actions.map(actionRow));
 	let bottomRows = $derived(bottomItems.map(itemRow));
@@ -281,6 +294,15 @@
 			{#each navigatorRows as row (row.key)}
 				{@render railRow(row)}
 			{/each}
+		{/if}
+		{#if tabRows.length > 0}
+			<div class="{classes.divider} shrink-0 bg-file-explorer-fg/25" data-rail-tabs-divider></div>
+			<div class="flex shrink-0 flex-col {classes.group}" data-rail-tabs>
+				{@render sectionTitle('Tabs')}
+				{#each tabRows as row (row.key)}
+					{@render railRow(row)}
+				{/each}
+			</div>
 		{/if}
 		{#if pinRows.length > 0}
 			<div class="{classes.divider} shrink-0 bg-file-explorer-fg/25" data-rail-pinned-divider></div>

@@ -10,10 +10,12 @@ Learn how to find anything in your vault using the Quick Switcher, Command Palet
 
 The Quick Switcher is a popup dialog for opening files by name — the fastest way to navigate your vault.
 
-- **Fuzzy search**: type any part of the filename. The search is not case-sensitive, and the characters you type don't need to be contiguous. For example, typing "mtg" can match "Meeting Notes".
-- **Recent files**: before you type anything, the Quick Switcher shows your most recently opened files at the top, so you can jump back to them instantly.
-- **Create new note**: if no file matches your search, a "Create [your query]" option appears at the bottom of the list. Press Enter to create a new note with that name instantly.
-- **Archived notes**: archived notes are not hidden from the results. They appear with an archive icon and a faded (dimmed) name, so you can still find and open them without un-archiving first.
+- **Fuzzy search**: type any part of the filename. The search is not case-sensitive, and the characters you type don't need to be contiguous. For example, typing "mtg" can match "Meeting Notes". The characters that matched are shown in bold.
+- **Rows**: each row shows the file's icon (its own icon, or one for its kind: note, canvas, kanban, view, PDF, image), its name, and at the right the folder it is in. Files at the vault root show no folder.
+- **Recent notes**: before you type anything, the Quick Switcher lists your most recently opened files at the top under a **Recent notes** heading, so you can jump back to them instantly. The rest of your files follow below it. Without recent files, or once you type, there is no heading.
+- **Create new note**: whenever you type something, a "Create [your query]" row appears at the bottom of the list, after any matching notes, and shows where the note will go ("in vault root" or "in [folder]"). Press **Shift+Enter** to create it even while other notes match; when nothing matches, Enter creates it too. The row is hidden when a note with exactly that name already exists there.
+- **Folder paths**: type a path such as `Projects/Idea` to create `Idea` inside the `Projects` folder. Missing folders are created along the way, and existing ones are reused. Names in the path cannot be empty or start with a `.`; the Quick Switcher tells you when a path is refused, and when a note cannot be created it shows the reason.
+- **Archived notes**: archived notes are not hidden from the results. They carry an **Archived** tag next to their name, so you can still find and open them without un-archiving first.
 
 Press **Enter** to open the selected file, or **Escape** to dismiss the dialog.
 
@@ -32,7 +34,8 @@ The Command Palette gives you a searchable list of all available commands in the
 
 - Type any part of a command name to filter the list.
 - Keyboard shortcuts are shown next to each command, so you can learn them over time.
-- Recently used commands appear at the top for quick access.
+- With an empty search, recently used commands appear first under **Recent**, and every other command follows in alphabetical order under **All commands**. The arrow keys move across both groups. Before you have run any command, the list has no headings. Once you type, the list is one ranked list with no headings.
+- **Calendar: Undo** and **Calendar: Redo** appear only when there is a calendar change to undo or redo.
 
 ![Command Palette](screenshots/command-palette.png)
 
@@ -48,27 +51,35 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Copy Block Link | `Cmd+Shift+L` |
 | | Copy Block Embed | — |
 | | View File History | `Cmd+Shift+H` |
-| **File Explorer** | New File | — |
-| | New Folder | — |
-| **Canvas** | New Canvas | — |
-| **Kanban** | New Kanban Board | — |
+| **File Explorer** | New note | — |
+| | New folder | — |
+| **Canvas** | New canvas | — |
+| **Kanban** | New kanban board | — |
 | **Navigation** | Open Quick Switcher | `Cmd+O` |
 | | Search in Vault | `Cmd+Shift+F` |
 | | Toggle Graph View | `Cmd+G` |
 | | Toggle Tasks View | `Cmd+Shift+T` |
 | | Toggle Tags View | — |
-| | Go to *item* (one per rail item: Search, Inbox, Today, Favorites, Types, Calendar, Files, Archive and each pin) | — |
+| | Go to *item* (one per rail item: Search, Inbox, Today, Favorites, Types, Days, Files, Archive and each pin; none for Tasks, Graph and Tags) | — |
 | | Open view: *view* (one per `.view` file, except a view hidden with `_visible: false`) | — |
+| **Calendar** | New Calendar Event | — |
+| | Calendar: Go to Today | — |
+| | Calendar: Undo (only when there is a calendar change to undo) | — |
+| | Calendar: Redo (only when there is an undone change to redo) | — |
 | **Layout** | Toggle Right Sidebar | `Cmd+B` |
 | | Toggle Rail Panels (the panels next to the rail) | `Cmd+Shift+B` |
 | | Hide Rail Panels | `Cmd+1` |
 | | Show Rail Panels | `Cmd+2` |
 | | Toggle Table of Contents | — |
+| | Toggle Properties Panel | — |
+| | Toggle Backlinks Panel | — |
+| | Toggle Outgoing Links Panel | — |
 | **Daily Notes** | Open Daily Note | — |
 | **Quick Capture** | Create Quick Capture Note | `Cmd+N` |
 | **1:1 Notes** | Create 1:1 Note | `Cmd+Shift+N` |
 | **Templates** | New File from Template | — |
 | **Settings** | Open Settings | `Cmd+,` |
+| | Open Trash (only while a vault is open) | — |
 
 ---
 
@@ -80,13 +91,17 @@ Vault Search searches across the full content of every note in your vault.
 
 It covers Markdown notes (`.md` and `.markdown`) in every mode. View files (`.view`) are not searched: they still appear in **Types > Views** and as **Open view** commands in the command palette, but their YAML never shows up as a search result. If you rename a view to `.md`, it becomes a searchable note.
 
-Search is a rail item: it fills the note list next to the rail, with the query in its header. `Cmd+Shift+F`, `/` (when you are not typing in a text field or the editor), the **Search in Vault** command, a tag click and a search link all open it and focus the input. `Cmd+Shift+F` does not close it again, and `Escape` only leaves the input; pick another rail item to leave Search.
+Search is a rail item: it fills the note list next to the rail, with the query in its header. `Cmd+Shift+F`, `/` (when you are not typing in a text field or the editor), the **Search in Vault** command, a tag click and a search link all open it and focus the input. `Cmd+Shift+F` does not close it again. The first `Escape` clears the query and keeps you in the input, and the next one leaves the input; pick another rail item to leave Search. `Down` in the input moves to the first result, `Up`, `Down`, `Home` and `End` move among the results, `Up` on the first result goes back to the input, and `Enter` opens the focused result. The results are one `Tab` stop.
 
 ![Search panel with results](screenshots/search-panel.png)
 
 ### Search Modes
 
 Kokobrain offers three search modes. Select them using the tabs at the top of the search panel.
+
+Semantic and Hybrid are off until you turn on semantic search in **Settings > Search**. Until then, and while the model is still loading, clicking either tab leaves you in Text mode and shows a note with the reason and an **Open Settings > Search** link. If you turn semantic search off while in Semantic or Hybrid, the panel switches back to Text and shows the same note.
+
+Semantic and Hybrid need a query of 3 or more characters; a shorter one shows "Type at least 3 characters". If a search fails, the panel shows "Search failed" with a **Retry** button instead of an empty result list.
 
 #### Text Search (default)
 
@@ -124,11 +139,15 @@ In Text mode, click the `~` button next to the search input to toggle **fuzzy ma
 
 ### Search Results
 
-Each result shows:
+Each result is a card with three lines:
 
-- The **file name** of the matching note
-- A **text snippet** with the matching terms highlighted
-- A **relevance score** indicating how closely the note matches your query
+- The **note name**.
+- The **folder** the note is in, left empty for a note at the top of the vault. Semantic and Hybrid results add **§ heading** after the folder, naming the section that matched.
+- A **snippet** of the note as plain text, without markdown formatting. Text mode results from the text index, and Hybrid fallback cards found by text search, show the matching terms highlighted.
+
+Semantic results also show a **relevance score** indicating how closely the section matches your query. When Hybrid mode has to fall back to separate text and semantic searches, each card shows which one found it: Text, Semantic or Both.
+
+Each mode returns at most a fixed number of results (50 in Text mode, 20 in Semantic and Hybrid, 100 for a query made only of `tag:` or `path:` operators; when Hybrid falls back to separate text and semantic searches, it shows the results of both, up to 70), and a count such as "50+ results" means the list reached that limit and more matches may exist, so narrow the query to find them.
 
 Click any result to open that file in the editor. The search index updates automatically whenever you save files, so your results are always up to date.
 
@@ -136,10 +155,12 @@ Click any result to open that file in the editor. The search index updates autom
 
 You can narrow text searches with two operators, typed anywhere in the query:
 
-- `tag:tagname` - only matches notes that contain that tag (in frontmatter or inline). Combine multiple `tag:` operators to require all of them.
+- `tag:tagname` - only matches notes that contain that tag (in frontmatter or inline), or a tag nested under it: `tag:work` also finds notes tagged `work/meetings`, whether the query has only operators or search terms too. Combine multiple `tag:` operators to require all of them.
 - `path:folder` - only matches notes whose path contains that text, so you can scope a search to a folder.
 
 Operators can be combined with regular search terms, for example `meeting tag:work path:projects`.
+
+With an empty query in Text mode, the search panel shows a reminder: "Try tag:work or path:Projects". Semantic and Hybrid ignore the operators, so the reminder appears only in Text mode.
 
 Clicking a tag in the Tags tab automatically sets the search query to `tag:tagname`, which is the same as typing the operator yourself.
 
@@ -147,7 +168,7 @@ Clicking a tag in the Tags tab automatically sets the search query to `tag:tagna
 
 ## Status Bar: Search Progress
 
-When the search index is being built — on first vault open or after many changes — the status bar at the bottom of the window shows indexing progress. Once indexing is complete, searches are near-instantaneous.
+When the search index is being built — on first vault open or after many changes — the status bar at the bottom of the window shows indexing progress. Once indexing is complete, it shows how many notes are indexed (and the chunk count when semantic search is on), and searches are near-instantaneous. The status bar is the only place that shows the index status; the search panel does not repeat it.
 
 ---
 

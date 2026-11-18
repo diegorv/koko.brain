@@ -11,7 +11,7 @@ The right sidebar provides contextual information about the note you are current
 ## Opening and Closing the Sidebar
 
 - Press **Cmd+B** to toggle the entire right sidebar on or off.
-- Each individual panel can be shown or hidden in **Settings > Layout**.
+- Each individual panel can be shown or hidden in **Settings > Layout**, or from the palette (`Cmd+P`): **Toggle Properties Panel**, **Toggle Backlinks Panel**, **Toggle Outgoing Links Panel** and **Toggle Table of Contents**. Turning a panel on from the palette also shows the sidebar if it was hidden, except on tabs where the sidebar never shows (canvas, kanban, views and virtual tabs).
 - The sidebar updates automatically as you switch between notes, always reflecting the note you are currently editing.
 
 ---
@@ -95,9 +95,10 @@ Like Backlinks, the Outgoing Links panel is **collapsed by default** and fetches
 
 ## Tags
 
-The Tags view is a **virtual tab**, not a right sidebar panel. Open it from the Command Palette:
-`Cmd+P` then **Toggle Tags View**. It fills the main editor area, and it is the only place the tags
-browser is shown.
+The Tags view is a **virtual tab**, not a right sidebar panel. Open it with **Tags** on the rail
+(see [The Rail](01-getting-started.md#the-rail)), or from the Command Palette: `Cmd+P` then
+**Toggle Tags View**. It fills the main editor area, and it is the only place the tags browser is
+shown.
 
 It lists the tags used across your vault, organized in a hierarchical tree. Nested tags create a
 tree structure: `#work/meetings` shows as **work** > **meetings**. Both inline `#tags` in the note
@@ -105,8 +106,12 @@ body and the values of a frontmatter `tags:` property are counted, so a tag that
 with a `#` still appears in the tree.
 
 The **Hide rare tags** filter is **on by default**, so tags used fewer than 10 times are hidden
-until you toggle the filter icon off. The tag count in the header is the unfiltered total, so it
-does not change when the filter does.
+until you toggle the filter icon off. While the filter hides some tags, the header reads
+**Showing X of Y tags**, where X is the number of tags listed and Y the number of tags in the vault,
+followed by a **Show all** button that turns the filter off. With the filter off, or when it hides
+nothing, the header shows just the total, such as **12 tags**. When every tag is used fewer than
+10 times, the list reads "All Y tags are used fewer than 10 times." (or "The only tag is used
+fewer than 10 times." for a single tag) with a **Show all tags** button in place of the tree.
 
 ![Tags panel with hierarchical tree](screenshots/tags.png)
 
@@ -114,6 +119,12 @@ does not change when the filter does.
 
 - **Sort** - Toggle between A-Z (alphabetical) and by count (most used first).
 - **Hide rare tags** - The filter icon toggles hiding tags with fewer than 10 uses.
+- **Filter** - The **Filter tags** box lists only the tags whose full path contains what you type,
+  ignoring case and a leading `#` (`proj` finds both `#projects` and `#work/projects`). Parents of a
+  match open on their own and a matching tag keeps its subtags. The filter searches every tag, so
+  it also finds tags the rare-tag filter hides. While it is active the header reads **N matching
+  tags**, and "No tags match" appears when nothing does. Clearing the box brings back the full list
+  and the rare-tag filter as you left it.
 
 ### Clicking a tag
 
@@ -165,7 +176,7 @@ Claude can edit notes while a turn runs. Kokobrain saves your open notes before 
 
 ## Customizing the Sidebar
 
-Go to **Settings > Layout** to toggle each panel on or off individually: Properties, Backlinks, Outgoing links, Table of contents.
+Go to **Settings > Layout** to toggle each panel on or off individually: Properties, Backlinks, Outgoing links, Table of contents. You can also do it from the palette (`Cmd+P`): each panel has a toggle, e.g. **Toggle Backlinks Panel**.
 
 You can keep only the panels you use most, reducing visual clutter in the sidebar.
 

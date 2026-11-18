@@ -20,7 +20,7 @@ sym src/lib/utils/debounce.ts:12 fn debounce<T extends (...args: any[]) => void>
 by src/lib/utils/debounce.ts:debounce <- src/lib/app/lifecycle/app-lifecycle.service.ts:514 in initializeVault call
 by src/lib/utils/debounce.ts:debounce <- src/lib/core/editor/editor.service.ts:276 in debouncedSave call +1
 by src/lib/utils/debounce.ts:debounce <- src/lib/features/rail-shell/TypesNavigator.svelte:88 in recountViews call
-by src/lib/utils/debounce.ts:debounce <- src/lib/features/tags/tags.service.ts:90 in debouncedTrigger call
+by src/lib/utils/debounce.ts:debounce <- src/lib/features/tags/tags.service.ts:91 in debouncedTrigger call
 ## effects
 fx src/lib/utils/debounce.ts:38 timer.setTimeout delay=delay in debounce
 fx src/lib/utils/debounce.ts:40 timer.setTimeout delay=options.maxWait in debounce

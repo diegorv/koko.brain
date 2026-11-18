@@ -82,6 +82,7 @@ src/lib/
 | Layer | Rule |
 |-------|------|
 | `components/ui/` | shadcn-svelte generated components. Customized via Tailwind. |
+| `components/` (outside `ui/`) | Hand-written shared primitives (e.g. `EmptyState.svelte`). Same import rule as `components/ui/`: nothing from `core/`, `features/` or `plugins/`. |
 | `core/` | App breaks without it. Stores + services + core components. |
 | `features/` | Always loaded. Each feature is self-contained in its own folder. |
 | `plugins/` | App works without them. Self-contained, could be toggled off. |

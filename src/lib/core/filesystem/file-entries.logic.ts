@@ -1,5 +1,6 @@
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { fuzzyMatch } from '#lib/utils/fuzzy-match.js';
+import { relativePath } from '#lib/utils/path.js';
 
 export interface FileEntry {
 	name: string;
@@ -28,21 +29,48 @@ export function flattenFileTree(nodes: FileTreeNode[]): FileEntry[] {
 /** Maximum number of results rendered by the quick switcher. Caps DOM work for large vaults. */
 export const MAX_RESULTS = 100;
 
+/**
+ * The folder holding a file, relative to the vault.
+ * @param vaultPath - absolute vault path
+ * @param path - absolute file path
+ * @returns `Projects/Ideas` for `<vault>/Projects/Ideas/A.md`, `''` at the vault root
+ */
+export function entryFolder(vaultPath: string, path: string): string {
+	const rel = relativePath(vaultPath, path);
+	const slash = rel.lastIndexOf('/');
+	return slash >= 0 ? rel.substring(0, slash) : '';
+}
+
+/**
+ * The quick switcher's empty-query groups.
+ * @param files - every file the switcher offers
+ * @param recentPaths - recently opened paths, newest first; paths not in `files` are skipped
+ * @returns `recent` in `recentPaths` order, and `rest`, the other files sorted by name and
+ * capped so both together stay within `MAX_RESULTS`
+ */
+export function splitRecentFiles(
+	files: FileEntry[],
+	recentPaths: string[],
+): { recent: FileEntry[]; rest: FileEntry[] } {
+	const recentSet = new Set(recentPaths);
+	const recent = recentPaths
+		.map((p) => files.find((f) => f.path === p))
+		.filter((f): f is FileEntry => f !== undefined);
+	const remaining = Math.max(0, MAX_RESULTS - recent.length);
+	const rest = files
+		.filter((f) => !recentSet.has(f.path))
+		.sort((a, b) => a.nameWithoutExt.localeCompare(b.nameWithoutExt))
+		.slice(0, remaining);
+	return { recent, rest };
+}
+
 export function filterAndRank(
 	query: string,
 	files: FileEntry[],
 	recentPaths: string[],
 ): FileEntry[] {
 	if (query.length === 0) {
-		const recentSet = new Set(recentPaths);
-		const recent = recentPaths
-			.map((p) => files.find((f) => f.path === p))
-			.filter((f): f is FileEntry => f !== undefined);
-		const remaining = Math.max(0, MAX_RESULTS - recent.length);
-		const rest = files
-			.filter((f) => !recentSet.has(f.path))
-			.sort((a, b) => a.nameWithoutExt.localeCompare(b.nameWithoutExt))
-			.slice(0, remaining);
+		const { recent, rest } = splitRecentFiles(files, recentPaths);
 		return [...recent, ...rest];
 	}
 

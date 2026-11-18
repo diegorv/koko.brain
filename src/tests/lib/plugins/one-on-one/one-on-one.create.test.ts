@@ -82,13 +82,13 @@ afterEach(() => {
 });
 
 describe('createOneOnOneNote link', () => {
-	it('writes _related_to for the person when the template does not', async () => {
+	it('writes _related_to for the person and kind: one-on-one when the template does not', async () => {
 		vi.mocked(readTextFile).mockResolvedValue('---\ndate: <% tp.date.now("YYYY-MM-DD") %>\n---\n# 1:1 with <% person %>\n');
 
 		await createOneOnOneNote('Alice');
 
 		expect(readTextFile).toHaveBeenCalledWith(TEMPLATE);
-		expect(written()).toBe('---\n_related_to: "[[Alice]]"\ndate: 2026-02-18\n---\n# 1:1 with Alice\n');
+		expect(written()).toBe('---\n_related_to: "[[Alice]]"\nkind: one-on-one\ndate: 2026-02-18\n---\n# 1:1 with Alice\n');
 		expect(openFileInEditor).toHaveBeenCalledWith(NOTE_PATH);
 	});
 
@@ -97,17 +97,25 @@ describe('createOneOnOneNote link', () => {
 
 		await createOneOnOneNote('Alice');
 
-		expect(written()).toBe('---\n_related_to: "[[Alice]]"\n---\n');
+		expect(written()).toBe('---\nkind: one-on-one\n_related_to: "[[Alice]]"\n---\n');
 		expect(relatedTo(written())).toHaveLength(1);
 	});
 
-	it('writes the link alone when no template is set', async () => {
+	it('keeps the kind the template writes', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntype: Meeting\nkind: one-on-one\ntags:\n  - type/meeting/one-one\n---\n');
+
+		await createOneOnOneNote('Alice');
+
+		expect(written()).toBe('---\n_related_to: "[[Alice]]"\ntype: Meeting\nkind: one-on-one\ntags:\n  - type/meeting/one-one\n---\n');
+	});
+
+	it('writes the link and the 1:1 kind alone when no template is set', async () => {
 		settingsStore.updateOneOnOne({ templatePath: '' });
 
 		await createOneOnOneNote('Alice');
 
 		expect(readTextFile).not.toHaveBeenCalled();
-		expect(written()).toBe('---\n_related_to: "[[Alice]]"\n---\n');
+		expect(written()).toBe('---\n_related_to: "[[Alice]]"\nkind: one-on-one\n---\n');
 	});
 
 	it('creates no file when the link cannot be added to the template', async () => {
@@ -137,7 +145,7 @@ describe('registerOneOnOneActionBarAction', () => {
 
 		await noteActionBarActionsStore.actions[0].run('/vault/_people/Alice.md');
 
-		expect(written()).toBe('---\n_related_to: "[[Alice]]"\n---\n# 1:1\n');
+		expect(written()).toBe('---\n_related_to: "[[Alice]]"\nkind: one-on-one\n---\n# 1:1\n');
 		expect(openFileInEditor).toHaveBeenCalledWith(NOTE_PATH);
 		expect(toast.error).not.toHaveBeenCalled();
 	});

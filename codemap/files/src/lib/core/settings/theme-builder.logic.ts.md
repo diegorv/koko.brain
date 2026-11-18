@@ -9,7 +9,7 @@ imp src/lib/core/settings/theme-package.logic.ts:2 -> src/lib/core/settings/them
 imp src/lib/core/settings/theme.logic.ts:12 -> src/lib/core/settings/theme-builder.logic.ts alpha,buildTheme,coreFromColors
 imp src/lib/features/file-icons/file-icons.logic.ts:5 -> src/lib/core/settings/theme-builder.logic.ts TYPE_PALETTE_NAMES
 ## reach
-in2 src/lib/core/settings/theme-builder.logic.ts 23 files in 10 modules: src/lib/core/settings(9) src/lib/features/file-icons(3) src/lib/features/rail-shell(3) src/lib/features/properties(2) src/lib/app(1) +5 modules: q impact src/lib/core/settings/theme-builder.logic.ts --depth 2
+in2 src/lib/core/settings/theme-builder.logic.ts 24 files in 11 modules: src/lib/core/settings(9) src/lib/features/file-icons(3) src/lib/features/rail-shell(3) src/lib/features/properties(2) src/lib/app(1) +6 modules: q impact src/lib/core/settings/theme-builder.logic.ts --depth 2
 out2 src/lib/core/settings/theme-builder.logic.ts 1 files in 1 modules: src/lib/core/settings(1)
 ## tests
 test src/tests/lib/core/settings/theme-builder.logic.test.ts imports src/lib/core/settings/theme-builder.logic.ts mirror

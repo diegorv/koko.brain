@@ -337,6 +337,53 @@ describe('editorStore', () => {
 		});
 	});
 
+	describe('moveTab', () => {
+		beforeEach(() => {
+			for (const name of ['a', 'b', 'c', 'd']) editorStore.addTab(makeTab({ path: `/${name}.md`, name: `${name}.md` }));
+		});
+		const paths = () => editorStore.tabs.map((t) => t.path);
+
+		it('moveTab(0, 3) reorders the tabs and keeps the active tab', () => {
+			editorStore.setActiveIndex(0);
+
+			editorStore.moveTab(0, 3);
+
+			expect(paths()).toEqual(['/b.md', '/c.md', '/a.md', '/d.md']);
+			expect(editorStore.activeIndex).toBe(2);
+			expect(editorStore.activeTab?.path).toBe('/a.md');
+			expect(editorStore.activeTabPath).toBe('/a.md');
+		});
+
+		it('keeps another active tab active when a tab moves across it', () => {
+			editorStore.setActiveIndex(1);
+
+			editorStore.moveTab(0, 3);
+
+			expect(editorStore.activeTabPath).toBe('/b.md');
+		});
+
+		it('keeps pinned tabs first', () => {
+			editorStore.togglePin(3);
+			editorStore.moveTab(0, 0);
+
+			expect(paths()).toEqual(['/d.md', '/a.md', '/b.md', '/c.md']);
+		});
+
+		it.each([
+			[-1, 0],
+			[4, 0],
+			[0, 5],
+		])('changes nothing for invalid indices (%i, %i)', (from, to) => {
+			editorStore.setActiveIndex(2);
+
+			editorStore.moveTab(from, to);
+
+			expect(paths()).toEqual(['/a.md', '/b.md', '/c.md', '/d.md']);
+			expect(editorStore.activeIndex).toBe(2);
+			expect(editorStore.activeTabPath).toBe('/c.md');
+		});
+	});
+
 	describe('setPinned', () => {
 		it('pins a tab and reorders', () => {
 			editorStore.addTab(makeTab({ path: '/a.md' }));

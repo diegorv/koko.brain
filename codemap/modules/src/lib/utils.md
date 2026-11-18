@@ -1,17 +1,18 @@
 # module card src/lib/utils
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/utils ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src/lib/utils utils files 29 in-modules 42 out-modules 2 pub 84/103 ipc 3/0 card ~9.2k
+module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 89/109 ipc 3/0 card ~9.8k
 ## neighbors
 dep src/lib/app -> src/lib/utils 17
 dep src/lib/core/editor -> src/lib/utils 7
-dep src/lib/core/filesystem -> src/lib/utils 12
+dep src/lib/core/filesystem -> src/lib/utils 13
 dep src/lib/core/frontmatter -> src/lib/utils 2
-dep src/lib/core/markdown-editor -> src/lib/utils 22
+dep src/lib/core/markdown-editor -> src/lib/utils 23
 dep src/lib/core/note-creator -> src/lib/utils 3
 dep src/lib/core/settings -> src/lib/utils 16
 dep src/lib/core/trash -> src/lib/utils 1
 dep src/lib/core/vault -> src/lib/utils 4
+dep src/lib/core/zoom -> src/lib/utils 1
 dep src/lib/features/auto-organize -> src/lib/utils 6
 dep src/lib/features/backlinks -> src/lib/utils 2
 dep src/lib/features/canvas -> src/lib/utils 2
@@ -29,9 +30,9 @@ dep src/lib/features/outgoing-links -> src/lib/utils 2
 dep src/lib/features/properties -> src/lib/utils 7
 dep src/lib/features/quick-switcher -> src/lib/utils 1
 dep src/lib/features/rail-shell -> src/lib/utils 11
-dep src/lib/features/search -> src/lib/utils 7
+dep src/lib/features/search -> src/lib/utils 9
 dep src/lib/features/tags -> src/lib/utils 5
-dep src/lib/features/tasks -> src/lib/utils 16
+dep src/lib/features/tasks -> src/lib/utils 17
 dep src/lib/features/todoist-sync -> src/lib/utils 9
 dep src/lib/features/type-definitions -> src/lib/utils 1
 dep src/lib/plugins/calendar -> src/lib/utils 3
@@ -47,18 +48,18 @@ dep src/lib/utils.ts -> src/lib/utils 1
 dep src/routes -> src/lib/utils 2
 dep src/lib/utils -> src/lib/contracts 3
 dep src/lib/utils -> src/lib/core/settings 3
-in2 src/lib/utils 5 modules: src/lib/components(54) src/lib/core/layout(2) src/lib/core/status-bar(1) src/lib/plugins/table-of-contents(1) src/lib/plugins/word-count(1)
+in2 src/lib/utils 5 modules: src/lib/components(55) src/lib/core/layout(2) src/lib/core/status-bar(1) src/lib/plugins/table-of-contents(1) src/lib/plugins/word-count(1)
 out2 src/lib/utils 0 modules: -
 ## entry files
-entry src/lib/utils/debug.ts ext-in73 src/lib/app/LabsSection.svelte src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/app/global-keybindings.ts src/lib/app/lifecycle/app-lifecycle.service.ts more importers 68 not shown: src/lib/features/todoist-sync(7) src/lib/core/settings(6) src/lib/core/filesystem(5) +30 modules: q importers src/lib/utils/debug.ts
-entry src/lib/utils/path.ts ext-in27 src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/core/editor/editor.logic.ts src/lib/core/filesystem/delete-note.service.ts src/lib/core/filesystem/fs.logic.ts more importers 22 not shown: src/lib/core/filesystem(3) src/lib/features/search(3) src/lib/features/tasks(3) +9 modules: q importers src/lib/utils/path.ts
+entry src/lib/utils/debug.ts ext-in74 src/lib/app/LabsSection.svelte src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/app/global-keybindings.ts src/lib/app/lifecycle/app-lifecycle.service.ts more importers 69 not shown: src/lib/features/todoist-sync(7) src/lib/core/settings(6) src/lib/core/filesystem(5) +31 modules: q importers src/lib/utils/debug.ts
+entry src/lib/utils/path.ts ext-in28 src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/core/editor/editor.logic.ts src/lib/core/filesystem/delete-note.service.ts src/lib/core/filesystem/file-entries.logic.ts more importers 23 not shown: src/lib/core/filesystem(4) src/lib/features/search(3) src/lib/features/tasks(3) +9 modules: q importers src/lib/utils/path.ts
 entry src/lib/utils/date.ts ext-in15 src/lib/core/markdown-editor/extensions/date-shortcut/completion.logic.ts src/lib/features/collection/calendar.logic.ts src/lib/features/file-history/file-history.logic.ts src/lib/features/tasks/TaskLists.svelte src/lib/features/tasks/TasksView.svelte more importers 10 not shown: src/lib/features/tasks(4) src/lib/plugins/kanban(3) src/lib/plugins/calendar(1) +2 modules: q importers src/lib/utils/date.ts
 entry src/lib/utils/log.service.ts ext-in13 src/lib/app/AppShell.svelte src/lib/app/boot.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/core/editor/editor.service.ts src/lib/core/note-creator/note-creator.service.ts more importers 8 not shown: src/lib/features/rail-shell(2) src/lib/plugins/queryjs(2) src/lib/core/settings(1) +3 modules: q importers src/lib/utils/log.service.ts
 entry src/lib/utils/clamp.ts ext-in10 src/lib/core/editor/open-note-at.service.ts src/lib/core/settings/sections/FileHistorySection.svelte src/lib/core/settings/settings.logic.ts src/lib/features/auto-organize/AutoOrganizeSection.svelte src/lib/features/collection/expression/evaluator.ts more importers 5 not shown: src/lib/plugins/kanban(2) src/lib/plugins/queryjs(2) src/lib/features/rail-shell(1): q importers src/lib/utils/clamp.ts
 entry src/lib/utils/color.ts ext-in7 src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts src/lib/core/settings/sections/ThemePreview.svelte src/lib/core/settings/theme-builder.logic.ts src/lib/core/settings/theme.logic.ts src/lib/core/settings/theme.service.ts more importers 2 not shown: src/lib/features/collection(1) src/lib/plugins/graph-view(1): q importers src/lib/utils/color.ts
+entry src/lib/utils/fuzzy-match.ts ext-in7 src/lib/core/filesystem/file-entries.logic.ts src/lib/core/markdown-editor/extensions/tag/completion.logic.ts src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts src/lib/core/markdown-editor/extensions/wikilink/completion.ts src/lib/features/command-palette/command-palette.logic.ts more importers 2 not shown: src/lib/features/quick-switcher(1) src/lib/plugins/mods(1): q importers src/lib/utils/fuzzy-match.ts
 entry src/lib/utils/tag-extraction.ts ext-in7 src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/tag-handler.ts src/lib/features/collection/collection.logic.ts src/lib/features/search/search.logic.ts src/lib/features/tasks/task-headings.logic.ts more importers 2 not shown: src/lib/features/tasks(1) src/lib/features/todoist-sync(1): q importers src/lib/utils/tag-extraction.ts
 entry src/lib/utils/color-presets.ts ext-in6 src/lib/features/collection/expression/evaluator.ts src/lib/plugins/kanban/KanbanCard.svelte src/lib/plugins/kanban/KanbanCardText.svelte src/lib/plugins/kanban/KanbanListView.svelte src/lib/plugins/kanban/KanbanTableView.svelte more importers 1 not shown: src/lib/plugins/queryjs(1): q importers src/lib/utils/color-presets.ts
-entry src/lib/utils/fuzzy-match.ts ext-in6 src/lib/core/filesystem/file-entries.logic.ts src/lib/core/markdown-editor/extensions/tag/completion.logic.ts src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts src/lib/core/markdown-editor/extensions/wikilink/completion.ts src/lib/features/command-palette/command-palette.logic.ts more importers 1 not shown: src/lib/plugins/mods(1): q importers src/lib/utils/fuzzy-match.ts
 entry src/lib/utils/sanitize.ts ext-in6 src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts src/lib/features/canvas/canvas-markdown.logic.ts src/lib/features/collection/CollectionTableView.svelte src/lib/features/collection/collection-block-widget.ts src/lib/features/file-icons/IconRenderer.svelte more importers 1 not shown: src/lib/features/search(1): q importers src/lib/utils/sanitize.ts
 entry src/lib/utils/font-stacks.ts ext-in5 src/lib/core/markdown-editor/extensions/live-preview/styles.ts src/lib/core/markdown-editor/highlight-styles.ts src/lib/core/markdown-editor/setup/editor-theme.ts src/lib/core/settings/sections/EditorSection.svelte src/lib/plugins/queryjs/kb-ui.ts
 entry src/lib/utils/frontmatter-aliases.ts ext-in5 src/lib/core/frontmatter/properties.logic.ts src/lib/core/markdown-editor/extensions/live-preview/widgets.ts src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte src/lib/features/auto-organize/auto-organize.logic.ts src/lib/features/properties/properties.service.ts
@@ -73,33 +74,37 @@ entry src/lib/utils/index-dedupe.ts ext-in3 src/lib/app/lifecycle/index-updater.
 entry src/lib/utils/note-date.ts ext-in3 src/lib/features/rail-shell/lens.logic.ts src/lib/plugins/calendar/day-lens.logic.ts src/lib/plugins/one-on-one/one-on-one.logic.ts
 entry src/lib/utils/task-tokens.ts ext-in3 src/lib/features/tasks/TasksView.svelte src/lib/features/tasks/task-row-edit.logic.ts src/lib/features/todoist-sync/task-line.logic.ts
 entry src/lib/utils/menu-action.types.ts ext-in2 src/lib/features/note-list/NoteRowMenu.svelte src/lib/features/rail-shell/rail-shell.types.ts
+entry src/lib/utils/roving-list.ts ext-in2 src/lib/features/search/SearchPanel.svelte src/lib/features/tasks/tasks-keys.logic.ts
 entry src/lib/utils/template.ts ext-in2 src/lib/core/note-creator/note-creator.service.ts src/lib/plugins/quick-capture/note-composer.logic.ts
 entry src/lib/utils/app-channel.ts ext-in1 src/lib/core/settings/settings.service.ts
 entry src/lib/utils/build-info.js ext-in1 src/lib/core/settings/BuildInfo.svelte
+entry src/lib/utils/markdown-plain-text.ts ext-in1 src/lib/features/search/SearchResult.svelte
 entry src/lib/utils/text-roles.ts ext-in1 src/lib/utils.ts
 ## files
 file src/lib/utils/app-channel.ts other L17 module src/lib/utils in1 t1
-file src/lib/utils/build-info.js other L162 module src/lib/utils in1 t1
+file src/lib/utils/build-info.js other L167 module src/lib/utils in1 t1
 file src/lib/utils/capture-path.ts other L14 module src/lib/utils in3 t1
 file src/lib/utils/clamp.ts other L9 module src/lib/utils in10 t1
 file src/lib/utils/color-presets.ts other L30 module src/lib/utils in6 t1
 file src/lib/utils/color.ts other L159 module src/lib/utils in7 t6
 file src/lib/utils/date.ts other L170 module src/lib/utils in16 t3
 file src/lib/utils/debounce.ts other L55 module src/lib/utils in4 t4
-file src/lib/utils/debug.ts other L166 module src/lib/utils in73 t53
+file src/lib/utils/debug.ts other L166 module src/lib/utils in74 t53
 file src/lib/utils/font-stacks.ts other L56 module src/lib/utils in5 t5 | Font stacks shared by every place that sets a `font-family` from TypeScript, so code and app text render in one face per role on every machine.
 file src/lib/utils/frontmatter-aliases.ts other L31 module src/lib/utils in5 t6
-file src/lib/utils/fuzzy-match.ts other L41 module src/lib/utils in6 t2
+file src/lib/utils/fuzzy-match.ts other L59 module src/lib/utils in7 t2
 file src/lib/utils/index-dedupe.ts other L39 module src/lib/utils in3 t33
 file src/lib/utils/inflight.ts other L173 module src/lib/utils in5 t1
 file src/lib/utils/keybindings.ts other L81 module src/lib/utils in5 t4
 file src/lib/utils/log.service.ts service L236 module src/lib/utils in14 t46
+file src/lib/utils/markdown-plain-text.ts other L57 module src/lib/utils in1 t1 | Markdown to plain text for one-line previews such as search snippets.
 file src/lib/utils/menu-action.types.ts types L21 module src/lib/utils in2 t0
 file src/lib/utils/node-shims/fs.js other L3 module src/lib/utils in0 t0
 file src/lib/utils/node-shims/path.js other L4 module src/lib/utils in0 t0
 file src/lib/utils/note-date.ts other L57 module src/lib/utils in3 t1
-file src/lib/utils/path.ts other L123 module src/lib/utils in27 t1
+file src/lib/utils/path.ts other L123 module src/lib/utils in28 t1
 file src/lib/utils/platform.ts other L40 module src/lib/utils in5 t4
+file src/lib/utils/roving-list.ts other L93 module src/lib/utils in2 t1 | The generic keyboard model of a roving-tabindex list: which row a key focuses, which row stays current when the list changes, and which row holds the list's on…
 file src/lib/utils/sanitize-url.ts other L15 module src/lib/utils in5 t1
 file src/lib/utils/sanitize.ts other L86 module src/lib/utils in6 t1
 file src/lib/utils/tag-colors.ts other L44 module src/lib/utils in4 t1
@@ -139,6 +144,7 @@ sym src/lib/utils/font-stacks.ts:39 fn quoteFontFamily(value: string): string L8
 sym src/lib/utils/font-stacks.ts:53 fn editorFontFamily(value: string): string L4 | The editor `font-family`: the user's value (quoted when it is a single name) followed by the app sans stack, so a font the machine lacks falls back to the syst…
 sym src/lib/utils/frontmatter-aliases.ts:29 fn canonicalizeKey(key: string): string L3 | Returns the canonical key name if the input matches a known alias, otherwise returns the input unchanged.
 sym src/lib/utils/fuzzy-match.ts:8 fn fuzzyMatch(query: string, target: string): FuzzyMatchResult L34 | Performs a fuzzy match of query against target.
+sym src/lib/utils/fuzzy-match.ts:47 fn fuzzyMatchPositions(query: string, target: string): number[] L13 | The indices in `target` of the characters `fuzzyMatch` matches, found by the same greedy scan.
 sym src/lib/utils/index-dedupe.ts:19 fn isAlreadyIndexed(path: string, content: string): boolean L3 | Returns true if the given (path, content) was the most recent input to the shared updaters.
 sym src/lib/utils/index-dedupe.ts:26 fn markIndexed(path: string, content: string): void L3 | Records that the given (path, content) has just been sent through the shared updaters.
 sym src/lib/utils/index-dedupe.ts:32 fn clearIndexedEntry(path: string): void L3 | Removes the signature for a path.
@@ -159,6 +165,7 @@ sym src/lib/utils/log.service.ts:131 fn startHeartbeat(): void L18 | Starts a 25
 sym src/lib/utils/log.service.ts:159 fn stopHeartbeat(): void L10 | Stops the heartbeat.
 sym src/lib/utils/log.service.ts:218 fn isLogSessionActive(): boolean L3 | Returns whether a log session is currently active.
 sym src/lib/utils/log.service.ts:229 fn openLogDir(): Promise<void> L8 | Opens the system log directory in the file manager.
+sym src/lib/utils/markdown-plain-text.ts:39 fn markdownToPlainText(markdown: string): string L19 | Turns a markdown fragment into plain text, keeping `<mark>` tags.
 sym src/lib/utils/menu-action.types.ts:10 interface MenuActionItem L12 | A flat action in note-row or folder menus; rendering reads data only.
 sym src/lib/utils/note-date.ts:31 fn parseDateKey(value: unknown): string | null L14 | Parses a frontmatter date value into a 'YYYY-MM-DD' key in local time.
 sym src/lib/utils/note-date.ts:51 fn noteDateKey({ date, created, diskCreatedAt }: NoteDateSources): string | null L7 | The day a note belongs to (the PRD's "note date"): frontmatter `date`, else frontmatter `created`, else the disk creation time.
@@ -171,6 +178,9 @@ sym src/lib/utils/path.ts:120 fn vaultRelativeKey(vaultPath: string, filePath: s
 sym src/lib/utils/platform.ts:23 const IS_MAC = detectMac(…) L1 | True when the app runs on macOS.
 sym src/lib/utils/platform.ts:30 fn isOpenLinkModifier(e: LinkClickModifiers, mac: boolean): boolean L3 | True when a click carries the platform's "open link" modifier: Cmd on macOS, Ctrl on Windows/Linux.
 sym src/lib/utils/platform.ts:38 fn isMacContextClick(e: LinkClickModifiers, mac: boolean): boolean L3 | True for a macOS Ctrl+click.
+sym src/lib/utils/roving-list.ts:34 fn resolveRovingFocus(input: RovingKeyInput): number | null L16 | The index of the row that ArrowUp, ArrowDown, Home or End focuses, or null when the list leaves the key alone: a key on a control inside the row, any modifier …
+sym src/lib/utils/roving-list.ts:57 fn nextCurrentRow(order: string[], prevOrder: string[], current: string | null): string | null L14 | The current row after the list changed from `prevOrder` to `order`: `current` when it is still listed, else the first row after it in `prevOrder` that is still…
+sym src/lib/utils/roving-list.ts:82 fn tabStopRow(rendered: string[], order: string[], current: string | null): string | null L12 | The row that holds the list's tab stop: `current` when it is rendered.
 sym src/lib/utils/sanitize-url.ts:5 fn isSafeUrl(url: string): boolean L11 | Returns true if the URL is safe to open or use as a resource src
 sym src/lib/utils/sanitize.ts:7 fn sanitizeHtml(html: string): string L25 | Sanitizes arbitrary HTML allowing a safe rich-text subset.
 sym src/lib/utils/sanitize.ts:38 fn sanitizeSvgContent(svgInner: string): string L14 | Sanitizes SVG inner content (paths, circles, etc.) for use inside a trusted <svg> element.

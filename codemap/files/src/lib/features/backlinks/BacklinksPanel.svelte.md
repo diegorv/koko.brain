@@ -20,7 +20,7 @@ out2 src/lib/features/backlinks/BacklinksPanel.svelte 19 files in 10 modules: sr
 test src/tests/lib/features/backlinks/BacklinksPanel.test.ts imports src/lib/features/backlinks/BacklinksPanel.svelte mirror
 ## symbols
 sym src/lib/features/backlinks/BacklinksPanel.svelte:1 component BacklinksPanel L106
-by src/lib/features/backlinks/BacklinksPanel.svelte:default <- src/lib/app/AppShell.svelte:285 in (markup) mount
+by src/lib/features/backlinks/BacklinksPanel.svelte:default <- src/lib/app/AppShell.svelte:287 in (markup) mount
 ## locals
 local src/lib/features/backlinks/BacklinksPanel.svelte:21 fn handleOpenChange(open: boolean) L3
 local src/lib/features/backlinks/BacklinksPanel.svelte:25 fn fetchData() L7
@@ -28,7 +28,7 @@ local src/lib/features/backlinks/BacklinksPanel.svelte:25 fn fetchData() L7
 mount src/lib/features/backlinks/BacklinksPanel.svelte:55 SidebarSection -> src/lib/core/layout/SidebarSection.svelte
 mount src/lib/features/backlinks/BacklinksPanel.svelte:74 LinkItem -> src/lib/features/backlinks/LinkItem.svelte
 ## mounted-at
-mount src/lib/app/AppShell.svelte:285 BacklinksPanel -> src/lib/features/backlinks/BacklinksPanel.svelte
+mount src/lib/app/AppShell.svelte:287 BacklinksPanel -> src/lib/features/backlinks/BacklinksPanel.svelte
 ## calls
 call src/lib/features/backlinks/BacklinksPanel.svelte:22 in handleOpenChange -> src/lib/features/backlinks/BacklinksPanel.svelte:fetchData call
 call src/lib/features/backlinks/BacklinksPanel.svelte:29 in fetchData -> src/lib/features/backlinks/backlinks.service.ts:fetchBacklinksV2 call

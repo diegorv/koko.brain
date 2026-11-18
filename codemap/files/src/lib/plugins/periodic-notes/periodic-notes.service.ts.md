@@ -40,7 +40,7 @@ by src/lib/plugins/periodic-notes/periodic-notes.service.ts:openOrCreatePeriodic
 by src/lib/plugins/periodic-notes/periodic-notes.service.ts:openOrCreatePeriodicNoteForDate <- src/lib/plugins/calendar/calendar.service.ts:11 in openOrCreatePeriodicNoteForDate call
 sym src/lib/plugins/periodic-notes/periodic-notes.service.ts:67 fn openOrCreatePeriodicNote(periodType: PeriodType): Promise<void> L3 | Opens or creates a periodic note for today (daily, weekly, monthly, or quarterly).
 sym src/lib/plugins/periodic-notes/periodic-notes.service.ts:75 fn openOrCreateDailyNote(): Promise<void> L3 | Opens today's daily note, creating it from a template if it doesn't exist.
-by src/lib/plugins/periodic-notes/periodic-notes.service.ts:openOrCreateDailyNote <- src/lib/app/commands.ts:355 in getBuiltInCommands call
+by src/lib/plugins/periodic-notes/periodic-notes.service.ts:openOrCreateDailyNote <- src/lib/app/commands.ts:380 in getBuiltInCommands call
 by src/lib/plugins/periodic-notes/periodic-notes.service.ts:openOrCreateDailyNote <- src/lib/app/deep-link-actions.ts:50 in executeDailyAction call
 by src/lib/plugins/periodic-notes/periodic-notes.service.ts:openOrCreateDailyNote <- src/lib/plugins/mods/mod-app.service.ts:47 in MOD_APP ref
 by src/lib/plugins/periodic-notes/periodic-notes.service.ts:openOrCreateDailyNote <- src/lib/plugins/periodic-notes/DailyNoteButton.svelte:16 in (markup) markup

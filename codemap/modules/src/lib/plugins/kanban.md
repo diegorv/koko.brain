@@ -30,7 +30,7 @@ file src/lib/plugins/kanban/kanban.types.ts types L106 module src/lib/plugins/ka
 ## public
 sym src/lib/plugins/kanban/KanbanView.svelte:1 component KanbanView props:markdownContent,onContentChange,onOpenWikilink L623
 sym src/lib/plugins/kanban/kanban.service.ts:18 fn createKanbanFile(parentPath: string): Promise<string> L3 | Creates a new `.kanban` file with an empty board (To Do, In Progress, Done).
-sym src/lib/plugins/kanban/kanban.service.ts:27 fn registerKanbanFolderCreator(): () => void L9 | Adds "New Kanban Board" to the Files navigator's folder menu: the rail shell may not import plugins (ADR 0003).
+sym src/lib/plugins/kanban/kanban.service.ts:27 fn registerKanbanFolderCreator(): () => void L9 | Adds "New kanban board" to the Files navigator's folder menu: the rail shell may not import plugins (ADR 0003).
 sym src/lib/plugins/kanban/kanban.service.ts:38 fn resetKanban(): void L4 | Resets all kanban state (called during vault teardown)
 sym src/lib/plugins/kanban/kanban.service.ts:49 fn clearLinkedContentCache(): void L3 | Clears the linked content cache so card previews re-read from disk.
 ## stores

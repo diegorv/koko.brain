@@ -19,7 +19,7 @@ imp src/lib/plugins/quick-capture/composer-editor-host.service.ts:4 -> src/lib/c
 imp src/lib/plugins/quick-capture/composer-editor.ts:5 -> src/lib/core/markdown-editor/editor-host.ts editorHost,type:EditorHost
 ## reach
 in2 src/lib/core/markdown-editor/editor-host.ts 14 files in 3 modules: src/lib/core/markdown-editor(11) src/lib/app(2) src/routes(1)
-out2 src/lib/core/markdown-editor/editor-host.ts 3 files in 3 modules: src/lib/contracts(1) src/lib/core/filesystem(1) src/lib/utils(1)
+out2 src/lib/core/markdown-editor/editor-host.ts 4 files in 3 modules: src/lib/utils(2) src/lib/contracts(1) src/lib/core/filesystem(1)
 ## tests
 test src/tests/lib/core/markdown-editor/editor-host.test.ts imports src/lib/core/markdown-editor/editor-host.ts mirror
 test src/tests/lib/app/EditorView.test.ts imports src/lib/core/markdown-editor/editor-host.ts

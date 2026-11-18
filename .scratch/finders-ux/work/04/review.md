@@ -1,0 +1,39 @@
+VERDICT: APPROVED
+
+## Acceptance criteria
+
+- [met] Failing test first, `SearchPanel.test.ts`: in Semantic or Hybrid with a 1-2 character query, the panel shows "Type at least 3 characters", not "No results found"; Text mode is unchanged. `search.logic.test.ts` covers the helper (empty, 2 and 3 code points, an operator-only query). — `SearchPanel.test.ts` "short query" block (`it.each(['semantic','hybrid'])` with "ab" and "x", plus the Text-mode "ab" case still reading "No results found"); `search.logic.test.ts` `isBelowSemanticMinimum` covers empty/whitespace, "ab"/"abc", emoji code points, operators and operator-only "tag:work". The helper (`search.logic.ts:28-44`) applies `parsed.text.trim() || raw` then trims, matching `semantic.rs:803-804` and `:990-991`. Each test landed in the same commit as its code (08a67a0c3, 51d1e689f).
+- [met] Failing test first: a `search_semantic` rejection in Semantic mode, or the outer catch, sets `searchStore.searchError`; the panel shows "Search failed" with a Retry button in `role="alert"` that re-runs `performSearch`; results stay empty; a new search or an empty query clears it. `search.store.test.ts` covers the getter and `reset()`. The FTS fallback and the hybrid fallthrough stay silent and still return results. — `search.service.ts:261-272` (Semantic-only `error()` + `setSearchError`, Hybrid stays `debug()`), `:280-290` (outer catch clears all four lists, version-guarded), `:133` clears on every call. Service tests: Semantic rejection, outer catch via FTS + in-memory failure, cleared by new and empty query, stale-version rejection, hybrid fallthrough silent with text results, FTS fallback `searchError` null. Panel: "error state" block (alert, Retry button, status empty, no rows; Retry drives the real service to `search_fts` and clears the alert). Store test covers getter, setter and `reset()`.
+- [met] Failing test first: unavailable mode buttons have `aria-disabled="true"` (the `.disabled` assertions at `SearchPanel.test.ts:175-176` change on purpose, and the test at `:173-178` must also turn the setting on before it expects the modes to become available); activating one leaves `searchStore.mode` unchanged and shows the reason with an "Open Settings > Search" link; clicking the link calls `settingsPanelStore.open('search')` (assert the real `settingsPanelStore` state); the reason text depends on `semanticSearchEnabled` and `modelAvailable`. — The old test now asserts `aria-disabled` and calls `enableSemantic()` (setting + model). "unavailable semantic modes" block: click leaves mode `text` and shows the OFF reason with the link; the link sets real `settingsPanelStore.isOpen` and `activeSection === 'search'`; OFF vs STARTING reason by setting, and a loaded model with the setting off is still OFF. `SearchPanel.svelte:46-52`, `:150-164`.
+- [met] With the mode on Semantic, turning `semanticSearchEnabled` off switches the mode to Text and shows the inline note with the link. — `$effect` at `SearchPanel.svelte:59-70`; test "turning the setting off in Semantic mode switches to Text and shows the note with the link".
+- [met] The Text-mode empty state keeps "Type to search across all files" and adds the operator hint; there is no hint in Semantic or Hybrid. — `SearchPanel.svelte:180-187`; "empty state" tests for Text and `it.each(['semantic','hybrid'])`.
+- [met] Tests assert `aria-label` on the input and on `~`, `aria-pressed` on the modes and on `~`, and `role="group"` on the mode toggle, with `getAttribute`. — "accessible names and state" block (input `Search vault`, group `Search mode` found by `[role="group"]`, `~` `Fuzzy matching` + `title` kept, `aria-pressed` toggling on modes and `~`).
+- [met] One persistent `role="status"` element (the same node across state changes) carries the status text. — `SearchPanel.svelte:179`; "status region" test checks one node, identity via `toBe(node)` across empty, Searching, No results, "2 results" and the short-query text.
+- [met] Failing test first (from 220), `SearchPanel.test.ts`: with the real `searchStore` given `setIndexStats({ totalDocuments: 12, ... })`, the panel does not contain "Indexed:". — "leaves the index status to the status bar" (also no "chunks", no "Building index..." while indexing), commit 6e457238e.
+- [met] A new `src/tests/lib/features/search/SearchStatus.test.ts` pins the surviving owner with the real store: "12 notes indexed" for the same stats, "Indexing..." while indexing, the semantic progress message while semantic indexing, and nothing when `indexStats` is null. — The new file has exactly those four cases with the real `searchStore`; it passes.
+- [met] `SearchPanel.svelte` no longer imports `Loader2`; mode buttons and results are otherwise unchanged. — `Loader2` import and the index block are gone; the results markup is untouched apart from its `{:else if showResults}` guard; mode buttons only gain `type`, aria attributes, `title` and the `activateMode` handler the Issue asks for.
+- [met] `e2e/specs/search.spec.ts:31-37` ("No results found" for a nonsense Text query) stays green; the help doc is updated. — I ran `bash scripts/e2e.sh e2e/specs/search.spec.ts`: 4 of 4 pass, including `search.spec.ts:31`. `help/documentation/06-search-and-navigation.md` covers the 3-character minimum, Off-until-enabled in Settings > Search, the note/link, the error state and the Text-only operator hint.
+- [met] Frontend gate: `pnpm check` and `pnpm vitest run` pass. — `pnpm check`: 0 errors, 0 warnings (run by me). Targeted vitest (below) passes; the full suite is deliver's to run.
+
+## Findings
+
+1. nit, `src/lib/features/search/SearchPanel.svelte:237-238`: the new `aria-label` and `aria-pressed` attributes of the `~` toggle use three tabs while their sibling attributes (`:235-236`, `:239`) use four. Fix: indent them one more tab.
+2. nit, `src/tests/lib/features/search/SearchPanel.test.ts` ("unavailable semantic modes"): keyboard activation (Enter/Space) of an `aria-disabled` mode button is not tested; only `click()` is. They are native `<button type="button">` without `disabled`, so the browser fires `click` and the behavior holds; an E2E `press('Enter')` would pin it if wanted. No change required.
+
+## Checks I ran
+
+- `pnpm check` in the worktree: exit 0, 0 errors, 0 warnings.
+- `pnpm vitest run src/tests/lib/features/search/ src/tests/lib/architecture/`: exit 0, 22 files, 600 tests. The test verdict rests on `SearchPanel.test.ts`, `SearchStatus.test.ts`, `search.logic.test.ts`, `search.service.test.ts`, `search.store.test.ts` (the files the diff adds or changes, and the test files of every changed source file), plus the rest of `src/tests/lib/features/search/` and the layer-rule tests.
+- `bash scripts/e2e.sh e2e/specs/search.spec.ts`: exit 0, 4 of 4 pass.
+- Searched `src/tests` and `e2e` for the changed strings ("Indexed:", "Type to search across", "Search vault", "No results found", `toBeDisabled` on the mode buttons): no other test depends on them; the E2E input helpers select by `[data-rail-search-header] input`, so the new `aria-label` does not break them.
+- No `layer-baseline.json` change, no `BASELINE_SIZE` change, no new composition root. No `src-tauri/` change.
+
+## Notes (not findings)
+
+- The stale `isSearching` after clearing a query mid-search, noted by the build, is Issue 05's scope ("clearing mid-search does not stick on Searching...").
+- After a failed search, the alert stays on screen during the 200 ms query debounce in `src/routes/(app)/+layout.svelte:170-180` until `performSearch` clears it; visible only briefly and recoverable.
+
+## Resolution
+
+1. Fixed: `aria-label` and `aria-pressed` on the `~` toggle in `src/lib/features/search/SearchPanel.svelte` now use four tabs like their siblings.
+2. Rejected (no change): the reviewer marks it "No change required". The mode buttons are native `<button type="button">` without `disabled`, so Enter and Space fire `click`, which the existing test covers.

@@ -42,7 +42,7 @@ out2 src/lib/features/rail-shell/TypesNavigator.svelte 63 files in 17 modules: s
 test src/tests/lib/features/rail-shell/TypesNavigator.test.ts imports src/lib/features/rail-shell/TypesNavigator.svelte mirror
 ## symbols
 sym src/lib/features/rail-shell/TypesNavigator.svelte:1 component TypesNavigator props:rows,picked,onPick L511
-by src/lib/features/rail-shell/TypesNavigator.svelte:default <- src/lib/app/AppShell.svelte:217 in (markup) mount
+by src/lib/features/rail-shell/TypesNavigator.svelte:default <- src/lib/app/AppShell.svelte:219 in (markup) mount
 ## locals
 local src/lib/features/rail-shell/TypesNavigator.svelte:88 fn recountViews = debounce(…) L7
 local src/lib/features/rail-shell/TypesNavigator.svelte:136 fn handleNewType(name: string) L5
@@ -64,7 +64,7 @@ mount src/lib/features/rail-shell/TypesNavigator.svelte:482 ViewDialog -> src/li
 mount src/lib/features/rail-shell/TypesNavigator.svelte:487 TypeNameDialog -> src/lib/features/type-definitions/TypeNameDialog.svelte
 mount src/lib/features/rail-shell/TypesNavigator.svelte:500 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 ## mounted-at
-mount src/lib/app/AppShell.svelte:217 TypesNavigator -> src/lib/features/rail-shell/TypesNavigator.svelte
+mount src/lib/app/AppShell.svelte:219 TypesNavigator -> src/lib/features/rail-shell/TypesNavigator.svelte
 ## calls
 call src/lib/features/rail-shell/TypesNavigator.svelte:88 in recountViews -> src/lib/utils/debounce.ts:debounce call
 call src/lib/features/rail-shell/TypesNavigator.svelte:90 in recountViews -> src/lib/features/rail-shell/view-lens.service.ts:countViewNotes call

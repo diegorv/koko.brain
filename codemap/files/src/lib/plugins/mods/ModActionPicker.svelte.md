@@ -8,7 +8,7 @@ imp src/lib/plugins/mods/ModActionPicker.svelte:5 -> src/lib/plugins/mods/mod-pi
 imp src/lib/plugins/mods/ModActionPicker.svelte:6 -> src/lib/plugins/mods/mods.logic.ts closesWhenDone
 imp src/lib/plugins/mods/ModActionPicker.svelte:7 -> src/lib/plugins/mods/mods-runs.store.svelte.ts modsRunsStore,type:ModRunStatus
 ## imported-by
-imp src/lib/app/AppOverlays.svelte:9 -> src/lib/plugins/mods/ModActionPicker.svelte default
+imp src/lib/app/AppOverlays.svelte:10 -> src/lib/plugins/mods/ModActionPicker.svelte default
 ## reach
 in2 src/lib/plugins/mods/ModActionPicker.svelte 1 files in 1 modules: src/routes(1)
 out2 src/lib/plugins/mods/ModActionPicker.svelte 13 files in 2 modules: src/lib/components(12) src/lib/plugins/mods(1)
@@ -17,7 +17,7 @@ test src/tests/lib/plugins/mods/ModActionPicker.test.ts imports src/lib/plugins/
 test src/tests/lib/plugins/mods/ModDialogHost.test.ts imports src/lib/plugins/mods/ModActionPicker.svelte
 ## symbols
 sym src/lib/plugins/mods/ModActionPicker.svelte:1 component ModActionPicker L194
-by src/lib/plugins/mods/ModActionPicker.svelte:default <- src/lib/app/AppOverlays.svelte:22 in (markup) mount
+by src/lib/plugins/mods/ModActionPicker.svelte:default <- src/lib/app/AppOverlays.svelte:23 in (markup) mount
 ## locals
 local src/lib/plugins/mods/ModActionPicker.svelte:54 fn handleLogScroll() L4
 local src/lib/plugins/mods/ModActionPicker.svelte:64 fn handleRunKeydown(e: KeyboardEvent) L3
@@ -29,7 +29,7 @@ local src/lib/plugins/mods/ModActionPicker.svelte:91 fn percent(done: number, to
 mount src/lib/plugins/mods/ModActionPicker.svelte:145 Button -> src/lib/components/ui/button/button.svelte
 mount src/lib/plugins/mods/ModActionPicker.svelte:147 Button -> src/lib/components/ui/button/button.svelte
 ## mounted-at
-mount src/lib/app/AppOverlays.svelte:22 ModActionPicker -> src/lib/plugins/mods/ModActionPicker.svelte
+mount src/lib/app/AppOverlays.svelte:23 ModActionPicker -> src/lib/plugins/mods/ModActionPicker.svelte
 ## calls
 call src/lib/plugins/mods/ModActionPicker.svelte:27 in run=$derived -> src/lib/plugins/mods/mods-runs.store.svelte.ts:modsRunsStore.runFor mcall
 call src/lib/plugins/mods/ModActionPicker.svelte:51 in $effect@50 -> src/lib/plugins/mods/mod-picker.store.svelte.ts:modPickerStore.close mcall
@@ -37,7 +37,7 @@ call src/lib/plugins/mods/ModActionPicker.svelte:51 in $effect@50 -> src/lib/plu
 call src/lib/plugins/mods/ModActionPicker.svelte:69 in handleOpenChange -> src/lib/plugins/mods/mod-picker.store.svelte.ts:modPickerStore.close mcall
 call src/lib/plugins/mods/ModActionPicker.svelte:75 in pick -> src/lib/plugins/mods/mod-picker.store.svelte.ts:modPickerStore.askInput mcall
 call src/lib/plugins/mods/ModActionPicker.svelte:98 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:handleOpenChange markup
-call src/lib/plugins/mods/ModActionPicker.svelte:104 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:handleRunKeydown markup
+call src/lib/plugins/mods/ModActionPicker.svelte:105 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:handleRunKeydown markup
 call src/lib/plugins/mods/ModActionPicker.svelte:118 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:percent markup
 call src/lib/plugins/mods/ModActionPicker.svelte:124 in (markup) -> src/lib/plugins/mods/mods-runs.store.svelte.ts:modsRunsStore.isReloadPending markup
 call src/lib/plugins/mods/ModActionPicker.svelte:128 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:handleLogScroll markup

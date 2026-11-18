@@ -32,7 +32,7 @@ by src/lib/plugins/templates/templates.service.ts:createFileFromTemplate <- src/
 sym src/lib/plugins/templates/templates.service.ts:75 fn ensureTemplatesFolder(): Promise<void> L51 | Ensures the _templates/ folder and default template files exist.
 by src/lib/plugins/templates/templates.service.ts:ensureTemplatesFolder <- src/lib/app/lifecycle/app-lifecycle.service.ts:407 in initializeVault call
 sym src/lib/plugins/templates/templates.service.ts:128 fn openTemplatePicker(): Promise<void> L4 | Opens the template picker dialog, loading templates first
-by src/lib/plugins/templates/templates.service.ts:openTemplatePicker <- src/lib/app/commands.ts:375 in getBuiltInCommands call
+by src/lib/plugins/templates/templates.service.ts:openTemplatePicker <- src/lib/app/commands.ts:400 in getBuiltInCommands call
 sym src/lib/plugins/templates/templates.service.ts:134 fn resetTemplates(): void L3 | Resets template plugin state
 by src/lib/plugins/templates/templates.service.ts:resetTemplates <- src/lib/app/lifecycle/app-lifecycle.service.ts:669 in teardownVault call
 ## calls

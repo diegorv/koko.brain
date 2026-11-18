@@ -11,7 +11,7 @@ Where to find everything about Kokobrain, for users and for development.
 | 📖 | [User Guide](../help/documentation/README.md) | A guide to every feature |
 | ✨ | [Features](FEATURES.md) | The complete feature list |
 | 🏷 | [Types & Relationships](../help/documentation/25-types-and-relationships.md) | Note types, semantic relationships, lifecycle |
-| 📦 | [Release Channels](RELEASE-CHANNELS.md) | Stable vs Nightly, version semantics |
+| 📦 | [Release Channels](RELEASE-CHANNELS.md) | Stable vs Nightly vs Preview, version semantics, the preview branch |
 | 🔒 | [Privacy](../PRIVACY.md) | Offline-first, no analytics, embedded file scope |
 
 ## For development

@@ -30,7 +30,7 @@ out2 src/lib/features/properties/PropertiesView.svelte 46 files in 12 modules: s
 test src/tests/lib/features/properties/PropertiesView.test.ts imports src/lib/features/properties/PropertiesView.svelte mirror
 ## symbols
 sym src/lib/features/properties/PropertiesView.svelte:1 component PropertiesView L293
-by src/lib/features/properties/PropertiesView.svelte:default <- src/lib/app/AppShell.svelte:279 in (markup) mount
+by src/lib/features/properties/PropertiesView.svelte:default <- src/lib/app/AppShell.svelte:281 in (markup) mount
 ## locals
 local src/lib/features/properties/PropertiesView.svelte:70 fn addRelationshipLink(key: string, fileName: string) L9
 local src/lib/features/properties/PropertiesView.svelte:80 fn removeRelationshipLink(key: string, raw: string) L10
@@ -48,7 +48,7 @@ mount src/lib/features/properties/PropertiesView.svelte:244 Separator -> src/lib
 mount src/lib/features/properties/PropertiesView.svelte:252 RelationshipSearch -> src/lib/features/properties/RelationshipSearch.svelte
 mount src/lib/features/properties/PropertiesView.svelte:266 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 ## mounted-at
-mount src/lib/app/AppShell.svelte:279 PropertiesView -> src/lib/features/properties/PropertiesView.svelte
+mount src/lib/app/AppShell.svelte:281 PropertiesView -> src/lib/features/properties/PropertiesView.svelte
 ## calls
 call src/lib/features/properties/PropertiesView.svelte:61 in relLinksMap=$derived -> src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree call
 call src/lib/features/properties/PropertiesView.svelte:65 in relLinksMap=$derived -> src/lib/core/filesystem/wikilink-resolution.logic.ts:resolveWikilink ref

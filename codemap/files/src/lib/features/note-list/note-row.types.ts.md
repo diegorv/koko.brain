@@ -9,7 +9,7 @@ imp src/lib/features/note-list/NoteRowMenu.svelte:31 -> src/lib/features/note-li
 imp src/lib/features/note-list/note-row-menu.context.ts:2 -> src/lib/features/note-list/note-row.types.ts type:NoteRowNote
 imp src/lib/features/rail-shell/rail-shell.types.ts:5 -> src/lib/features/note-list/note-row.types.ts type:NoteRowNote
 ## reach
-in2 src/lib/features/note-list/note-row.types.ts 15 files in 2 modules: src/lib/features/rail-shell(13) src/lib/plugins/calendar(2)
+in2 src/lib/features/note-list/note-row.types.ts 16 files in 2 modules: src/lib/features/rail-shell(14) src/lib/plugins/calendar(2)
 out2 src/lib/features/note-list/note-row.types.ts 1 files in 1 modules: src/lib/contracts(1)
 ## tests
 test src/tests/lib/features/note-list/NoteRowMenu.favorite.test.ts imports-type src/lib/features/note-list/note-row.types.ts

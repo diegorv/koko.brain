@@ -39,7 +39,7 @@ imp src/lib/plugins/one-on-one/one-on-one.logic.ts:4 -> src/lib/types/vault-v2.t
 imp src/lib/plugins/queryjs/kb-api.ts:2 -> src/lib/types/vault-v2.types.ts type:NoteEntryV2
 imp src/lib/plugins/queryjs/queryjs.logic.ts:3 -> src/lib/types/vault-v2.types.ts type:NoteEntryV2
 ## reach
-in2 src/lib/types/vault-v2.types.ts 90 files in 21 modules: src/lib/features/rail-shell(17) src/lib/features/event-calendar(16) src/lib/app(10) src/lib/core/markdown-editor(8) src/lib/features/tasks(6) +16 modules: q impact src/lib/types/vault-v2.types.ts --depth 2
+in2 src/lib/types/vault-v2.types.ts 93 files in 22 modules: src/lib/features/rail-shell(19) src/lib/features/event-calendar(16) src/lib/app(10) src/lib/core/markdown-editor(8) src/lib/features/tasks(6) +17 modules: q impact src/lib/types/vault-v2.types.ts --depth 2
 out2 src/lib/types/vault-v2.types.ts 52 files in 1 modules: src/lib/contracts(52)
 ## tests
 test src/tests/lib/types/vault-v2.types.test.ts imports-type src/lib/types/vault-v2.types.ts mirror
@@ -80,9 +80,9 @@ test src/tests/lib/features/rail-shell/RailNoteList.test.ts imports-type src/lib
 test src/tests/lib/features/rail-shell/RailNoteList.toolbar.test.ts imports-type src/lib/types/vault-v2.types.ts
 test src/tests/lib/features/rail-shell/lens.logic.test.ts imports-type src/lib/types/vault-v2.types.ts
 test src/tests/lib/features/search/search.service.test.ts imports-type src/lib/types/vault-v2.types.ts
+test src/tests/lib/features/tags/TagsView.refresh.test.ts imports-type src/lib/types/vault-v2.types.ts
 test src/tests/lib/features/tags/tags.service.test.ts imports-type src/lib/types/vault-v2.types.ts
-test src/tests/lib/features/tasks/TasksView.collapse.test.ts imports-type src/lib/types/vault-v2.types.ts
-more tests 18 not shown: src/tests/lib/features/tasks(11) src/tests/lib/features/type-definitions(3) src/tests/lib/plugins/queryjs(3) src/tests/lib/plugins/one-on-one(1): q tests src/lib/types/vault-v2.types.ts
+more tests 19 not shown: src/tests/lib/features/tasks(12) src/tests/lib/features/type-definitions(3) src/tests/lib/plugins/queryjs(3) src/tests/lib/plugins/one-on-one(1): q tests src/lib/types/vault-v2.types.ts
 ## symbols
 sym src/lib/types/vault-v2.types.ts:19 reexport FrontmatterValue = src/lib/contracts/generated/serde_json/JsonValue.ts:JsonValue L1
 sym src/lib/types/vault-v2.types.ts:20 reexport WikiLinkV2 = dto:WikiLink L1

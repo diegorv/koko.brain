@@ -12,7 +12,7 @@ imp src/lib/features/todoist-sync/sync-scheduler.service.ts:8 -> src/lib/feature
 imp src/lib/features/todoist-sync/sync-scheduler.service.ts:20 -> src/lib/features/todoist-sync/sync-scope.logic.ts syncErrorMessage
 imp src/lib/features/todoist-sync/sync-scheduler.service.ts:21 -> src/lib/features/todoist-sync/sync-now.service.ts syncNow,type:SyncMode,type:SyncNowOutcome
 ## imported-by
-imp src/lib/app/commands.ts:45 -> src/lib/features/todoist-sync/sync-scheduler.service.ts syncNowFromUi
+imp src/lib/app/commands.ts:46 -> src/lib/features/todoist-sync/sync-scheduler.service.ts syncNowFromUi
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:71 -> src/lib/features/todoist-sync/sync-scheduler.service.ts startAutoSync,stopAutoSync
 ## reach
 in2 src/lib/features/todoist-sync/sync-scheduler.service.ts 2 files in 2 modules: src/lib/app(1) src/routes(1)
@@ -26,7 +26,7 @@ by src/lib/features/todoist-sync/sync-scheduler.service.ts:startAutoSync <- src/
 sym src/lib/features/todoist-sync/sync-scheduler.service.ts:112 fn stopAutoSync(): void L24 | Stops the automatic sync: no trigger fires any more, a queued follow-up is dropped (a waiting "Sync now" resolves as stopped), the persistent failure and over-…
 by src/lib/features/todoist-sync/sync-scheduler.service.ts:stopAutoSync <- src/lib/app/lifecycle/app-lifecycle.service.ts:169 in initializeVault call +1
 sym src/lib/features/todoist-sync/sync-scheduler.service.ts:142 fn syncNowFromUi(): Promise<void> L5 | Palette "Todoist: Sync now": runs a cycle and shows its message in a toast.
-by src/lib/features/todoist-sync/sync-scheduler.service.ts:syncNowFromUi <- src/lib/app/commands.ts:278 in getBuiltInCommands call
+by src/lib/features/todoist-sync/sync-scheduler.service.ts:syncNowFromUi <- src/lib/app/commands.ts:288 in getBuiltInCommands call
 ## locals
 local src/lib/features/todoist-sync/sync-scheduler.service.ts:148 fn requestManualCycle(): Promise<SyncNowOutcome> L9
 local src/lib/features/todoist-sync/sync-scheduler.service.ts:159 fn rateLimitRefusal(): SyncNowOutcome | null L5

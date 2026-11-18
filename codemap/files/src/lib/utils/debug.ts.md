@@ -1,7 +1,7 @@
 # file card src/lib/utils/debug.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/utils/debug.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls, effects
-file src/lib/utils/debug.ts other L166 module src/lib/utils in73 t53
+file src/lib/utils/debug.ts other L166 module src/lib/utils in74 t53
 ## imports
 imp src/lib/utils/debug.ts:1 -> pkg:@tauri-apps/api/event type:UnlistenFn
 imp src/lib/utils/debug.ts:2 -> src/lib/contracts/events.ts EVENT_NAMES
@@ -36,6 +36,7 @@ imp src/lib/core/settings/update-check.service.ts:4 -> src/lib/utils/debug.ts er
 imp src/lib/core/trash/trash.service.ts:18 -> src/lib/utils/debug.ts debug,error
 imp src/lib/core/vault/vault.service.ts:5 -> src/lib/utils/debug.ts error
 imp src/lib/core/vault/write-barrier.service.ts:1 -> src/lib/utils/debug.ts debug
+imp src/lib/core/zoom/ZoomChip.svelte:5 -> src/lib/utils/debug.ts error
 imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:16 -> src/lib/utils/debug.ts error
 imp src/lib/features/auto-organize/auto-organize.service.ts:47 -> src/lib/utils/debug.ts debug,error
 imp src/lib/features/backlinks/backlinks.service.ts:2 -> src/lib/utils/debug.ts debug,error,perfStart,perfEnd
@@ -49,10 +50,9 @@ imp src/lib/features/event-calendar/ShowInCalendarButton.svelte:7 -> src/lib/uti
 imp src/lib/features/event-calendar/event-calendar.service.ts:34 -> src/lib/utils/debug.ts error
 imp src/lib/features/file-history/file-history.service.ts:10 -> src/lib/utils/debug.ts debug,error
 imp src/lib/features/file-icons/file-icons.service.ts:21 -> src/lib/utils/debug.ts debug,error,timeAsync
-imp src/lib/features/note-action-bar/NoteActionBar.svelte:36 -> src/lib/utils/debug.ts error
-more imported-by 33 not shown: src/lib/features/todoist-sync(7) src/lib/features/rail-shell(4) src/lib/plugins/mods(4) src/lib/plugins/one-on-one(3) src/lib/features/properties(2) src/lib/features/search(2) src/lib/features/tasks(2) src/lib/features/note-action-bar(1) +8 modules: q importers src/lib/utils/debug.ts
+more imported-by 34 not shown: src/lib/features/todoist-sync(7) src/lib/features/rail-shell(4) src/lib/plugins/mods(4) src/lib/plugins/one-on-one(3) src/lib/features/note-action-bar(2) src/lib/features/properties(2) src/lib/features/search(2) src/lib/features/tasks(2) +8 modules: q importers src/lib/utils/debug.ts
 ## reach
-in2 src/lib/utils/debug.ts 57 files in 31 modules: src/lib/app(7) src/lib/features/event-calendar(7) src/lib/features/rail-shell(4) src/lib/features/canvas(3) src/lib/features/tasks(3) +26 modules: q impact src/lib/utils/debug.ts --depth 2
+in2 src/lib/utils/debug.ts 58 files in 31 modules: src/lib/app(7) src/lib/features/event-calendar(7) src/lib/features/rail-shell(4) src/lib/features/canvas(3) src/lib/features/search(3) +26 modules: q impact src/lib/utils/debug.ts --depth 2
 out2 src/lib/utils/debug.ts 6 files in 2 modules: src/lib/core/settings(4) src/lib/contracts(2)
 ## tests
 test src/tests/lib/utils/debug.test.ts imports src/lib/utils/debug.ts mirror
@@ -116,11 +116,12 @@ by src/lib/utils/debug.ts:error <- src/lib/app/lifecycle/watcher-handler.service
 by src/lib/utils/debug.ts:error <- src/lib/app/tauri-listeners.service.ts:34 in registerMenuSettingsListener call +8
 by src/lib/utils/debug.ts:error <- src/lib/core/editor/editor.hooks.ts:89 in notifyAfterSave call +1
 by src/lib/utils/debug.ts:error <- src/lib/core/editor/editor.service.ts:43 in notifyTabClosed call +3
-more by 52 not shown: src/lib/features/todoist-sync(7) src/lib/core/filesystem(5) src/lib/core/settings(3) src/lib/features/event-calendar(3) src/lib/features/rail-shell(3) src/lib/features/auto-organize(2) src/lib/features/collection(2) src/lib/features/note-action-bar(2) +22 modules: q importers src/lib/utils/debug.ts:error
+more by 54 not shown: src/lib/features/todoist-sync(7) src/lib/core/filesystem(5) src/lib/core/settings(3) src/lib/features/event-calendar(3) src/lib/features/rail-shell(3) src/lib/features/auto-organize(2) src/lib/features/collection(2) src/lib/features/note-action-bar(2) +24 modules: q importers src/lib/utils/debug.ts:error
 sym src/lib/utils/debug.ts:41 fn timeAsync<T>(tag: string, label: string, fn: () => Promise<T>): Promise<T> L11 | Times an async operation and logs the elapsed time via debug().
 by src/lib/utils/debug.ts:timeAsync <- src/lib/core/filesystem/fs.service.ts:93 in loadDirectoryTree call +1
 by src/lib/utils/debug.ts:timeAsync <- src/lib/features/collection/collection.service.ts:94 in buildPropertyIndex call
 by src/lib/utils/debug.ts:timeAsync <- src/lib/features/file-icons/file-icons.service.ts:202 in buildFrontmatterIconIndex call
+by src/lib/utils/debug.ts:timeAsync <- src/lib/features/search/search.service.ts:239 in performSearch call
 by src/lib/utils/debug.ts:timeAsync <- src/lib/features/tags/tags.service.ts:29 in buildTagIndex call
 by src/lib/utils/debug.ts:timeAsync <- src/lib/features/tasks/tasks.service.ts:78 in buildTaskIndex call
 sym src/lib/utils/debug.ts:57 fn timeSync<T>(tag: string, label: string, fn: () => T): T L11 | Times a synchronous operation and logs the elapsed time via debug().
@@ -134,7 +135,7 @@ by src/lib/utils/debug.ts:perfStart <- src/lib/core/editor/editor.service.ts:151
 by src/lib/utils/debug.ts:perfStart <- src/lib/core/markdown-editor/MarkdownEditor.svelte:516 in $effect@455 call +2
 by src/lib/utils/debug.ts:perfStart <- src/lib/features/backlinks/backlinks.service.ts:92 in runBuildIndex call +2
 by src/lib/utils/debug.ts:perfStart <- src/lib/features/outgoing-links/outgoing-links.service.ts:71 in fetchOutgoingLinksV2Inner call
-by src/lib/utils/debug.ts:perfStart <- src/routes/(app)/+layout.svelte:107 in $effect@105 call +2
+by src/lib/utils/debug.ts:perfStart <- src/routes/(app)/+layout.svelte:112 in $effect@110 call +2
 sym src/lib/utils/debug.ts:80 fn perfEnd(tag: string, label: string, start: number): void L5 | Ends a performance measurement and logs the elapsed time via debug().
 by src/lib/utils/debug.ts:perfEnd <- src/lib/app/lifecycle/app-lifecycle.service.ts:211 in initializeVault call +6
 by src/lib/utils/debug.ts:perfEnd <- src/lib/app/lifecycle/index-updater.service.ts:42 in updateIndexesForFile call
@@ -142,12 +143,12 @@ by src/lib/utils/debug.ts:perfEnd <- src/lib/core/editor/editor.service.ts:343 i
 by src/lib/utils/debug.ts:perfEnd <- src/lib/core/markdown-editor/MarkdownEditor.svelte:522 in $effect@455 call +1
 by src/lib/utils/debug.ts:perfEnd <- src/lib/features/backlinks/backlinks.service.ts:95 in runBuildIndex call +4
 by src/lib/utils/debug.ts:perfEnd <- src/lib/features/outgoing-links/outgoing-links.service.ts:80 in fetchOutgoingLinksV2Inner call +1
-by src/lib/utils/debug.ts:perfEnd <- src/routes/(app)/+layout.svelte:114 in $effect@105 call +5
+by src/lib/utils/debug.ts:perfEnd <- src/routes/(app)/+layout.svelte:119 in $effect@110 call +5
 sym src/lib/utils/debug.ts:90 fn perfBaseline(label: string, start: number): void L5 | Writes a stable PERF-BASELINE log line consumed by `scripts/perf-baseline.py`.
 by src/lib/utils/debug.ts:perfBaseline <- src/lib/app/lifecycle/index-updater.service.ts:43 in updateIndexesForFile call
 by src/lib/utils/debug.ts:perfBaseline <- src/lib/core/editor/editor.service.ts:168 in openFileInEditor call +4
 by src/lib/utils/debug.ts:perfBaseline <- src/lib/core/markdown-editor/MarkdownEditor.svelte:653 in $effect@630 call
-by src/lib/utils/debug.ts:perfBaseline <- src/routes/(app)/+layout.svelte:134 in $effect@105 call
+by src/lib/utils/debug.ts:perfBaseline <- src/routes/(app)/+layout.svelte:139 in $effect@110 call
 sym src/lib/utils/debug.ts:105 fn setTauriDebugMode(enabled: boolean): Promise<void> L14 | Enables or disables Tauri backend debug logging.
 by src/lib/utils/debug.ts:setTauriDebugMode <- src/lib/app/lifecycle/app-lifecycle.service.ts:229 in initializeVault call
 by src/lib/utils/debug.ts:setTauriDebugMode <- src/lib/core/settings/sections/TroubleshootingSection.svelte:135 in (markup) markup

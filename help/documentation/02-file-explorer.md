@@ -6,8 +6,8 @@ Kokobrain's left side is the rail (see [Getting Started > The Rail](01-getting-s
 
 Click **Files** in the rail. Two columns open between the rail and the editor:
 
-- **The navigator** lists the vault root, then its folders. It shows folders only, never files; hidden folders (names starting with `.`, such as `.kokobrain`) are left out. Click a folder's arrow to expand or collapse it. Kokobrain remembers which folders you expanded.
-- **The note list** shows the picked folder's own files, of every kind: notes, canvases, views, PDFs and images. Files in subfolders are not listed; pick the subfolder to see them. Archived notes stay listed, and so do the files of the system folder (Settings > Files & Folders > System folder), which the rail's other lists leave out. The header names the folder, and the line under it reads `in <folder>/` (or `in the vault root`).
+- **The navigator** lists the vault root, then its folders. It shows folders only, never files; hidden folders (names starting with `.`, such as `.kokobrain`) are left out. Click a folder's arrow to expand or collapse it. Kokobrain remembers which folders you expanded. A number at the right of a folder is how many files it holds directly (its subfolders' files and hidden files not counted), the same number its note list shows; an empty folder shows none. The system folder and the templates folder (Settings > Files & Folders > System folder and Templates folder) are listed after your other top-level folders, with their names greyed out, and so are their subfolders. Other folders whose names start with `_`, such as `_notes`, are your folders and look like any other. A setting left blank leaves that folder alone.
+- **The note list** shows the picked folder's own files, of every kind: notes, canvases, views, PDFs and images. Files in subfolders are not listed; pick the subfolder to see them. Archived notes stay listed, and so do the files of the system folder (Settings > Files & Folders > System folder), which the rail's other lists leave out. The header names the folder, and the line under it reads `in <folder>/` (or `in the vault root`). A note's second line shows when it was last changed (`2h ago`); other files show their kind (`Canvas`, `Kanban`, `PDF`).
 
 Click a row to open the file in the editor. Kokobrain remembers the folder you picked, and opens on it after a restart. If that folder no longer exists, the rail opens on **Today** instead.
 
@@ -16,8 +16,9 @@ Click a row to open the file in the editor. Kokobrain remembers the folder you p
 ## Creating Files and Folders
 
 - The **+** (New here) button in the note list header creates `Untitled.md` in the picked folder and opens it.
-- **Right-click a folder** in the navigator, or the empty space below the folders (the vault root), and choose **New note**, **New Canvas**, **New table**, **New Kanban Board**, **New view** or **New folder**. The item is created inside that folder. If the name is taken, Kokobrain adds a number (for example `Untitled 1.md`). **New table** creates `Untitled.view`, a table that opens in the editor and is not listed in Views until you choose **Show in Views** on its row (see [View Files](25-types-and-relationships.md#creating-a-view)). **New view** first asks for the view's name and filters (see [View Files](25-types-and-relationships.md#creating-a-view)); the rail then switches to the Types navigator with the new view picked. A new folder starts in rename mode.
-- **Command Palette**: press `Cmd+P`, then type "New File", "New Folder", "New Canvas", or "New Kanban Board". From the Command Palette, new items are always created at the vault root.
+- The **+** (New in folder) button in the Files navigator header opens a menu headed **Create in \<folder\>/** (or **Create in the vault root**) with the same create items as the folder's right-click menu. They create in the picked folder, or at the vault root when the vault is picked. Hover the **+** to see where it creates.
+- **Right-click a folder** in the navigator, or the empty space below the folders (the vault root), and choose **New note**, **New canvas**, **New table**, **New kanban board**, **New view** or **New folder**. The item is created inside that folder. If the name is taken, Kokobrain adds a number (for example `Untitled 1.md`). **New table** creates `Untitled.view`, a table that opens in the editor and is not listed in Views until you choose **Show in Views** on its row (see [View Files](25-types-and-relationships.md#creating-a-view)). **New view** first asks for the view's name and filters (see [View Files](25-types-and-relationships.md#creating-a-view)); the rail then switches to the Types navigator with the new view picked. A new folder starts in rename mode.
+- **Command Palette**: press `Cmd+P`, then type "New note", "New folder", "New canvas", or "New kanban board". From the Command Palette, new items are always created at the vault root.
 
 ## Renaming Files and Folders
 
@@ -70,7 +71,7 @@ Right-click a note list row or a folder and choose **Move to Trash**. A confirma
 
 | Action | Description |
 |--------|-------------|
-| **New note**, **New Canvas**, **New table**, **New Kanban Board** | Creates the file in this folder; **New table** creates a `.view` hidden from Views that opens in the editor |
+| **New note**, **New canvas**, **New table**, **New kanban board** | Creates the file in this folder; **New table** creates a `.view` hidden from Views that opens in the editor |
 | **New view** | Opens the New view dialog and creates the `.view` in this folder |
 | **New folder** | Creates a subfolder |
 | **Change icon** | Opens the icon picker for the folder |
@@ -83,7 +84,9 @@ The vault root's menu has only the **New** items (New folder included).
 
 ## Sorting
 
-The navigator's folders and the note list of a folder use the same order: by name (A-Z), ignoring case. Numbers inside names sort by their value, so `Note 2` comes before `Note 10`. A Sort picked in a note list's header (see [Getting Started > The Rail](01-getting-started.md#the-rail)) orders that list only; the navigator keeps this order.
+The navigator's folders and the note list of a folder use the same order: by name (A-Z), ignoring case. Numbers inside names sort by their value, so `Note 2` comes before `Note 10`. One exception at the vault root: the system and templates folders come after the other folders. A Sort picked in a note list's header (see [Getting Started > The Rail](01-getting-started.md#the-rail)) orders that list only; the navigator keeps this order.
+
+A custom order for the vault root's folders (`_order` on a top-level folder, or the root's entry in `folder-order.json`, both described below) replaces this rule: the folders keep your order, and the system folders stay greyed out wherever you put them.
 
 You can override the default order per note with the `_order` frontmatter field (described below).
 

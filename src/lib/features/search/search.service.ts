@@ -6,9 +6,21 @@ import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { mergeResults } from './search-hybrid.logic';
-import { parseSearchQuery, performSearchOverFiles, performOperatorOnlySearch, matchesPathFilter } from './search.logic';
-import { vaultRelativeKey } from '#lib/utils/path.js';
-import { debug, error } from '#lib/utils/debug.js';
+import {
+	parseSearchQuery,
+	performSearchOverFiles,
+	performOperatorOnlySearch,
+	matchesPathFilter,
+	matchesIndexTag,
+	FTS_MAX_RESULTS,
+	FTS_OPERATOR_CANDIDATE_LIMIT,
+	SEMANTIC_MAX_RESULTS,
+	HYBRID_MAX_RESULTS,
+	OPERATOR_ONLY_MAX_RESULTS,
+	FALLBACK_MAX_RESULTS,
+} from './search.logic';
+import { stem, vaultRelativeKey } from '#lib/utils/path.js';
+import { debug, error, timeAsync } from '#lib/utils/debug.js';
 import type { SemanticProgress } from './search.types';
 
 /**
@@ -36,15 +48,16 @@ async function loadVaultContentMap(vaultPath: string): Promise<Map<string, strin
 }
 
 /**
- * Builds a `Map<absolutePath, Set<tag>>` for the FTS-with-operators
- * tag filter. Tags come from `entry.tags` (Rust pre-parsed); no
+ * Builds a `Map<absolutePath, tags>` for the FTS-with-operators tag
+ * filter. Tags come from `entry.tags` (Rust pre-parsed, the set a tag
+ * click filters), never from the FTS row's looser `tags` column; no
  * content read needed. Phase 11.5h.
  */
-async function loadVaultTagMap(): Promise<Map<string, Set<string>>> {
+async function loadVaultTagMap(): Promise<Map<string, string[]>> {
 	const entries = await call('get_all_vault_entries_v2');
-	const map = new Map<string, Set<string>>();
+	const map = new Map<string, string[]>();
 	for (const e of entries) {
-		map.set(e.path, new Set(e.tags.map((t) => t.toLowerCase())));
+		map.set(e.path, e.tags);
 	}
 	return map;
 }
@@ -123,15 +136,23 @@ export function stopSemanticProgressListener(): void {
  * Performs search based on current mode (text/semantic/hybrid).
  * In text mode, uses FTS5 backend for BM25-ranked results with optional fuzzy matching.
  * Falls back to in-memory search if FTS5 index is not available.
+ * Sets `searchStore.searchError` when a Semantic-mode search or the search
+ * as a whole fails (the fallbacks above are not failures), and clears it on
+ * every call.
  */
 export async function performSearch(): Promise<void> {
 	const version = ++searchVersion;
 	const raw = searchStore.query;
+	searchStore.setSearchError(null);
 	if (!raw.trim()) {
 		searchStore.setFtsResults([]);
 		searchStore.setSemanticResults([]);
 		searchStore.setHybridResults([]);
 		searchStore.setResults([]);
+		searchStore.clearResultsCapped();
+		// The older in-flight call's `finally` no longer owns the version, so
+		// it would leave "Searching..." over the empty box.
+		searchStore.setSearching(false);
 		return;
 	}
 
@@ -139,6 +160,11 @@ export async function performSearch(): Promise<void> {
 	debug('SEARCH', `performSearch() mode=${searchStore.mode} query="${raw}" fuzzy=${searchStore.fuzzyEnabled}`);
 	try {
 		const mode = searchStore.mode;
+		// Whether the request behind each list reached the cap it asked for;
+		// written with the results, per list, since a mode switch shows a list
+		// another mode's search wrote.
+		let textCapped = false;
+		let semanticCapped = false;
 
 		// Hybrid is now a single Rust command: FTS + semantic → RRF → rerank.
 		// Bypass the per-source JS merge entirely.
@@ -149,27 +175,35 @@ export async function performSearch(): Promise<void> {
 				debug('SEARCH', 'Calling search_hybrid...');
 				const results = await call('search_hybrid', {
 					query: semanticQuery,
-					maxResults: 20,
+					maxResults: HYBRID_MAX_RESULTS,
 				});
 				if (searchVersion !== version) return;
 				debug('SEARCH', `Hybrid returned ${results.length} results`, results.slice(0, 3));
 				// Surface as semantic results for the chunk-shaped UI panes. Map
 				// onto the legacy HybridSearchResult shape for any consumer that
 				// still expects it (the chunk has no path/title/snippet split;
-				// derive them from sourcePath + content head).
+				// derive them from sourcePath + content head). No `source`: every
+				// card would carry the same one.
 				searchStore.setSemanticResults(results);
 				const adapted = results.map((r) => ({
 					path: r.sourcePath,
-					title: r.heading ?? r.sourcePath.split('/').pop() ?? r.sourcePath,
+					title: stem(r.sourcePath),
 					combinedScore: r.score,
 					semanticScore: r.score,
 					snippet: r.content.slice(0, 200),
 					heading: r.heading ?? undefined,
 					lineStart: r.lineStart,
-					source: 'both' as const,
 				}));
 				searchStore.setHybridResults(adapted);
+				// Text mode shows these lists, empty now: an older Text search's
+				// rows or "+" would read as this query's.
 				searchStore.setFtsResults([]);
+				searchStore.setResults([]);
+				searchStore.setResultsCapped('text', false);
+				const hybridCapped = results.length >= HYBRID_MAX_RESULTS;
+				searchStore.setResultsCapped('hybrid', hybridCapped);
+				// The semantic list now holds these chunks too
+				searchStore.setResultsCapped('semantic', hybridCapped);
 				return;
 			} catch (hybErr) {
 				if (searchVersion !== version) return;
@@ -191,40 +225,48 @@ export async function performSearch(): Promise<void> {
 					// click): filter the index entries, no content read.
 					const entries = await call('get_all_vault_entries_v2');
 					if (searchVersion !== version) return;
-					const results = performOperatorOnlySearch(entries, query, vaultPath);
+					const results = performOperatorOnlySearch(entries, query, vaultPath, OPERATOR_ONLY_MAX_RESULTS);
+					textCapped = results.length >= OPERATOR_ONLY_MAX_RESULTS;
 					debug('SEARCH', `Operator-only query: ${results.length} results`);
 					searchStore.setResults(results);
 					searchStore.setFtsResults([]);
 				} else {
-					const results = await call('search_fts', {
-						query: ftsQuery,
-						maxResults: 50,
-						fuzzy: searchStore.fuzzyEnabled,
-					});
+					// Rust applies its LIMIT before the operators below filter the
+					// rows, so with operators ask for every candidate and cap after.
+					const fetchFts = (maxResults: number) =>
+						call('search_fts', { query: ftsQuery, maxResults, fuzzy: searchStore.fuzzyEnabled });
+					const results = hasOperators
+						? await timeAsync('SEARCH', 'search_fts operator candidates', () => fetchFts(FTS_OPERATOR_CANDIDATE_LIMIT))
+						: await fetchFts(FTS_MAX_RESULTS);
 					if (searchVersion !== version) return;
 
 					if (hasOperators) {
-						// Filter FTS results by tag/path operators. Tags come from
-						// Rust-pre-parsed `entry.tags` (no content read).
+						// Tags come from Rust-pre-parsed `entry.tags` (no content
+						// read), matched like a tag click: `tag:a` also finds `a/b`.
 						const tagMap = query.tags.length > 0 ? await loadVaultTagMap() : null;
 						if (searchVersion !== version) return;
 						const filtered = results.filter((r) => {
 							const fullPath = `${vaultPath}/${r.path}`;
 							if (query.tags.length > 0 && tagMap) {
-								const tagSet = tagMap.get(fullPath) ?? new Set<string>();
-								if (!query.tags.every((tag) => tagSet.has(tag.toLowerCase()))) return false;
+								const tags = tagMap.get(fullPath) ?? [];
+								if (!query.tags.every((tag) => matchesIndexTag(tags, tag))) return false;
 							}
 							if (query.paths.length > 0) {
 								if (!query.paths.some((p) => matchesPathFilter(r.path, p))) return false;
 							}
 							return true;
 						});
+						textCapped = filtered.length > FTS_MAX_RESULTS || results.length >= FTS_OPERATOR_CANDIDATE_LIMIT;
 						debug('SEARCH', `FTS returned ${results.length}, filtered to ${filtered.length} with operators`);
-						searchStore.setFtsResults(filtered);
+						searchStore.setFtsResults(filtered.slice(0, FTS_MAX_RESULTS));
 					} else {
+						textCapped = results.length >= FTS_MAX_RESULTS;
 						debug('SEARCH', `FTS returned ${results.length} results`, results.slice(0, 3));
 						searchStore.setFtsResults(results);
 					}
+					// An operator-only query's list; Text mode falls back to it
+					// when `ftsResults` is empty.
+					searchStore.setResults([]);
 				}
 			} catch (ftsErr) {
 				if (searchVersion !== version) return;
@@ -233,7 +275,8 @@ export async function performSearch(): Promise<void> {
 				const vaultPath = vaultStore.path ?? '';
 				const noteContents = await loadVaultContentMap(vaultPath);
 				if (searchVersion !== version) return;
-				const results = performSearchOverFiles(noteContents, query, vaultPath);
+				const results = performSearchOverFiles(noteContents, query, vaultPath, FALLBACK_MAX_RESULTS);
+				textCapped = results.length >= FALLBACK_MAX_RESULTS;
 				debug('SEARCH', `In-memory fallback returned ${results.length} results`);
 				searchStore.setResults(results);
 				searchStore.setFtsResults([]);
@@ -248,16 +291,24 @@ export async function performSearch(): Promise<void> {
 				debug('SEARCH', 'Calling search_semantic...');
 				const results = await call('search_semantic', {
 					query: semanticQuery,
-					maxResults: 20,
+					maxResults: SEMANTIC_MAX_RESULTS,
 					minScore: 0.3,
 				});
 				if (searchVersion !== version) return;
 				debug('SEARCH', `Semantic returned ${results.length} results`, results.slice(0, 3));
 				searchStore.setSemanticResults(results);
+				semanticCapped = results.length >= SEMANTIC_MAX_RESULTS;
 			} catch (semErr) {
 				if (searchVersion !== version) return;
-				debug('SEARCH', 'Semantic search failed:', semErr);
 				searchStore.setSemanticResults([]);
+				// In Hybrid this is the legacy fallthrough, which still shows the
+				// text results: not an error for the user.
+				if (mode === 'semantic') {
+					error('SEARCH', 'Semantic search failed:', semErr);
+					searchStore.setSearchError(String(semErr));
+				} else {
+					debug('SEARCH', 'Semantic search failed:', semErr);
+				}
 			}
 		}
 
@@ -265,9 +316,22 @@ export async function performSearch(): Promise<void> {
 			const merged = mergeResults(searchStore.ftsResults, searchStore.semanticResults);
 			debug('SEARCH', `Hybrid merge: ${searchStore.ftsResults.length} FTS + ${searchStore.semanticResults.length} semantic → ${merged.length} merged`);
 			searchStore.setHybridResults(merged);
+			// In the legacy merge, either source reaching its cap counts.
+			searchStore.setResultsCapped('hybrid', textCapped || semanticCapped);
 		}
+		if (mode === 'text' || mode === 'hybrid') searchStore.setResultsCapped('text', textCapped);
+		if (mode === 'semantic' || mode === 'hybrid') searchStore.setResultsCapped('semantic', semanticCapped);
 	} catch (err) {
 		error('SEARCH', 'Search failed:', err);
+		if (searchVersion === version) {
+			// Drop whatever a step wrote before the throw: no partial results.
+			searchStore.setFtsResults([]);
+			searchStore.setSemanticResults([]);
+			searchStore.setHybridResults([]);
+			searchStore.setResults([]);
+			searchStore.clearResultsCapped();
+			searchStore.setSearchError(String(err));
+		}
 	} finally {
 		if (searchVersion === version) {
 			searchStore.setSearching(false);

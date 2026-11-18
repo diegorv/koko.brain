@@ -6,14 +6,15 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import ListFilter from '@lucide/svelte/icons/list-filter';
 	import Search from '@lucide/svelte/icons/search';
-	import FileIcon from '@lucide/svelte/icons/file';
-	import FileText from '@lucide/svelte/icons/file-text';
-	import FileType from '@lucide/svelte/icons/file-type';
-	import ImageIcon from '@lucide/svelte/icons/image';
-	import Kanban from '@lucide/svelte/icons/kanban';
-	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
-	import Table from '@lucide/svelte/icons/table';
 	import NotebookPen from '@lucide/svelte/icons/notebook-pen';
+	import Star from '@lucide/svelte/icons/star';
+	import Inbox from '@lucide/svelte/icons/inbox';
+	import Archive from '@lucide/svelte/icons/archive';
+	import Shapes from '@lucide/svelte/icons/shapes';
+	import Folder from '@lucide/svelte/icons/folder';
+	import Table from '@lucide/svelte/icons/table';
+	import CircleAlert from '@lucide/svelte/icons/circle-alert';
+	import List from '@lucide/svelte/icons/list';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -24,6 +25,7 @@
 	import { debug } from '#lib/utils/debug.js';
 	import { appendLog } from '#lib/utils/log.service.js';
 	import { Popover, PopoverPortal, PopoverTrigger, PopoverContent } from '#lib/components/ui/popover/index.js';
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import FilterPanel from '#lib/features/collection/toolbar/FilterPanel.svelte';
 	import SortPanel from '#lib/features/collection/toolbar/SortPanel.svelte';
 	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
@@ -86,13 +88,20 @@
 	import type { ListSortConfig } from './list-toolbar.types';
 	import { listSortToSortDef, viewListSort } from './list-view-sort.logic';
 	import { createNoteHere } from './new-note.service';
+	import {
+		explainEmptyList,
+		LIST_EMPTY_COPY,
+		type EmptyListAction,
+		type EmptyListIcon,
+		type EmptyListState,
+	} from './list-empty.logic';
 	import RailArchivedMenu from './RailArchivedMenu.svelte';
 	import RailListSearch from './RailListSearch.svelte';
 	import RailPropertiesPicker from './RailPropertiesPicker.svelte';
 	import RailSortMenu from './RailSortMenu.svelte';
 	import { railRegistryStore } from './rail-registry.store.svelte';
+	import { KIND_ICONS } from './kind-icons';
 	import type {
-		FileKind,
 		Lens,
 		LensContext,
 		LensNote,
@@ -661,17 +670,6 @@
 		return own ?? null;
 	}
 
-	/** The row icon of each file kind when the file has no icon of its own (the file tree's kind icons). */
-	const KIND_ICONS: Record<FileKind, Component> = {
-		markdown: FileText,
-		canvas: LayoutDashboard,
-		kanban: Kanban,
-		view: Table,
-		pdf: FileType,
-		image: ImageIcon,
-		other: FileIcon,
-	};
-
 	/** One entry of a grouped list: a group header, a note row, an empty group's notice, or a plugin's Today section. */
 	type GroupedItem =
 		| { key: string; kind: 'header'; id: string; label: string; count: number | null }
@@ -704,6 +702,65 @@
 		return note.isA === listedType ? null : note.isA;
 	}
 
+	/**
+	 * The notes "Hide archived" leaves out of an empty type or Untyped list: with
+	 * the active list empty, every note the unfiltered list holds is archived.
+	 * Resolved only in that case; 0 otherwise.
+	 */
+	let hiddenArchivedCount = $derived.by(() => {
+		if (!offersArchivedFilter || archivedFilter !== 'active' || !resolved || resolved.status || resolved.notes.length > 0) return 0;
+		return resolveLens(shownLens, lensContext(), railRegistryStore.lensProviders, 'all')?.notes.length ?? 0;
+	});
+
+	/** Why the list is empty and what to do next; null while it has rows or a view status. */
+	let emptyExplanation = $derived(
+		notes.length === 0 && !resolved?.status
+			? explainEmptyList({
+					kind: lens.kind,
+					resolvedIsNull: resolved === null,
+					// A type reads by its name ("No Project notes yet"), not its plural sidebar label.
+					label: lens.kind === 'type' && lens.target ? lens.target : (resolved?.label ?? ''),
+					filterCount: viewPath ? activeFilterCount : 0,
+					archivedFilter: offersArchivedFilter ? archivedFilter : null,
+					hiddenArchivedCount,
+					query: query.trim(),
+					fullTextLoading,
+				})
+			: null,
+	);
+
+	const EMPTY_ICONS: Record<EmptyListIcon, Component> = {
+		search: Search,
+		star: Star,
+		inbox: Inbox,
+		archive: Archive,
+		filter: ListFilter,
+		type: Shapes,
+		folder: Folder,
+		view: Table,
+		gone: CircleAlert,
+		list: List,
+	};
+
+	const EMPTY_HOOKS: Record<EmptyListState, string> = {
+		searching: 'data-note-list-searching',
+		'no-matches': 'data-note-list-no-matches',
+		empty: 'data-note-list-empty',
+	};
+
+	/** The list's root element, to reach the search input from an empty state's action. */
+	let listRoot: HTMLElement | null = null;
+
+	/** Runs an empty state's action. Local state only: no file is written. */
+	function runEmptyAction(action: EmptyListAction) {
+		if (action === 'clear-search') {
+			query = '';
+			// The clicked button unmounts with the empty state, which would drop focus to body; the search row stays open.
+			listRoot?.querySelector<HTMLInputElement>('[data-note-list-search] input')?.focus();
+		} else if (action === 'edit-filters') filterOpen = true;
+		else archivedFilter = action === 'show-active' ? 'active' : 'all';
+	}
+
 	function listPropertiesFor(note: LensNote): string[] {
 		// A list with a file of its own shows exactly its selection, also while the metadata still holds a just-unticked key.
 		if (viewPath || definitionPath || selectedProperties.length > 0) return selectedProperties;
@@ -711,7 +768,7 @@
 	}
 </script>
 
-<div class="flex h-full flex-col bg-list-bg text-file-explorer-fg" data-rail-note-list>
+<div class="flex h-full flex-col bg-list-bg text-file-explorer-fg" data-rail-note-list bind:this={listRoot}>
 	<!-- As the first pane, the pad clears the macOS traffic lights and the rail toggle. -->
 	<div
 		class="@container relative flex h-10 shrink-0 items-center gap-1 bg-tab-bar pr-3 {firstPane ? 'pl-[var(--rail-header-pad)]' : 'pl-3'}"
@@ -830,7 +887,8 @@
 	{/if}
 
 	<NoteRowMenu {notes} extraItems={railRegistryStore.menuItems} class="flex-1 overflow-hidden">
-		{#if groupedItems}
+		<!-- A search with no match shows its state on a grouped lens too: the search keeps empty groups. -->
+		{#if groupedItems && !(searching && notes.length === 0)}
 			<VList data={groupedItems} getKey={(item: GroupedItem) => item.key} class="px-1 py-1">
 				{#snippet children(item: GroupedItem)}
 					{#if item.kind === 'header'}
@@ -860,19 +918,16 @@
 		{:else if resolved?.status}
 			{@const status = resolved.status}
 			{#if status.kind === 'loading'}
-				<div class="flex items-center justify-center py-8 text-row text-file-explorer-muted-fg" data-note-list-loading>
-					Loading...
-				</div>
+				<EmptyState spinner title={LIST_EMPTY_COPY.loading} data-note-list-loading />
 			{:else if status.kind === 'missing'}
-				<div class="flex items-center justify-center py-8 text-row text-file-explorer-muted-fg" data-note-list-missing>
-					This view no longer exists
-				</div>
+				<EmptyState icon={CircleAlert} title={LIST_EMPTY_COPY.missing.title} hint={LIST_EMPTY_COPY.missing.hint} data-note-list-missing />
 			{:else}
 				<!-- Sort and Filter stay hidden: the fix is in the .view itself. -->
 				<div class="flex flex-col items-start gap-2 p-3" data-note-list-error>
 					<div role="alert" class="w-full rounded-md border border-destructive/50 bg-destructive/10 p-3 text-row text-destructive">
-						<p class="font-medium">This view cannot be shown</p>
+						<p class="font-medium">{LIST_EMPTY_COPY.error.title}</p>
 						<p class="mt-1 whitespace-pre-wrap break-words font-mono text-meta" data-note-list-error-message>{status.message}</p>
+						<p class="mt-2 text-meta" data-note-list-error-hint>{LIST_EMPTY_COPY.error.hint}</p>
 					</div>
 					{#if viewPath}
 						{@const path = viewPath}
@@ -887,14 +942,18 @@
 					{/if}
 				</div>
 			{/if}
-		{:else if notes.length === 0 && searching}
-			<div class="flex items-center justify-center py-8 text-sm text-file-explorer-muted-fg" data-note-list-no-matches>
-				No matching notes
-			</div>
-		{:else if notes.length === 0}
-			<div class="flex items-center justify-center py-8 text-sm text-file-explorer-muted-fg" data-note-list-empty>
-				No notes here
-			</div>
+		{:else if emptyExplanation}
+			{@const empty = emptyExplanation}
+			{@const action = empty.action}
+			<EmptyState
+				title={empty.title}
+				hint={empty.hint}
+				icon={EMPTY_ICONS[empty.icon]}
+				action={action ? { label: LIST_EMPTY_COPY.actions[action], onclick: () => runEmptyAction(action) } : undefined}
+				compact={empty.state === 'searching'}
+				class={empty.state === 'searching' ? 'px-3 py-2 text-file-explorer-muted-fg' : undefined}
+				{...{ [EMPTY_HOOKS[empty.state]]: '' }}
+			/>
 		{:else}
 			<VList data={notes} getKey={(note: LensNote) => note.path} class="px-1 py-1">
 				{#snippet children(note: LensNote, i: number)}

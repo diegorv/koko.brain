@@ -15,7 +15,7 @@ imp src/lib/core/settings/theme-package.logic.ts:4 -> src/lib/core/settings/them
 imp src/lib/core/settings/theme-validation.logic.ts:1 -> src/lib/core/settings/theme.logic.ts KOKOBRAIN_DEFAULT_THEME
 imp src/lib/core/settings/theme.service.ts:6 -> src/lib/core/settings/theme.logic.ts findThemeByName,themeColorsToCssVars
 ## reach
-in2 src/lib/core/settings/theme.logic.ts 88 files in 27 modules: src/lib/core/settings(17) src/lib/features/event-calendar(10) src/lib/app(9) src/lib/features/rail-shell(9) src/lib/features/todoist-sync(5) +22 modules: q impact src/lib/core/settings/theme.logic.ts --depth 2
+in2 src/lib/core/settings/theme.logic.ts 90 files in 27 modules: src/lib/core/settings(17) src/lib/features/event-calendar(10) src/lib/app(9) src/lib/features/rail-shell(9) src/lib/features/search(5) +22 modules: q impact src/lib/core/settings/theme.logic.ts --depth 2
 out2 src/lib/core/settings/theme.logic.ts 1 files in 1 modules: src/lib/core/settings(1)
 ## tests
 test src/tests/lib/core/settings/theme.logic.test.ts imports src/lib/core/settings/theme.logic.ts mirror

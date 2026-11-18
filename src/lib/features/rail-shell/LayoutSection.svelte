@@ -24,6 +24,7 @@
 	const GROUPS: { group: RailItemGroup; label: string }[] = [
 		{ group: 'top', label: 'Rail top' },
 		{ group: 'navigator', label: 'Rail navigators' },
+		{ group: 'tabs', label: 'Rail tabs' },
 		{ group: 'bottom', label: 'Rail bottom' },
 	];
 

@@ -40,6 +40,13 @@
 // reports "install 4.0.0 or newer" for a package whose only dependent
 // (postcss) declares `nanoid: ^3.3.16` and would break on the ESM-only v4.
 //
+//   allowed      -> the advisory's GHSA id and package are in
+//                   ALLOWED_ADVISORIES, it still has no patched range, and
+//                   the entry has not expired. Warn and exit 0. Once a patch
+//                   is published or the entry expires, the advisory is
+//                   graded normally again and CI fails, so the exception has
+//                   to be re-checked by hand.
+//
 // The script also fails on the usual hard errors: malformed audit output,
 // unreachable registry, missing publish times, etc. Those are surfaced
 // loudly because they would otherwise silently hide a real vulnerability.
@@ -52,6 +59,43 @@ import semver from 'semver';
 
 const WORKSPACE_FILE = 'pnpm-workspace.yaml';
 const DEFAULT_MIN_AGE_MINUTES = 7200; // 5 days, must match pre-commit-dep-age.sh
+
+/**
+ * Unpatched advisories accepted by hand until `expires` (YYYY-MM-DD, exclusive,
+ * 00:00 UTC). Keep each entry narrow: one GHSA id on one package, why it does
+ * not reach users, and a date close enough that the exception is revisited.
+ */
+export const ALLOWED_ADVISORIES = [
+	{
+		id: 'GHSA-fc5q-39xc-vjpf',
+		module: 'picomatch',
+		reason:
+			'picomatch ReDoS (<= 4.0.7) with no patched version published. picomatch only runs in ' +
+			'dev and build tooling (vite, vitest, svelte-check, tinyglobby, fdir) on globs the repo ' +
+			'writes, with no extglobs; it is not in the app bundle.',
+		expires: '2026-12-17',
+	},
+];
+
+/** The allowlist entry for `adv`'s GHSA id and package, expired or not, or null. */
+function allowlistEntryFor(adv, allowlist) {
+	const id = adv?.github_advisory_id;
+	if (!id) return null;
+	return allowlist.find((e) => e.id === id && e.module === adv.module_name) ?? null;
+}
+
+/**
+ * The allowlist entry that covers `adv` at time `now`, or null. It applies only
+ * while the advisory has no patched range and before the entry's expiry date,
+ * so a published patch is graded (and can fail CI) as soon as it appears.
+ */
+export function allowedException(adv, allowlist, now) {
+	if (adv?.patched_versions) return null;
+	const entry = allowlistEntryFor(adv, allowlist);
+	if (!entry) return null;
+	const expires = Date.parse(entry.expires);
+	return Number.isFinite(expires) && now < expires ? entry : null;
+}
 
 function readMinReleaseAgeMinutes() {
 	const yaml = readFileSync(WORKSPACE_FILE, 'utf8');
@@ -206,8 +250,14 @@ function main() {
 	const majorBump = [];
 	const noPatch = [];
 	const malformed = [];
+	const allowed = [];
 
 	for (const adv of advisories) {
+		const exception = allowedException(adv, ALLOWED_ADVISORIES, now);
+		if (exception) {
+			allowed.push({ adv, exception });
+			continue;
+		}
 		const times = adv.module_name ? fetchPublishTimes(adv.module_name) : {};
 		const result = classifyAdvisory(adv, times, minAgeMs, now);
 		if (result.kind === 'actionable') actionable.push(result);
@@ -215,6 +265,14 @@ function main() {
 		else if (result.kind === 'major-bump') majorBump.push(result);
 		else if (result.kind === 'no-patch') noPatch.push(result);
 		else malformed.push(result);
+	}
+
+	if (allowed.length > 0) {
+		console.log('\n--- Allowed by hand (ALLOWED_ADVISORIES, until the expiry date) ---');
+		for (const { adv, exception } of allowed) {
+			console.log(`::warning::${exception.id} allowed, expires ${exception.expires} 00:00 UTC: ${exception.reason}`);
+			console.log(`${adv.module_name} (${adv.severity}): ${adv.title} | ${adv.url}`);
+		}
 	}
 
 	if (quarantined.length > 0) {
@@ -257,6 +315,13 @@ function main() {
 		console.log('\n--- Malformed advisory entries (no module_name or patched_versions) ---');
 		for (const r of malformed) {
 			console.log(`::error::Malformed advisory: ${JSON.stringify(r.adv).slice(0, 400)}`);
+			const expired = allowlistEntryFor(r.adv, ALLOWED_ADVISORIES);
+			if (expired) {
+				console.log(
+					`::error::${expired.id}: its ALLOWED_ADVISORIES entry expired on ${expired.expires}; ` +
+						're-check the advisory and renew or remove the entry'
+				);
+			}
 		}
 	}
 
@@ -287,8 +352,9 @@ function main() {
 
 	console.log(
 		`\nAll ${advisories.length} advisor${advisories.length === 1 ? 'y is' : 'ies are'} ` +
-			'either still inside the supply-chain quarantine window, blocked behind a major bump of the ' +
-			'dependent, or have no patched version published yet. Nothing CI can install; CI will pass.'
+			'either allowed by hand until an expiry date, still inside the supply-chain quarantine window, ' +
+			'blocked behind a major bump of the dependent, or have no patched version published yet. ' +
+			'Nothing CI can install; CI will pass.'
 	);
 	return 0;
 }

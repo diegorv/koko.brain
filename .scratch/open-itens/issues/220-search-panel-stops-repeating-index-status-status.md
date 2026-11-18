@@ -16,7 +16,7 @@ Trace (CLAUDE.md "Removing or Refactoring Code"): the removed block only reads `
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -38,3 +38,4 @@ Trace (CLAUDE.md "Removing or Refactoring Code"): the removed block only reads `
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/14-search-panel-drops-duplicate-index-status.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
+- 2026-11-17, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/finders-ux/issues/04-search-panel-states-hints-labels.md`.

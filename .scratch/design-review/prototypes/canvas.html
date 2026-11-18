@@ -1,0 +1,1262 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Canvas: light-theme colours, labels, card creation and safety</title>
+<style>
+	/* Tokens copied from src/app.css (dark) and the Lavender Haze theme (src/lib/core/settings/theme.logic.ts). */
+	[data-theme="light"] {
+		color-scheme: light;
+		--background: #F3F0F8;
+		--foreground: #302840;
+		--card: #EAE6F2;
+		--popover: #FFFFFF;
+		--primary: #6848A8;
+		--primary-foreground: #ffffff;
+		--muted: #DDD8E8;
+		--muted-foreground: #645c74;
+		--accent: #D5D0E2;
+		--border: #D5D0E2;
+		--divider: #C0B8D0;
+		--ring: #6848A8;
+		--destructive: #C83848;
+		--warning: #786714;
+		--success: #357458;
+		--elev-shadow-1: #3028400f;
+		--elev-shadow-2: #3028401a;
+		--elev-shadow-3: #30284029;
+		--elev-ring: #30284014;
+		--canvas-mask: color-mix(in oklab, var(--foreground) 16%, transparent);
+	}
+	[data-theme="dark"] {
+		color-scheme: dark;
+		--background: #21222e;
+		--foreground: #F8F8F2;
+		--card: #2a2e3d;
+		--popover: oklch(0.22 0.025 273);
+		--primary: oklch(0.73 0.08 278);
+		--primary-foreground: oklch(0.19 0.025 273);
+		--muted: oklch(0.28 0.025 272);
+		--muted-foreground: oklch(0.55 0.06 268);
+		--accent: oklch(0.28 0.025 272);
+		--border: oklch(0.28 0.025 272);
+		--divider: #383a4f;
+		--ring: oklch(0.73 0.08 278);
+		--destructive: oklch(0.628 0.225 25);
+		--warning: #fbbf24;
+		--success: #4ade80;
+		--elev-shadow-1: #00000040;
+		--elev-shadow-2: #00000073;
+		--elev-shadow-3: #00000099;
+		--elev-ring: #ffffff0f;
+		--canvas-mask: color-mix(in oklab, #000 55%, transparent);
+	}
+	:root {
+		--radius: 0.625rem;
+		--shadow-sm: 0 1px 3px 0 var(--elev-shadow-1), 0 1px 2px -1px var(--elev-shadow-1);
+		--shadow-md: 0 0 0 1px var(--elev-ring), 0 4px 12px -2px var(--elev-shadow-2), 0 2px 4px -2px var(--elev-shadow-1);
+		--shadow-xl: 0 0 0 1px var(--elev-ring), 0 16px 40px -8px var(--elev-shadow-3), 0 4px 12px -4px var(--elev-shadow-2);
+		--font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+		--mono: ui-monospace, "SF Mono", Menlo, monospace;
+	}
+
+	* { box-sizing: border-box; }
+	html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+	body {
+		margin: 0;
+		background: var(--background);
+		color: var(--foreground);
+		font-family: var(--font);
+		font-size: 14px;
+		line-height: 1.5;
+	}
+	button { font: inherit; color: inherit; }
+	.ic { flex-shrink: 0; vertical-align: middle; }
+
+	/* ---------- page chrome ---------- */
+	.top {
+		position: sticky; top: 0; z-index: 50;
+		display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+		padding: 10px 24px;
+		background: color-mix(in oklab, var(--background) 92%, transparent);
+		backdrop-filter: blur(8px);
+		border-bottom: 1px solid var(--divider);
+	}
+	.top h1 { font-size: 15px; font-weight: 600; margin: 0; margin-right: auto; }
+	.nav { display: flex; gap: 4px; flex-wrap: wrap; }
+	.nav a {
+		font-size: 12px; font-weight: 600; text-decoration: none;
+		padding: 2px 8px; border-radius: 6px;
+		color: var(--muted-foreground); border: 1px solid var(--border);
+	}
+	.nav a:hover { color: var(--foreground); background: var(--accent); }
+	.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--card); }
+	.seg button {
+		display: inline-flex; align-items: center; gap: 6px;
+		padding: 4px 10px; border: 0; background: transparent; cursor: pointer; font-size: 12px;
+		color: var(--muted-foreground);
+	}
+	.seg button[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); }
+	.seg button:focus-visible, .btn:focus-visible, .nav a:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+	main { max-width: 1240px; margin: 0 auto; padding: 24px; }
+	.intro { color: var(--muted-foreground); max-width: 80ch; margin: 0 0 8px; }
+	.sec { margin: 40px 0 0; padding-top: 24px; border-top: 1px solid var(--divider); }
+	.sec-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+	.sec-h h2 { font-size: 18px; margin: 0; font-weight: 600; }
+	.pid {
+		font-family: var(--mono); font-size: 12px; font-weight: 700;
+		padding: 2px 8px; border-radius: 6px; background: var(--primary); color: var(--primary-foreground);
+	}
+	.tier { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--border); color: var(--muted-foreground); }
+	.tier.clear { color: var(--primary); border-color: var(--primary); }
+	.tier.moderate { color: var(--warning); border-color: var(--warning); }
+	.problem { margin: 8px 0 14px; color: var(--muted-foreground); max-width: 90ch; }
+	.problem b { color: var(--foreground); }
+	.cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+	@media (max-width: 960px) { .cmp { grid-template-columns: 1fr; } }
+	figure.panel { margin: 0; min-width: 0; }
+	figcaption.cap { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted-foreground); margin-bottom: 6px; }
+	.tag { font-size: 11px; font-weight: 700; letter-spacing: .05em; padding: 1px 8px; border-radius: 6px; }
+	.tag.b { background: color-mix(in oklab, var(--destructive) 16%, transparent); color: var(--destructive); }
+	.tag.a { background: color-mix(in oklab, var(--success) 18%, transparent); color: var(--success); }
+	.ctrls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; font-size: 12px; color: var(--muted-foreground); }
+	.btn {
+		display: inline-flex; align-items: center; gap: 6px;
+		padding: 4px 10px; border-radius: 8px; cursor: pointer; font-size: 12px;
+		border: 1px solid var(--border); background: var(--card); color: var(--foreground);
+	}
+	.btn:hover { background: var(--accent); }
+	.btn[aria-pressed="true"] { border-color: var(--primary); color: var(--primary); }
+	.readout { font-family: var(--mono); font-size: 11.5px; padding: 6px 10px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); color: var(--muted-foreground); margin-top: 8px; min-height: 30px; }
+	.notes { margin: 14px 0 0; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; font-size: 13px; }
+	.notes h3 { margin: 0 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted-foreground); }
+	.notes ul { margin: 0; padding-left: 18px; }
+	.notes code, .problem code { font-family: var(--mono); font-size: 12px; background: var(--muted); padding: 0 4px; border-radius: 4px; }
+	table.tok { border-collapse: collapse; width: 100%; font-size: 12px; margin-top: 6px; }
+	table.tok th, table.tok td { text-align: left; padding: 3px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+	table.tok th { color: var(--muted-foreground); font-weight: 600; }
+	table.tok td:first-child { white-space: nowrap; }
+	table.tok code { font-size: 11px; }
+
+	/* ---------- fit boxes and crops ---------- */
+	.fit, .crop { position: relative; overflow: hidden; border-radius: 10px; border: 1px solid var(--border); background: var(--card); }
+	.fit > .stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+	.crop img { display: block; position: absolute; max-width: none; height: auto; }
+
+	/* ---------- canvas stage (shared) ---------- */
+	.stage {
+		--canvas-bg: var(--card);
+		--canvas-node-bg: color-mix(in oklab, var(--popover) 55%, var(--canvas-bg));
+		--canvas-edge: color-mix(in oklab, var(--foreground) 42%, var(--canvas-bg));
+		--canvas-grid: color-mix(in oklab, var(--foreground) 18%, transparent);
+		--canvas-node-border: color-mix(in oklab, var(--foreground) 24%, var(--canvas-bg));
+		position: relative; overflow: hidden; outline: none;
+		background-color: var(--canvas-bg);
+		background-image: radial-gradient(var(--canvas-grid) 1px, transparent 1.3px);
+		background-size: 20px 20px;
+		color: var(--foreground);
+		font-size: 13px; line-height: 1.5;
+		user-select: none;
+	}
+	.stage:focus-visible { box-shadow: inset 0 0 0 2px var(--ring); }
+	.layer { position: absolute; inset: 0; }
+	.n {
+		position: absolute;
+		padding: 12px 16px;
+		border-radius: 8px;
+		border: 1px solid var(--canvas-node-border);
+		background: var(--canvas-node-bg);
+		box-shadow: var(--shadow-sm);
+		overflow: hidden;
+		font-size: 13px;
+	}
+	.n.vis { overflow: visible; }
+	.n.sel { box-shadow: 0 0 0 2px var(--primary), var(--shadow-sm); }
+	.n[style*="--tint"] {
+		background: color-mix(in oklab, var(--tint) 16%, var(--canvas-node-bg));
+		border-color: color-mix(in oklab, var(--tint) 78%, var(--foreground));
+	}
+	.n h4 { margin: 0 0 2px; font-size: 15px; font-weight: 600; color: var(--primary); }
+	.n h5 { margin: 0 0 2px; font-size: 13px; font-weight: 600; color: color-mix(in oklab, var(--tint, var(--primary)) 55%, var(--foreground)); }
+	.n p { margin: 0; }
+	.mut { color: var(--muted-foreground); }
+	.ph-t { opacity: .6; font-style: italic; margin: 0; }
+	.rz { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); border: 2px solid var(--background); box-sizing: content-box; margin: -6px 0 0 -6px; }
+	.rz.tl { left: 0; top: 0; } .rz.tr { left: 100%; top: 0; } .rz.bl { left: 0; top: 100%; } .rz.br { left: 100%; top: 100%; }
+	svg.edges { position: absolute; inset: 0; pointer-events: none; overflow: visible; color: var(--canvas-edge); }
+	svg.edges path.e { fill: none; stroke: currentColor; stroke-width: 1.5; }
+	svg.edges path.e.sel { stroke: var(--primary); }
+	svg.edges path.hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; cursor: pointer; }
+	.grp {
+		position: absolute; border-radius: 10px;
+		border: 1px dashed color-mix(in oklab, var(--foreground) 30%, transparent);
+		background: color-mix(in oklab, var(--tint, var(--primary)) 7%, transparent);
+	}
+	.grp[style*="--tint"] { border-color: color-mix(in oklab, var(--tint) 70%, var(--foreground)); }
+	.chip {
+		position: absolute; left: 10px; top: -14px;
+		display: inline-flex; align-items: center; gap: 6px;
+		height: 26px; padding: 0 10px; border-radius: 7px;
+		font-size: 13px; font-weight: 600; line-height: 1; white-space: nowrap;
+		background: var(--popover); color: var(--foreground);
+		border: 1px solid var(--canvas-node-border); box-shadow: var(--shadow-sm);
+		cursor: text;
+	}
+	.chip.ghost { color: var(--muted-foreground); font-weight: 500; font-style: italic; border-style: dashed; }
+	.chip:hover { border-color: var(--primary); }
+	.chip-in, .elabel-in {
+		position: absolute; height: 26px; padding: 0 8px; border-radius: 7px;
+		font: inherit; font-size: 13px; font-weight: 600;
+		background: var(--popover); color: var(--foreground);
+		border: 1px solid var(--ring); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 25%, transparent);
+		outline: none; user-select: text;
+	}
+	.chip-in { left: 10px; top: -14px; width: 150px; }
+	.elabel-in { width: 110px; transform: translate(-50%, -50%); }
+	.elabel {
+		position: absolute; transform: translate(-50%, -50%);
+		display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 6px;
+		font-size: 12px; white-space: nowrap;
+		background: var(--popover); color: var(--foreground);
+		border: 1px solid var(--canvas-node-border); cursor: text;
+	}
+	.elabel:hover { border-color: var(--primary); }
+	.elabel.ghost { opacity: 0; color: var(--muted-foreground); border-style: dashed; }
+	.elabel.ghost:hover, .elabel.ghost.show { opacity: 1; }
+	.hint { position: absolute; left: 16px; top: 12px; font-size: 12px; color: var(--muted-foreground); }
+
+	/* controls, minimap */
+	.ctl { position: absolute; left: 14px; bottom: 15px; display: flex; flex-direction: column; gap: 8px; }
+	.ctl .gb { display: flex; flex-direction: column; background: var(--background); border: 1px solid var(--canvas-node-border); border-radius: 6px; box-shadow: var(--shadow-sm); overflow: hidden; }
+	.ctl button, .tbtn { width: 28px; height: 28px; display: grid; place-items: center; border: 0; background: transparent; color: var(--foreground); cursor: pointer; }
+	.ctl button:hover { background: var(--accent); }
+	.ctl button.dis { opacity: .35; pointer-events: none; }
+	.tbtn { position: absolute; right: 12px; top: 12px; width: 30px; height: 30px; border-radius: 8px; background: var(--background); border: 1px solid var(--canvas-node-border); box-shadow: var(--shadow-sm); }
+	.mm { position: absolute; right: 15px; bottom: 15px; width: 200px; height: 150px; background: var(--background); border: 1px solid var(--canvas-node-border); border-radius: 6px; overflow: hidden; box-shadow: var(--shadow-sm); }
+	.mm svg { display: block; }
+
+	/* context menu */
+	.cmenu {
+		position: absolute; z-index: 20; min-width: 210px; padding: 4px;
+		background: var(--popover); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-xl);
+		user-select: none;
+	}
+	.mi {
+		display: flex; align-items: center; gap: 8px; width: 100%;
+		padding: 6px 10px; border: 0; border-radius: 5px; background: transparent;
+		font-size: 12.5px; text-align: left; cursor: pointer; color: var(--foreground);
+	}
+	.mi:hover { background: var(--accent); }
+	.mi:focus-visible, .mi:focus { outline: none; background: var(--accent); box-shadow: inset 0 0 0 1.5px var(--ring); }
+	.mi.danger:hover, .mi.danger:focus { background: color-mix(in oklab, var(--destructive) 14%, transparent); color: var(--destructive); }
+	.mi .ml { flex: 1; }
+	.sep { height: 1px; background: var(--border); margin: 4px 2px; }
+	.keys { display: inline-flex; gap: 1px; color: var(--muted-foreground); font-size: 12px; }
+	.keys kbd { font: inherit; text-align: center; }
+	.hint-old { color: var(--muted-foreground); font-size: 11px; }
+	.cmenu.legacy { background: var(--background); }
+
+	/* toast */
+	.toast {
+		position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 40;
+		padding: 6px 12px; border-radius: 8px; font-size: 12.5px;
+		background: var(--foreground); color: var(--background); box-shadow: var(--shadow-md);
+		max-width: 90%;
+	}
+	.toast.err { background: var(--destructive); color: #fff; }
+
+	/* picker */
+	.pk-bd { position: absolute; inset: 0; z-index: 30; background: color-mix(in oklab, var(--foreground) 22%, transparent); display: grid; place-items: start center; padding-top: 18px; }
+	.pk { width: 320px; background: var(--popover); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-xl); overflow: hidden; }
+	.pk-h { padding: 8px 12px 0; font-size: 12px; font-weight: 600; color: var(--muted-foreground); }
+	.pk-in { display: block; width: calc(100% - 16px); margin: 8px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--background); color: var(--foreground); font: inherit; font-size: 13px; user-select: text; }
+	.pk-in:focus-visible { outline: 2px solid var(--ring); outline-offset: 0; }
+	.pk-list { max-height: 188px; overflow-y: auto; padding: 0 4px 4px; }
+	.pk-it { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 5px; font-size: 12.5px; cursor: pointer; }
+	.pk-it:hover, .pk-it.act { background: var(--accent); }
+	.pk-it.act { box-shadow: inset 0 0 0 1.5px var(--ring); }
+	.pk-f { padding: 6px 12px; font-size: 11.5px; color: var(--muted-foreground); border-top: 1px solid var(--border); }
+
+	/* text card editing */
+	.ta { display: block; width: 100%; background: transparent; border: 0; color: var(--foreground); font: inherit; font-size: 13px; line-height: 1.5; user-select: text; }
+	.ta.legacy { min-height: 40px; outline: none; resize: vertical; }
+	.ta.fill { height: 100%; resize: none; outline: none; padding: 0; }
+	.n.editing.fillring { box-shadow: 0 0 0 2px var(--ring), 0 0 0 5px color-mix(in oklab, var(--ring) 22%, transparent); border-color: var(--ring); }
+	.n.editing.fillring { padding: 10px 12px; }
+
+	/* file / link nodes */
+	.fh {
+		display: flex; align-items: center; gap: 8px; width: calc(100% + 8px); margin: -2px -4px; padding: 2px 4px;
+		border: 0; border-radius: 4px; background: transparent; cursor: pointer; text-align: left; font-weight: 500;
+	}
+	.fh:hover { background: color-mix(in oklab, var(--foreground) 7%, transparent); }
+	.fh .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.fh .oi { margin-left: auto; opacity: 0; transition: opacity .15s; }
+	.fh:hover .oi { opacity: .55; }
+	.hdr { display: flex; align-items: center; gap: 8px; }
+	.hdr .fh { flex: 1; min-width: 0; }
+	.openbtn { display: grid; place-items: center; width: 24px; height: 24px; border: 0; border-radius: 5px; background: transparent; color: var(--muted-foreground); cursor: pointer; flex-shrink: 0; }
+	.openbtn:hover { background: var(--accent); color: var(--primary); }
+	.openbtn:focus-visible { outline: 2px solid var(--ring); }
+	.divl { border-top: 1px solid var(--border); margin: 10px 0 6px; }
+	.url { display: block; margin-top: 8px; font-size: 11.5px; color: var(--muted-foreground); }
+	.lk-in { display: block; width: 100%; margin-bottom: 6px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 5px; background: var(--background); color: var(--foreground); font: inherit; font-size: 12px; user-select: text; }
+	.lk-in:focus-visible { outline: 2px solid var(--ring); }
+	.gone { position: absolute; inset: 0; z-index: 25; display: grid; place-content: center; justify-items: center; gap: 10px; text-align: center; background: color-mix(in oklab, var(--background) 90%, transparent); }
+
+	/* handles */
+	.h { position: absolute; width: var(--hit, 8px); height: var(--hit, 8px); opacity: 0; transition: opacity .15s; cursor: crosshair; z-index: 3; }
+	.h::before { content: ''; position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; border-radius: 50%; box-sizing: border-box; background: var(--primary); border: 2px solid var(--background); transform: translate(-50%, -50%); transition: transform .12s; }
+	.h:hover::before { transform: translate(-50%, -50%) scale(1.4); }
+	.h.s-top { left: 50%; top: 0; margin: calc(var(--hit, 8px) / -2) 0 0 calc(var(--hit, 8px) / -2); }
+	.h.s-bottom { left: 50%; top: 100%; margin: calc(var(--hit, 8px) / -2) 0 0 calc(var(--hit, 8px) / -2); }
+	.h.s-left { left: 0; top: 50%; margin: calc(var(--hit, 8px) / -2) 0 0 calc(var(--hit, 8px) / -2); }
+	.h.s-right { left: 100%; top: 50%; margin: calc(var(--hit, 8px) / -2) 0 0 calc(var(--hit, 8px) / -2); }
+	.n:hover .h, .stage.show-hit .h { opacity: 1; }
+	.after .n.sel .h { opacity: 1; }
+	.stage.show-hit .h { outline: 1px dashed var(--primary); background: color-mix(in oklab, var(--primary) 12%, transparent); border-radius: 50%; }
+	.role { display: none; position: absolute; font-size: 10px; font-weight: 700; padding: 0 4px; border-radius: 4px; background: var(--foreground); color: var(--background); white-space: nowrap; pointer-events: none; font-style: normal; }
+	.stage.show-roles .role { display: block; }
+	.h.s-top .role { bottom: 100%; left: 50%; transform: translateX(-50%); }
+	.h.s-bottom .role { top: 100%; left: 50%; transform: translateX(-50%); }
+	.h.s-left .role { right: 100%; top: 50%; transform: translateY(-50%); margin-right: 2px; }
+	.h.s-right .role { left: 100%; top: 50%; transform: translateY(-50%); margin-left: 2px; }
+
+	/* images */
+	.imgbox { position: absolute; inset: 0; border-radius: 7px; overflow: hidden; background: var(--canvas-node-bg); }
+	.imgbox img { width: 100%; height: 100%; display: block; }
+	.imgbox .ph { display: grid; place-content: center; justify-items: center; gap: 8px; height: 100%; padding: 8px; color: var(--muted-foreground); text-align: center; }
+	.imgbox .ph .pth { font-size: 11px; opacity: .6; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.imgbox .ph svg { opacity: .35; }
+	.imgbox .skel { position: absolute; inset: 0; background: linear-gradient(100deg, color-mix(in oklab, var(--foreground) 9%, var(--canvas-node-bg)) 30%, color-mix(in oklab, var(--foreground) 20%, var(--canvas-node-bg)) 50%, color-mix(in oklab, var(--foreground) 9%, var(--canvas-node-bg)) 70%); background-size: 250% 100%; animation: shimmer 1.4s linear infinite; }
+	@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+	@media (prefers-reduced-motion: reduce) { .imgbox .skel { animation: none; } }
+	.imgbox .err { display: grid; place-content: center; justify-items: center; gap: 6px; height: 100%; padding: 8px; text-align: center; background: color-mix(in oklab, var(--destructive) 6%, var(--canvas-node-bg)); }
+	.imgbox .err b { font-size: 13px; }
+	.imgbox .err .pth { font-size: 11px; color: var(--muted-foreground); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.imgbox .err svg { color: var(--destructive); opacity: .8; }
+	.altline { font-family: var(--mono); font-size: 11px; color: var(--muted-foreground); position: absolute; left: 0; right: 0; text-align: center; }
+
+	/* P07 panes */
+	.pane { position: absolute; inset: 0; display: flex; flex-direction: column; }
+	.banner { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: color-mix(in oklab, var(--destructive) 12%, var(--popover)); border-bottom: 1px solid color-mix(in oklab, var(--destructive) 45%, var(--border)); font-size: 12.5px; user-select: text; }
+	.banner svg { color: var(--destructive); }
+	.banner .sub { color: var(--muted-foreground); }
+	.banner .btn { margin-left: auto; background: var(--popover); }
+	.pbody { position: relative; flex: 1; overflow: hidden; }
+	.disabled-cover { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 4px; text-align: center; color: var(--muted-foreground); background: color-mix(in oklab, var(--card) 88%, transparent); z-index: 4; }
+	.addhint { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 5; }
+	.addhint button { padding: 8px 20px; border-radius: 8px; border: 1px dashed color-mix(in oklab, var(--foreground) 30%, transparent); background: color-mix(in oklab, var(--foreground) 5%, transparent); color: var(--muted-foreground); font-size: 14px; cursor: pointer; }
+	.addhint button:hover { color: var(--foreground); border-color: color-mix(in oklab, var(--foreground) 50%, transparent); }
+	.src { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--background); }
+	.src-h { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--divider); font-size: 12px; color: var(--muted-foreground); }
+	.src textarea { flex: 1; width: 100%; border: 0; outline: none; resize: none; padding: 10px 14px; background: var(--background); color: var(--foreground); font-family: var(--mono); font-size: 12px; line-height: 1.6; tab-size: 2; white-space: pre; overflow: auto; user-select: text; }
+	.src-f { padding: 6px 12px; font-size: 12px; border-top: 1px solid var(--divider); display: flex; gap: 8px; align-items: center; }
+	.src-f.bad { color: var(--destructive); }
+	.src-f.ok { color: var(--success); }
+	.disk { margin-top: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); overflow: hidden; font-size: 12px; }
+	.disk .dh { display: flex; justify-content: space-between; padding: 4px 10px; border-bottom: 1px solid var(--border); color: var(--muted-foreground); }
+	.disk pre { margin: 0; padding: 8px 10px; font-family: var(--mono); font-size: 11px; line-height: 1.5; tab-size: 2; white-space: pre-wrap; word-break: break-all; max-height: 120px; overflow: auto; }
+	.disk .state { font-weight: 700; }
+	.disk .state.lost { color: var(--destructive); }
+	.disk .state.safe { color: var(--success); }
+
+	/* P95 */
+	.mini-pane { padding: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+	.mini-pane .cmenu { position: static; }
+	.abar { display: flex; gap: 4px; padding: 8px 10px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; margin-top: 12px; }
+	.ab { position: relative; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 6px; background: transparent; cursor: pointer; color: var(--muted-foreground); }
+	.ab:hover, .ab:focus-visible { background: var(--accent); color: var(--foreground); outline: none; }
+	.ab .tip { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 10; white-space: nowrap; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 6px; font-size: 12px; background: var(--foreground); color: var(--background); box-shadow: var(--shadow-md); pointer-events: none; }
+	.ab:hover .tip, .ab:focus-visible .tip { display: inline-flex; }
+	.tip kbd { font: inherit; font-size: 11px; padding: 0 5px; border-radius: 4px; background: color-mix(in oklab, var(--background) 22%, transparent); }
+	.tip .gap { display: inline-flex; gap: 2px; }
+
+	/* P136 / misc stage layout */
+	.stage.plain-grid { background-image: radial-gradient(var(--canvas-grid) 1px, transparent 1.3px); }
+	.legend { font-size: 12px; color: var(--muted-foreground); }
+</style>
+</head>
+<body>
+<div class="top">
+	<h1>Canvas: light-theme colours, labels, card creation and safety</h1>
+	<nav class="nav" aria-label="Proposals">
+		<a href="#p12">P12</a><a href="#p13">P13</a><a href="#p07">P07</a><a href="#p133">P133</a><a href="#p135">P135</a><a href="#p134">P134</a><a href="#p31">P31</a><a href="#p136">P136</a><a href="#p137">P137</a><a href="#p95">P95</a>
+	</nav>
+	<div class="seg" role="group" aria-label="Theme of the AFTER recreations">
+		<button type="button" id="th-light" aria-pressed="true"><i data-ic="sun" data-s="14"></i> Lavender light</button>
+		<button type="button" id="th-dark" aria-pressed="false"><i data-ic="moon" data-s="14"></i> Default dark</button>
+	</div>
+</div>
+
+<main>
+	<p class="intro">Ten proposals for the canvas, ordered by tier (clear, then moderate, then polish). Each section shows BEFORE (the real screenshot or a faithful recreation, always in Lavender light) and AFTER (an interactive recreation that follows the theme toggle above). Panels marked as recreations are interactive: right-click, double-click, press keys.</p>
+
+	<!-- ========================= P12 ========================= -->
+	<section class="sec" id="p12">
+		<div class="sec-h"><span class="pid">P12</span><h2>Canvas colours are dark-only: edges, grid, minimap and overlays vanish or turn heavy in light themes</h2><span class="tier clear">clear</span></div>
+		<p class="problem"><b>Problem.</b> The xyflow variables and overlay chrome use hard-coded white or black alpha, so edges, grid and node borders are near-invisible in the Lavender light theme and the minimap is a dark slab.</p>
+		<div class="cmp">
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag b">BEFORE</span> Real screenshot, canvas area, Lavender Haze</figcaption>
+				<div class="crop" data-theme="light" data-crop="580,40,860,828" data-src="../screens/canvas-view-light.png" role="img" aria-label="Screenshot of the current canvas in the light theme: edges and grid barely visible, dark minimap"></div>
+				<div class="ctrls"><span>Look for: the "leads to" edge, the group border, the grid dots, the bottom-right minimap.</span></div>
+			</figure>
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag a">AFTER</span> Token-derived edges, grid, node borders, light minimap mask, color-mix tints</figcaption>
+				<div class="fit" data-w="860" data-h="828"><div class="stage" id="p12-stage" tabindex="-1"></div></div>
+				<div class="ctrls"><button class="btn" id="p12-sel" type="button" aria-pressed="false"><i data-ic="mouse-pointer-2" data-s="13"></i> Show selected edge</button><span>Toggle the theme at the top to check both built-in themes.</span></div>
+			</figure>
+		</div>
+		<div class="notes">
+			<h3>Token mapping</h3>
+			<table class="tok">
+				<tr><th>Surface</th><th>Now</th><th>Proposed</th></tr>
+				<tr><td>Edge stroke</td><td><code>rgba(255,255,255,0.3)</code></td><td><code>color-mix(in oklab, var(--foreground) 42%, var(--card))</code></td></tr>
+				<tr><td>Grid dots</td><td><code>rgba(255,255,255,0.05)</code></td><td><code>color-mix(in oklab, var(--foreground) 18%, transparent)</code></td></tr>
+				<tr><td>Node border</td><td><code>rgba(255,255,255,0.15)</code></td><td><code>color-mix(in oklab, var(--foreground) 24%, var(--card))</code></td></tr>
+				<tr><td>Minimap mask</td><td><code>rgba(0,0,0,0.6)</code> always</td><td>light: <code>foreground 16% over transparent</code>, dark: <code>black 55%</code></td></tr>
+				<tr><td>Node tint (fill)</td><td><code>${hex}20</code> suffix</td><td><code>color-mix(in oklab, var(--tint) 16%, surface)</code></td></tr>
+				<tr><td>Node tint (border)</td><td><code>hex</code> as is</td><td><code>color-mix(in oklab, var(--tint) 78%, var(--foreground))</code></td></tr>
+				<tr><td>Node and menu shadows</td><td><code>rgba(0,0,0,0.3/0.4)</code></td><td><code>var(--shadow-sm)</code> and <code>var(--shadow-xl)</code> (the <code>--elev-*</code> tokens)</td></tr>
+			</table>
+		</div>
+	</section>
+
+	<!-- ========================= P13 ========================= -->
+	<section class="sec" id="p13">
+		<div class="sec-h"><span class="pid">P13</span><h2>Canvas groups and edges cannot be labelled from the UI</h2><span class="tier clear">clear</span></div>
+		<p class="problem"><b>Problem.</b> Groups are created with an empty label, the 12 px muted label is invisible when empty, and "Edit label" is never wired, so edge labels only exist in JSON.</p>
+		<div class="cmp">
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag b">BEFORE</span> Real screenshot: tiny "Research" label, "leads to" label with no edit path</figcaption>
+				<div class="crop" data-theme="light" data-crop="605,170,560,170" data-src="../screens/canvas-view-light.png" role="img" aria-label="Screenshot of the Research group label and the leads to edge label"></div>
+				<div class="ctrls"><span>Double-click does nothing on either label. The edge menu has no "Edit label" and the group menu has no "Rename".</span></div>
+			</figure>
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag a">AFTER</span> 13 px header chip, inline editing, Rename and Edit label</figcaption>
+				<div class="fit" data-w="600" data-h="340"><div class="stage" id="p13-stage" tabindex="0" aria-label="Group and edge label demo"></div></div>
+				<div class="ctrls"><span>Double-click a chip or an edge label to edit. Enter saves, Escape cancels. Right-click a group or an edge for the menu. Click an unlabelled edge, then double-click its "Add label" chip.</span></div>
+			</figure>
+		</div>
+	</section>
+
+	<!-- ========================= P07 ========================= -->
+	<section class="sec" id="p07">
+		<div class="sec-h"><span class="pid">P07</span><h2>A corrupt or half-edited canvas JSON shows as an empty board, and the next edit overwrites the file</h2><span class="tier moderate">moderate</span></div>
+		<p class="problem"><b>Problem.</b> parseCanvas swallows the parse error and returns an empty canvas. The first add, move or delete then persists over the broken text, so a hand-edited file is lost silently.</p>
+		<div class="cmp">
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag b">BEFORE</span> Recreation: empty board, "Add card" hint, autosave overwrites the file</figcaption>
+				<div class="fit" data-theme="light" data-w="560" data-h="300"><div class="stage" id="p07b-stage" tabindex="-1"></div></div>
+				<div class="disk" id="p07b-disk"></div>
+				<div class="ctrls"><span>Click "Add card" or the toolbar text button.</span><button class="btn" id="p07b-reset" type="button">Reset</button></div>
+			</figure>
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag a">AFTER</span> Banner, "Open source mode", editing and autosave blocked</figcaption>
+				<div class="fit" data-w="560" data-h="300"><div class="stage" id="p07a-stage" tabindex="-1"></div></div>
+				<div class="disk" id="p07a-disk"></div>
+				<div class="ctrls"><div class="seg" role="group" aria-label="Canvas file state"><button type="button" id="p07a-bad" aria-pressed="true">Invalid JSON</button><button type="button" id="p07a-ok" aria-pressed="false">Valid file</button></div><span>In source mode, fix the comma (or press the helper) and switch back.</span></div>
+			</figure>
+		</div>
+	</section>
+
+	<!-- ========================= P133 ========================= -->
+	<section class="sec" id="p133">
+		<div class="sec-h"><span class="pid">P133</span><h2>New canvas cards are not ready to type into and stack on each other</h2><span class="tier moderate">moderate</span></div>
+		<p class="problem"><b>Problem.</b> A new text card is neither selected nor in edit mode, and every toolbar add lands on the same viewport centre, so repeated adds stack exactly.</p>
+		<div class="cmp">
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag b">BEFORE</span> Recreation of current behaviour</figcaption>
+				<div class="fit" data-theme="light" data-w="560" data-h="300"><div class="stage" id="p133b-stage" tabindex="0" aria-label="Current card creation"></div></div>
+				<div class="ctrls"><button class="btn" id="p133b-add" type="button"><i data-ic="type" data-s="13"></i> Toolbar: add text card</button><button class="btn" id="p133b-reset" type="button">Reset</button><span>Right-click the board to add at the pointer.</span></div>
+				<div class="readout" id="p133b-stat"></div>
+			</figure>
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag a">AFTER</span> Selected, in edit mode, cascading offset, click position for menu adds</figcaption>
+				<div class="fit" data-w="560" data-h="300"><div class="stage" id="p133a-stage" tabindex="0" aria-label="Proposed card creation"></div></div>
+				<div class="ctrls"><button class="btn" id="p133a-add" type="button"><i data-ic="type" data-s="13"></i> Toolbar: add text card</button><button class="btn" id="p133a-reset" type="button">Reset</button><span>Type straight away. Click Add again: the next card cascades.</span></div>
+				<div class="readout" id="p133a-stat"></div>
+			</figure>
+		</div>
+	</section>
+
+	<!-- ========================= P135 ========================= -->
+	<section class="sec" id="p135">
+		<div class="sec-h"><span class="pid">P135</span><h2>Canvas text cards are hard to enter and cramped once editing</h2><span class="tier moderate">moderate</span></div>
+		<p class="problem"><b>Problem.</b> Editing needs a double-click. The textarea is 40 px tall with its own vertical resizer and no outline, competing with the node resizer.</p>
+		<div class="cmp">
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag b">BEFORE</span> Double-click to edit, short textarea, native resizer, no focus ring</figcaption>
+				<div class="fit" data-theme="light" data-w="560" data-h="260"><div class="stage" id="p135b-stage" tabindex="0" aria-label="Current text editing"></div></div>
+				<div class="readout" id="p135b-stat"></div>
+			</figure>
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag a">AFTER</span> Enter or F2 on a selected card, textarea fills the card, focus ring</figcaption>
+				<div class="fit" data-w="560" data-h="260"><div class="stage" id="p135a-stage" tabindex="0" aria-label="Proposed text editing"></div></div>
+				<div class="ctrls"><span>Click a card to select it, press Enter or F2. Escape leaves edit mode. Select an empty card to see the placeholder.</span></div>
+				<div class="readout" id="p135a-stat"></div>
+			</figure>
+		</div>
+	</section>
+
+	<!-- ========================= P134 ========================= -->
+	<section class="sec" id="p134">
+		<div class="sec-h"><span class="pid">P134</span><h2>A single click on a canvas file or link header navigates away</h2><span class="tier moderate">moderate</span></div>
+		<p class="problem"><b>Problem.</b> The header is the natural grab spot, yet a plain click opens the note or URL. The open icon only shows on hover and a failing URL gives no feedback.</p>
+		<div class="cmp">
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag b">BEFORE</span> Recreation: click on header opens at once</figcaption>
+				<div class="fit" data-theme="light" data-w="560" data-h="240"><div class="stage" id="p134b-stage" tabindex="-1"></div></div>
+				<div class="ctrls"><button class="btn" id="p134b-bad" type="button">Simulate unsafe URL</button><span id="p134b-st">Click a header.</span></div>
+			</figure>
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag a">AFTER</span> Click selects, open icon always visible, Cmd+click opens, double-click edits links</figcaption>
+				<div class="fit" data-w="560" data-h="240"><div class="stage" id="p134a-stage" tabindex="-1"></div></div>
+				<div class="ctrls"><button class="btn" id="p134a-bad" type="button">Simulate unsafe URL</button><span id="p134a-st">Click a header, then try the icon or Cmd/Ctrl+click.</span></div>
+			</figure>
+		</div>
+		<div class="notes"><h3>Docs follow-up</h3><ul><li>Update <code>11-canvas.md:85</code>: "click the header to open" becomes "click selects, Cmd+click or the icon opens".</li></ul></div>
+	</section>
+
+	<!-- ========================= P31 ========================= -->
+	<section class="sec" id="p31">
+		<div class="sec-h"><span class="pid">P31</span><h2>Hand-built overlays do not move, trap or restore focus, and Escape is inconsistent</h2><span class="tier moderate">moderate</span></div>
+		<p class="problem"><b>Problem.</b> The canvas menu is a plain div of buttons: no roles, no arrow keys, focus stays where it was, and Escape does not close it. The file picker silently caps at 20 results.</p>
+		<div class="cmp">
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag b">BEFORE</span> Recreation of the current menu and picker</figcaption>
+				<div class="fit" data-theme="light" data-w="560" data-h="340"><div class="stage" id="p31b-stage" tabindex="0" aria-label="Current canvas menu"></div></div>
+				<div class="ctrls"><button class="btn" id="p31b-open" type="button">Open canvas menu</button><span>Or right-click the board. Then try ArrowDown and Escape.</span></div>
+				<div class="readout" id="p31b-say">Menu closed.</div>
+			</figure>
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag a">AFTER</span> Real menu: roles, roving focus, Escape, "Showing 20 of N"</figcaption>
+				<div class="fit" data-w="560" data-h="340"><div class="stage" id="p31a-stage" tabindex="0" aria-label="Proposed canvas menu"></div></div>
+				<div class="ctrls"><button class="btn" id="p31a-open" type="button">Open canvas menu</button><span>Or right-click. ArrowUp/Down, Home, End, Escape, Tab all work. Focus returns to the board.</span></div>
+				<div class="readout" id="p31a-say">Menu closed.</div>
+			</figure>
+		</div>
+		<div class="notes"><h3>Implementation path</h3><ul><li>Rebuild the pane, node and edge menu on bits-ui ContextMenu (roles, typeahead and focus come for free), or at minimum add the roles and key handling shown here.</li><li>File picker and link input move to Command/Dialog with a labelled input and a result count.</li><li>Settings sheet changes from the same proposal (focus in, focus restore, Escape guard) are outside this canvas group.</li></ul></div>
+	</section>
+
+	<!-- ========================= P136 ========================= -->
+	<section class="sec" id="p136">
+		<div class="sec-h"><span class="pid">P136</span><h2>Canvas connection handles are hidden until hover and only 8 px</h2><span class="tier polish">polish</span></div>
+		<p class="problem"><b>Problem.</b> Handles show only on node hover with an 8 px target, and image nodes expose just four one-way handles (top in, bottom out, left in, right out).</p>
+		<div class="cmp">
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag b">BEFORE</span> Recreation: hover only, 8 px hit area, image has 4 handles</figcaption>
+				<div class="fit" data-theme="light" data-w="560" data-h="240"><div class="stage" id="p136b-stage" tabindex="-1"></div></div>
+				<div class="ctrls"><button class="btn" data-hit="p136b-stage" type="button" aria-pressed="false">Show hit areas</button><button class="btn" data-roles="p136b-stage" type="button" aria-pressed="false">Show handle roles</button><span>Hover a node. Try to land on a dot.</span></div>
+			</figure>
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag a">AFTER</span> Handles on selected nodes, 16 px hit area, image has 8 handles</figcaption>
+				<div class="fit after" data-w="560" data-h="240"><div class="stage" id="p136a-stage" tabindex="-1"></div></div>
+				<div class="ctrls"><button class="btn" data-hit="p136a-stage" type="button" aria-pressed="false">Show hit areas</button><button class="btn" data-roles="p136a-stage" type="button" aria-pressed="false">Show handle roles</button><span>Click a node to select it: handles stay visible.</span></div>
+			</figure>
+		</div>
+		<div class="notes"><h3>Scope</h3><ul><li>Handle ids and the JSON Canvas side mapping stay as they are. Only visibility, hit size and ImageNode's missing handles change.</li><li>Dropping an edge on empty canvas still creates a connected card.</li></ul></div>
+	</section>
+
+	<!-- ========================= P137 ========================= -->
+	<section class="sec" id="p137">
+		<div class="sec-h"><span class="pid">P137</span><h2>Canvas file and image cards give weak or stale status</h2><span class="tier polish">polish</span></div>
+		<p class="problem"><b>Problem.</b> Image cards use one placeholder for loading and error, put the full vault path in <code>alt</code> and crop with <code>object-fit: cover</code>.</p>
+		<div class="ctrls" style="margin:0 0 10px"><div class="seg" role="group" aria-label="Image state"><button type="button" data-img="loading" aria-pressed="false">Loading</button><button type="button" data-img="loaded" aria-pressed="true">Loaded</button><button type="button" data-img="error" aria-pressed="false">Not found</button></div><span>One switch drives both panels.</span></div>
+		<div class="cmp">
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag b">BEFORE</span> Same placeholder for loading and error, cover crop, path as alt</figcaption>
+				<div class="fit" data-theme="light" data-w="560" data-h="260"><div class="stage" id="p137b-stage" tabindex="-1"></div></div>
+			</figure>
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag a">AFTER</span> Skeleton, "Image not found" with path, contain fit, basename alt</figcaption>
+				<div class="fit" data-w="560" data-h="260"><div class="stage" id="p137a-stage" tabindex="-1"></div></div>
+			</figure>
+		</div>
+		<div class="notes"><h3>Dropped from the proposal</h3><ul><li>A named-file error on note cards and extra Open/Remove buttons: the header already names the file and the context menu has Delete.</li></ul></div>
+	</section>
+
+	<!-- ========================= P95 ========================= -->
+	<section class="sec" id="p95">
+		<div class="sec-h"><span class="pid">P95</span><h2>Shortcut hints are spelled four ways, and the canvas shows "Ctrl+A" on a Mac</h2><span class="tier polish">polish</span></div>
+		<p class="problem"><b>Problem.</b> The canvas menu shows "Ctrl+A" and "Shift+1", tooltips say "(Cmd+D)", and Delete, Undo, Redo and zoom-to-selection have no hint although CanvasInner handles them.</p>
+		<div class="cmp">
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag b">BEFORE</span> Current menus and tooltips</figcaption>
+				<div class="mini-pane" data-theme="light" id="p95b-menus"></div>
+				<div class="abar" data-theme="light" id="p95b-bar" aria-label="Note action bar (current)"></div>
+			</figure>
+			<figure class="panel">
+				<figcaption class="cap"><span class="tag a">AFTER</span> formatShortcut glyphs through one Kbd component</figcaption>
+				<div class="mini-pane" id="p95a-menus"></div>
+				<div class="abar" id="p95a-bar" aria-label="Note action bar (proposed)"></div>
+			</figure>
+		</div>
+		<div class="notes"><h3>Hint map</h3>
+			<table class="tok">
+				<tr><th>Action</th><th>Handler (CanvasInner)</th><th>Mac</th><th>Windows/Linux</th></tr>
+				<tr><td>Select all</td><td>meta or ctrl + A</td><td>⌘A</td><td>Ctrl+A</td></tr>
+				<tr><td>Zoom to fit</td><td>Shift+1</td><td>⇧1</td><td>Shift+1</td></tr>
+				<tr><td>Zoom to selection</td><td>Shift+2</td><td>⇧2</td><td>Shift+2</td></tr>
+				<tr><td>Undo / Redo</td><td>meta+Z / meta+Shift+Z</td><td>⌘Z / ⇧⌘Z</td><td>Ctrl+Z / Ctrl+Shift+Z</td></tr>
+				<tr><td>Delete</td><td>xyflow default</td><td>⌫</td><td>Del</td></tr>
+			</table>
+		</div>
+	</section>
+</main>
+
+<script>
+(() => {
+	'use strict';
+
+	/* ---------- lucide icons (24x24 paths) ---------- */
+	const I = {
+		'type': '<path d="M12 4v16"/><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"/><path d="M9 20h6"/>',
+		'file-text': '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+		'external-link': '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+		'image': '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+		'image-off': '<line x1="2" x2="22" y1="2" y2="22"/><path d="M10.41 10.41a2 2 0 1 1-2.83-2.83"/><line x1="13.5" x2="6" y1="13.5" y2="21"/><line x1="18" x2="21" y1="12" y2="15"/><path d="M3.59 3.59A1.99 1.99 0 0 0 3 5v14a2 2 0 0 0 2 2h14c.55 0 1.052-.22 1.41-.59"/><path d="M21 15V5a2 2 0 0 0-2-2H9"/>',
+		'square': '<rect width="18" height="18" x="3" y="3" rx="2"/>',
+		'mouse-pointer-2': '<path d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"/>',
+		'maximize-2': '<path d="M15 3h6v6"/><path d="m21 3-7 7"/><path d="m3 21 7-7"/><path d="M9 21H3v-6"/>',
+		'maximize': '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
+		'scan': '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="2"/>',
+		'pencil': '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+		'palette': '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>',
+		'copy': '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+		'trash-2': '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
+		'tag': '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+		'plus': '<path d="M5 12h14"/><path d="M12 5v14"/>',
+		'minus': '<path d="M5 12h14"/>',
+		'lock': '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+		'x': '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+		'check': '<path d="M20 6 9 17l-5-5"/>',
+		'undo-2': '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/>',
+		'redo-2': '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/>',
+		'triangle-alert': '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+		'code': '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
+		'search': '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+		'star': '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
+		'sun': '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+		'moon': '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+	};
+	const ic = (n, s = 14) => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n]}</svg>`;
+	const $ = (s, r = document) => r.querySelector(s);
+	const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+	const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+	$$('i[data-ic]').forEach((el) => { el.outerHTML = ic(el.dataset.ic, +el.dataset.s || 14); });
+
+	/* ---------- crops of the real screenshot ---------- */
+	$$('.crop').forEach((box) => {
+		const [x, y, w, h] = box.dataset.crop.split(',').map(Number);
+		box.style.aspectRatio = `${w} / ${h}`;
+		const img = document.createElement('img');
+		img.src = box.dataset.src;
+		img.alt = '';
+		img.style.width = `${(1440 / w) * 100}%`;
+		img.style.left = `${(-x / w) * 100}%`;
+		/* top percent is relative to the box height */
+		img.style.top = `${(-y / h) * 100}%`;
+		box.append(img);
+	});
+
+	/* ---------- fit: fixed design size, scaled to the column ---------- */
+	function fit(box) {
+		const w = +box.dataset.w, h = +box.dataset.h, st = box.firstElementChild;
+		st.style.width = w + 'px';
+		st.style.height = h + 'px';
+		const apply = () => {
+			const s = box.clientWidth / w;
+			st.style.transform = `scale(${s})`;
+			st.__s = s;
+			box.style.height = h * s + 2 + 'px';
+		};
+		new ResizeObserver(apply).observe(box);
+		apply();
+	}
+	$$('.fit').forEach(fit);
+	const pt = (e, st) => { const r = st.getBoundingClientRect(); const s = st.__s || 1; return { x: (e.clientX - r.left) / s, y: (e.clientY - r.top) / s }; };
+
+	/* ---------- theme toggle ---------- */
+	const setTheme = (t) => {
+		document.documentElement.dataset.theme = t;
+		$('#th-light').setAttribute('aria-pressed', t === 'light');
+		$('#th-dark').setAttribute('aria-pressed', t === 'dark');
+	};
+	$('#th-light').onclick = () => setTheme('light');
+	$('#th-dark').onclick = () => setTheme('dark');
+
+	/* ---------- shared helpers ---------- */
+	function toast(st, msg, err) {
+		$$('.toast', st).forEach((t) => t.remove());
+		const t = document.createElement('div');
+		t.className = 'toast' + (err ? ' err' : '');
+		t.textContent = msg;
+		t.setAttribute('role', 'status');
+		st.append(t);
+		setTimeout(() => t.remove(), 2600);
+	}
+	const keys = (h, legacy) => legacy
+		? `<span class="hint-old">${esc(h)}</span>`
+		: `<span class="keys" aria-label="${esc(h)}">${[...h].map((k) => `<kbd>${esc(k)}</kbd>`).join('')}</span>`;
+
+	function menuEl(items, o = {}) {
+		const m = document.createElement('div');
+		m.className = 'cmenu' + (o.a11y ? '' : ' legacy');
+		if (o.a11y) { m.setAttribute('role', 'menu'); m.setAttribute('aria-label', o.label || 'Canvas menu'); }
+		items.forEach((it) => {
+			if (it.sep) {
+				const s = document.createElement('div');
+				s.className = 'sep';
+				if (o.a11y) s.setAttribute('role', 'separator');
+				m.append(s);
+				return;
+			}
+			const b = document.createElement('button');
+			b.type = 'button';
+			b.className = 'mi' + (it.danger ? ' danger' : '');
+			if (o.a11y) { b.setAttribute('role', 'menuitem'); b.tabIndex = -1; }
+			b.innerHTML = `${ic(it.icon, 14)}<span class="ml">${it.label}</span>${it.hint ? keys(it.hint, it.legacy) : ''}`;
+			if (it.run) b.onclick = it.run;
+			m.append(b);
+		});
+		return m;
+	}
+	function closeMenu(st, refocus) {
+		const m = $('.cmenu', st);
+		if (m) m.remove();
+		if (refocus) st.focus({ preventScroll: true });
+	}
+	function showMenu(st, p, items, o = {}) {
+		closeMenu(st);
+		if (!st.__outside) {
+			st.__outside = true;
+			st.addEventListener('pointerdown', (e) => { if (!e.target.closest('.cmenu')) closeMenu(st); }, true);
+		}
+		const wrapped = items.map((it) => it.sep ? it : { ...it, run: () => { closeMenu(st, o.a11y); it.run && it.run(); } });
+		const m = menuEl(wrapped, o);
+		st.append(m);
+		const W = st.offsetWidth, H = st.offsetHeight;
+		m.style.left = Math.max(6, Math.min(p.x, W - m.offsetWidth - 6)) + 'px';
+		m.style.top = Math.max(6, Math.min(p.y, H - m.offsetHeight - 6)) + 'px';
+		if (o.a11y) {
+			const its = $$('[role=menuitem]', m);
+			m.addEventListener('keydown', (e) => {
+				const i = its.indexOf(document.activeElement);
+				let handled = true;
+				if (e.key === 'ArrowDown') its[(i + 1) % its.length].focus();
+				else if (e.key === 'ArrowUp') its[(i - 1 + its.length) % its.length].focus();
+				else if (e.key === 'Home') its[0].focus();
+				else if (e.key === 'End') its[its.length - 1].focus();
+				else if (e.key === 'Escape') { closeMenu(st, true); o.say && o.say('Escape: menu closed, focus returned to the board.'); e.stopPropagation(); }
+				else if (e.key === 'Tab') { e.preventDefault(); closeMenu(st, true); o.say && o.say('Tab: menu closed, focus returned to the board.'); }
+				else handled = false;
+				if (handled) { e.preventDefault(); const j = its.indexOf(document.activeElement); if (j >= 0 && o.say) o.say(`Key "${e.key}": focus on "${its[j].textContent.trim()}" (item ${j + 1} of ${its.length}).`); }
+			});
+			its[0].focus();
+			o.say && o.say(`role="menu", ${its.length} items. Focus moved to "${its[0].textContent.trim()}".`);
+		} else {
+			o.say && o.say('Plain div of buttons: no role, focus did not move.');
+		}
+		return m;
+	}
+
+	const NOTES = (() => {
+		const t = ['Roadmap', 'Q4 OKRs', 'Design sync', 'Launch plan', 'Website redesign', 'Meeting notes', 'Reading list', 'Weekly review', 'Ideas', 'Retro'];
+		return Array.from({ length: 134 }, (_, i) => `${t[i % 10]} ${String(Math.floor(i / 10) + 1).padStart(2, '0')}`);
+	})();
+	function showPicker(st, o) {
+		$$('.pk-bd', st).forEach((e) => e.remove());
+		const bd = document.createElement('div');
+		bd.className = 'pk-bd';
+		const p = document.createElement('div');
+		p.className = 'pk';
+		const id = o.id;
+		if (o.a11y) { p.setAttribute('role', 'dialog'); p.setAttribute('aria-modal', 'true'); p.setAttribute('aria-label', 'Add note from vault'); }
+		p.innerHTML = `<div class="pk-h">Add note from vault</div>
+			<input class="pk-in" placeholder="Search notes..." autocomplete="off" ${o.a11y ? `role="combobox" aria-label="Search notes" aria-expanded="true" aria-controls="${id}-l" aria-autocomplete="list"` : ''}>
+			<div class="pk-list" id="${id}-l" ${o.a11y ? 'role="listbox" aria-label="Notes"' : ''}></div>
+			<div class="pk-f" ${o.a11y ? 'aria-live="polite"' : ''}></div>`;
+		bd.append(p);
+		st.append(bd);
+		const input = $('input', p), list = $('.pk-list', p), foot = $('.pk-f', p);
+		let act = 0, shown = [];
+		const close = () => { bd.remove(); st.focus({ preventScroll: true }); o.say && o.say('Picker closed.'); };
+		const pick = (n) => { bd.remove(); st.focus({ preventScroll: true }); toast(st, `Added note card: ${n}`); };
+		const render = () => {
+			const q = input.value.trim().toLowerCase();
+			const all = NOTES.filter((n) => n.toLowerCase().includes(q));
+			shown = all.slice(0, 20);
+			act = Math.min(act, Math.max(0, shown.length - 1));
+			list.innerHTML = '';
+			shown.forEach((n, i) => {
+				const r = document.createElement('div');
+				r.className = 'pk-it' + (o.a11y && i === act ? ' act' : '');
+				r.innerHTML = ic('file-text', 14) + `<span>${esc(n)}</span>`;
+				if (o.a11y) { r.setAttribute('role', 'option'); r.id = `${id}-o${i}`; r.setAttribute('aria-selected', i === act); }
+				r.onclick = () => pick(n);
+				list.append(r);
+			});
+			if (!shown.length) list.innerHTML = '<div class="pk-it mut">No matching notes</div>';
+			if (o.a11y) {
+				foot.textContent = all.length > 20 ? `Showing 20 of ${all.length} notes. Keep typing to narrow.` : `${all.length} note${all.length === 1 ? '' : 's'}`;
+				input.setAttribute('aria-activedescendant', shown.length ? `${id}-o${act}` : '');
+			} else {
+				foot.style.display = 'none';
+			}
+		};
+		input.addEventListener('input', () => { act = 0; render(); });
+		if (o.a11y) {
+			input.addEventListener('keydown', (e) => {
+				if (e.key === 'ArrowDown') { e.preventDefault(); act = Math.min(shown.length - 1, act + 1); render(); $('.act', list)?.scrollIntoView({ block: 'nearest' }); }
+				else if (e.key === 'ArrowUp') { e.preventDefault(); act = Math.max(0, act - 1); render(); $('.act', list)?.scrollIntoView({ block: 'nearest' }); }
+				else if (e.key === 'Enter' && shown[act]) { e.preventDefault(); pick(shown[act]); }
+				else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+			});
+		}
+		bd.addEventListener('pointerdown', (e) => { if (e.target === bd) { bd.remove(); o.say && o.say('Picker closed.'); } });
+		render();
+		if (o.a11y) input.focus();
+		o.say && o.say(o.a11y ? 'Dialog opened, focus in the labelled search field.' : 'Backdrop div opened. Focus did not move, Escape does nothing.');
+	}
+
+	/* =====================================================================
+	   P12 AFTER: full canvas
+	   ===================================================================== */
+	function buildP12(st) {
+		const tint = { r: '#fb464c', y: '#e0de71', g: '#44cf6e', o: '#e9973f' };
+		st.innerHTML = `
+			<div class="grp" style="left:39px;top:161px;width:462px;height:372px"><span class="chip">Research</span></div>
+			<svg class="edges" width="860" height="828" aria-hidden="true">
+				<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 9 5 1 9z" fill="currentColor"/></marker></defs>
+				<path class="e" id="p12-e1" d="M297 246 C 434 246, 434 263, 572 263" marker-end="url(#ar)"/>
+				<path class="e" d="M696 312 V365" marker-end="url(#ar)"/>
+				<path class="e" d="M181 418 V490 Q181 503 194 503 H479 Q492 503 492 516 V587" marker-end="url(#ar)"/>
+			</svg>
+			<span class="elabel" style="left:434px;top:254px">leads to</span>
+			<div class="n" style="--tint:${tint.r};left:66px;top:206px;width:231px;height:80px"><h4>Driving question</h4><p>What makes a note app feel calm?</p></div>
+			<div class="n" style="--tint:${tint.g};left:66px;top:312px;width:231px;height:106px"><div class="hdr"><span style="display:flex;gap:8px;align-items:center;font-weight:500;white-space:nowrap;font-size:12px">${ic('file-text', 14)} 2026-11-09 Design sync.md</span></div><div class="divl"></div><h4 style="font-size:16px">_type: Meeting</h4></div>
+			<div class="n" style="--tint:${tint.y};left:572px;top:214px;width:249px;height:98px"><h5>Hypothesis</h5><p>Fewer chrome elements, faster feedback.</p></div>
+			<div class="n" style="--tint:${tint.o};left:572px;top:365px;width:249px;height:80px"><p>Prototype the rail without labels</p></div>
+			<div class="n" style="left:359px;top:587px;width:267px;height:80px"><div class="hdr" style="color:var(--primary);font-weight:500">${ic('external-link', 14)} jsoncanvas.org</div><span class="url">https://jsoncanvas.org</span></div>
+			<button class="tbtn" type="button" aria-label="Toggle source mode" style="right:10px;top:12px">${ic('file-text', 15)}</button>
+			<div class="ctl" aria-label="Canvas toolbar">
+				<div class="gb"><button type="button" aria-label="Add text card">${ic('type', 14)}</button><button type="button" aria-label="Add note">${ic('file-text', 14)}</button><button type="button" aria-label="Add link">${ic('external-link', 14)}</button><button type="button" aria-label="Add image">${ic('image', 14)}</button><button type="button" aria-label="Add group">${ic('square', 14)}</button></div>
+				<div class="gb"><button type="button" aria-label="Zoom in">${ic('plus', 14)}</button><button type="button" aria-label="Zoom out">${ic('minus', 14)}</button><button type="button" aria-label="Fit view">${ic('maximize', 14)}</button><button type="button" aria-label="Lock">${ic('lock', 14)}</button></div>
+			</div>
+			<div class="mm" aria-label="Minimap">
+				<svg width="200" height="150" viewBox="0 0 200 150">
+					<g fill="color-mix(in oklab, var(--foreground) 24%, var(--background))">
+						<rect x="16" y="46" width="62" height="22" rx="2"/><rect x="16" y="76" width="62" height="28" rx="2"/>
+						<rect x="140" y="48" width="44" height="26" rx="2"/><rect x="140" y="82" width="44" height="22" rx="2"/>
+						<rect x="82" y="116" width="52" height="18" rx="2"/>
+					</g>
+					<path fill-rule="evenodd" fill="var(--canvas-mask)" d="M0 0H200V150H0Z M26 6H186V122H26Z"/>
+					<rect x="26" y="6" width="160" height="116" fill="none" stroke="color-mix(in oklab, var(--foreground) 30%, transparent)" stroke-width="1"/>
+				</svg>
+			</div>`;
+		$('#p12-sel').onclick = (e) => {
+			const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+			e.currentTarget.setAttribute('aria-pressed', on);
+			$('#p12-e1').classList.toggle('sel', on);
+		};
+	}
+	buildP12($('#p12-stage'));
+
+	/* =====================================================================
+	   P13: group and edge labels
+	   ===================================================================== */
+	(function () {
+		const st = $('#p13-stage');
+		const S = { g1: 'Research', g2: '', e1: 'leads to', e2: '', edit: null, selEdge: null };
+		const edges = {
+			e1: { d: 'M256 158 H380', x: 318, y: 158 },
+			e2: { d: 'M475 194 V260', x: 475, y: 227 },
+		};
+		const chip = (id, x, y, w, h, kind) => {
+			const ed = S.edit === id;
+			const inner = ed
+				? `<input class="chip-in" data-in="${id}" value="${esc(S[id])}" placeholder="Group name" aria-label="Group name">`
+				: `<span class="chip${S[id] ? '' : ' ghost'}" data-edit="${id}" data-ctx="group" data-id="${id}" title="Double-click to rename">${S[id] ? esc(S[id]) : 'Untitled group'}</span>`;
+			return `<div class="grp" data-ctx="group" data-id="${id}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px">${inner}</div>`;
+		};
+		const render = () => {
+			let eh = '';
+			Object.entries(edges).forEach(([id, e]) => {
+				const sel = S.selEdge === id;
+				eh += `<path class="e${sel ? ' sel' : ''}" d="${e.d}" marker-end="url(#ar13)"/><path class="hit" d="${e.d}" data-sel="${id}" data-ctx="edge" data-id="${id}"/>`;
+			});
+			let el = '';
+			Object.entries(edges).forEach(([id, e]) => {
+				if (S.edit === id) el += `<input class="elabel-in" data-in="${id}" style="left:${e.x}px;top:${e.y}px" value="${esc(S[id])}" placeholder="Label" aria-label="Edge label">`;
+				else if (S[id]) el += `<span class="elabel" data-edit="${id}" data-ctx="edge" data-id="${id}" style="left:${e.x}px;top:${e.y}px" title="Double-click to edit">${esc(S[id])}</span>`;
+				else el += `<span class="elabel ghost${S.selEdge === id ? ' show' : ''}" data-edit="${id}" data-ctx="edge" data-id="${id}" style="left:${e.x}px;top:${e.y}px">${ic('plus', 11)}&nbsp;Add label</span>`;
+			});
+			st.innerHTML = `<div class="hint">Double-click a label. Right-click a group or an edge.</div>
+				${chip('g1', 16, 56, 262, 250)}${chip('g2', 356, 236, 238, 94)}
+				<svg class="edges" width="600" height="340" aria-hidden="true"><defs><marker id="ar13" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 9 5 1 9z" fill="currentColor"/></marker></defs>${eh}</svg>
+				${el}
+				<div class="n" style="--tint:#fb464c;left:38px;top:122px;width:218px;height:72px"><h4>Driving question</h4><p>What makes a note app feel calm?</p></div>
+				<div class="n" style="--tint:#e0de71;left:380px;top:122px;width:190px;height:72px"><h5>Hypothesis</h5><p>Fewer chrome elements.</p></div>
+				<div class="n" style="--tint:#e9973f;left:376px;top:260px;width:198px;height:56px"><p>Prototype the rail</p></div>`;
+			const inp = $('[data-in]', st);
+			if (inp) {
+				inp.focus(); inp.select();
+				const id = inp.dataset.in;
+				const done = (save) => { if (S.edit !== id) return; if (save) S[id] = inp.value.trim(); S.edit = null; render(); st.focus({ preventScroll: true }); };
+				inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') done(true); else if (e.key === 'Escape') done(false); });
+				inp.addEventListener('blur', () => done(true));
+			}
+		};
+		st.addEventListener('dblclick', (e) => {
+			const t = e.target.closest('[data-edit]');
+			if (t) { S.edit = t.dataset.edit; S.selEdge = null; render(); }
+		});
+		st.addEventListener('click', (e) => {
+			const s = e.target.closest('[data-sel]');
+			if (s) { S.selEdge = s.dataset.sel; render(); }
+			else if (!e.target.closest('.cmenu') && !e.target.closest('[data-edit]') && S.selEdge) { S.selEdge = null; render(); }
+		});
+		st.addEventListener('contextmenu', (e) => {
+			const t = e.target.closest('[data-ctx]');
+			if (!t) return;
+			e.preventDefault();
+			e.stopPropagation();
+			const id = t.dataset.id;
+			const kind = t.dataset.ctx;
+			const items = kind === 'group'
+				? [{ label: 'Rename', icon: 'pencil', run: () => { S.edit = id; render(); } }, { sep: 1 }, { label: 'Color', icon: 'palette', run: () => toast(st, 'Colour picker (unchanged)') }, { sep: 1 }, { label: 'Delete', icon: 'trash-2', hint: '⌫', danger: true, run: () => toast(st, 'Delete (demo only)') }]
+				: [{ label: S[id] ? 'Edit label' : 'Add label', icon: 'tag', run: () => { S.edit = id; render(); } }, { sep: 1 }, { label: 'Color', icon: 'palette', run: () => toast(st, 'Colour picker (unchanged)') }, { sep: 1 }, { label: 'Delete', icon: 'trash-2', hint: '⌫', danger: true, run: () => toast(st, 'Delete (demo only)') }];
+			showMenu(st, pt(e, st), items, { a11y: true, label: kind === 'group' ? 'Group menu' : 'Edge menu' });
+		});
+		st.addEventListener('keydown', (e) => { if (e.key === 'Escape') { S.selEdge = null; if (!$('.cmenu', st)) render(); } });
+		render();
+	})();
+
+	/* =====================================================================
+	   P07: invalid JSON
+	   ===================================================================== */
+	const BROKEN = '{\n\t"nodes": [\n\t\t{"id":"a1","type":"text","text":"Driving question","x":0,"y":0,"width":220,"height":80}\n\t\t{"id":"b2","type":"text","text":"Hypothesis","x":320,"y":20,"width":220,"height":80}\n\t],\n\t"edges": []\n}';
+	const FIXED = BROKEN.replace('"height":80}\n\t\t{"id":"b2"', '"height":80},\n\t\t{"id":"b2"');
+	(function () {
+		const st = $('#p07b-stage'), disk = $('#p07b-disk');
+		let overwritten = false;
+		const paint = () => {
+			disk.innerHTML = `<div class="dh"><span>File on disk: Brainstorm.canvas</span><span class="state ${overwritten ? 'lost' : 'safe'}">${overwritten ? 'OVERWRITTEN' : 'untouched, still broken'}</span></div><pre>${esc(overwritten ? '{\n\t"nodes": [{"id":"n1","type":"text","text":"","x":240,"y":120,"width":250,"height":60}],\n\t"edges": []\n}' : BROKEN)}</pre>`;
+		};
+		const build = () => {
+			overwritten = false;
+			st.innerHTML = `<div class="addhint"><button type="button" id="p07b-add">Add card</button></div>
+				<div class="ctl" style="bottom:12px"><div class="gb"><button type="button" id="p07b-t" aria-label="Add text card">${ic('type', 14)}</button><button type="button" aria-label="Add note">${ic('file-text', 14)}</button><button type="button" aria-label="Add link">${ic('external-link', 14)}</button></div></div>`;
+			const add = () => {
+				overwritten = true;
+				$('.addhint', st)?.remove();
+				const n = document.createElement('div');
+				n.className = 'n'; n.style.cssText = 'left:240px;top:120px;width:250px;height:60px'; n.innerHTML = '<p class="ph-t">Double-click to edit</p>';
+				st.append(n);
+				toast(st, 'Autosave wrote the file', true);
+				paint();
+			};
+			$('#p07b-add').onclick = add; $('#p07b-t').onclick = add;
+			paint();
+		};
+		$('#p07b-reset').onclick = build;
+		build();
+	})();
+	(function () {
+		const st = $('#p07a-stage'), disk = $('#p07a-disk');
+		let file = BROKEN, mode = 'canvas', srcText = BROKEN;
+		const valid = (t) => { try { JSON.parse(t); return null; } catch (e) { return e.message; } };
+		const paintDisk = () => {
+			const bad = valid(file);
+			disk.innerHTML = `<div class="dh"><span>File on disk: Brainstorm.canvas</span><span class="state safe">${bad ? 'untouched, autosave paused' : 'valid'}</span></div><pre>${esc(file)}</pre>`;
+		};
+		const render = () => {
+			const bad = valid(file);
+			if (mode === 'source') {
+				const err = valid(srcText);
+				st.innerHTML = `<div class="src"><div class="src-h">${ic('code', 14)} Source mode: Brainstorm.canvas<button type="button" class="btn" id="p07a-fixc" style="margin-left:auto">Insert missing comma</button></div>
+					<textarea id="p07a-ta" spellcheck="false" aria-label="Canvas JSON source">${esc(srcText)}</textarea>
+					<div class="src-f ${err ? 'bad' : 'ok'}" id="p07a-sf"></div></div>`;
+				const ta = $('#p07a-ta'), sf = $('#p07a-sf');
+				const upd = () => {
+					srcText = ta.value;
+					const er = valid(srcText);
+					sf.className = 'src-f ' + (er ? 'bad' : 'ok');
+					sf.innerHTML = er ? `${ic('triangle-alert', 14)} ${esc(er)}` : `${ic('check', 14)} Valid JSON <button type="button" class="btn" id="p07a-back" style="margin-left:auto">Back to canvas</button>`;
+					const b = $('#p07a-back'); if (b) b.onclick = () => { file = srcText; mode = 'canvas'; render(); paintDisk(); toast(st, 'Canvas loaded'); };
+				};
+				ta.addEventListener('input', upd); upd();
+				$('#p07a-fixc').onclick = () => { ta.value = ta.value.replace('"height":80}\n\t\t{"id":"b2"', '"height":80},\n\t\t{"id":"b2"'); upd(); };
+				return;
+			}
+			if (bad) {
+				st.innerHTML = `<div class="pane">
+					<div class="banner" role="alert">${ic('triangle-alert', 16)}<div><b>This canvas file is not valid JSON.</b> <span class="sub">Autosave is paused, so the file on disk is not overwritten.</span></div><button type="button" class="btn" id="p07a-open">${ic('code', 13)} Open source mode</button></div>
+					<div class="pbody"><div class="disabled-cover"><b>Editing is unavailable</b><span>Fix the file in source mode and this board comes back.</span></div>
+						<div class="ctl" style="bottom:12px"><div class="gb" aria-disabled="true"><button class="dis" type="button" disabled aria-label="Add text card">${ic('type', 14)}</button><button class="dis" type="button" disabled aria-label="Add note">${ic('file-text', 14)}</button></div></div></div></div>`;
+				$('#p07a-open').onclick = () => { mode = 'source'; srcText = file; render(); };
+			} else {
+				st.innerHTML = `<div class="pane"><div class="pbody">
+					<div class="n" style="left:60px;top:70px;width:220px;height:80px"><h4>Driving question</h4><p>What makes a note app feel calm?</p></div>
+					<div class="n" style="left:320px;top:90px;width:200px;height:80px"><h5>Hypothesis</h5><p>Fewer chrome elements.</p></div>
+					<div class="ctl" style="bottom:12px"><div class="gb"><button type="button" aria-label="Add text card">${ic('type', 14)}</button><button type="button" aria-label="Add note">${ic('file-text', 14)}</button></div></div></div></div>`;
+			}
+		};
+		const sync = () => {
+			$('#p07a-bad').setAttribute('aria-pressed', !!valid(file));
+			$('#p07a-ok').setAttribute('aria-pressed', !valid(file));
+		};
+		$('#p07a-bad').onclick = () => { file = BROKEN; mode = 'canvas'; srcText = BROKEN; render(); paintDisk(); sync(); };
+		$('#p07a-ok').onclick = () => { file = FIXED; mode = 'canvas'; srcText = FIXED; render(); paintDisk(); sync(); };
+		st.addEventListener('click', () => setTimeout(sync, 0));
+		render(); paintDisk();
+	})();
+
+	/* =====================================================================
+	   P133 and P135: text-card board
+	   ===================================================================== */
+	function board(st, o) {
+		const S = { cards: o.cards.map((c) => ({ ...c })), sel: null, edit: null, id: 100, cas: 0 };
+		st.innerHTML = '<div class="layer"></div>';
+		const layer = $('.layer', st);
+		const stat = o.stat && $(o.stat);
+		const render = () => {
+			layer.innerHTML = '';
+			let focusAfter = null;
+			S.cards.forEach((c) => {
+				const el = document.createElement('div');
+				const sel = S.sel === c.id, ed = S.edit === c.id;
+				el.className = 'n txt' + (sel ? ' sel' : '') + (ed ? ' editing' + (o.after ? ' fillring' : '') : '');
+				if (c.tint) el.style.setProperty('--tint', c.tint);
+				el.style.cssText += `left:${c.x}px;top:${c.y}px;width:${c.w}px;height:${c.h}px;`;
+				el.dataset.id = c.id;
+				if (ed) {
+					const ta = document.createElement('textarea');
+					ta.className = 'ta nodrag ' + (o.after ? 'fill' : 'legacy');
+					ta.value = c.text;
+					ta.placeholder = 'Type something...';
+					ta.setAttribute('aria-label', 'Card text');
+					ta.addEventListener('input', () => { c.text = ta.value; });
+					ta.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Escape') { S.edit = null; render(); st.focus({ preventScroll: true }); } });
+					ta.addEventListener('blur', () => { if (S.edit === c.id) { S.edit = null; setTimeout(render, 0); } });
+					el.append(ta);
+					focusAfter = ta;
+				} else {
+					el.innerHTML = c.text ? `<div>${esc(c.text).replace(/\n/g, '<br>')}</div>` : `<p class="ph-t">${o.after ? 'Empty card. Press Enter to write.' : 'Double-click to edit'}</p>`;
+				}
+				if (sel) el.insertAdjacentHTML('beforeend', '<i class="rz tl"></i><i class="rz tr"></i><i class="rz bl"></i><i class="rz br"></i>');
+				el.addEventListener('pointerdown', (e) => {
+					e.stopPropagation();
+					if (S.edit === c.id) return;
+					S.sel = c.id; S.edit = null; render(); st.focus({ preventScroll: true });
+				});
+				el.addEventListener('dblclick', () => { S.sel = c.id; S.edit = c.id; render(); });
+				layer.append(el);
+			});
+			if (focusAfter) { focusAfter.focus(); focusAfter.setSelectionRange(focusAfter.value.length, focusAfter.value.length); }
+			if (el_stat()) stat.textContent = `cards: ${S.cards.length} | selected: ${S.sel || 'none'} | editing: ${S.edit || 'none'}`;
+		};
+		const el_stat = () => !!stat;
+		const add = (x, y) => {
+			const id = 'c' + (++S.id);
+			x = Math.max(8, Math.min(x, 560 - 208)); y = Math.max(8, Math.min(y, st.offsetHeight - 88));
+			S.cards.push({ id, x, y, w: 200, h: 80, text: '' });
+			if (o.after) { S.sel = id; S.edit = id; } else { S.sel = null; S.edit = null; }
+			render();
+		};
+		st.addEventListener('pointerdown', (e) => { if (!e.target.closest('.cmenu')) { S.sel = null; S.edit = null; render(); } });
+		st.addEventListener('keydown', (e) => {
+			if (e.target.tagName === 'TEXTAREA') return;
+			if (o.after && S.sel && !S.edit && (e.key === 'Enter' || e.key === 'F2')) { e.preventDefault(); S.edit = S.sel; render(); }
+			else if (e.key === 'Escape' && !$('.cmenu', st)) { S.sel = null; render(); }
+		});
+		st.addEventListener('contextmenu', (e) => {
+			if (!o.menu) return;
+			e.preventDefault();
+			const p = pt(e, st);
+			showMenu(st, p, [{ label: 'Add text card', icon: 'type', run: () => add(p.x, p.y) }, { label: 'Create group', icon: 'square', run: () => toast(st, 'Create group (unchanged)') }], { a11y: true });
+		});
+		if (o.add) {
+			$(o.add).onclick = () => {
+				if (o.after) { const k = S.cas++ % 6; add(180 + k * 26, 110 + k * 26); }
+				else add(180, 110);
+			};
+		}
+		if (o.reset) $(o.reset).onclick = () => { S.cards = o.cards.map((c) => ({ ...c })); S.sel = null; S.edit = null; S.cas = 0; render(); };
+		render();
+	}
+	board($('#p133b-stage'), { after: false, cards: [], add: '#p133b-add', reset: '#p133b-reset', stat: '#p133b-stat', menu: true });
+	board($('#p133a-stage'), { after: true, cards: [], add: '#p133a-add', reset: '#p133a-reset', stat: '#p133a-stat', menu: true });
+	const p135cards = [
+		{ id: 'a', x: 40, y: 40, w: 220, h: 120, text: 'Roadmap notes\n- ship canvas fixes\n- label groups', tint: '#a882ff' },
+		{ id: 'b', x: 320, y: 70, w: 190, h: 90, text: '' },
+	];
+	board($('#p135b-stage'), { after: false, cards: p135cards, stat: '#p135b-stat' });
+	board($('#p135a-stage'), { after: true, cards: p135cards, stat: '#p135a-stat' });
+	$('#p135b-stat').insertAdjacentHTML('beforebegin', '<div class="ctrls"><span>Double-click a card to edit. Note the 40 px textarea, the resize grip and no focus ring.</span></div>');
+
+	/* =====================================================================
+	   P134: file and link headers
+	   ===================================================================== */
+	function p134(st, after, statEl, badBtn) {
+		const say = (t) => { statEl.textContent = t; };
+		const build = () => {
+			st.innerHTML = `
+				<div class="n ${after ? '' : 'leg'}" id="${st.id}-f" style="left:30px;top:40px;width:240px;height:150px">
+					<div class="hdr"><button type="button" class="fh" data-h="file">${ic('file-text', 14)}<span class="nm">Q4 OKRs.md</span>${after ? '' : ic('external-link', 13).replace('class="ic"', 'class="ic oi"')}</button>${after ? `<button type="button" class="openbtn" data-open="file" aria-label="Open Q4 OKRs.md" title="Open note (Cmd+click on the header also works)">${ic('external-link', 14)}</button>` : ''}</div>
+					<div class="divl"></div><h4>Objectives</h4><p class="mut">Ship canvas fixes, reduce save latency.</p>
+				</div>
+				<div class="n" id="${st.id}-l" style="left:310px;top:40px;width:220px;height:96px">
+					<div class="hdr"><button type="button" class="fh" data-h="link" style="color:var(--primary)">${ic('external-link', 14)}<span class="nm">jsoncanvas.org</span></button>${after ? `<button type="button" class="openbtn" data-open="link" aria-label="Open jsoncanvas.org" title="Open URL (Cmd+click on the header also works)">${ic('external-link', 14)}</button>` : ''}</div>
+					<span class="url">https://jsoncanvas.org</span>
+				</div>`;
+			const sel = (id) => { $$('.n', st).forEach((n) => n.classList.toggle('sel', n.id === id)); };
+			const open = (what) => {
+				if (after) toast(st, what === 'file' ? 'Opened Q4 OKRs.md in a new tab' : 'Opened jsoncanvas.org in the browser');
+				else {
+					const g = document.createElement('div');
+					g.className = 'gone';
+					g.innerHTML = `<b>You left the canvas</b><span class="mut">${what === 'file' ? 'Q4 OKRs.md opened in the editor.' : 'jsoncanvas.org opened in the browser.'}</span><button type="button" class="btn">Back to canvas</button>`;
+					$('button', g).onclick = () => g.remove();
+					st.append(g);
+				}
+				say(`Opened ${what} (${after ? 'explicit action' : 'from a plain click'}).`);
+			};
+			$$('.fh', st).forEach((b) => {
+				b.addEventListener('click', (e) => {
+					const what = b.dataset.h;
+					if (!after) return open(what);
+					if (e.metaKey || e.ctrlKey) return open(what);
+					sel(b.closest('.n').id); say(`Selected ${what} card. Cmd/Ctrl+click or the icon opens it.`);
+				});
+			});
+			$$('[data-open]', st).forEach((b) => b.addEventListener('click', () => open(b.dataset.open)));
+			if (after) {
+				const l = $(`#${st.id}-l`);
+				l.addEventListener('dblclick', () => {
+					l.innerHTML = `<div class="nodrag" style="display:block"><input class="lk-in" value="https://jsoncanvas.org" aria-label="URL"><input class="lk-in" placeholder="Title (optional)" aria-label="Title"><span class="mut" style="font-size:11px">Enter saves, Escape cancels</span></div>`;
+					const inp = $('input', l); inp.focus();
+					l.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === 'Escape') { build(); say('Link edited via double-click, as today.'); } });
+				});
+			}
+		};
+		build();
+		badBtn.onclick = () => {
+			if (after) { toast(st, 'Could not open: "javascript:alert(1)" is not a safe URL', true); say('Failure is reported.'); }
+			else { say('Nothing happened and nothing was said (silent catch).'); }
+		};
+	}
+	p134($('#p134b-stage'), false, $('#p134b-st'), $('#p134b-bad'));
+	p134($('#p134a-stage'), true, $('#p134a-st'), $('#p134a-bad'));
+
+	/* =====================================================================
+	   P31: menu and picker
+	   ===================================================================== */
+	function p31(st, after, openBtn, sayEl) {
+		const say = (t) => { sayEl.textContent = t; };
+		const items = () => [
+			{ label: 'Add text card', icon: 'type', run: () => toast(st, 'Add text card') },
+			{ label: 'Add note from vault', icon: 'file-text', run: () => showPicker(st, { a11y: after, id: st.id + '-pk', say }) },
+			{ label: 'Add link', icon: 'external-link', run: () => toast(st, 'Add link') },
+			{ label: 'Add image', icon: 'image', run: () => toast(st, 'Add image') },
+			{ label: 'Create group', icon: 'square', run: () => toast(st, 'Create group') },
+			{ sep: 1 },
+			{ label: 'Select all', icon: 'mouse-pointer-2', hint: after ? '⌘A' : 'Ctrl+A', legacy: !after, run: () => toast(st, 'Select all') },
+			{ label: 'Zoom to fit', icon: 'maximize-2', hint: after ? '⇧1' : 'Shift+1', legacy: !after, run: () => toast(st, 'Zoom to fit') },
+		];
+		const open = (p) => showMenu(st, p, items(), { a11y: after, say, label: 'Canvas menu' });
+		st.innerHTML = '<div class="hint">Right-click anywhere, or use the button below.</div>';
+		st.addEventListener('contextmenu', (e) => { e.preventDefault(); open(pt(e, st)); });
+		openBtn.onclick = () => open({ x: 24, y: 40 });
+		st.addEventListener('keydown', (e) => {
+			if (!after && $('.cmenu', st)) {
+				if (e.key === 'Escape') say('Key "Escape": nothing closes the menu, it is still open.');
+				else say(`Key "${e.key}": no handler, focus is ${document.activeElement === st ? 'on the board' : 'on a button'}.`);
+			}
+		});
+	}
+	p31($('#p31b-stage'), false, $('#p31b-open'), $('#p31b-say'));
+	p31($('#p31a-stage'), true, $('#p31a-open'), $('#p31a-say'));
+
+	/* =====================================================================
+	   P136: handles
+	   ===================================================================== */
+	function p136(st, after) {
+		const hs = (roles) => ['top', 'right', 'bottom', 'left'].map((s) => `<span class="h s-${s}"><i class="role">${roles[s]}</i></span>`).join('');
+		const both = { top: 'in/out', right: 'in/out', bottom: 'in/out', left: 'in/out' };
+		const imgRoles = after ? both : { top: 'in', right: 'out', bottom: 'out', left: 'in' };
+		const svg = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200"><rect width="400" height="200" fill="#bcd2ee"/><circle cx="310" cy="56" r="22" fill="#f6d36b"/><path d="M0 200 120 70 210 160 280 100 400 200Z" fill="#6f8f7b"/></svg>');
+		st.style.setProperty('--hit', after ? '16px' : '8px');
+		st.classList.toggle('after', after);
+		st.innerHTML = `
+			<div class="hint">${after ? 'Selected nodes keep their handles. Hit area is 16 px around an 8 px dot.' : 'Handles appear on hover only. Hit area equals the 8 px dot.'}</div>
+			<div class="n vis ${after ? 'sel' : ''}" data-n="t" style="left:50px;top:70px;width:200px;height:100px"><h4>Text card</h4><p class="mut">Pick any side to connect.</p>${hs(both)}</div>
+			<div class="n vis" data-n="i" style="left:320px;top:70px;width:190px;height:100px;padding:0"><div class="imgbox"><img alt="" src="${svg}" style="object-fit:cover"></div>${hs(imgRoles)}</div>
+			<div class="altline" style="top:196px">${after ? 'Image card: 4 sides x source + target = 8 handles' : 'Image card: 4 handles (top in, right out, bottom out, left in)'}</div>`;
+		$$('.n', st).forEach((n) => n.addEventListener('pointerdown', () => { $$('.n', st).forEach((m) => m.classList.toggle('sel', m === n)); }));
+	}
+	p136($('#p136b-stage'), false);
+	p136($('#p136a-stage'), true);
+	$$('[data-hit]').forEach((b) => b.onclick = () => { const st = $('#' + b.dataset.hit); const on = !st.classList.contains('show-hit'); st.classList.toggle('show-hit', on); b.setAttribute('aria-pressed', on); });
+	$$('[data-roles]').forEach((b) => b.onclick = () => { const st = $('#' + b.dataset.roles); const on = !st.classList.contains('show-roles'); st.classList.toggle('show-roles', on); b.setAttribute('aria-pressed', on); });
+
+	/* =====================================================================
+	   P137: image states
+	   ===================================================================== */
+	(function () {
+		const src = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200"><rect width="400" height="200" fill="#bcd2ee"/><circle cx="310" cy="52" r="22" fill="#f6d36b"/><path d="M0 200 120 60 210 150 280 90 400 200Z" fill="#6f8f7b"/><path d="M0 200 80 130 160 200Z" fill="#587866"/><rect x="2" y="2" width="396" height="196" fill="none" stroke="#302840" stroke-width="4"/></svg>');
+		const path = 'Attachments/2026/roadmap-diagram-final.png';
+		let state = 'loaded';
+		const paint = () => {
+			const b = $('#p137b-stage'), a = $('#p137a-stage');
+			const box = (inner, alt) => `<div class="n vis" style="left:160px;top:34px;width:240px;height:160px;padding:0"><div class="imgbox">${inner}</div></div><div class="altline" style="top:204px">alt="${esc(alt)}"</div>`;
+			const legacyPh = `<div class="ph">${ic('image', 32)}<span class="pth">${esc(path)}</span></div>`;
+			b.innerHTML = box(state === 'loaded' ? `<img src="${src}" alt="${esc(path)}" style="object-fit:cover">` : legacyPh, path);
+			a.innerHTML = box(
+				state === 'loading' ? '<div class="skel" role="status" aria-label="Loading image"></div>'
+					: state === 'error' ? `<div class="err" role="img" aria-label="Image not found">${ic('image-off', 30)}<b>Image not found</b><span class="pth">${esc(path)}</span></div>`
+						: `<img src="${src}" alt="roadmap-diagram-final.png" style="object-fit:contain">`,
+				'roadmap-diagram-final.png');
+			$$('[data-img]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.img === state));
+		};
+		$$('[data-img]').forEach((x) => x.onclick = () => { state = x.dataset.img; paint(); });
+		paint();
+	})();
+
+	/* =====================================================================
+	   P95: shortcut hints
+	   ===================================================================== */
+	(function () {
+		const pane = (after) => [
+			{ label: 'Add text card', icon: 'type' }, { label: 'Add note from vault', icon: 'file-text' }, { label: 'Add link', icon: 'external-link' }, { label: 'Add image', icon: 'image' }, { label: 'Create group', icon: 'square' },
+			{ sep: 1 },
+			{ label: 'Select all', icon: 'mouse-pointer-2', hint: after ? '⌘A' : 'Ctrl+A', legacy: !after },
+			{ label: 'Zoom to fit', icon: 'maximize-2', hint: after ? '⇧1' : 'Shift+1', legacy: !after },
+			...(after ? [{ label: 'Zoom to selection', icon: 'scan', hint: '⇧2' }, { sep: 1 }, { label: 'Undo', icon: 'undo-2', hint: '⌘Z' }, { label: 'Redo', icon: 'redo-2', hint: '⇧⌘Z' }] : []),
+		];
+		const node = (after) => [
+			{ label: 'Edit', icon: 'pencil' }, { label: 'Duplicate', icon: 'copy' }, { sep: 1 },
+			{ label: 'Delete', icon: 'trash-2', danger: true, hint: after ? '⌫' : '', legacy: !after },
+		];
+		const mount = (el, after) => {
+			el.append(menuEl(pane(after), { a11y: after, label: 'Canvas menu' }), menuEl(node(after), { a11y: after, label: 'Card menu' }));
+		};
+		mount($('#p95b-menus'), false);
+		mount($('#p95a-menus'), true);
+		const bar = (el, after) => {
+			el.innerHTML = [
+				['star', 'Favorite', after ? '⌘D' : '(Cmd+D)'],
+				['file-text', 'Organized', after ? '⌘E' : '(Cmd+E)'],
+				['code', 'Raw', after ? '⌘\\' : '(Cmd+\\)'],
+			].map(([i, l, k]) => `<button type="button" class="ab" aria-label="${l}">${ic(i, 15)}<span class="tip" role="tooltip">${after ? `${l}<span class="gap">${[...k].map((c) => `<kbd>${esc(c)}</kbd>`).join('')}</span>` : `${l} ${esc(k)}`}</span></button>`).join('') + `<span class="legend" style="margin-left:8px;align-self:center">Hover the icons</span>`;
+		};
+		bar($('#p95b-bar'), false);
+		bar($('#p95a-bar'), true);
+	})();
+})();
+</script>
+</body>
+</html>

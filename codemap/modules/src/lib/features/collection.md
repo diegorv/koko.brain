@@ -18,7 +18,7 @@ dep src/lib/features/collection -> src/lib/core/markdown-editor 1
 dep src/lib/features/collection -> src/lib/core/vault 3
 dep src/lib/features/collection -> src/lib/types 1
 dep src/lib/features/collection -> src/lib/utils 9
-in2 src/lib/features/collection 6 modules: src/lib/features/note-list(4) src/lib/features/event-calendar(3) src/routes(3) src/lib/plugins/calendar(2) src/lib/features/search(1) +1 modules
+in2 src/lib/features/collection 7 modules: src/lib/features/note-list(4) src/lib/features/event-calendar(3) src/routes(3) src/lib/plugins/calendar(2) src/lib/features/quick-switcher(1) +2 modules
 out2 src/lib/features/collection 2 modules: src/lib/core/settings(2) src/lib/core/trash(1)
 ## entry files
 entry src/lib/features/collection/collection.types.ts ext-in15 src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte src/lib/features/auto-organize/auto-organize.logic.ts src/lib/features/auto-organize/auto-organize.service.ts src/lib/features/auto-organize/auto-organize.types.ts src/lib/features/rail-shell/RailNoteList.svelte more importers 10 not shown: src/lib/features/rail-shell(4) src/lib/features/type-definitions(3) src/lib/plugins/queryjs(2) +1 modules: q importers src/lib/features/collection/collection.types.ts

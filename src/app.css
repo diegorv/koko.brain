@@ -209,7 +209,7 @@
 	--elev-scrim: #30284040;
 	--radius: 0.625rem;
 	/* Height of the bottom status bar; overlays that must not cover it end this far above the viewport bottom. */
-	--status-bar-height: 2rem;
+	--status-bar-height: 1.5rem;
 }
 
 .dark {
@@ -479,6 +479,15 @@ input[type="date"]::-webkit-datetime-edit-day-field,
 input[type="date"]::-webkit-datetime-edit-year-field {
 	color: color-mix(in srgb, var(--date-input-fg, var(--foreground)) 70%, transparent) !important;
 	-webkit-text-fill-color: color-mix(in srgb, var(--date-input-fg, var(--foreground)) 70%, transparent) !important;
+}
+
+/*
+ * Search snippet match highlight. Tailwind preflight does not reset `mark`,
+ * so without this WebKit paints it yellow with black text in every theme.
+ */
+[data-search-result] mark {
+	background-color: var(--lp-highlight-bg);
+	color: inherit;
 }
 
 @layer base {

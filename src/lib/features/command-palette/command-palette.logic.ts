@@ -1,19 +1,33 @@
 import type { AppCommand } from './command-palette.types';
 import { fuzzyMatch } from '#lib/utils/fuzzy-match.js';
 
+/**
+ * The palette's empty-query groups.
+ * @param commands - every command the palette offers
+ * @param recentIds - recently run command ids, newest first; unknown ids are skipped
+ * @returns `recent` in `recentIds` order, and `rest`, the other commands sorted by label
+ */
+export function splitRecentCommands(
+	commands: AppCommand[],
+	recentIds: string[],
+): { recent: AppCommand[]; rest: AppCommand[] } {
+	const recentSet = new Set(recentIds);
+	const recent = recentIds
+		.map((id) => commands.find((c) => c.id === id))
+		.filter((c): c is AppCommand => c !== undefined);
+	const rest = commands
+		.filter((c) => !recentSet.has(c.id))
+		.sort((a, b) => a.label.localeCompare(b.label));
+	return { recent, rest };
+}
+
 export function filterAndRankCommands(
 	query: string,
 	commands: AppCommand[],
 	recentIds: string[],
 ): AppCommand[] {
 	if (query.length === 0) {
-		const recentSet = new Set(recentIds);
-		const recent = recentIds
-			.map((id) => commands.find((c) => c.id === id))
-			.filter((c): c is AppCommand => c !== undefined);
-		const rest = commands
-			.filter((c) => !recentSet.has(c.id))
-			.sort((a, b) => a.label.localeCompare(b.label));
+		const { recent, rest } = splitRecentCommands(commands, recentIds);
 		return [...recent, ...rest];
 	}
 

@@ -79,6 +79,38 @@ describe('buildTagIndex', () => {
 		expect(tagsStore.totalTagCount).toBe(0);
 	});
 
+	it('marks the tree as loaded after a successful build, even with zero tags', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([]);
+		expect(tagsStore.hasLoaded).toBe(false);
+
+		await buildTagIndex();
+
+		expect(tagsStore.hasLoaded).toBe(true);
+	});
+
+	it('leaves hasLoaded false when the first build fails', async () => {
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('boom'));
+
+		await buildTagIndex();
+
+		expect(tagsStore.hasLoaded).toBe(false);
+	});
+
+	it('keeps the previous tree, count and hasLoaded when a refresh fails', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([
+			{ name: 'work', count: 1, filePaths: ['/vault/a.md'] },
+		]);
+		await buildTagIndex();
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('boom'));
+
+		await buildTagIndex();
+
+		expect(tagsStore.tagTree.map((n) => n.fullPath)).toEqual(['work']);
+		expect(tagsStore.totalTagCount).toBe(1);
+		expect(tagsStore.hasLoaded).toBe(true);
+		expect(tagsStore.isLoading).toBe(false);
+	});
+
 	it('times the IPC apart from each JS step and logs the tree shape', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce([
 			{ name: 'Work/a', count: 1, filePaths: ['/vault/a.md'] },
@@ -149,6 +181,7 @@ describe('resetTags', () => {
 		expect(tagsStore.tagTree).toEqual([]);
 		expect(tagsStore.totalTagCount).toBe(0);
 		expect(tagsStore.sortMode).toBe('count');
+		expect(tagsStore.hasLoaded).toBe(false);
 	});
 });
 

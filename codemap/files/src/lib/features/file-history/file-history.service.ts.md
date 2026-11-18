@@ -14,7 +14,7 @@ imp src/lib/features/file-history/file-history.service.ts:9 -> src/lib/core/edit
 imp src/lib/features/file-history/file-history.service.ts:10 -> src/lib/utils/debug.ts debug,error
 imp src/lib/features/file-history/file-history.service.ts:11 -> src/lib/features/file-history/file-history.types.ts type:SnapshotInfo
 ## imported-by
-imp src/lib/app/commands.ts:50 -> src/lib/features/file-history/file-history.service.ts openFileHistory
+imp src/lib/app/commands.ts:51 -> src/lib/features/file-history/file-history.service.ts openFileHistory
 imp src/lib/app/global-keybindings.ts:20 -> src/lib/features/file-history/file-history.service.ts openFileHistory
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:75 -> src/lib/features/file-history/file-history.service.ts registerFileHistoryHook,closeFileHistory
 imp src/lib/features/file-history/FileHistoryDialog.svelte:5 -> src/lib/features/file-history/file-history.service.ts selectSnapshot,restoreSnapshot,closeFileHistory
@@ -30,7 +30,7 @@ test src/tests/lib/features/command-palette/CommandPalette.test.ts mocks src/lib
 test src/tests/lib/features/file-history/FileHistoryDialog.test.ts mocks src/lib/features/file-history/file-history.service.ts
 ## symbols
 sym src/lib/features/file-history/file-history.service.ts:17 fn openFileHistory(absoluteFilePath: string): Promise<void> L35 | Opens the file history dialog for a given file.
-by src/lib/features/file-history/file-history.service.ts:openFileHistory <- src/lib/app/commands.ts:413 in getBuiltInCommands call
+by src/lib/features/file-history/file-history.service.ts:openFileHistory <- src/lib/app/commands.ts:448 in getBuiltInCommands call
 by src/lib/features/file-history/file-history.service.ts:openFileHistory <- src/lib/app/global-keybindings.ts:174 in GLOBAL_KEYBINDINGS call
 sym src/lib/features/file-history/file-history.service.ts:56 fn selectSnapshot(snapshot: SnapshotInfo): Promise<void> L22 | Selects a snapshot and computes the diff against current file content.
 by src/lib/features/file-history/file-history.service.ts:selectSnapshot <- src/lib/features/file-history/FileHistoryDialog.svelte:72 in (markup) markup

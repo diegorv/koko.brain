@@ -1,7 +1,7 @@
 # file card src/lib/app/commands.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/app/commands.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls
-file src/lib/app/commands.ts other L425 module src/lib/app in1 t5
+file src/lib/app/commands.ts other L460 module src/lib/app in1 t5
 ## imports
 imp src/lib/app/commands.ts:2 -> src/lib/features/command-palette/command-palette.types.ts type:AppCommand
 imp src/lib/app/commands.ts:3 -> src/lib/core/editor/editor.service.ts saveCurrentFile,closeActiveTab,switchToNextTab,switchToPreviousTab,togglePinActiveTab,openFileInEditor
@@ -31,23 +31,24 @@ imp src/lib/app/commands.ts:33 -> src/lib/features/tasks/tasks.service.ts openTa
 imp src/lib/app/commands.ts:34 -> src/lib/features/tasks/tasks.store.svelte.ts tasksStore
 imp src/lib/app/commands.ts:35 -> src/lib/features/event-calendar/event-calendar.service.ts openEventCalendarTab,openNewEventDialog,redoEventChangeFromUi,toggleEventCalendarTab,undoEventChangeFromUi
 imp src/lib/app/commands.ts:42 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
-imp src/lib/app/commands.ts:43 -> src/lib/features/tags/tags.service.ts toggleTagsTab
-imp src/lib/app/commands.ts:44 -> src/lib/features/todoist-sync/sync-log.service.ts showSyncLog
-imp src/lib/app/commands.ts:45 -> src/lib/features/todoist-sync/sync-scheduler.service.ts syncNowFromUi
-imp src/lib/app/commands.ts:46 -> src/lib/features/todoist-sync/todoist-sync.service.ts checkSyncConnectionFromUi
-imp src/lib/app/commands.ts:47 -> src/lib/plugins/quick-capture/note-composer.service.ts createNoteComposer
-imp src/lib/app/commands.ts:48 -> src/lib/plugins/one-on-one/one-on-one.service.ts openOneOnOnePicker
-imp src/lib/app/commands.ts:49 -> src/lib/plugins/mods/mod-commands.store.svelte.ts modCommandsStore
-imp src/lib/app/commands.ts:50 -> src/lib/features/file-history/file-history.service.ts openFileHistory
-imp src/lib/app/commands.ts:51 -> src/lib/core/layout/layout.service.ts hideRailPanels,showRailPanels,toggleLeftSidebar,toggleRightSidebar
-imp src/lib/app/commands.ts:52 -> src/lib/features/properties/lifecycle.service.ts toggleActiveNoteFavorite,toggleActiveNoteOrganized
-imp src/lib/app/commands.ts:53 -> src/lib/app/global-keybindings.ts shortcutFor
-imp src/lib/app/commands.ts:54 -> src/lib/app/rail-navigation.ts openRailView,selectRailItem
+imp src/lib/app/commands.ts:43 -> src/lib/features/event-calendar/event-calendar.store.svelte.ts eventCalendarStore
+imp src/lib/app/commands.ts:44 -> src/lib/features/tags/tags.service.ts toggleTagsTab
+imp src/lib/app/commands.ts:45 -> src/lib/features/todoist-sync/sync-log.service.ts showSyncLog
+imp src/lib/app/commands.ts:46 -> src/lib/features/todoist-sync/sync-scheduler.service.ts syncNowFromUi
+imp src/lib/app/commands.ts:47 -> src/lib/features/todoist-sync/todoist-sync.service.ts checkSyncConnectionFromUi
+imp src/lib/app/commands.ts:48 -> src/lib/plugins/quick-capture/note-composer.service.ts createNoteComposer
+imp src/lib/app/commands.ts:49 -> src/lib/plugins/one-on-one/one-on-one.service.ts openOneOnOnePicker
+imp src/lib/app/commands.ts:50 -> src/lib/plugins/mods/mod-commands.store.svelte.ts modCommandsStore
+imp src/lib/app/commands.ts:51 -> src/lib/features/file-history/file-history.service.ts openFileHistory
+imp src/lib/app/commands.ts:52 -> src/lib/core/layout/layout.service.ts hideRailPanels,showRailPanels,toggleLeftSidebar,toggleRightPanel,toggleRightSidebar
+imp src/lib/app/commands.ts:53 -> src/lib/features/properties/lifecycle.service.ts toggleActiveNoteFavorite,toggleActiveNoteOrganized
+imp src/lib/app/commands.ts:54 -> src/lib/app/global-keybindings.ts shortcutFor
+imp src/lib/app/commands.ts:55 -> src/lib/app/rail-navigation.ts openRailView,selectRailItem
 ## imported-by
-imp src/lib/app/AppOverlays.svelte:13 -> src/lib/app/commands.ts getBuiltInCommands
+imp src/lib/app/AppOverlays.svelte:14 -> src/lib/app/commands.ts getBuiltInCommands
 ## reach
 in2 src/lib/app/commands.ts 1 files in 1 modules: src/routes(1)
-out2 src/lib/app/commands.ts 106 files in 33 modules: src/lib/core/markdown-editor(14) src/lib/features/event-calendar(11) src/lib/utils(10) src/lib/core/filesystem(7) src/lib/features/tasks(7) +28 modules
+out2 src/lib/app/commands.ts 105 files in 33 modules: src/lib/core/markdown-editor(14) src/lib/features/event-calendar(10) src/lib/utils(10) src/lib/core/filesystem(7) src/lib/features/tasks(7) +28 modules
 ## tests
 test src/tests/lib/app/commands.new-commands.test.ts imports src/lib/app/commands.ts mirror
 test src/tests/lib/app/commands.test.ts imports src/lib/app/commands.ts mirror
@@ -55,67 +56,69 @@ test src/tests/lib/app/commands.todoist.test.ts imports src/lib/app/commands.ts 
 test src/tests/lib/app/global-keybindings.test.ts imports src/lib/app/commands.ts
 test src/tests/lib/features/command-palette/CommandPalette.test.ts imports src/lib/app/commands.ts
 ## symbols
-sym src/lib/app/commands.ts:118 fn getBuiltInCommands(): AppCommand[] L308 | The command palette's built-in commands.
-by src/lib/app/commands.ts:getBuiltInCommands <- src/lib/app/AppOverlays.svelte:19 in (markup) markup
+sym src/lib/app/commands.ts:121 fn getBuiltInCommands(): AppCommand[] L340 | The command palette's built-in commands.
+by src/lib/app/commands.ts:getBuiltInCommands <- src/lib/app/AppOverlays.svelte:20 in (markup) markup
 ## locals
-local src/lib/app/commands.ts:62 fn railGoToCommands(): AppCommand[] L11
-local src/lib/app/commands.ts:79 fn tasksStatusFilterCommand(): AppCommand L13
-local src/lib/app/commands.ts:98 fn openViewCommands(): AppCommand[] L13
+local src/lib/app/commands.ts:64 fn railGoToCommands(): AppCommand[] L12
+local src/lib/app/commands.ts:82 fn tasksStatusFilterCommand(): AppCommand L13
+local src/lib/app/commands.ts:101 fn openViewCommands(): AppCommand[] L13
 ## calls
-call src/lib/app/commands.ts:64 in railGoToCommands -> src/lib/features/rail-shell/lens.logic.ts:pinnedRailItems call
-call src/lib/app/commands.ts:66 in railGoToCommands -> src/lib/features/rail-shell/rail-items.logic.ts:parseRailHidden call
-call src/lib/app/commands.ts:66 in railGoToCommands -> src/lib/features/rail-shell/rail-items.logic.ts:parseRailOrder call
-call src/lib/app/commands.ts:66 in railGoToCommands -> src/lib/features/rail-shell/rail-items.logic.ts:railItems call
-call src/lib/app/commands.ts:70 in railGoToCommands -> src/lib/app/rail-navigation.ts:selectRailItem call
-call src/lib/app/commands.ts:87 in tasksStatusFilterCommand -> src/lib/features/tasks/tasks.store.svelte.ts:tasksStore.setQuick mcall
-call src/lib/app/commands.ts:88 in tasksStatusFilterCommand -> src/lib/features/tasks/tasks.service.ts:openTasksTab call
-call src/lib/app/commands.ts:100 in openViewCommands -> src/lib/features/type-definitions/type-sidebar.logic.ts:collectViewFiles call
-call src/lib/app/commands.ts:100 in openViewCommands -> src/lib/features/type-definitions/type-sidebar.logic.ts:getViewVisible call
-call src/lib/app/commands.ts:102 in openViewCommands -> src/lib/features/type-definitions/type-sidebar.logic.ts:getViewOpensInEditor call
-call src/lib/app/commands.ts:105 in openViewCommands -> src/lib/features/type-definitions/type-sidebar.logic.ts:getViewLabel call
-call src/lib/app/commands.ts:107 in openViewCommands -> src/lib/app/rail-navigation.ts:openRailView call
-call src/lib/app/commands.ts:124 in getBuiltInCommands -> src/lib/app/global-keybindings.ts:shortcutFor call +18
-call src/lib/app/commands.ts:125 in getBuiltInCommands -> src/lib/core/editor/editor.service.ts:saveCurrentFile call
-call src/lib/app/commands.ts:132 in getBuiltInCommands -> src/lib/core/editor/editor.service.ts:closeActiveTab call
-call src/lib/app/commands.ts:139 in getBuiltInCommands -> src/lib/core/editor/editor.service.ts:switchToNextTab call
-call src/lib/app/commands.ts:146 in getBuiltInCommands -> src/lib/core/editor/editor.service.ts:switchToPreviousTab call
-call src/lib/app/commands.ts:155 in getBuiltInCommands -> src/lib/core/filesystem/fs.service.ts:createFile call
-call src/lib/app/commands.ts:155 in getBuiltInCommands -> src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization call
-call src/lib/app/commands.ts:156 in getBuiltInCommands -> src/lib/core/editor/editor.service.ts:openFileInEditor call +2
-call src/lib/app/commands.ts:157 in getBuiltInCommands -> src/lib/core/editor/editor.hooks.ts:notifyNoteCreated call
-call src/lib/app/commands.ts:167 in getBuiltInCommands -> src/lib/core/filesystem/fs.service.ts:createFolder call
-call src/lib/app/commands.ts:168 in getBuiltInCommands -> src/lib/core/settings/settings.store.svelte.ts:settingsStore.updateLayout mcall +1
-call src/lib/app/commands.ts:178 in getBuiltInCommands -> src/lib/features/canvas/canvas.service.ts:createCanvasFile call
-call src/lib/app/commands.ts:189 in getBuiltInCommands -> src/lib/plugins/kanban/kanban.service.ts:createKanbanFile call
-call src/lib/app/commands.ts:198 in getBuiltInCommands -> src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:quickSwitcherStore.toggle mcall
-call src/lib/app/commands.ts:205 in getBuiltInCommands -> src/lib/features/search/open-search.service.ts:openSearch call
-call src/lib/app/commands.ts:213 in getBuiltInCommands -> src/lib/plugins/graph-view/graph-view.service.ts:toggleGraphTab call
-call src/lib/app/commands.ts:222 in getBuiltInCommands -> src/lib/features/tasks/tasks.service.ts:toggleTasksTab call
-call src/lib/app/commands.ts:225 in getBuiltInCommands -> src/lib/app/commands.ts:tasksStatusFilterCommand call
-call src/lib/app/commands.ts:232 in getBuiltInCommands -> src/lib/features/event-calendar/event-calendar.service.ts:toggleEventCalendarTab call
-call src/lib/app/commands.ts:240 in getBuiltInCommands -> src/lib/features/event-calendar/event-calendar.service.ts:openNewEventDialog call
-call src/lib/app/commands.ts:248 in getBuiltInCommands -> src/lib/features/event-calendar/event-calendar.service.ts:openEventCalendarTab call
-call src/lib/app/commands.ts:249 in getBuiltInCommands -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:eventCalendarViewStore.goToToday mcall
-call src/lib/app/commands.ts:257 in getBuiltInCommands -> src/lib/features/event-calendar/event-calendar.service.ts:undoEventChangeFromUi call
-call src/lib/app/commands.ts:265 in getBuiltInCommands -> src/lib/features/event-calendar/event-calendar.service.ts:redoEventChangeFromUi call
-call src/lib/app/commands.ts:272 in getBuiltInCommands -> src/lib/features/todoist-sync/todoist-sync.service.ts:checkSyncConnectionFromUi call
-call src/lib/app/commands.ts:278 in getBuiltInCommands -> src/lib/features/todoist-sync/sync-scheduler.service.ts:syncNowFromUi call
-call src/lib/app/commands.ts:284 in getBuiltInCommands -> src/lib/features/todoist-sync/sync-log.service.ts:showSyncLog call
-call src/lib/app/commands.ts:291 in getBuiltInCommands -> src/lib/features/tags/tags.service.ts:toggleTagsTab call
-call src/lib/app/commands.ts:299 in getBuiltInCommands -> src/lib/core/layout/layout.service.ts:toggleLeftSidebar ref
-call src/lib/app/commands.ts:306 in getBuiltInCommands -> src/lib/core/layout/layout.service.ts:hideRailPanels ref
-call src/lib/app/commands.ts:313 in getBuiltInCommands -> src/lib/core/layout/layout.service.ts:showRailPanels ref
-call src/lib/app/commands.ts:320 in getBuiltInCommands -> src/lib/core/layout/layout.service.ts:toggleRightSidebar call
-call src/lib/app/commands.ts:336 in getBuiltInCommands -> src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteFavorite call
-call src/lib/app/commands.ts:343 in getBuiltInCommands -> src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteOrganized call
-call src/lib/app/commands.ts:349 in getBuiltInCommands -> src/lib/core/editor/editor.service.ts:togglePinActiveTab call
-call src/lib/app/commands.ts:355 in getBuiltInCommands -> src/lib/plugins/periodic-notes/periodic-notes.service.ts:openOrCreateDailyNote call
-call src/lib/app/commands.ts:362 in getBuiltInCommands -> src/lib/plugins/quick-capture/note-composer.service.ts:createNoteComposer call
-call src/lib/app/commands.ts:369 in getBuiltInCommands -> src/lib/plugins/one-on-one/one-on-one.service.ts:openOneOnOnePicker call
-call src/lib/app/commands.ts:375 in getBuiltInCommands -> src/lib/plugins/templates/templates.service.ts:openTemplatePicker call
-call src/lib/app/commands.ts:385 in getBuiltInCommands -> src/lib/features/copy-block-link/copy-block-link.service.ts:copyBlockLinkToClipboard call
-call src/lib/app/commands.ts:395 in getBuiltInCommands -> src/lib/features/copy-block-link/copy-block-link.service.ts:copyBlockEmbedToClipboard call
-call src/lib/app/commands.ts:403 in getBuiltInCommands -> src/lib/core/settings/settings-panel.store.svelte.ts:settingsPanelStore.toggle mcall
-call src/lib/app/commands.ts:413 in getBuiltInCommands -> src/lib/features/file-history/file-history.service.ts:openFileHistory call
-call src/lib/app/commands.ts:416 in getBuiltInCommands -> src/lib/app/commands.ts:railGoToCommands call
-call src/lib/app/commands.ts:417 in getBuiltInCommands -> src/lib/app/commands.ts:openViewCommands call
+call src/lib/app/commands.ts:66 in railGoToCommands -> src/lib/features/rail-shell/lens.logic.ts:pinnedRailItems call
+call src/lib/app/commands.ts:68 in railGoToCommands -> src/lib/features/rail-shell/rail-items.logic.ts:parseRailHidden call
+call src/lib/app/commands.ts:68 in railGoToCommands -> src/lib/features/rail-shell/rail-items.logic.ts:parseRailOrder call
+call src/lib/app/commands.ts:68 in railGoToCommands -> src/lib/features/rail-shell/rail-items.logic.ts:railItems call
+call src/lib/app/commands.ts:73 in railGoToCommands -> src/lib/app/rail-navigation.ts:selectRailItem call
+call src/lib/app/commands.ts:90 in tasksStatusFilterCommand -> src/lib/features/tasks/tasks.store.svelte.ts:tasksStore.setQuick mcall
+call src/lib/app/commands.ts:91 in tasksStatusFilterCommand -> src/lib/features/tasks/tasks.service.ts:openTasksTab call
+call src/lib/app/commands.ts:103 in openViewCommands -> src/lib/features/type-definitions/type-sidebar.logic.ts:collectViewFiles call
+call src/lib/app/commands.ts:103 in openViewCommands -> src/lib/features/type-definitions/type-sidebar.logic.ts:getViewVisible call
+call src/lib/app/commands.ts:105 in openViewCommands -> src/lib/features/type-definitions/type-sidebar.logic.ts:getViewOpensInEditor call
+call src/lib/app/commands.ts:108 in openViewCommands -> src/lib/features/type-definitions/type-sidebar.logic.ts:getViewLabel call
+call src/lib/app/commands.ts:110 in openViewCommands -> src/lib/app/rail-navigation.ts:openRailView call
+call src/lib/app/commands.ts:127 in getBuiltInCommands -> src/lib/app/global-keybindings.ts:shortcutFor call +18
+call src/lib/app/commands.ts:128 in getBuiltInCommands -> src/lib/core/editor/editor.service.ts:saveCurrentFile call
+call src/lib/app/commands.ts:135 in getBuiltInCommands -> src/lib/core/editor/editor.service.ts:closeActiveTab call
+call src/lib/app/commands.ts:142 in getBuiltInCommands -> src/lib/core/editor/editor.service.ts:switchToNextTab call
+call src/lib/app/commands.ts:149 in getBuiltInCommands -> src/lib/core/editor/editor.service.ts:switchToPreviousTab call
+call src/lib/app/commands.ts:158 in getBuiltInCommands -> src/lib/core/filesystem/fs.service.ts:createFile call
+call src/lib/app/commands.ts:158 in getBuiltInCommands -> src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization call
+call src/lib/app/commands.ts:159 in getBuiltInCommands -> src/lib/core/editor/editor.service.ts:openFileInEditor call +2
+call src/lib/app/commands.ts:160 in getBuiltInCommands -> src/lib/core/editor/editor.hooks.ts:notifyNoteCreated call
+call src/lib/app/commands.ts:170 in getBuiltInCommands -> src/lib/core/filesystem/fs.service.ts:createFolder call
+call src/lib/app/commands.ts:171 in getBuiltInCommands -> src/lib/core/settings/settings.store.svelte.ts:settingsStore.updateLayout mcall
+call src/lib/app/commands.ts:181 in getBuiltInCommands -> src/lib/features/canvas/canvas.service.ts:createCanvasFile call
+call src/lib/app/commands.ts:192 in getBuiltInCommands -> src/lib/plugins/kanban/kanban.service.ts:createKanbanFile call
+call src/lib/app/commands.ts:201 in getBuiltInCommands -> src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:quickSwitcherStore.toggle mcall
+call src/lib/app/commands.ts:208 in getBuiltInCommands -> src/lib/features/search/open-search.service.ts:openSearch call
+call src/lib/app/commands.ts:216 in getBuiltInCommands -> src/lib/plugins/graph-view/graph-view.service.ts:toggleGraphTab call
+call src/lib/app/commands.ts:225 in getBuiltInCommands -> src/lib/features/tasks/tasks.service.ts:toggleTasksTab call
+call src/lib/app/commands.ts:228 in getBuiltInCommands -> src/lib/app/commands.ts:tasksStatusFilterCommand call
+call src/lib/app/commands.ts:235 in getBuiltInCommands -> src/lib/features/event-calendar/event-calendar.service.ts:toggleEventCalendarTab call
+call src/lib/app/commands.ts:243 in getBuiltInCommands -> src/lib/features/event-calendar/event-calendar.service.ts:openNewEventDialog call
+call src/lib/app/commands.ts:251 in getBuiltInCommands -> src/lib/features/event-calendar/event-calendar.service.ts:openEventCalendarTab call
+call src/lib/app/commands.ts:252 in getBuiltInCommands -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:eventCalendarViewStore.goToToday mcall
+call src/lib/app/commands.ts:264 in getBuiltInCommands -> src/lib/features/event-calendar/event-calendar.service.ts:undoEventChangeFromUi call
+call src/lib/app/commands.ts:274 in getBuiltInCommands -> src/lib/features/event-calendar/event-calendar.service.ts:redoEventChangeFromUi call
+call src/lib/app/commands.ts:282 in getBuiltInCommands -> src/lib/features/todoist-sync/todoist-sync.service.ts:checkSyncConnectionFromUi call
+call src/lib/app/commands.ts:288 in getBuiltInCommands -> src/lib/features/todoist-sync/sync-scheduler.service.ts:syncNowFromUi call
+call src/lib/app/commands.ts:294 in getBuiltInCommands -> src/lib/features/todoist-sync/sync-log.service.ts:showSyncLog call
+call src/lib/app/commands.ts:301 in getBuiltInCommands -> src/lib/features/tags/tags.service.ts:toggleTagsTab call
+call src/lib/app/commands.ts:309 in getBuiltInCommands -> src/lib/core/layout/layout.service.ts:toggleLeftSidebar ref
+call src/lib/app/commands.ts:316 in getBuiltInCommands -> src/lib/core/layout/layout.service.ts:hideRailPanels ref
+call src/lib/app/commands.ts:323 in getBuiltInCommands -> src/lib/core/layout/layout.service.ts:showRailPanels ref
+call src/lib/app/commands.ts:330 in getBuiltInCommands -> src/lib/core/layout/layout.service.ts:toggleRightSidebar call
+call src/lib/app/commands.ts:336 in getBuiltInCommands -> src/lib/core/layout/layout.service.ts:toggleRightPanel call +3
+call src/lib/app/commands.ts:361 in getBuiltInCommands -> src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteFavorite call
+call src/lib/app/commands.ts:368 in getBuiltInCommands -> src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteOrganized call
+call src/lib/app/commands.ts:374 in getBuiltInCommands -> src/lib/core/editor/editor.service.ts:togglePinActiveTab call
+call src/lib/app/commands.ts:380 in getBuiltInCommands -> src/lib/plugins/periodic-notes/periodic-notes.service.ts:openOrCreateDailyNote call
+call src/lib/app/commands.ts:387 in getBuiltInCommands -> src/lib/plugins/quick-capture/note-composer.service.ts:createNoteComposer call
+call src/lib/app/commands.ts:394 in getBuiltInCommands -> src/lib/plugins/one-on-one/one-on-one.service.ts:openOneOnOnePicker call
+call src/lib/app/commands.ts:400 in getBuiltInCommands -> src/lib/plugins/templates/templates.service.ts:openTemplatePicker call
+call src/lib/app/commands.ts:410 in getBuiltInCommands -> src/lib/features/copy-block-link/copy-block-link.service.ts:copyBlockLinkToClipboard call
+call src/lib/app/commands.ts:420 in getBuiltInCommands -> src/lib/features/copy-block-link/copy-block-link.service.ts:copyBlockEmbedToClipboard call
+call src/lib/app/commands.ts:428 in getBuiltInCommands -> src/lib/core/settings/settings-panel.store.svelte.ts:settingsPanelStore.toggle mcall
+call src/lib/app/commands.ts:437 in getBuiltInCommands -> src/lib/core/settings/settings-panel.store.svelte.ts:settingsPanelStore.open mcall
+call src/lib/app/commands.ts:448 in getBuiltInCommands -> src/lib/features/file-history/file-history.service.ts:openFileHistory call
+call src/lib/app/commands.ts:451 in getBuiltInCommands -> src/lib/app/commands.ts:railGoToCommands call
+call src/lib/app/commands.ts:452 in getBuiltInCommands -> src/lib/app/commands.ts:openViewCommands call

@@ -189,17 +189,17 @@ function contrastOver(page: Page, read: string): Promise<number> {
 test.describe('Labeled rail', () => {
 	test.use({ viewport: { width: 1440, height: 900 }, vaultFiles: { ...vaultFiles(null), ...MANY_MOD } });
 
-	test('at a saved 192 px, shows the four section titles once a mod is loaded', async ({ vaultPage: page }) => {
+	test('at a saved 192 px, shows the five section titles once a mod is loaded', async ({ vaultPage: page }) => {
 		await page.locator('[data-rail-item^="view:"]').first().waitFor();
 		const titles = page.locator('[data-rail-section-title]');
-		await expect(titles).toHaveCount(3);
+		await expect(titles).toHaveCount(4);
 		await loadMods(page);
 
 		expect((await page.locator('[data-rail]').boundingBox())!.width).toBe(192);
-		for (const text of ['Workspace', 'Browse', 'Pinned', 'Actions']) {
+		for (const text of ['Workspace', 'Browse', 'Tabs', 'Pinned', 'Actions']) {
 			await expect(page.locator(`[data-rail-section-title="${text}"]`)).toBeVisible();
 		}
-		await expect(titles).toHaveCount(4);
+		await expect(titles).toHaveCount(5);
 	});
 
 	for (const key of ['inbox', 'search', 'types', 'calendar', 'files']) {

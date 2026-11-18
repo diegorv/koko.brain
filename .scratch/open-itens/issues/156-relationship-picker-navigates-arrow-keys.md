@@ -12,7 +12,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -30,3 +30,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/68-pickers-arrow-keys.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-17, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/shell-sidebars-ux/issues/09-relationships-add-row-keyboard-picker.md`. The shadcn Command rebuild and its `pnpm build` gate are not carried.

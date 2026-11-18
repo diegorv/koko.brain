@@ -148,7 +148,7 @@ New here creates these notes in the folder `Cmd+N` uses: **Settings > Periodic N
 
 ### Pinned Rail Items
 
-A view or a type you use often can sit on the rail itself. Right-click it in the Types navigator and choose **Pin to rail**, or write `_rail: true` in the `.view` file or the type definition yourself. Pinned items are listed in their own group under Types, Calendar and Files, after a divider, above Archive. They go by `_order` (a view's default is 50, a type's is its definition's `_order`), then by name. Each one shows the icon and name of its row in the Types navigator. The collapsed rail shows only the icon; hover it for the name.
+A view or a type you use often can sit on the rail itself. Right-click it in the Types navigator and choose **Pin to rail**, or write `_rail: true` in the `.view` file or the type definition yourself. Pinned items are listed in their own group under Tasks, Graph and Tags, after a divider, above Archive. They go by `_order` (a view's default is 50, a type's is its definition's `_order`), then by name. Each one shows the icon and name of its row in the Types navigator. The collapsed rail shows only the icon; hover it for the name.
 
 Click a pinned view or type to fill the note list with it, as its row in the navigator does; no navigator opens. A pinned view with `_open_in_editor: true` opens in the editor instead. Kokobrain remembers the pinned item you picked and opens on it after a restart; if it is gone or no longer pinned, the rail opens on **Today**. Renaming or moving the pinned view you are on keeps you on it; moving it to the Trash sends the rail to **Today** at once.
 
@@ -293,7 +293,7 @@ The switch marks notes created by:
 - **Cmd+N** and Quick Capture (the composer, the clipboard shortcut and `kokobrain://capture`)
 - **+ New here** in the note list, and **New \<Type\>** in the Types navigator
 - Clicking a link to a note that does not exist yet, and a meta-bind `createNote` button
-- **New note** in the Files navigator's folder menu, the palette's **New File**, and **Create** in the Quick Switcher
+- **New note** in the Files navigator's folder menu and **+** header menu, the palette's **New note**, and **Create** in the Quick Switcher
 - **New File from Template**, **New 1:1**, **New linked note** and a new event in the Calendar
 - `kokobrain://new` when it creates the note (not with `overwrite=true`)
 
@@ -450,11 +450,18 @@ Click a view in the Types navigator to see its matching notes in the note list. 
 
 When a picked view has no list to show, the note list says why instead of an empty list:
 
-- **Loading...** while the vault index is still being built or the notes have not loaded yet, or while the `.view` file is being read for the first time.
-- **This view no longer exists** when the `.view` file is no longer in the vault (for example, moved or deleted outside Kokobrain).
-- **This view cannot be shown**, with the reason, when the file cannot be read, its YAML does not parse, a view entry is wrong (no `name`, a missing or unknown `type`, a `sort` without `direction`) or a filter does not parse (a typo such as `status = 'active'`). The **Open view** button under it opens the `.view` in the editor so you can fix it.
+- **Loading notes**, with a spinner, while the vault index is still being built or the notes have not loaded yet, or while the `.view` file is being read for the first time.
+- **This view no longer exists** when the `.view` file is no longer in the vault (for example, moved or deleted outside Kokobrain). The hint under it says its `.view` file was moved or deleted; this holds for a view pinned to the rail too.
+- **This view cannot be shown**, with the reason, when the file cannot be read, its YAML does not parse, a view entry is wrong (no `name`, a missing or unknown `type`, a `sort` without `direction`) or a filter does not parse (a typo such as `status = 'active'`). Fix the `.view` file and the list reloads. The **Open view** button under it opens the `.view` in the editor so you can fix it.
 
-Sort, Filter and **New here** are hidden in these three states. **No notes here** means the view ran and no note matches.
+Sort, Filter and **New here** are hidden in these three states.
+
+When the view ran and no note matches, the list says which:
+
+- **No notes in this view** when the view has no filters.
+- **No notes match N filters** (or **1 filter**) when it has filters. **Edit filters** opens the Filter panel, where you can change them; the button itself saves nothing.
+
+The other lists name their cause the same way: **No favorites yet** (star a note with ⌘D, the star above the note, or its row menu), **Inbox zero** (mark a note organized with ⌘E), **Nothing archived**, **No Project notes yet** for a type (use **+** to create one), **This folder is empty.**, and **No types yet** in Types before there is any. With the archived filter on a type or Untyped, **Only archived** with nothing archived offers **Show active**, and **Hide archived** over notes that are all archived says **All N Project notes are archived** with **Show archived**. A search that matches nothing says **No notes match "..."** with **Clear search**, which empties the search box and keeps it open; while the search of note contents is still running it says **Searching note contents...** instead.
 
 In Views, the count of a view whose YAML or filter does not parse is replaced by a red mark; hover it for the reason. A grey mark next to the count lists the keys set to a value that is ignored (see [View Metadata Fields](#view-metadata-fields)). Counts appear once each view has run, so they can show up a moment after the rows; a `_rail_view` that names no view is marked at that moment too, because the check reads the parsed file.
 

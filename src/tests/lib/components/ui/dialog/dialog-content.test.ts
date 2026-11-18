@@ -49,6 +49,17 @@ describe('Dialog.Content', () => {
 		expect(classes.contains('overflow-y-auto')).toBe(true);
 	});
 
+	it('stays vertically centred and keeps its close button', async () => {
+		const content = await renderDialog(true);
+		expect(content).not.toBeNull();
+		const classes = content!.classList;
+		expect(classes.contains('top-[50%]')).toBe(true);
+		expect(classes.contains('translate-y-[-50%]')).toBe(true);
+		expect(classes.contains('top-[18vh]')).toBe(false);
+		const buttons = [...content!.querySelectorAll('button')].map((b) => b.textContent?.trim());
+		expect(buttons).toContain('Close');
+	});
+
 	it('renders no content while closed', async () => {
 		expect(await renderDialog(false)).toBeNull();
 	});

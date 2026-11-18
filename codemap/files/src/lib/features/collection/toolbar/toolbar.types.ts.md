@@ -15,12 +15,12 @@ imp src/lib/features/collection/toolbar/FormulaRow.svelte:6 -> src/lib/features/
 imp src/lib/features/collection/toolbar/PropertiesPanel.svelte:3 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FormulaEntry
 imp src/lib/features/collection/toolbar/filter.logic.ts:6 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterConjunction,type:FilterGroup,type:FilterOperator,type:FilterRow
 imp src/lib/features/collection/toolbar/formula.logic.ts:1 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FormulaEntry
-imp src/lib/features/rail-shell/RailNoteList.svelte:31 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterGroup
+imp src/lib/features/rail-shell/RailNoteList.svelte:33 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterGroup
 imp src/lib/features/rail-shell/lens.logic.ts:44 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterGroup
 imp src/lib/features/type-definitions/ViewDialog.svelte:15 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterGroup
 imp src/lib/features/type-definitions/type-note-list.logic.ts:2 -> src/lib/features/collection/toolbar/toolbar.types.ts type:FilterGroup
 ## reach
-in2 src/lib/features/collection/toolbar/toolbar.types.ts 24 files in 9 modules: src/lib/features/rail-shell(10) src/lib/app(5) src/lib/features/auto-organize(3) src/lib/features/collection(1) src/lib/features/note-list(1) +4 modules: q impact src/lib/features/collection/toolbar/toolbar.types.ts --depth 2
+in2 src/lib/features/collection/toolbar/toolbar.types.ts 26 files in 10 modules: src/lib/features/rail-shell(11) src/lib/app(5) src/lib/features/auto-organize(3) src/lib/features/collection(1) src/lib/features/note-list(1) +5 modules: q impact src/lib/features/collection/toolbar/toolbar.types.ts --depth 2
 out2 src/lib/features/collection/toolbar/toolbar.types.ts 1 files in 1 modules: src/lib/features/collection(1)
 ## tests
 test src/tests/lib/features/type-definitions/ViewDialog.svelte.test.ts imports src/lib/features/collection/toolbar/toolbar.types.ts
@@ -54,7 +54,7 @@ by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/f
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/collection/CollectionView.svelte:20 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/collection/toolbar/FilterPanel.svelte:17 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/collection/toolbar/filter.logic.ts:6 in (module) import
-by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/rail-shell/RailNoteList.svelte:31 in (script) import
+by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/rail-shell/RailNoteList.svelte:33 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/rail-shell/lens.logic.ts:44 in (module) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/type-definitions/ViewDialog.svelte:15 in (script) import
 by src/lib/features/collection/toolbar/toolbar.types.ts:FilterGroup <- src/lib/features/type-definitions/type-note-list.logic.ts:2 in (module) import

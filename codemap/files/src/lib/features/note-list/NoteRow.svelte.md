@@ -13,7 +13,7 @@ imp src/lib/features/note-list/NoteRow.svelte:12 -> src/lib/features/type-defini
 imp src/lib/features/note-list/NoteRow.svelte:13 -> src/lib/features/note-list/note-row-menu.context.ts RENAME_SHORTCUT,useNoteRowMenuContext
 imp src/lib/features/note-list/NoteRow.svelte:14 -> src/lib/features/note-list/note-row.types.ts type:NoteRowNote
 ## imported-by
-imp src/lib/features/rail-shell/RailNoteList.svelte:57 -> src/lib/features/note-list/NoteRow.svelte default
+imp src/lib/features/rail-shell/RailNoteList.svelte:59 -> src/lib/features/note-list/NoteRow.svelte default
 ## reach
 in2 src/lib/features/note-list/NoteRow.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/note-list/NoteRow.svelte 22 files in 12 modules: src/lib/core/editor(4) src/lib/utils(4) src/lib/features/file-icons(3) src/lib/core/filesystem(2) src/lib/features/collection(2) +7 modules
@@ -23,12 +23,12 @@ test src/tests/lib/features/note-list/NoteRowMenu.show-in-views.test.ts harness 
 test src/tests/lib/features/note-list/NoteRowMenu.test.ts harness src/lib/features/note-list/NoteRow.svelte via src/tests/fixtures/NoteRowMenuHarness.svelte
 ## symbols
 sym src/lib/features/note-list/NoteRow.svelte:1 component NoteRow props:note,icon,isActive,listProperties,allPaths,typeName=,subtitle,italic=,archived=,fallbackIcon=,draggable= L133
-by src/lib/features/note-list/NoteRow.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:912 in (markup) mount
+by src/lib/features/note-list/NoteRow.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:971 in (markup) mount
 ## mounts
 mount src/lib/features/note-list/NoteRow.svelte:54 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/note-list/NoteRow.svelte:84 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 ## mounted-at
-mount src/lib/features/rail-shell/RailNoteList.svelte:912 NoteRow -> src/lib/features/note-list/NoteRow.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:971 NoteRow -> src/lib/features/note-list/NoteRow.svelte
 ## calls
 call src/lib/features/note-list/NoteRow.svelte:44 in menu -> src/lib/features/note-list/note-row-menu.context.ts:useNoteRowMenuContext call
 call src/lib/features/note-list/NoteRow.svelte:56 in (markup) -> src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle markup +1

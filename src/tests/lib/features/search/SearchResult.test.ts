@@ -80,6 +80,7 @@ describe('SearchResult — click lands the cursor on the match (issue 02)', () =
 		semanticResult?: SemanticSearchResult;
 		hybridResult?: HybridSearchResult;
 		legacyResult?: LegacySearchResult;
+		tabindex?: number;
 	}): void {
 		component = mount(SearchResult, { target, props });
 		flushSync();
@@ -120,7 +121,7 @@ describe('SearchResult — click lands the cursor on the match (issue 02)', () =
 	it('renders subtitle and score at the meta role in a muted color at full opacity', () => {
 		mountResult({ semanticResult: semanticFixture(4) });
 
-		const subtitle = target.querySelector('p')!;
+		const subtitle = target.querySelector('[data-search-result-subtitle]')!;
 		const score = [...target.querySelectorAll('span')].find((s) => s.textContent === '90%')!;
 		for (const el of [subtitle, score]) {
 			expect(el.classList).toContain('text-meta');
@@ -215,6 +216,19 @@ describe('SearchResult — click lands the cursor on the match (issue 02)', () =
 		expect(rows[0].textContent).toContain('target');
 	});
 
+	it('puts the given tabindex on the card button, and none when not given', () => {
+		const ftsResult: FtsSearchResult = { path: 'notes/target.md', title: 'target', score: 1.2, snippet: 'alpha', tags: '' };
+		const card = () => target.querySelector('[data-search-result] > button')!;
+		mountResult({ ftsResult, tabindex: -1 });
+		expect(card().getAttribute('tabindex')).toBe('-1');
+		unmount(component!);
+		mountResult({ ftsResult, tabindex: 0 });
+		expect(card().getAttribute('tabindex')).toBe('0');
+		unmount(component!);
+		mountResult({ ftsResult });
+		expect(card().hasAttribute('tabindex')).toBe(false);
+	});
+
 	it('legacy result: writes no scroll target until the note is actually open', async () => {
 		const DECOY_PATH = '/vault/notes/other.md';
 		editorStore.addTab({ path: DECOY_PATH, name: 'other.md', content: 'decoy', savedContent: 'decoy' });
@@ -251,6 +265,128 @@ describe('SearchResult — click lands the cursor on the match (issue 02)', () =
 		// ...and once the note is really open the offset still lands on it.
 		expect(editorStore.activeTabPath).toBe(NOTE_PATH);
 		expect(editorStore.pendingScrollPosition).toBe(12);
+	});
+});
+
+describe('SearchResult: card title, subtitle, badge and snippet', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		vi.mocked(invoke).mockResolvedValue([]);
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	function mountResult(props: Record<string, unknown>): void {
+		component = mount(SearchResult, { target, props });
+		flushSync();
+	}
+
+	const text = (selector: string): string | null =>
+		target.querySelector(selector)?.textContent?.replace(/\s+/g, ' ').trim() ?? null;
+
+	const MARKDOWN = '## Plan\n- [ ] read **the** [[Docs/Guide|guide]] and `code`';
+	const PLAIN = 'Plan read the guide and code';
+
+	/** One card per mode for `<folder>/plan.md` (or `plan.md` at the root). */
+	function cards(folder: string, heading: string | null, snippet = MARKDOWN): Record<string, Record<string, unknown>> {
+		const rel = folder ? `${folder}/plan.md` : 'plan.md';
+		return {
+			text: { ftsResult: { path: rel, title: 'plan', score: 1, snippet, tags: '' } },
+			semantic: {
+				semanticResult: { key: 'k', sourcePath: rel, content: snippet, heading, lineStart: 1, lineEnd: 1, score: 0.9 },
+			},
+			hybrid: {
+				hybridResult: { path: rel, title: 'plan', combinedScore: 1, snippet, heading: heading ?? undefined },
+			},
+			legacy: {
+				legacyResult: {
+					filePath: `/vault/${rel}`,
+					fileName: 'plan',
+					matches: [],
+					snippets: [{ text: snippet, matchStart: 0, matchEnd: 0 }],
+				},
+			},
+		};
+	}
+
+	for (const mode of ['text', 'semantic', 'hybrid', 'legacy']) {
+		it(`${mode}: the title is the note name and the subtitle is the folder, never the file name`, () => {
+			mountResult(cards('Projects/Sub', null)[mode]);
+
+			expect(text('[data-search-result-title]')).toBe('plan');
+			expect(text('[data-search-result-subtitle]')).toBe('Projects/Sub');
+		});
+
+		it(`${mode}: the snippet shows no raw markdown`, () => {
+			mountResult(cards('Projects', null)[mode]);
+
+			expect(text('[data-search-result-snippet]')).toBe(PLAIN);
+		});
+
+		it(`${mode}: a root-level note shows no folder`, () => {
+			mountResult(cards('', null)[mode]);
+
+			expect(text('[data-search-result-subtitle]')).toBe('');
+		});
+
+		it(`${mode}: the result button holds only phrasing content`, () => {
+			mountResult(cards('Projects', null)[mode]);
+
+			const button = target.querySelector('[data-search-result] > button')!;
+			expect(button.querySelectorAll('div, p')).toHaveLength(0);
+		});
+	}
+
+	for (const mode of ['semantic', 'hybrid']) {
+		it(`${mode}: the subtitle adds § heading after the folder`, () => {
+			mountResult(cards('Projects', 'Intro')[mode]);
+
+			expect(text('[data-search-result-title]')).toBe('plan');
+			expect(text('[data-search-result-subtitle]')).toBe('Projects § Intro');
+		});
+
+		it(`${mode}: a root-level note with a heading shows only § heading`, () => {
+			mountResult(cards('', 'Intro')[mode]);
+
+			expect(text('[data-search-result-subtitle]')).toBe('§ Intro');
+		});
+	}
+
+	it('text: keeps the <mark> highlight after stripping markdown', () => {
+		mountResult(cards('Projects', null, 'the **<mark>design</mark>** review')['text']);
+
+		const snippet = target.querySelector('[data-search-result-snippet]')!;
+		expect(snippet.textContent?.trim()).toBe('the design review');
+		expect(snippet.querySelector('mark')?.textContent).toBe('design');
+	});
+
+	it('hybrid: a card without source shows no badge', () => {
+		mountResult(cards('Projects', 'Intro')['hybrid']);
+
+		const labels = [...target.querySelectorAll('span')].map((s) => s.textContent?.trim());
+		expect(labels).not.toContain('Both');
+		expect(labels).not.toContain('Text');
+		expect(labels).not.toContain('Semantic');
+	});
+
+	it('hybrid: a card with source from the legacy merge still shows its badge', () => {
+		mountResult({
+			hybridResult: { path: 'Projects/plan.md', title: 'plan', combinedScore: 1, snippet: '', source: 'semantic' },
+		});
+
+		const labels = [...target.querySelectorAll('span')].map((s) => s.textContent?.trim());
+		expect(labels).toContain('Semantic');
 	});
 });
 

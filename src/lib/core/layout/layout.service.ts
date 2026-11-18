@@ -1,5 +1,6 @@
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import type { LayoutSettings } from '#lib/core/settings/settings.types.js';
 import { hidesRightSidebar } from './layout.logic';
 
 /**
@@ -58,4 +59,31 @@ export function toggleClaudePanel(): void {
 	if (!settingsStore.claudeCode.enabled || hidesRightSidebar(editorStore.activeTabPath)) return;
 	if (claudePanelOpen()) settingsStore.updateLayout({ claudeVisible: false });
 	else showClaudePanel();
+}
+
+/** A right sidebar panel with its own `<panel>Visible` layout flag. */
+export type RightPanel = 'properties' | 'backlinks' | 'outgoingLinks' | 'tableOfContents';
+
+/**
+ * Shows or hides one right sidebar panel. Showing it also shows a hidden
+ * sidebar, so the panel turned on is on screen, except on the tabs
+ * `hidesRightSidebar` covers, where the sidebar never shows. Hiding it leaves
+ * the sidebar alone.
+ * @param panel - the panel whose layout flag is written
+ * @param visible - the panel's new visibility
+ */
+export function setRightPanelVisible(panel: RightPanel, visible: boolean): void {
+	const patch: Partial<LayoutSettings> = {};
+	patch[`${panel}Visible`] = visible;
+	if (visible && !hidesRightSidebar(editorStore.activeTabPath)) patch.rightSidebarVisible = true;
+	settingsStore.updateLayout(patch);
+}
+
+/**
+ * Flips one right sidebar panel through `setRightPanelVisible`. Shared by the
+ * "Toggle <panel>" palette commands.
+ * @param panel - the panel to flip
+ */
+export function toggleRightPanel(panel: RightPanel): void {
+	setRightPanelVisible(panel, !settingsStore.layout[`${panel}Visible`]);
 }

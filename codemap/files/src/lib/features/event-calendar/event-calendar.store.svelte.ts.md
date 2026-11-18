@@ -1,12 +1,13 @@
 # file card src/lib/features/event-calendar/event-calendar.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/event-calendar/event-calendar.store.svelte.ts ' codemap/files
-file src/lib/features/event-calendar/event-calendar.store.svelte.ts store L247 module src/lib/features/event-calendar in8 t9 | Reactive data of the Calendar tab: the projected index snapshot, the pending-write overlay, the undo history, the load state and the dated tasks overlay.
+file src/lib/features/event-calendar/event-calendar.store.svelte.ts store L247 module src/lib/features/event-calendar in9 t10 | Reactive data of the Calendar tab: the projected index snapshot, the pending-write overlay, the undo history, the load state and the dated tasks overlay.
 ## imports
 imp src/lib/features/event-calendar/event-calendar.store.svelte.ts:13 -> src/lib/features/event-calendar/event-calendar-history.logic.ts createEventHistory,followRename,remapPath,type:EventHistory
 imp src/lib/features/event-calendar/event-calendar.store.svelte.ts:14 -> src/lib/features/event-calendar/event-calendar-event.logic.ts eventState,isActionableIssue,mergePending,prunePending,sameEventState,type:PendingEventNote
 imp src/lib/features/event-calendar/event-calendar.store.svelte.ts:15 -> src/lib/features/event-calendar/event-calendar-tasks.logic.ts type:CalendarTask
 imp src/lib/features/event-calendar/event-calendar.store.svelte.ts:16 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventIssue,type:EventNote,type:EventProjection,type:EventState,type:PendingWrite
 ## imported-by
+imp src/lib/app/commands.ts:43 -> src/lib/features/event-calendar/event-calendar.store.svelte.ts eventCalendarStore
 imp src/lib/features/event-calendar/EventCalendarNeedsAttention.svelte:3 -> src/lib/features/event-calendar/event-calendar.store.svelte.ts eventCalendarStore
 imp src/lib/features/event-calendar/EventCalendarView.svelte:24 -> src/lib/features/event-calendar/event-calendar.store.svelte.ts eventCalendarStore
 imp src/lib/features/event-calendar/EventDialog.svelte:20 -> src/lib/features/event-calendar/event-calendar.store.svelte.ts eventCalendarStore
@@ -20,6 +21,7 @@ in2 src/lib/features/event-calendar/event-calendar.store.svelte.ts 11 files in 6
 out2 src/lib/features/event-calendar/event-calendar.store.svelte.ts 8 files in 5 modules: src/lib/core/frontmatter(2) src/lib/core/settings(2) src/lib/features/event-calendar(2) src/lib/features/type-definitions(1) src/lib/types(1)
 ## tests
 test src/tests/lib/features/event-calendar/event-calendar.store.test.ts imports src/lib/features/event-calendar/event-calendar.store.svelte.ts mirror
+test src/tests/lib/app/commands.test.ts imports src/lib/features/event-calendar/event-calendar.store.svelte.ts
 test src/tests/lib/features/event-calendar/EventCalendarView.test.ts imports src/lib/features/event-calendar/event-calendar.store.svelte.ts
 test src/tests/lib/features/event-calendar/EventDialog.test.ts imports src/lib/features/event-calendar/event-calendar.store.svelte.ts
 test src/tests/lib/features/event-calendar/EventMonthGrid.test.ts imports src/lib/features/event-calendar/event-calendar.store.svelte.ts
@@ -30,6 +32,7 @@ test src/tests/lib/features/event-calendar/event-calendar.model.test.ts imports 
 test src/tests/lib/features/event-calendar/event-calendar.service.test.ts imports src/lib/features/event-calendar/event-calendar.store.svelte.ts
 ## symbols
 sym src/lib/features/event-calendar/event-calendar.store.svelte.ts:74 store eventCalendarStore L174 | Reactive data store of the Calendar tab.
+by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/app/commands.ts:258 in getBuiltInCommands member +1
 by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventCalendarNeedsAttention.svelte:10 in attention=$derived member +3
 by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventCalendarView.svelte:139 in $effect@121 member +8
 by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventDialog.svelte:47 in event=$derived mcall
@@ -37,7 +40,7 @@ by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarS
 by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventPopover.svelte:33 in event=$derived member
 by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventTimeGrid.svelte:78 in events=$derived member +1
 by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/ShowInCalendarButton.svelte:29 in $effect@25 member
-by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/event-calendar.service.ts:79 in loadEvents mcall +70
+more by 1 not shown: src/lib/features/event-calendar(1): q importers src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore
 ## store
 store src/lib/features/event-calendar/event-calendar.store.svelte.ts:74 eventCalendarStore esc:0
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:76 get eventCalendarStore.events r:7 w-via:setSnapshot,putPending,settlePending,dropPending,remapPath,+1 | Merged and sorted events the calendar renders.
@@ -57,8 +60,8 @@ mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:98 get eventC
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:100 get eventCalendarStore.snapshotVersion r:src/lib/features/event-calendar/EventCalendarView.svelte:160,src/lib/features/event-calendar/EventCalendarView.svelte:171,src/lib/features/event-calendar/event-calendar.service.ts:214 w-via:setSnapshot,reset | `vaultIndexVersion` the latest snapshot was read at.
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:102 get eventCalendarStore.history r:15 w-via:remapPath,setHistory,reset | Undo / redo history.
 more r 15 not shown: src/lib/features/event-calendar(15): q store src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore.history
-mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:104 get eventCalendarStore.canUndo r:- w-via:remapPath,setHistory,reset | Whether there is an op to undo.
-mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:106 get eventCalendarStore.canRedo r:- w-via:remapPath,setHistory,reset | Whether there is an op to redo.
+mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:104 get eventCalendarStore.canUndo r:src/lib/app/commands.ts:258 w-via:remapPath,setHistory,reset | Whether there is an op to undo.
+mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:106 get eventCalendarStore.canRedo r:src/lib/app/commands.ts:268 w-via:remapPath,setHistory,reset | Whether there is an op to redo.
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:108 get eventCalendarStore.tasks r:src/lib/features/event-calendar/EventMonthGrid.svelte:27,src/lib/features/event-calendar/EventTimeGrid.svelte:256 w-via:setTasks,reset | Dated tasks the calendar overlays, sorted by due date.
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:115 do eventCalendarStore.setSnapshot w:src/lib/features/event-calendar/event-calendar.service.ts:89 | Replaces the snapshot and drops the pending writes it has caught up with.
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:125 do eventCalendarStore.setLoading w:src/lib/features/event-calendar/event-calendar.service.ts:79,src/lib/features/event-calendar/event-calendar.service.ts:84,src/lib/features/event-calendar/event-calendar.service.ts:92,src/lib/features/event-calendar/event-calendar.service.ts:97,src/lib/features/event-calendar/event-calendar.service.ts:99 | Sets whether a load is in progress.

@@ -8,7 +8,7 @@ imp src/lib/features/canvas/CanvasFilePicker.svelte:3 -> src/lib/core/filesystem
 imp src/lib/features/canvas/CanvasInner.svelte:25 -> src/lib/features/canvas/CanvasFilePicker.svelte default
 ## reach
 in2 src/lib/features/canvas/CanvasFilePicker.svelte 1 files in 1 modules: src/lib/features/canvas(1)
-out2 src/lib/features/canvas/CanvasFilePicker.svelte 2 files in 2 modules: src/lib/core/filesystem(1) src/lib/utils(1)
+out2 src/lib/features/canvas/CanvasFilePicker.svelte 3 files in 2 modules: src/lib/utils(2) src/lib/core/filesystem(1)
 ## symbols
 sym src/lib/features/canvas/CanvasFilePicker.svelte:1 component CanvasFilePicker props:open,onSelect,onClose,extensions= L152
 by src/lib/features/canvas/CanvasFilePicker.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:698 in (markup) mount +1

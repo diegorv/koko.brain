@@ -43,6 +43,7 @@ export async function buildTagIndex(): Promise<void> {
 		timeSync('TAGS', 'buildTagIndex: set', () => {
 			tagsStore.setTagTree(tree);
 			tagsStore.setTotalTagCount(entries.length);
+			tagsStore.setHasLoaded(true);
 		});
 		const shape = tagTreeShape(entries, tree);
 		debug(

@@ -326,15 +326,16 @@ export interface QueryjsSettings {
  *
  * - `'stable'` → tag-driven builds from `.github/workflows/release.yml`.
  * - `'nightly'` → push-to-main builds from `.github/workflows/nightly.yml`.
+ * - `'preview'` → builds of the `preview` branch, main plus features under
+ *   test (ADR-0039).
  *
  * The channel chosen here is independent of the channel the build itself
- * belongs to (see `__APP_CHANNEL__`). A nightly build can follow the
- * stable channel and vice versa, but switching from nightly to stable
- * does not automatically downgrade the user — nightly versions are
- * semver-greater than the same-base stable versions, so the auto-updater
- * will never offer a "downgrade". Manual reinstall is required.
+ * belongs to (see `__APP_CHANNEL__`). Versions sort stable < nightly <
+ * preview for the same base, so the auto-updater never moves a build to a
+ * lower-ranked channel by itself; Settings > Update offers an explicit
+ * downgrade for that.
  */
-export type ReleaseChannel = 'stable' | 'nightly';
+export type ReleaseChannel = 'stable' | 'nightly' | 'preview';
 
 /** Configuration for the in-app auto-updater */
 export interface UpdateSettings {
@@ -342,7 +343,7 @@ export interface UpdateSettings {
 	 * Which release channel the auto-updater should check.
 	 *
 	 * Defaults to the channel the current build belongs to on first launch
-	 * (so a freshly installed nightly DMG starts on the nightly channel,
+	 * (so a freshly installed nightly or preview DMG starts on its own channel,
 	 * a freshly installed stable DMG starts on stable). Persists across
 	 * restarts.
 	 */

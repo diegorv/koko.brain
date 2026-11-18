@@ -84,6 +84,11 @@ describe('CalendarNavigator header', () => {
 		mountNavigator();
 		expect(target.querySelector('[data-calendar-navigator]')!.firstElementChild!.classList).toContain('pl-[var(--rail-header-pad)]');
 	});
+
+	it('is titled Days, so "Calendar" names only the Calendar tab', () => {
+		mountNavigator();
+		expect(target.querySelector('[data-calendar-navigator]')!.firstElementChild!.textContent?.trim()).toBe('Days');
+	});
 });
 
 describe('CalendarNavigator mini month', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterAndRankCommands } from '#lib/features/command-palette/command-palette.logic.js';
+import { filterAndRankCommands, splitRecentCommands } from '#lib/features/command-palette/command-palette.logic.js';
 import type { AppCommand } from '#lib/features/command-palette/command-palette.types.js';
 
 function makeCommand(id: string, label: string, category = 'Test'): AppCommand {
@@ -60,5 +60,36 @@ describe('filterAndRankCommands', () => {
 		const ids = result.map((c) => c.id);
 		expect(ids).toContain('save');
 		expect(ids).toContain('search');
+	});
+});
+
+describe('splitRecentCommands', () => {
+	const commands: AppCommand[] = [
+		makeCommand('save', 'Save File', 'Editor'),
+		makeCommand('close', 'Close Tab', 'Editor'),
+		makeCommand('search', 'Search in Vault', 'Navigation'),
+		makeCommand('daily', 'Open Daily Note', 'Daily Notes'),
+	];
+
+	it('returns the recents in their order and the label-sorted rest apart', () => {
+		const { recent, rest } = splitRecentCommands(commands, ['search', 'close']);
+		expect(recent.map((c) => c.id)).toEqual(['search', 'close']);
+		expect(rest.map((c) => c.id)).toEqual(['daily', 'save']);
+	});
+
+	it('returns no recents and every command sorted when there are none', () => {
+		const { recent, rest } = splitRecentCommands(commands, []);
+		expect(recent).toEqual([]);
+		expect(rest.map((c) => c.id)).toEqual(['close', 'daily', 'save', 'search']);
+	});
+
+	it('ignores recent ids that match no command', () => {
+		const { recent, rest } = splitRecentCommands(commands, ['nonexistent', 'save']);
+		expect(recent.map((c) => c.id)).toEqual(['save']);
+		expect(rest).toHaveLength(3);
+	});
+
+	it('returns empty groups for no commands', () => {
+		expect(splitRecentCommands([], ['save'])).toEqual({ recent: [], rest: [] });
 	});
 });

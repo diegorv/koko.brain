@@ -57,8 +57,9 @@ async function savedFile(page: Page, path: string): Promise<string> {
 	return page.evaluate((p) => window.__e2e.fs.readFile(p), path);
 }
 
-function tab(page: Page, name: string) {
-	return page.locator('[role="tab"]', { hasText: name });
+/** The tab of a note file: the label drops `.md`. */
+function tab(page: Page, fileName: string) {
+	return page.locator('[role="tab"]', { hasText: fileName.replace(/\.md$/, '') });
 }
 
 /** Keys of the property rows the Properties panel shows. */
@@ -81,7 +82,7 @@ async function openBothNotes(page: Page): Promise<void> {
 	await openFile(page, A_NAME);
 	await openFile(page, B_NAME);
 	await tab(page, A_NAME).click();
-	await expectTabActive(page, A_NAME);
+	await expectTabActive(page, A_NAME.replace(/\.md$/, ''));
 	await expect.poll(() => panelKeys(page)).toEqual(['prioridade', 'status']);
 }
 
@@ -113,7 +114,7 @@ async function addPropertyInPanel(page: Page): Promise<void> {
 
 async function switchToB(page: Page): Promise<void> {
 	await tab(page, B_NAME).click();
-	await expectTabActive(page, B_NAME);
+	await expectTabActive(page, B_NAME.replace(/\.md$/, ''));
 }
 
 /** B's editor and saved file hold B's body with `foo` and none of A's properties. */

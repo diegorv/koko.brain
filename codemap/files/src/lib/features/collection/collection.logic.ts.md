@@ -24,7 +24,7 @@ imp src/lib/features/collection/linear-calendar.logic.ts:4 -> src/lib/features/c
 imp src/lib/features/rail-shell/lens.logic.ts:40 -> src/lib/features/collection/collection.logic.ts executeQuery,filterCitesArchived
 imp src/lib/plugins/mods/mod-query.service.ts:1 -> src/lib/features/collection/collection.logic.ts executeQuery
 ## reach
-in2 src/lib/features/collection/collection.logic.ts 28 files in 8 modules: src/lib/features/rail-shell(11) src/lib/app(9) src/lib/features/auto-organize(2) src/lib/features/collection(2) src/lib/features/search(1) +3 modules: q impact src/lib/features/collection/collection.logic.ts --depth 2
+in2 src/lib/features/collection/collection.logic.ts 30 files in 9 modules: src/lib/features/rail-shell(12) src/lib/app(9) src/lib/features/auto-organize(2) src/lib/features/collection(2) src/lib/features/quick-switcher(1) +4 modules: q impact src/lib/features/collection/collection.logic.ts --depth 2
 out2 src/lib/features/collection/collection.logic.ts 12 files in 5 modules: src/lib/features/collection(5) src/lib/utils(4) src/lib/contracts(1) src/lib/core/filesystem(1) src/lib/core/frontmatter(1)
 ## tests
 test src/tests/fixtures/recent-view.fixture.ts imports src/lib/features/collection/collection.logic.ts
@@ -69,10 +69,10 @@ by src/lib/features/collection/collection.logic.ts:QueryRowSet <- src/lib/featur
 sym src/lib/features/collection/collection.logic.ts:132 fn executeQuery(definition: CollectionDefinition, view: CollectionViewDef, index: Map<string, PropertyIndexRecord>, vaultPath: string … L91 | Executes a query against the property index using a collection definition and view.
 by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/collection/CollectionView.svelte:269 in queryResult=$derived call
 by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/collection/collection-block-widget.ts:124 in CollectionBlockWidget.toDOM call
-by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/rail-shell/lens.logic.ts:809 in queryViewLens call
+by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/rail-shell/lens.logic.ts:811 in queryViewLens call
 by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/plugins/mods/mod-query.service.ts:45 in createModQuery call +1
 sym src/lib/features/collection/collection.logic.ts:270 fn filterCitesArchived(filter: FilterItem | undefined): boolean L15 | Whether a filter cites the archived flag, which hands the archived rows of a `.view` to the filter instead of the default exclusion.
-by src/lib/features/collection/collection.logic.ts:filterCitesArchived <- src/lib/features/rail-shell/lens.logic.ts:771 in queryCitesArchived call +1
+by src/lib/features/collection/collection.logic.ts:filterCitesArchived <- src/lib/features/rail-shell/lens.logic.ts:773 in queryCitesArchived call +1
 sym src/lib/features/collection/collection.logic.ts:326 fn evaluateFilter(filter: FilterItem, ctx: EvalContext, onLeafError?: (err: unknown) => void): boolean L26 | Evaluates a filter item (string expression or recursive filter object) against a note record.
 by src/lib/features/collection/collection.logic.ts:evaluateFilter <- src/lib/features/auto-organize/auto-organize.logic.ts:78 in ruleMatches call
 sym src/lib/features/collection/collection.logic.ts:391 fn formatCellValue(value: unknown): string L23 | Formats a cell value for display in the table.

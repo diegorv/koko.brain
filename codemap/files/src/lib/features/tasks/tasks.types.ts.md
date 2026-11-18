@@ -10,7 +10,7 @@ imp src/lib/features/tasks/tasks.logic.ts:6 -> src/lib/features/tasks/tasks.type
 imp src/lib/features/tasks/tasks.service.ts:17 -> src/lib/features/tasks/tasks.types.ts type:TaskItem
 imp src/lib/features/tasks/tasks.store.svelte.ts:21 -> src/lib/features/tasks/tasks.types.ts type:TaskRowRef
 ## reach
-in2 src/lib/features/tasks/tasks.types.ts 7 files in 2 modules: src/lib/app(4) src/lib/features/tasks(3)
+in2 src/lib/features/tasks/tasks.types.ts 8 files in 2 modules: src/lib/app(5) src/lib/features/tasks(3)
 out2 src/lib/features/tasks/tasks.types.ts 1 files in 1 modules: src/lib/contracts(1)
 ## tests
 test src/tests/lib/features/tasks/task-query.logic.test.ts imports-type src/lib/features/tasks/tasks.types.ts

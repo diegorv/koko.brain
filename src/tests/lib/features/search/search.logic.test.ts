@@ -11,6 +11,8 @@ import {
 	performSearchOverFiles,
 	matchesIndexTag,
 	performOperatorOnlySearch,
+	isBelowSemanticMinimum,
+	SEMANTIC_MIN_QUERY_CHARS,
 } from '#lib/features/search/search.logic.js';
 
 describe('parseSearchQuery', () => {
@@ -57,6 +59,41 @@ describe('parseSearchQuery', () => {
 		expect(result.text).toBe('');
 		expect(result.tags).toHaveLength(0);
 		expect(result.paths).toHaveLength(0);
+	});
+});
+
+describe('isBelowSemanticMinimum', () => {
+	it('uses the Rust minimum of 3 characters', () => {
+		expect(SEMANTIC_MIN_QUERY_CHARS).toBe(3);
+	});
+
+	it('is below the minimum for an empty or whitespace-only query', () => {
+		expect(isBelowSemanticMinimum('')).toBe(true);
+		expect(isBelowSemanticMinimum('   ')).toBe(true);
+	});
+
+	it('is below the minimum at 2 code points and not at 3', () => {
+		expect(isBelowSemanticMinimum('ab')).toBe(true);
+		expect(isBelowSemanticMinimum('abc')).toBe(false);
+	});
+
+	it('counts code points, not UTF-16 units', () => {
+		// Each emoji is one code point but two UTF-16 units.
+		expect(isBelowSemanticMinimum('\u{1F600}\u{1F600}')).toBe(true);
+		expect(isBelowSemanticMinimum('\u{1F600}\u{1F600}\u{1F600}')).toBe(false);
+	});
+
+	it('ignores surrounding whitespace', () => {
+		expect(isBelowSemanticMinimum('  ab  ')).toBe(true);
+	});
+
+	it('measures the text left after the operators', () => {
+		expect(isBelowSemanticMinimum('tag:work ab')).toBe(true);
+		expect(isBelowSemanticMinimum('tag:work abc')).toBe(false);
+	});
+
+	it('measures the raw query for an operator-only query, as the service sends it', () => {
+		expect(isBelowSemanticMinimum('tag:work')).toBe(false);
 	});
 });
 

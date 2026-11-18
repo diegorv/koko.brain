@@ -64,7 +64,7 @@ imp src/lib/app/lifecycle/app-lifecycle.service.ts:84 -> src/lib/features/collec
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:85 -> src/lib/core/markdown-editor/extensions/live-preview/widgets/math-widget.ts clearMathCache
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:86 -> src/lib/features/type-definitions/view-parse-cache.ts clearAllViewParseCache
 ## imported-by
-imp src/routes/(app)/+layout.svelte:10 -> src/lib/app/lifecycle/app-lifecycle.service.ts initializeVault,teardownVault
+imp src/routes/(app)/+layout.svelte:11 -> src/lib/app/lifecycle/app-lifecycle.service.ts initializeVault,teardownVault
 ## reach
 in2 src/lib/app/lifecycle/app-lifecycle.service.ts 0 files in 0 modules: -
 out2 src/lib/app/lifecycle/app-lifecycle.service.ts 137 files in 38 modules: src/lib/plugins/mods(12) src/lib/features/event-calendar(10) src/lib/core/settings(8) src/lib/features/collection(8) src/lib/features/tasks(8) +33 modules
@@ -74,9 +74,9 @@ test src/tests/lib/app/boot.test.ts imports src/lib/app/lifecycle/app-lifecycle.
 test src/tests/lib/core/vault/vault-switch-failed-save.test.ts imports src/lib/app/lifecycle/app-lifecycle.service.ts
 ## symbols
 sym src/lib/app/lifecycle/app-lifecycle.service.ts:137 fn initializeVault(vaultPath: string): Promise<void> L423 | Initializes all app systems when a vault is opened.
-by src/lib/app/lifecycle/app-lifecycle.service.ts:initializeVault <- src/routes/(app)/+layout.svelte:81 in $effect@75 call
+by src/lib/app/lifecycle/app-lifecycle.service.ts:initializeVault <- src/routes/(app)/+layout.svelte:86 in $effect@80 call
 sym src/lib/app/lifecycle/app-lifecycle.service.ts:565 fn teardownVault(): void L122 | Tears down all app systems when a vault is closed.
-by src/lib/app/lifecycle/app-lifecycle.service.ts:teardownVault <- src/routes/(app)/+layout.svelte:86 in $effect@75 call
+by src/lib/app/lifecycle/app-lifecycle.service.ts:teardownVault <- src/routes/(app)/+layout.svelte:91 in $effect@80 call
 ## calls
 call src/lib/app/lifecycle/app-lifecycle.service.ts:141 in initializeVault -> src/lib/core/vault/vault.store.svelte.ts:vaultStore.resetIndexReady mcall
 call src/lib/app/lifecycle/app-lifecycle.service.ts:145 in initializeVault -> src/lib/core/vault/vault-entries.service.ts:invalidateVaultEntries call +1

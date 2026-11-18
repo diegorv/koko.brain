@@ -2,7 +2,7 @@
 
 Visualize and manage tasks as a drag-and-drop board with swimlane columns.
 
-**Create a board:** Command Palette (`Cmd+P`) → **"New Kanban Board"**
+**Create a board:** Command Palette (`Cmd+P`) → **"New kanban board"**
 
 ---
 
@@ -12,7 +12,7 @@ A Kanban board is a special file with the `.kanban` extension. When you open it,
 
 ## Creating a Board
 
-Open the Command Palette (`Cmd+P`) and run **"New Kanban Board"**. Kokobrain creates a `.kanban` file in your current folder with three default lanes: **To Do**, **In Progress**, and **Done**.
+Open the Command Palette (`Cmd+P`) and run **"New kanban board"**. Kokobrain creates a `.kanban` file at the vault root with three default lanes: **To Do**, **In Progress**, and **Done**. To create it in a folder, choose **New kanban board** from the folder's right-click menu in the Files navigator, or from the **+** in its header (which creates in the picked folder).
 
 ## View Modes
 

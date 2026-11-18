@@ -53,7 +53,7 @@ by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib
 by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib/features/deep-link/deep-link.service.ts:340 in executeNewAction call
 by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib/features/type-definitions/type-definitions.service.ts:88 in createNoteOfType call
 by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib/plugins/mods/mod-app.service.ts:63 in MOD_APP ref
-by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib/plugins/one-on-one/one-on-one.service.ts:90 in createOneOnOneNote call
+by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib/plugins/one-on-one/one-on-one.service.ts:92 in createOneOnOneNote call
 by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib/plugins/periodic-notes/periodic-notes.service.ts:53 in openOrCreatePeriodicNoteForDate call
 by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib/plugins/quick-capture/note-composer.service.ts:47 in createNoteComposer call
 by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib/plugins/templates/templates.service.ts:63 in createFileFromTemplate call

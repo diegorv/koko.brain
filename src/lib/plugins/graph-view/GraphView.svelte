@@ -16,8 +16,9 @@
 	import { drag as d3Drag } from 'd3-drag';
 	import { graphViewStore } from './graph-view.store.svelte';
 	import { buildGraph } from './graph-view.service';
-	import { filterGraphData, getLocalGraph, getNodeRadius, graphPalette, FALLBACK_GRAPH_PALETTE, type GraphPalette } from './graph-view.logic';
+	import { filterGraphData, getLocalGraph, getNodeRadius, graphPalette, selectLabels, FALLBACK_GRAPH_PALETTE, type GraphPalette, type LabelCandidate } from './graph-view.logic';
 	import type { GraphNode, GraphLink, GraphData } from './graph-view.types';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
@@ -43,6 +44,26 @@
 	// filter/mode/tab effects below do NOT refetch — they reuse this cache.
 	let fullData: GraphData = { nodes: [], links: [] };
 
+	// Nodes of the graph on screen before filters apply (global, or local when
+	// centered). The filter options come from these, not from `simNodes`, so
+	// picking a folder or tag never removes the option that clears it.
+	let filterOptionNodes = $state.raw<GraphNode[]>([]);
+
+	/** True once a snapshot has resolved; later refreshes keep the graph on screen without the loading line. */
+	let loaded = $state(false);
+	/** True while the latest load failed; the previous `fullData` stays on screen under the alert. */
+	let loadFailed = $state(false);
+	/** True when the latest resolved snapshot has no notes. */
+	let vaultEmpty = $state(false);
+
+	// Read from the pre-filter nodes: with Orphans off the filter drops the
+	// lone center, so the displayed graph has nothing to check.
+	const isolated = $derived(
+		graphViewStore.mode === 'local' &&
+			graphViewStore.centerPath !== null &&
+			filterOptionNodes.some((n) => n.id === graphViewStore.centerPath && n.linkCount === 0),
+	);
+
 	// Colors read from the applied theme's CSS variables; refreshed by the
 	// `appliedThemeStore.revision` effect below. Raw: it is only replaced whole,
 	// and `render()` reads it per node and link on every tick.
@@ -60,10 +81,16 @@
 		});
 	}
 
-	function getDisplayData() {
-		let data = graphViewStore.mode === 'local' && graphViewStore.centerPath
-			? getLocalGraph(fullData, graphViewStore.centerPath, 1)
+	/** The graph for the current mode, before filters apply. */
+	function getBaseData(): GraphData {
+		return graphViewStore.mode === 'local' && graphViewStore.centerPath
+			? getLocalGraph(fullData, graphViewStore.centerPath, graphViewStore.localDepth)
 			: fullData;
+	}
+
+	/** Applies the store's filters to `base`. */
+	function getDisplayData(base: GraphData): GraphData {
+		let data = base;
 
 		const { tag, folder, searchQuery, showOrphans } = graphViewStore.filters;
 		if (tag || folder || searchQuery || !showOrphans) {
@@ -83,8 +110,12 @@
 			fullData = await buildGraph();
 		} catch (err) {
 			error('GRAPH_VIEW', 'buildGraph failed:', err);
+			loadFailed = true;
 			return;
 		}
+		loaded = true;
+		loadFailed = false;
+		vaultEmpty = fullData.nodes.length === 0;
 		if (canvasEl && width > 0) {
 			initSimulation();
 		}
@@ -93,7 +124,9 @@
 	function initSimulation() {
 		if (simulation) simulation.stop();
 
-		const data = getDisplayData();
+		const base = getBaseData();
+		filterOptionNodes = base.nodes;
+		const data = getDisplayData(base);
 
 		// Create sim nodes with copies so d3 can mutate x/y
 		simNodes = data.nodes.map((n) => ({ ...n }));
@@ -135,6 +168,25 @@
 			.on('tick', render);
 
 		simulation.alpha(1).restart();
+	}
+
+	// Label widths for the font in `labelWidthsFont`. render() runs on every
+	// tick, zoom, resize and hover, so a name is measured once per font size.
+	const labelWidths = new Map<string, number>();
+	let labelWidthsFont = '';
+
+	/** The width of `name` in `ctx.font`, measured on the first ask for that font. */
+	function measureLabel(ctx: CanvasRenderingContext2D, name: string): number {
+		if (ctx.font !== labelWidthsFont) {
+			labelWidths.clear();
+			labelWidthsFont = ctx.font;
+		}
+		let labelWidth = labelWidths.get(name);
+		if (labelWidth === undefined) {
+			labelWidth = ctx.measureText(name).width;
+			labelWidths.set(name, labelWidth);
+		}
+		return labelWidth;
 	}
 
 	function render() {
@@ -237,8 +289,33 @@
 			}
 		}
 
-		// Draw nodes
+		// Pick the labels to draw: the nodes the zoom gate admits, minus those
+		// that would overlap a label of higher priority.
 		const centerPath = graphViewStore.centerPath;
+		const fontSize = Math.max(10, 11 / currentTransform.k);
+		ctx.font = `${fontSize}px sans-serif`;
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'top';
+		const candidates: LabelCandidate[] = [];
+		for (const node of simNodes) {
+			const isActive = node.id === centerPath;
+			const isConnected = connectedIds.has(node.id);
+			if (currentTransform.k > 0.8 || isConnected || isActive) {
+				const labelWidth = measureLabel(ctx, node.name);
+				candidates.push({
+					id: node.id,
+					x: node.x! - labelWidth / 2,
+					y: node.y! + getNodeRadius(node.linkCount) + 3,
+					width: labelWidth,
+					height: fontSize,
+					degree: node.linkCount,
+					forced: isConnected || isActive,
+				});
+			}
+		}
+		const labelIds = selectLabels(candidates);
+
+		// Draw nodes
 		for (const node of simNodes) {
 			const r = getNodeRadius(node.linkCount);
 			const isActive = node.id === centerPath;
@@ -257,12 +334,8 @@
 			}
 			ctx.fill();
 
-			// Draw label when zoomed in enough or when highlighted
-			if (currentTransform.k > 0.8 || isConnected || isActive) {
+			if (labelIds.has(node.id)) {
 				ctx.fillStyle = isDimmed ? palette.labelDimmed : palette.label;
-				ctx.font = `${Math.max(10, 11 / currentTransform.k)}px sans-serif`;
-				ctx.textAlign = 'center';
-				ctx.textBaseline = 'top';
 				ctx.fillText(node.name, node.x!, node.y! + r + 3);
 			}
 		}
@@ -381,12 +454,13 @@
 		zoomBehavior.scaleBy(canvasSel, 1 / 1.4);
 	}
 
-	// Reinitialize simulation when mode / filters / center note change. These
-	// are pure UI knobs over the cached `fullData` — no IPC needed.
+	// Reinitialize simulation when mode / filters / center note / local depth
+	// change. These are pure UI knobs over the cached `fullData` — no IPC needed.
 	$effect(() => {
 		graphViewStore.mode;
 		graphViewStore.filters;
 		graphViewStore.centerPath;
+		graphViewStore.localDepth;
 
 		untrack(() => {
 			if (canvasEl && width > 0) {
@@ -448,13 +522,33 @@
 
 <div bind:this={containerEl} data-testid="graph-view" class="relative h-full w-full overflow-hidden" style="background: {palette.background};">
 	<canvas bind:this={canvasEl}></canvas>
-	{#if graphViewStore.mode === 'local' && !graphViewStore.centerPath}
+	<!-- Overlays other than the hint let pointer events through, so a graph kept under them still pans and clicks. -->
+	{#if loadFailed}
+		<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+			<div role="alert" class="pointer-events-auto flex flex-col items-center gap-2">
+				<p class="text-sm text-muted-foreground">Could not build the graph.</p>
+				<Button variant="outline" size="sm" onclick={() => loadAndRebuild()}>Retry</Button>
+			</div>
+		</div>
+	{:else if graphViewStore.mode === 'local' && !graphViewStore.centerPath}
 		<div class="absolute inset-0 flex items-center justify-center">
 			<p class="text-sm text-muted-foreground">Open a note to see its local graph</p>
 		</div>
+	{:else if !loaded}
+		<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+			<p class="text-sm text-muted-foreground">Building graph...</p>
+		</div>
+	{:else if vaultEmpty}
+		<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+			<p class="text-sm text-muted-foreground">No notes to graph yet</p>
+		</div>
+	{:else if isolated}
+		<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+			<p class="text-sm text-muted-foreground">This note has no links yet</p>
+		</div>
 	{/if}
 	<GraphControls
-		nodes={simNodes}
+		nodes={filterOptionNodes}
 		onZoomIn={handleZoomIn}
 		onZoomOut={handleZoomOut}
 	/>

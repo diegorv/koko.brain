@@ -1,6 +1,6 @@
 # Release Channels
 
-Kokobrain ships on two channels: **Stable** and **Nightly**. Pick the one that matches your tolerance for breakage.
+Kokobrain ships on three channels: **Stable**, **Nightly** and **Preview**. Pick the one that matches your tolerance for breakage.
 
 ## Quick reference
 
@@ -9,8 +9,9 @@ Kokobrain ships on two channels: **Stable** and **Nightly**. Pick the one that m
 | **Stable** | Manual, ~every few weeks. Tagged `X.Y.Z` and built by `release.yml`. | `X.Y.Z` | `releases/download/X.Y.Z/KokoBrain_<version>_aarch64.dmg` | `releases/latest/download/latest.json` |
 | **Pre-release** (no updater channel) | Manual, `scripts/release.sh --pre alpha\|beta\|rc`. Tagged `X.Y.Z-beta.N` and built by `release.yml` as a GitHub Pre-release. | `X.Y.Z-beta.N` | `releases/download/X.Y.Z-beta.N/KokoBrain_<version>_aarch64.dmg` | none: `releases/latest` skips pre-releases, so Stable keeps serving the last stable |
 | **Nightly** | Every accepted push to `main`. Tagged `nightly` (single fixed tag, assets rotate). Built by `nightly.yml`. | `nightly` | `releases/download/nightly/KokoBrain_<version>_aarch64.dmg` | `releases/download/nightly/latest.json` |
+| **Preview** | Every accepted push to `main` (merged into the `preview` branch first) and every push to `preview`. Tagged `preview` (single fixed tag, assets rotate). Built by `preview.yml`. | `preview` | `releases/download/preview/KokoBrain_<version>_aarch64.dmg` | `releases/download/preview/latest.json` |
 
-Both channels are signed with the same Apple Developer cert and the same Tauri auto-update private key. No new install warning, no new signing config to trust.
+All channels are signed with the same Apple Developer cert and the same Tauri auto-update private key. No new install warning, no new signing config to trust.
 
 ## Switching channels from inside the app
 
@@ -32,12 +33,15 @@ The "Check for updates" row shows how recently the app asked GitHub for a newer 
 
 - Stable: the version from `package.json`, e.g. `2.8.0`.
 - Nightly: `<next-patch>-nightly.<commitCount>.<sha>`, e.g. `2.8.1-nightly.12.34158e03` for the 12th commit after stable `2.8.0`.
+- Preview: `<next-patch>-preview.<commitCount>.<sha>`, the nightly scheme with another identifier, e.g. `2.8.1-preview.15.9a1b2c3d`. The count is taken on the `preview` branch.
 
 The `commitCount` is `git rev-list --count <stable-tag>..HEAD`: how far the build is past the stable it starts from. It is a numeric semver prerelease identifier, so consecutive nightlies compare numerically and sort monotonically; it restarts at the next stable, whose base is one patch higher. The `sha` follows for visibility.
 
 Semver ranks `X.Y.Z-pre` below `X.Y.Z`, so a nightly sits between the stable it builds on and the next stable: `2.8.0 < 2.8.1-nightly.12 < 2.8.1`. A nightly user is therefore offered the next stable as an ordinary update (any `minor` or `major` release is higher still).
 
-When `package.json` holds a pre-release (`4.0.0-beta.1`), the nightly appends to it instead of bumping the patch: `4.0.0-beta.1.nightly.12.<sha>`. The commit count restarts at every tag, so the base has to stay in the version for the order to hold: `4.0.0-beta.1.nightly.40 < 4.0.0-beta.2 < 4.0.0-beta.2.nightly.3 < 4.0.0-rc.1 < 4.0.0`. `resolveVersion` in `src/lib/utils/build-info.js` is the one implementation; `nightly.yml` calls it.
+Semver compares prerelease identifiers as strings before the count, and `preview` sorts above `nightly`, so for the same base the order is **Stable < Nightly < Preview**: `2.8.0 < 2.8.1-nightly.40 < 2.8.1-preview.3 < 2.8.1`. Switching from Nightly to Preview updates on the next check; going the other way is a downgrade (see below).
+
+When `package.json` holds a pre-release (`4.0.0-beta.1`), the nightly appends to it instead of bumping the patch: `4.0.0-beta.1.nightly.12.<sha>` (a preview build gives `4.0.0-beta.1.preview.12.<sha>`). The commit count restarts at every tag, so the base has to stay in the version for the order to hold: `4.0.0-beta.1.nightly.40 < 4.0.0-beta.2 < 4.0.0-beta.2.nightly.3 < 4.0.0-rc.1 < 4.0.0`. `resolveVersion` in `src/lib/utils/build-info.js` is the one implementation; `nightly.yml` and `preview.yml` call it.
 
 ## Pre-releases (alpha, beta, rc)
 
@@ -47,22 +51,35 @@ A pre-release tag (`X.Y.Z-alpha.N`, `X.Y.Z-beta.N`, `X.Y.Z-rc.N`) goes through t
 
 There is no updater channel for pre-releases. To follow a major version in progress, use the Nightly channel: once a pre-release is tagged, every nightly builds on it. To go back to the last stable, set the channel to Stable on a Nightly build and use "Install Stable", or download the stable DMG from the Releases page.
 
-## One-way update rule
+## Moving to a lower channel
 
-**The auto-updater never downgrades. Switching the channel toggle from Nightly to Stable does not reinstall a Stable build.**
+The auto-updater only installs a version higher than the installed one, so switching the channel toggle to a channel that ranks lower (Preview to Nightly or Stable, Nightly to Stable) does not by itself reinstall anything: the installed version is semver-greater than what the lower channel's `latest.json` serves.
 
-Why: the installed Nightly carries version `2.8.1-nightly.12.<sha>`, which is semver-greater than stable `2.8.0`. When the auto-updater fetches Stable's `latest.json` and compares, it sees the local version as already newer and reports "you are up to date" until a stable `2.8.1` or later ships.
+When the installed build's channel ranks above the selected one, Settings → **Update** shows an **Install <channel> (downgrade)** button (**Install Nightly (downgrade)** or **Install Stable (downgrade)**). After a confirmation dialog it installs the latest build of the selected channel in-app, with the version comparison relaxed for that one install. Any build can move to any lower channel this way.
 
-To genuinely move back to Stable: download the Stable DMG from [GitHub Releases](https://github.com/diegorv/koko.brain/releases/latest) and reinstall manually. macOS will replace the app in-place; your `.kokobrain/settings.json` and vault contents are untouched.
-
-Why this design: the alternative — letting the updater downgrade on channel switch — would silently overwrite a build the user might still be testing, with no way to roll forward again from Stable back to Nightly inside the app. The reinstall step makes the decision explicit.
+A **Releases page** button next to it opens the selected channel's GitHub release; downloading the DMG from there and reinstalling stays the fallback if the in-app install fails. Your vault is untouched either way. Settings keys that only a Preview build knows are dropped the first time a Stable or Nightly build saves the vault's settings.
 
 ## Picking a channel
 
 - **Use Stable** for everyday note-taking. Tagged builds, the full CI matrix (frontend + rust forced via `force_all: true`), Playwright E2E, the gitleaks scan, the Security audits and the Privacy scan as hard gates, slower cadence, fewer regressions.
 - **Use Nightly** if you want the latest fixes or are testing a feature that just merged. Every push to `main` that changes code queues a build; a running build always finishes, and during a burst only the newest pending push is built, so the published nightly may skip intermediate commits. Every push to `main` runs CI with the normal paths-filter (a docs-only commit doesn't re-run frontend tests) plus the full E2E suite in `main-checks.yml`, but neither gates the nightly build: a red check is signal for the maintainer, and the nightly DMG still publishes. The next stable tag-push re-runs both against the exact release SHA, there as hard gates.
+- **Use Preview** to test features that are not approved for `main` yet. It is Nightly plus the branches merged into `preview`, with no CI of its own: a branch is tested only through its PR to `main`, so open one before merging the branch into `preview`.
 
 Nightly is built and signed by the same workflow infrastructure as Stable, so the binaries themselves are equally trustworthy. The difference is review surface and gate coverage — Nightly ships before the change has accumulated days of real-world use, and publishes even when CI or E2E goes red on the post-merge SHA.
+
+## The preview branch
+
+`preview` is a long-lived branch: `main` plus the feature branches under test. A feature branch joins it by hand (`git fetch origin && git checkout -B preview origin/preview && git merge --no-ff <branch> && git push origin HEAD:refs/heads/preview`), which starts a preview build. A branch that changes `.github/workflows/` cannot ride on `preview`: the sync pushes with `GITHUB_TOKEN`, which GitHub refuses when the pushed workflow files match no branch tip, so every later sync would fail.
+
+On every push to `main`, the `sync` job of `preview.yml` merges `main` into `preview` (`--no-ff`, as `github-actions[bot]`, subject `Merge main <sha> into preview`) and pushes it, then the `build-macos` job of the same run builds that head. A push made with `GITHUB_TOKEN` starts no new workflow run, so the build has to live in the same run. When `main` is already in `preview`, the push is skipped and the build still runs on the current head.
+
+On a merge conflict the sync job aborts the merge and fails with a `::error::` naming the files and the commands to resolve it by hand: `git fetch origin && git checkout -B preview origin/preview && git merge origin/main`, fix, commit, `git push origin HEAD:refs/heads/preview`. No build runs until then.
+
+A push to `preview` cancels the running preview run, whose build it makes outdated. A push to `main` or a manual run waits for the running one instead. GitHub keeps only the newest pending run in the `preview` concurrency group. When a run from a push to `main` is cancelled before its sync pushed, or a newer run replaces it while pending, that sync never happens and `preview` lags `main` until the next push to `main`.
+
+`preview` only grows: the workflow never force-pushes, rebases or resets it. The commit count in the version is taken on this branch, so rebuilding it from scratch would lower the count and the updater would stop offering newer builds. The `preview` tag shares the branch's name, so check the branch out from `origin/preview` (a bare `git checkout preview` without a local branch detaches at the tag, the last built head) and push it with the explicit `refs/heads/preview` refspec.
+
+The release body lists the merges on `preview`'s first-parent line whose branch is not in `main` (`scripts/preview-branch.sh merged`). A branch later squash-merged into `main` stays listed, since its merge commit on `preview` is not in `main`.
 
 ## What gets built on which channel
 
@@ -76,9 +93,11 @@ Nightly is built and signed by the same workflow infrastructure as Stable, so th
 
 When `chore: bump version` lands on `main` before a stable tag push, `nightly.yml` short-circuits in its `guard` job to avoid duplicating the work `release.yml` is about to do for the same SHA.
 
+`preview.yml` copies `nightly.yml`'s build steps with `KOKO_RELEASE_CHANNEL=preview`, the tag `preview`, its own Rust cache key (`macos-preview-aarch64`) and the version from `resolveVersion(..., channel: 'preview')`. Unlike `nightly.yml`, its `guard` syncs and builds the `chore: bump version` commit on `main`: `release.yml` builds no preview, and skipping the bump would leave `preview` on the old base version, below the new stable. Only `[skip nightly]` skips a push to `main` (sync and build both); a push to `preview` or a manual run always builds the `preview` head. Concurrency group `preview`; only a push to `preview` cancels the running run.
+
 ## Verifying a download
 
-Each release (Stable and Nightly) ships a `checksums-sha256.txt` file alongside the DMG. After downloading:
+Each release (Stable, Nightly and Preview) ships a `checksums-sha256.txt` file alongside the DMG. After downloading:
 
 ```bash
 shasum -a 256 KokoBrain_*.dmg
@@ -88,5 +107,6 @@ Compare the output against the corresponding line in `checksums-sha256.txt`.
 
 ## Related docs
 
-- [GitHub Workflows](../GITHUB-WORKFLOW.md) — the full `release.yml` and `nightly.yml` job graphs.
+- [GitHub Workflows](../GITHUB-WORKFLOW.md): the full `release.yml`, `nightly.yml` and `preview.yml` job graphs.
+- `.github/workflows/preview.yml` and `scripts/preview-branch.sh`: the preview sync and build.
 - [Commit Conventions](COMMITS.md) — including the `chore: bump version` convention that triggers Stable releases.

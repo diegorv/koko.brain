@@ -31,7 +31,7 @@ The rail on the left, the inbox badges and the right sidebar.
 
 ### Rail
 
-Pick the rail's style, collapse it, hide the buttons you do not use and change their order. The page lists the rail's items in its three groups: **Rail top** (Search, Inbox, Today, Favorites), **Rail navigators** (Types, plugin navigators such as Calendar, Files) and **Rail bottom** (Archive). Pinned views and types are not listed; they follow their own `_order`.
+Pick the rail's style, collapse it, hide the buttons you do not use and change their order. The page lists the rail's items in its four groups: **Rail top** (Search, Inbox, Today, Favorites), **Rail navigators** (Types, plugin navigators such as Days, Files), **Rail tabs** (Tasks, Graph, Tags) and **Rail bottom** (Archive). Pinned views and types are not listed; they follow their own `_order`.
 
 | Setting | Description | Default |
 |---------|-------------|---------|
@@ -42,7 +42,7 @@ Pick the rail's style, collapse it, hide the buttons you do not use and change t
 
 `layout.railWidth` (default `140`) is the width in pixels of the labeled rail. It has no control other than dragging the rail's right edge, between 140 and 320; double-clicking the edge returns it to 140.
 
-If you hide the item the rail is showing, the rail switches to Today. Showing the item again brings it back. Hiding Calendar hides its rail button only; the Calendar plugin keeps working.
+If you hide the item the rail is showing, the rail switches to Today. Showing the item again brings it back. Hiding Days hides its rail button only; the Calendar plugin keeps working. Tasks, Graph and Tags are never the item the rail is showing, and hiding one leaves its tab and its Toggle command as they are.
 
 ### Inbox badges
 
@@ -341,18 +341,28 @@ Messages use the existing best-effort buffered writer, normally flushing every 2
 |---------|-------------|---------|
 | **Current version** | Release channel, version, commit and build time | — |
 | **Check for updates** | Button to manually check the selected channel for a newer version. The row also shows when the app last asked GitHub: `never`, `just now`, or a coarse "X min/h/d ago". | — |
-| **Release channel** | Choose between `Stable` and `Nightly` builds. **Stable** installs official tagged releases (recommended for everyday use). **Nightly** is built from the latest commit on `main` and may be unstable. | `Stable` |
+| **Release channel** | Choose between `Stable`, `Nightly` and `Preview` builds. **Stable** installs official tagged releases (recommended for everyday use). **Nightly** is built from the latest commit on `main` and may be unstable. **Preview** is built from `main` plus features under test and may be unstable. | The channel of the installed build |
 | **Auto-check on launch** | Silently check for an update when the app opens. Fires once per vault open, with no throttle. | Disabled |
 
 The section ends with **Changes in this build**, the commits since the last release tag.
 
 When an update is available, the **Check for updates** row shows download progress (version and size) and then a **Restart to update** button. Changing the release channel resets any pending download, since it pointed at a build from the other channel.
 
-### Nightly to Stable downgrade
+Preview builds come from the `preview` branch, which holds `main` plus the feature branches under test. A new Preview build is published on every push to `main` (which is first merged into `preview`) and on every push to `preview`. Its release page lists the branches it contains that are not in `main` yet.
 
-The auto-updater never moves to a lower version, so switching the channel back from **Nightly** to **Stable** does not automatically downgrade. Nightly versions use the format `X.Y.Z-nightly.<count>.<sha>` (or `X.Y.Z-beta.N.nightly.<count>.<sha>` while a pre-release is out) and sort semver-greater than the same-base stable release.
+### Downgrading to a lower channel
 
-When you are running a Nightly build but have selected the **Stable** channel, an extra **Install Stable** row appears with an **Install Stable (downgrade)** button. Clicking it shows a confirmation dialog (you will lose any changes that landed on `main` since the last Stable tag, until the next Stable release ships; your vault and settings are unaffected), then installs the latest Stable build in-app. A **Releases page** button next to it opens the GitHub Releases page as a manual fallback if the in-app install fails.
+The auto-updater never moves to a lower version, so switching the channel to one that ranks below the installed build does not automatically downgrade. For the same base version the channels sort **Stable** < **Nightly** < **Preview**:
+
+- Nightly versions use the format `X.Y.Z-nightly.<count>.<sha>` (or `X.Y.Z-beta.N.nightly.<count>.<sha>` while a pre-release is out) and sort semver-greater than the same-base stable release.
+- Preview versions use the format `X.Y.Z-preview.<count>.<sha>` (or `X.Y.Z-beta.N.preview.<count>.<sha>` while a pre-release is out). `preview` sorts above `nightly`, so every Preview build sorts above every Nightly build of the same base, and both sort below the next Stable release.
+
+Switching from Nightly to Preview updates on the next check. Going back from Preview to Nightly or Stable, or from Nightly to Stable, needs the downgrade button: when the installed build's channel ranks above the selected one, an extra **Install Nightly** or **Install Stable** row appears with an **Install Nightly (downgrade)** or **Install Stable (downgrade)** button. Clicking it shows a confirmation dialog, then installs the latest build of the selected channel in-app. What you lose:
+
+- From Nightly to Stable: any changes that landed on `main` since the last Stable tag, until the next Stable release ships. Your vault and settings are unaffected.
+- From Preview: the features under test that are not on `main` yet (and, going to Stable, the changes since the last Stable tag). Settings keys that only Preview code knows are dropped the first time a Stable or Nightly build saves the vault's settings, because a build saves only the settings it knows. Your notes are unaffected.
+
+A **Releases page** button next to it opens the selected channel's GitHub release as a manual fallback if the in-app install fails.
 
 ## Labs
 

@@ -13,7 +13,7 @@ reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver fired-by src/lib/pl
 reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver registered-at src/lib/features/auto-organize/auto-organize.service.ts:208 in registerAutoOrganizeHook args=(filePath) => { if (writingPaths.has(filePath)) return; if (isViewFile(filePath… -> src/lib/features/auto-organize/auto-organize.service.ts:registerAutoOrganizeHook
 reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver registered-at src/lib/features/file-history/file-history.service.ts:192 in registerFileHistoryHook args=(filePath, content) => { saveSnapshotForFile(filePath, content).catch((err) => … -> src/lib/features/file-history/file-history.service.ts:registerFileHistoryHook
 reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver registered-at src/lib/features/search/SemanticIndexStatus.svelte:23 in (script) args=(filePath) => { if (filePath === editorStore.activeTab?.path) { saveBump++; } } -> src/lib/features/search/SemanticIndexStatus.svelte:(script)
-reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver registered-at src/lib/features/search/search.service.ts:303 in registerSearchIndexHook args=(filePath, content) => { if (!filePath.endsWith('.md') && !filePath.endsWith('.… -> src/lib/features/search/search.service.ts:registerSearchIndexHook
+reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver registered-at src/lib/features/search/search.service.ts:367 in registerSearchIndexHook args=(filePath, content) => { if (!filePath.endsWith('.md') && !filePath.endsWith('.… -> src/lib/features/search/search.service.ts:registerSearchIndexHook
 reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver registered-at src/lib/features/todoist-sync/sync-scheduler.service.ts:90 in startAutoSync args=(filePath, content) => { if (!settingsStore.todoist.syncEnabled) return; if (!f… -> src/lib/features/todoist-sync/sync-scheduler.service.ts:startAutoSync
 reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver registered-at src/lib/plugins/mods/mods-host.service.ts:630 in createModContext args=(path, content) => { const relative = vaultRelativeKey(vaultPath, path); if (re… -> src/lib/plugins/mods/mods-host.service.ts:createModContext
 reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver invoked-at src/lib/app/lifecycle/app-lifecycle.service.ts:285 in initializeVault
@@ -23,10 +23,11 @@ reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver invoked-at src/lib/
 reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver invoked-at src/lib/plugins/mods/mods-host.service.ts:830 in loadMod
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver sink src/lib/core/editor/editor.hooks.ts:104 | stores noteCreatedObservers push | doc Adds a note-created observer.
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver read-by src/lib/core/editor/editor.hooks.ts:119 notifyNoteCreated
-reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/app/commands.ts:157 in getBuiltInCommands
+reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/app/commands.ts:160 in getBuiltInCommands
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/core/note-creator/note-creator.service.ts:130 in openOrCreateNote
-reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/quick-switcher/QuickSwitcher.svelte:57 in createAndOpenNote <- src/lib/features/quick-switcher/QuickSwitcher.svelte:101 in (markup)
-reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/rail-shell/FilesNavigator.svelte:129 in handleNewFile <- src/lib/features/rail-shell/FilesNavigator.svelte:350 in (markup)
+reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/quick-switcher/QuickSwitcher.svelte:110 in createAndOpenNote <- src/lib/features/quick-switcher/QuickSwitcher.svelte:124 in handleInputKeydown <- src/lib/features/quick-switcher/QuickSwitcher.svelte:163 in (markup)
+reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/quick-switcher/QuickSwitcher.svelte:110 in createAndOpenNote <- src/lib/features/quick-switcher/QuickSwitcher.svelte:190 in (markup)
+reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/rail-shell/FilesNavigator.svelte:170 in handleNewFile <- src/lib/features/rail-shell/FilesNavigator.svelte:128 in createItems=$derived
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/rail-shell/new-note.service.ts:41 in createNoteHere
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver registered-at src/lib/plugins/mods/mods-host.service.ts:681 in createModContext args=(filePath) => { const path = vaultRelativeKey(vaultPath, filePath); if (path ==… -> src/lib/plugins/mods/mods-host.service.ts:createModContext
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver invoked-at src/lib/plugins/mods/mods-host.service.ts:830 in loadMod
@@ -47,7 +48,7 @@ reg src/lib/core/filesystem/fs.watcher.ts:onFileChange registered-at src/lib/app
 reg src/lib/core/filesystem/fs.watcher.ts:onFileChange registered-at src/lib/plugins/mods/mods-host.service.ts:1077 in startModsHost args=(paths) => onModFilesChanged(vaultPath, paths, startGeneration) -> src/lib/plugins/mods/mods-host.service.ts:startModsHost
 reg src/lib/core/filesystem/fs.watcher.ts:onFileChange invoked-at src/lib/app/LabsSection.svelte:27 in setModsEnabled
 reg src/lib/core/filesystem/fs.watcher.ts:onFileChange invoked-at src/lib/app/lifecycle/app-lifecycle.service.ts:550 in initializeVault
-reg src/lib/core/filesystem/fs.watcher.ts:onFileChange invoked-at src/routes/(app)/+layout.svelte:81 in $effect@75
+reg src/lib/core/filesystem/fs.watcher.ts:onFileChange invoked-at src/routes/(app)/+layout.svelte:86 in $effect@80
 reg src/lib/core/filesystem/note-change.service.ts:registerContentInvalidationListener sink src/lib/core/filesystem/note-change.service.ts:144 | stores contentInvalidationListeners push | doc Registers a listener for the vault-wide "note content changed" signal.
 reg src/lib/core/filesystem/note-change.service.ts:registerContentInvalidationListener read-by src/lib/core/filesystem/note-change.service.ts:154 notifyContentInvalidated
 reg src/lib/core/filesystem/note-change.service.ts:registerContentInvalidationListener fired-by src/lib/app/lifecycle/watcher-handler.service.ts:83 in rebuildAllIndexes
@@ -59,7 +60,7 @@ reg src/lib/core/filesystem/note-change.service.ts:registerContentInvalidationLi
 reg src/lib/core/filesystem/note-change.service.ts:registerContentInvalidationListener registered-at src/lib/app/boot.ts:41 in registerAppPorts args='kanban-linked-content', clearLinkedContentCache -> src/lib/plugins/kanban/kanban.service.ts:clearLinkedContentCache
 reg src/lib/core/filesystem/note-change.service.ts:registerContentInvalidationListener registered-at src/lib/plugins/queryjs/queryjs-ports.ts:15 in registerQueryjsBlockPorts args='queryjs-cache', invalidateQueryjsCache -> src/lib/plugins/queryjs/queryjs-block-widget.ts:invalidateQueryjsCache
 reg src/lib/core/filesystem/note-change.service.ts:registerContentInvalidationListener invoked-at src/lib/app/boot.ts:40 in registerAppPorts
-reg src/lib/core/filesystem/note-change.service.ts:registerContentInvalidationListener invoked-at src/routes/(app)/+layout.svelte:28 in (script)
+reg src/lib/core/filesystem/note-change.service.ts:registerContentInvalidationListener invoked-at src/routes/(app)/+layout.svelte:29 in (script)
 reg src/lib/core/filesystem/note-change.service.ts:registerNoteChangeConsumer sink src/lib/core/filesystem/note-change.service.ts:109 | stores consumers push | doc Registers a per-file index to follow every note change.
 reg src/lib/core/filesystem/note-change.service.ts:registerNoteChangeConsumer read-by src/lib/core/filesystem/note-change.service.ts:168 fanOut
 reg src/lib/core/filesystem/note-change.service.ts:registerNoteChangeConsumer fired-by src/lib/core/filesystem/note-change.service.ts:206 in applyNoteChange
@@ -86,7 +87,7 @@ reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer in
 reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer invoked-at src/lib/app/lifecycle/app-lifecycle.service.ts:268 in initializeVault
 reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer invoked-at src/lib/app/lifecycle/app-lifecycle.service.ts:269 in initializeVault
 reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer invoked-at src/lib/plugins/mods/mods-host.service.ts:830 in loadMod
-reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer invoked-at src/routes/(app)/+layout.svelte:28 in (script)
+reg src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer invoked-at src/routes/(app)/+layout.svelte:29 in (script)
 reg src/lib/core/markdown-editor/editor-host.ts:editorHost facet src/lib/core/markdown-editor/editor-host.ts:104 | doc The editor's host.
 reg src/lib/core/markdown-editor/editor-host.ts:editorHost registered-at src/lib/core/markdown-editor/setup/editor-extensions.ts:129 in createExtensions args=opts.host -> src/lib/core/markdown-editor/setup/editor-extensions.ts:createExtensions
 reg src/lib/core/markdown-editor/editor-host.ts:editorHost registered-at src/lib/plugins/quick-capture/composer-editor.ts:108 in createComposerEditor args=opts.host -> src/lib/plugins/quick-capture/composer-editor.ts:createComposerEditor
@@ -117,12 +118,12 @@ reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:confi
 reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling fired-by src/lib/core/markdown-editor/extensions/live-preview/plugins/image-plugin.ts:64 in imagePlugin
 reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling fired-by src/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input-plugin.ts:40 in metaBindInputPlugin
 reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling fired-by src/lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.ts:45 in wikilinkEmbedPlugin
-reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling fired-by src/lib/plugins/queryjs/queryjs-block-widget.ts:227 in QueryjsBlockWidget.execute
+reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling fired-by src/lib/plugins/queryjs/queryjs-block-widget.ts:236 in QueryjsBlockWidget.execute
 reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling fired-by src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:86 in blockDecorator
 reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling fired-by src/lib/core/markdown-editor/extensions/live-preview/core/scroll-debounce-plugin.ts:27 in scrollDebouncePlugin
 more fired-by 7 not shown: src/lib/core/markdown-editor(6) src/lib/plugins/queryjs(1): q reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling
 reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling registered-at src/lib/app/boot.ts:38 in registerAppPorts args={ isEnabled: () => settingsStore.livePreviewProfiling, log: appendLog } -> src/lib/utils/log.service.ts:appendLog
-reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling invoked-at src/routes/(app)/+layout.svelte:28 in (script)
+reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling invoked-at src/routes/(app)/+layout.svelte:29 in (script)
 reg src/lib/core/rule-actions/rule-actions.store.svelte.ts:ruleActionsStore.register sink src/lib/core/rule-actions/rule-actions.store.svelte.ts:50 | stores actions assign | doc Registers an action, replacing one with its id; the cleanup removes only this registration
 reg src/lib/core/rule-actions/rule-actions.store.svelte.ts:ruleActionsStore.register read-by src/lib/core/rule-actions/rule-actions.store.svelte.ts:40 ruleActionsStore.list
 reg src/lib/core/rule-actions/rule-actions.store.svelte.ts:ruleActionsStore.register read-by src/lib/core/rule-actions/rule-actions.store.svelte.ts:45 ruleActionsStore.get
@@ -137,4 +138,4 @@ reg src/lib/core/vault/write-barrier.service.ts:registerWriteBarrier read-by src
 reg src/lib/core/vault/write-barrier.service.ts:registerWriteBarrier fired-by src/lib/core/vault/exit.service.ts:17 in prepareForExit
 reg src/lib/core/vault/write-barrier.service.ts:registerWriteBarrier fired-by src/lib/core/vault/vault.service.ts:24 in switchVault
 reg src/lib/core/vault/write-barrier.service.ts:registerWriteBarrier registered-at src/lib/app/boot.ts:42 in registerAppPorts args='event-calendar', drainEventCalendarWrites -> src/lib/features/event-calendar/event-calendar.service.ts:drainEventCalendarWrites
-reg src/lib/core/vault/write-barrier.service.ts:registerWriteBarrier invoked-at src/routes/(app)/+layout.svelte:28 in (script)
+reg src/lib/core/vault/write-barrier.service.ts:registerWriteBarrier invoked-at src/routes/(app)/+layout.svelte:29 in (script)

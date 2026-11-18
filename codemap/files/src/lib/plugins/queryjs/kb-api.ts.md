@@ -35,9 +35,9 @@ test src/tests/lib/features/collection/collection.service.test.ts imports src/li
 sym src/lib/plugins/queryjs/kb-api.ts:55 class KBAPI L486 | QueryJS API object.
 by src/lib/plugins/queryjs/kb-api.ts:KBAPI <- src/lib/plugins/mods/mod-app.service.ts:84 in createModKb new
 by src/lib/plugins/queryjs/kb-api.ts:KBAPI <- src/lib/plugins/mods/mods-host.service.ts:15 in (module) import
-by src/lib/plugins/queryjs/kb-api.ts:KBAPI <- src/lib/plugins/queryjs/queryjs-block-widget.ts:245 in QueryjsBlockWidget.execute new
+by src/lib/plugins/queryjs/kb-api.ts:KBAPI <- src/lib/plugins/queryjs/queryjs-block-widget.ts:254 in QueryjsBlockWidget.execute new
 sym src/lib/plugins/queryjs/kb-api.ts:552 fn runQueryjsBlock(api: KBAPI, jsContent: string): Promise<void> L5 | Runs the body of a `` ```queryjs `` block against `api`, the step the block widget and the help-example contract tests share.
-by src/lib/plugins/queryjs/kb-api.ts:runQueryjsBlock <- src/lib/plugins/queryjs/queryjs-block-widget.ts:256 in QueryjsBlockWidget.execute call
+by src/lib/plugins/queryjs/kb-api.ts:runQueryjsBlock <- src/lib/plugins/queryjs/queryjs-block-widget.ts:265 in QueryjsBlockWidget.execute call
 ## calls
 call src/lib/plugins/queryjs/kb-api.ts:120 in KBAPI.pages -> src/lib/plugins/queryjs/kb-api.ts:KBAPI.ensureCache call
 call src/lib/plugins/queryjs/kb-api.ts:123 in KBAPI.pages -> src/lib/plugins/queryjs/queryjs.logic.ts:parseSource call
