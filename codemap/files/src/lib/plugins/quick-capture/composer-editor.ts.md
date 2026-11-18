@@ -16,11 +16,11 @@ test src/tests/lib/plugins/quick-capture/composer-editor.test.ts imports src/lib
 ## symbols
 sym src/lib/plugins/quick-capture/composer-editor.ts:11 interface ComposerEditorOptions L14 | Options of `createComposerEditor`.
 sym src/lib/plugins/quick-capture/composer-editor.ts:88 fn createComposerEditor(opts: ComposerEditorOptions): EditorView L47 | The text field of the Quick Capture composer: plain text, with the editor's `[[wikilink]]` and `#tag` completion.
-by src/lib/plugins/quick-capture/composer-editor.ts:createComposerEditor <- src/routes/composer/+page.svelte:202 in (script) call
+by src/lib/plugins/quick-capture/composer-editor.ts:createComposerEditor <- src/routes/composer/+page.svelte:203 in (script) call
 sym src/lib/plugins/quick-capture/composer-editor.ts:143 fn setComposerText(view: EditorView, text: string): void L10 | Replaces the whole text, with the cursor at the end, when it differs.
-by src/lib/plugins/quick-capture/composer-editor.ts:setComposerText <- src/routes/composer/+page.svelte:46 in setText call
+by src/lib/plugins/quick-capture/composer-editor.ts:setComposerText <- src/routes/composer/+page.svelte:47 in setText call
 sym src/lib/plugins/quick-capture/composer-editor.ts:155 fn setComposerDark(view: EditorView, dark: boolean): void L4 | Switches the editor theme between its light and dark base.
-by src/lib/plugins/quick-capture/composer-editor.ts:setComposerDark <- src/routes/composer/+page.svelte:163 in onStorage call +1
+by src/lib/plugins/quick-capture/composer-editor.ts:setComposerDark <- src/routes/composer/+page.svelte:164 in onStorage call +1
 ## locals
 local src/lib/plugins/quick-capture/composer-editor.ts:64 fn composerTheme(dark: boolean) L3
 local src/lib/plugins/quick-capture/composer-editor.ts:75 fn listShown(view: EditorView): boolean L3
