@@ -87,6 +87,16 @@ describe('TableWidget — +col / +row buttons', () => {
 		expect(dom.querySelector('.cm-lp-table-add-row')).not.toBeNull();
 	});
 
+	it('names the +col and +row buttons for assistive tech and keeps their tooltips', () => {
+		const { dom } = mount(['h1', 'h2'], [['a', 'b']]);
+		const addCol = dom.querySelector<HTMLButtonElement>('.cm-lp-table-add-col')!;
+		const addRow = dom.querySelector<HTMLButtonElement>('.cm-lp-table-add-row')!;
+		expect(addCol.getAttribute('aria-label')).toBe('Add column');
+		expect(addRow.getAttribute('aria-label')).toBe('Add row');
+		expect(addCol.title).toBe('Add column');
+		expect(addRow.title).toBe('Add row');
+	});
+
 	it('clicking +col dispatches a transaction that appends an empty column', () => {
 		const { view, dom } = mount(['name', 'age'], [['alice', '30']]);
 		const before = view.state.doc.toString();

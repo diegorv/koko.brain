@@ -89,15 +89,22 @@ export class CodeBlockWidget extends WidgetType {
 			const copyBtn = document.createElement('button');
 			copyBtn.className = 'cm-lp-codeblock-copy';
 			copyBtn.textContent = 'Copy';
+			let resetTimer: ReturnType<typeof setTimeout> | undefined;
+			const flash = (label: string) => {
+				copyBtn.textContent = label;
+				clearTimeout(resetTimer);
+				resetTimer = setTimeout(() => {
+					copyBtn.textContent = 'Copy';
+				}, 1500);
+			};
 			copyBtn.addEventListener('mousedown', (e) => {
 				e.preventDefault();
 				e.stopPropagation();
-				navigator.clipboard.writeText(this.code).then(() => {
-					copyBtn.textContent = 'Copied!';
-					setTimeout(() => {
-						copyBtn.textContent = 'Copy';
-					}, 1500);
-				});
+				// The async wrapper turns a missing `navigator.clipboard` (TypeError) into a rejection
+				(async () => navigator.clipboard.writeText(this.code))().then(
+					() => flash('Copied!'),
+					() => flash('Copy failed'),
+				);
 			});
 			header.appendChild(copyBtn);
 
