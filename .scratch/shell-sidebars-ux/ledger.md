@@ -55,7 +55,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 18 | [Shared roving-list util and arrow keys in Search results](issues/18-roving-list-search-arrows.md) | none | done | issue/18-roving-list-search-arrows (946fa2132) | 2026-11-18 |
 | 19 | [Rail note list: one Tab stop, arrow keys, focus follows removals and rename](issues/19-rail-note-list-keyboard.md) | 12, 15, 18 | todo | | |
 | 20 | [Palette "Go to X" lands focus in the note list, and "New note here" becomes a command](issues/20-palette-go-to-focus-new-note-here.md) | 13, 19 | todo | | |
-| 21 | [The tab strip shows what is off screen, tabs shrink, and the sidebar toggle stops covering them](issues/21-tab-strip-overflow-shrink.md) | none | todo | | |
+| 21 | [The tab strip shows what is off screen, tabs shrink, and the sidebar toggle stops covering them](issues/21-tab-strip-overflow-shrink.md) | none | in-progress | | |
 | 22 | [Tabs can be dragged to reorder, show their full path on hover, and markdown labels drop .md](issues/22-tab-drag-path-tooltip-no-md.md) | 21 | todo | | |
 | 23 | [Tab menu: Close others, Close to the right, and the shared note-actions group](issues/23-tab-menu-close-others-note-actions.md) | 15, 22 | todo | | |
 | 24 | [Clickable breadcrumb with type and folder crumbs and no .md, plus Reveal in note list](issues/24-breadcrumb-reveal-in-note-list.md) | none | todo | | |
@@ -87,3 +87,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 04:00 — 14 — deliver — review 1 APPROVED with 2 findings (count inside the folder button, ml-auto test), fixed; round 2 APPROVED; full suite 17204 passed; rebased, squashed and pushed — 1be913d25
 - 2026-11-18 04:02 — 18 — start — launched by /relay-lite:run — d407096b4
 - 2026-11-18 04:18 — 18 — deliver — review 1 APPROVED with findings (Semantic Tab stop and held Enter tests), fixed; Show in Calendar Tab stop deferred to 19; round 2 APPROVED; full suite 17238 passed; squashed and pushed — 946fa2132
+- 2026-11-18 04:18 — 21 — start — launched by /relay-lite:run — 1978c1b33
