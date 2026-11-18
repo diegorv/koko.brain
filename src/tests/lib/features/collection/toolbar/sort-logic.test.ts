@@ -4,6 +4,7 @@ import {
 	toggleSortDirection,
 	reorderSorts,
 	getSortDirectionLabel,
+	sortState,
 } from '#lib/features/collection/toolbar/sort.logic.js';
 import type { SortDef } from '#lib/features/collection/collection.types.js';
 
@@ -131,5 +132,25 @@ describe('getSortDirectionLabel', () => {
 
 	it('returns A → Z for list ASC', () => {
 		expect(getSortDirectionLabel('ASC', 'list')).toBe('A → Z');
+	});
+});
+
+describe('sortState', () => {
+	const sorts: SortDef[] = [
+		{ column: 'status', direction: 'ASC' },
+		{ column: 'priority', direction: 'DESC' },
+	];
+
+	it('gives the direction and 1-based rank of a sorted column', () => {
+		expect(sortState(sorts, 'status')).toEqual({ direction: 'ASC', rank: 1 });
+		expect(sortState(sorts, 'priority')).toEqual({ direction: 'DESC', rank: 2 });
+	});
+
+	it('returns null for a column that is not sorted', () => {
+		expect(sortState(sorts, 'file.name')).toBeNull();
+	});
+
+	it('returns null with no sorts', () => {
+		expect(sortState([], 'status')).toBeNull();
 	});
 });

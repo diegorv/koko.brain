@@ -1,6 +1,24 @@
 import type { SortDef } from '../collection.types';
 import type { PropertyType } from '#lib/core/frontmatter/properties.types.js';
 
+/** Where a column sits in a sort list: its direction and 1-based rank. */
+export interface SortState {
+	/** The column's sort direction */
+	direction: SortDef['direction'];
+	/** 1 for the primary sort, 2 for the next, and so on */
+	rank: number;
+}
+
+/**
+ * Returns the direction and rank of `column` in `sorts`, or null when the
+ * column is not sorted.
+ */
+export function sortState(sorts: SortDef[], column: string): SortState | null {
+	const index = sorts.findIndex((s) => s.column === column);
+	if (index === -1) return null;
+	return { direction: sorts[index].direction, rank: index + 1 };
+}
+
 /**
  * Removes the sort for a given column.
  */

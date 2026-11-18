@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { QueryResult, PropertyIndexRecord, SortDef } from './collection.types';
-	import { formatCellValue, getPropertyValue } from './collection.logic';
+	import { formatColumnCell, getPropertyValue } from './collection.logic';
+	import { sortState, type SortState } from './toolbar/sort.logic';
 	import { isDisplayValue } from './expression/expression.types';
 	import { sanitizeHtml } from '#lib/utils/sanitize.js';
 
@@ -24,10 +25,15 @@
 
 	let visibleRecords = $derived(result.records.slice(0, visibleCount));
 
-	function getSortIndicator(column: string): string {
-		const sortDef = currentSort.find((s) => s.column === column);
-		if (!sortDef) return '';
-		return sortDef.direction === 'ASC' ? ' \u2191' : ' \u2193';
+	function getSortIndicator(state: SortState | null): string {
+		if (!state) return '';
+		return state.direction === 'ASC' ? ' \u2191' : ' \u2193';
+	}
+
+	/** `aria-sort` for the primary sorted column only; secondary sorts have no ARIA value. */
+	function getAriaSort(state: SortState | null): 'ascending' | 'descending' | undefined {
+		if (state?.rank !== 1) return undefined;
+		return state.direction === 'ASC' ? 'ascending' : 'descending';
 	}
 </script>
 
@@ -36,16 +42,20 @@
 		No results match the current filters
 	</div>
 {:else}
-	<div class="overflow-auto">
+	<!-- No overflow-* here or on any element down to the th: sticky resolves against the nearest scroller, which is CollectionView's. -->
+	<div>
 		<table class="w-full border-collapse text-sm">
 			<thead>
-				<tr class="border-b border-border">
+				<tr>
 					{#each result.columns as col}
+						{@const state = sortState(currentSort, col.key)}
 						<th
-							class="cursor-pointer select-none whitespace-nowrap px-3 py-2 text-left font-medium text-muted-foreground hover:text-foreground transition-colors"
+							class="sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-card px-3 py-2 text-left font-medium text-muted-foreground shadow-[inset_0_-1px_0_var(--border)] hover:text-foreground transition-colors"
+							title={col.displayName !== col.key ? col.key : undefined}
+							aria-sort={getAriaSort(state)}
 							onclick={() => onToggleSort?.(col.key)}
 						>
-							{col.displayName}{getSortIndicator(col.key)}
+							{col.displayName}{getSortIndicator(state)}{#if state && currentSort.length > 1}<span data-sort-rank class="text-[0.7em] tabular-nums">{state.rank}</span>{/if}
 						</th>
 					{/each}
 				</tr>
@@ -74,7 +84,8 @@
 										{@html sanitizeHtml(value.html)}
 									{/if}
 								{:else}
-									{formatCellValue(value)}
+									{@const text = formatColumnCell(col.key, value)}
+									<span class="block max-w-80 truncate" title={text}>{text}</span>
 								{/if}
 							</td>
 						{/each}

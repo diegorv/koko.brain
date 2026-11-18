@@ -29,7 +29,7 @@ sym src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts
 by src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:blockDecorator <- src/lib/core/markdown-editor/extensions/live-preview/plugins/audio-plugin.ts:52 in audioPlugin call
 by src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:blockDecorator <- src/lib/core/markdown-editor/extensions/live-preview/plugins/block-comment-field.ts:52 in blockCommentField call
 by src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:blockDecorator <- src/lib/core/markdown-editor/extensions/live-preview/plugins/block-math-field.ts:42 in blockMathField call
-by src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:blockDecorator <- src/lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.ts:266 in calloutField call
+by src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:blockDecorator <- src/lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.ts:267 in calloutField call
 by src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:blockDecorator <- src/lib/core/markdown-editor/extensions/live-preview/plugins/code-block-field.ts:108 in codeBlockField call
 by src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:blockDecorator <- src/lib/core/markdown-editor/extensions/live-preview/plugins/collection-block-field.ts:47 in collectionBlockField call
 by src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:blockDecorator <- src/lib/core/markdown-editor/extensions/live-preview/plugins/mermaid-field.ts:45 in mermaidField call

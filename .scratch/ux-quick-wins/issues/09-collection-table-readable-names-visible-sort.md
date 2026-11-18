@@ -17,17 +17,17 @@ Not in this ticket: the inline block (ticket 14), column reorder (writes `order`
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes (none expected: `e2e/specs/collection-block.spec.ts` asserts the inline block, which this ticket does not strip of `.md`).
 
-- [ ] Failing test first, `src/tests/lib/features/collection/collection-logic.test.ts`: with no `displayName`, `file.name` is `Name`, `file.mtime` is `Modified`, a note property keeps its key; `properties.file.name.displayName: Note` wins; `order`, filter and sort keys are unchanged. The assertions at `:342` and `:765` change on purpose in the same commit.
-- [ ] Failing test first, `src/tests/lib/features/collection/CollectionTableView.svelte.test.ts`: a `Roadmap.md` record renders `Roadmap`; the header `title` is `file.name`; a `file.path` cell keeps its text.
-- [ ] Failing test first, `src/tests/lib/features/collection/toolbar/sort-logic.test.ts` and the component: two sorts render ranks 1 and 2 and only the first `th` has `aria-sort="ascending"`; one sort shows no rank; `src/tests/lib/features/collection/CollectionView.view-writes.test.ts:195` (`'status ↓'`) stays green.
-- [ ] A 120-character text cell's inner span has `title` and the truncate classes; the `th` is `sticky`; no element between `th` and the component root has an `overflow-*` class.
-- [ ] New `src/tests/lib/features/collection/toolbar/PropertiesPanel.svelte.test.ts` and a `SortPanel` render check: `file.name` reads `Name`. `src/tests/lib/features/collection/CollectionView.test.ts:422-460` (`renderedNames()` compared to `records.map(r => r.name)`) compares names without `.md`; `RailNoteList.view.test.ts` and `RailNoteList.toolbar.test.ts` pass.
+- [x] Failing test first, `src/tests/lib/features/collection/collection-logic.test.ts`: with no `displayName`, `file.name` is `Name`, `file.mtime` is `Modified`, a note property keeps its key; `properties.file.name.displayName: Note` wins; `order`, filter and sort keys are unchanged. The assertions at `:342` and `:765` change on purpose in the same commit.
+- [x] Failing test first, `src/tests/lib/features/collection/CollectionTableView.svelte.test.ts`: a `Roadmap.md` record renders `Roadmap`; the header `title` is `file.name`; a `file.path` cell keeps its text.
+- [x] Failing test first, `src/tests/lib/features/collection/toolbar/sort-logic.test.ts` and the component: two sorts render ranks 1 and 2 and only the first `th` has `aria-sort="ascending"`; one sort shows no rank; `src/tests/lib/features/collection/CollectionView.view-writes.test.ts:195` (`'status ↓'`) stays green.
+- [x] A 120-character text cell's inner span has `title` and the truncate classes; the `th` is `sticky`; no element between `th` and the component root has an `overflow-*` class.
+- [x] New `src/tests/lib/features/collection/toolbar/PropertiesPanel.svelte.test.ts` and a `SortPanel` render check: `file.name` reads `Name`. `src/tests/lib/features/collection/CollectionView.test.ts:422-460` (`renderedNames()` compared to `records.map(r => r.name)`) compares names without `.md`; `RailNoteList.view.test.ts` and `RailNoteList.toolbar.test.ts` pass.
 - [ ] Manual: the header stays visible while scrolling a table of 60 or more rows in the app.
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Original proposal
 
@@ -55,3 +55,4 @@ shell-sidebars-ux 16 edits `CollectionTableView.svelte` (empty state at `:34-38`
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): none.
+- 2026-11-18, deliver (branch issue/09-collection-table-readable-names-visible-sort): `file.*` columns get readable names in the table header, SortPanel and PropertiesPanel; the table shows sort rank and `aria-sort`, a sticky header and truncated cells with `title`. Review round 1 APPROVED (fix: header sort state computed once), round 2 APPROVED with no findings. Tests: pnpm check 0 errors; full suite at 2431b82e3 exit 0, 656 files, 17440 passed, 56 skipped, 1 todo. Manual sticky-header check in the app still to do.

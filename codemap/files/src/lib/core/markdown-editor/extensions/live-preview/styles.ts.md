@@ -1,6 +1,6 @@
 # file card src/lib/core/markdown-editor/extensions/live-preview/styles.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/markdown-editor/extensions/live-preview/styles.ts ' codemap/files
-file src/lib/core/markdown-editor/extensions/live-preview/styles.ts other L1031 module src/lib/core/markdown-editor in16 t6
+file src/lib/core/markdown-editor/extensions/live-preview/styles.ts other L1054 module src/lib/core/markdown-editor in16 t6
 ## imports
 imp src/lib/core/markdown-editor/extensions/live-preview/styles.ts:3 -> src/lib/utils/font-stacks.ts MONO_FONT_STACK
 ## imported-by
@@ -39,12 +39,12 @@ by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:hiddenSyntaxDe
 by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:hiddenSyntaxDeco <- src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/mark-handlers.ts:19 in makeMarkHandler mcall +1
 by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:hiddenSyntaxDeco <- src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/markdown-link-handlers.ts:54 in linkHandler.decorate mcall +1
 by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:hiddenSyntaxDeco <- src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/wikilink-handler.ts:27 in wikilinkHandler.decorate mcall +3
-by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:hiddenSyntaxDeco <- src/lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.ts:193 in computeCallouts ref
+by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:hiddenSyntaxDeco <- src/lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.ts:194 in computeCallouts ref
 more by 1 not shown: src/lib/core/markdown-editor(1): q importers src/lib/core/markdown-editor/extensions/live-preview/styles.ts:hiddenSyntaxDeco
 sym src/lib/core/markdown-editor/extensions/live-preview/styles.ts:14 const revealedBlockSyntaxDeco = Decoration.mark(…) L1 | Dims block syntax on a revealed line; pairs with `hiddenSyntaxDeco`.
 by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:revealedBlockSyntaxDeco <- src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/blockquote-handler.ts:47 in blockquoteHandler.decorate ref
 by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:revealedBlockSyntaxDeco <- src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/heading-handler.ts:24 in makeATXHandler ref +1
-by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:revealedBlockSyntaxDeco <- src/lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.ts:193 in computeCallouts ref
+by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:revealedBlockSyntaxDeco <- src/lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.ts:194 in computeCallouts ref
 sym src/lib/core/markdown-editor/extensions/live-preview/styles.ts:16 const linkTextDeco = Decoration.mark(…) L1
 by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:linkTextDeco <- src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/autolink-handlers.ts:15 in autolinkHandler.decorate mcall +1
 by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:linkTextDeco <- src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/markdown-link-handlers.ts:55 in linkHandler.decorate mcall
@@ -62,7 +62,7 @@ sym src/lib/core/markdown-editor/extensions/live-preview/styles.ts:23 const foot
 by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:footnoteDefMarkerDeco <- src/lib/core/markdown-editor/extensions/live-preview/plugins/footnote-plugin.ts:83 in buildFootnoteDecorations mcall
 sym src/lib/core/markdown-editor/extensions/live-preview/styles.ts:24 const hiddenLineDeco = Decoration.line(…) L1
 by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:hiddenLineDeco <- src/lib/core/markdown-editor/extensions/live-preview/core/hide-lines.ts:17 in hideLines ref
-by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:hiddenLineDeco <- src/lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.ts:240 in computeCallouts mcall
+by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:hiddenLineDeco <- src/lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.ts:241 in computeCallouts mcall
 sym src/lib/core/markdown-editor/extensions/live-preview/styles.ts:37 const CODE_BLOCK_FONT_SIZE L1 | Code text size, relative to the body.
 sym src/lib/core/markdown-editor/extensions/live-preview/styles.ts:39 const TABLE_FONT_SIZE L1 | Table text size, relative to the body; shared by the widget and the revealed source lines.
 sym src/lib/core/markdown-editor/extensions/live-preview/styles.ts:44 const codeBlockLineDeco = Decoration.line(…) L1 | Every line of a revealed code block.
@@ -75,5 +75,5 @@ sym src/lib/core/markdown-editor/extensions/live-preview/styles.ts:56 const head
 by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:headingLineDeco <- src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/heading-handler.ts:18 in makeATXHandler ref +1
 sym src/lib/core/markdown-editor/extensions/live-preview/styles.ts:83 const livePreviewActiveLineTheme = EditorView.theme(…) L17 | Live preview paints no cursor-line fill: the cursor lands on the blank line after the hidden frontmatter when a note opens, and the fill showed as an empty sla…
 by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:livePreviewActiveLineTheme <- src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:101 in livePreviewExtensions ref
-sym src/lib/core/markdown-editor/extensions/live-preview/styles.ts:101 const livePreviewStyles = EditorView.baseTheme(…) L931
+sym src/lib/core/markdown-editor/extensions/live-preview/styles.ts:101 const livePreviewStyles = EditorView.baseTheme(…) L954
 by src/lib/core/markdown-editor/extensions/live-preview/styles.ts:livePreviewStyles <- src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:101 in livePreviewExtensions ref

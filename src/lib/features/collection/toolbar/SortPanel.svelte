@@ -11,6 +11,7 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import type { SortDef, PropertyConfig, PropertyIndexRecord } from '../collection.types';
+	import { columnLabel } from '../collection.logic';
 	import { inferPropertyType } from './filter.logic';
 	import {
 		removeSort,
@@ -45,7 +46,7 @@
 	let dragIndex = $state<number | null>(null);
 
 	function getDisplayName(column: string): string {
-		return propertyConfigs[column]?.displayName ?? column;
+		return columnLabel(column, propertyConfigs);
 	}
 
 	function handleDragStart(index: number, event: DragEvent) {
