@@ -3,7 +3,7 @@ cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public
 module src/lib/plugins/kanban plugins files 12 in-modules 1 out-modules 6 pub 5/75 ipc 0/0 card ~1.2k
 ## neighbors
 dep src/lib/app -> src/lib/plugins/kanban 4
-dep src/lib/plugins/kanban -> src/lib/components 2
+dep src/lib/plugins/kanban -> src/lib/components 3
 dep src/lib/plugins/kanban -> src/lib/core/filesystem 7
 dep src/lib/plugins/kanban -> src/lib/core/markdown-editor 2
 dep src/lib/plugins/kanban -> src/lib/core/vault 1
@@ -21,14 +21,14 @@ file src/lib/plugins/kanban/KanbanDatePicker.svelte component L146 module src/li
 file src/lib/plugins/kanban/KanbanLane.svelte component L399 module src/lib/plugins/kanban in1 t0
 file src/lib/plugins/kanban/KanbanListView.svelte component L60 module src/lib/plugins/kanban in1 t0
 file src/lib/plugins/kanban/KanbanTableView.svelte component L82 module src/lib/plugins/kanban in1 t0
-file src/lib/plugins/kanban/KanbanView.svelte component L624 module src/lib/plugins/kanban in1 t4
+file src/lib/plugins/kanban/KanbanView.svelte component L661 module src/lib/plugins/kanban in1 t4
 file src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte component L91 module src/lib/plugins/kanban in2 t1
 file src/lib/plugins/kanban/kanban.logic.ts logic L969 module src/lib/plugins/kanban in7 t7
 file src/lib/plugins/kanban/kanban.service.ts service L90 module src/lib/plugins/kanban in4 t7
 file src/lib/plugins/kanban/kanban.store.svelte.ts store L47 module src/lib/plugins/kanban in2 t6
 file src/lib/plugins/kanban/kanban.types.ts types L106 module src/lib/plugins/kanban in7 t0
 ## public
-sym src/lib/plugins/kanban/KanbanView.svelte:1 component KanbanView props:markdownContent,onContentChange,onOpenWikilink L624
+sym src/lib/plugins/kanban/KanbanView.svelte:1 component KanbanView props:markdownContent,onContentChange,onOpenWikilink L661
 sym src/lib/plugins/kanban/kanban.service.ts:18 fn createKanbanFile(parentPath: string): Promise<string> L3 | Creates a new `.kanban` file with an empty board (To Do, In Progress, Done).
 sym src/lib/plugins/kanban/kanban.service.ts:27 fn registerKanbanFolderCreator(): () => void L9 | Adds "New kanban board" to the Files navigator's folder menu: the rail shell may not import plugins (ADR 0003).
 sym src/lib/plugins/kanban/kanban.service.ts:38 fn resetKanban(): void L4 | Resets all kanban state (called during vault teardown)
@@ -36,7 +36,7 @@ sym src/lib/plugins/kanban/kanban.service.ts:49 fn clearLinkedContentCache(): vo
 ## stores
 store src/lib/plugins/kanban/kanban.store.svelte.ts:15 kanbanStore esc:0
 ## effects
-fx-count svelte.$effect 6
+fx-count svelte.$effect 7
 fx-count tauri-fs.readTextFile 1
 fx-count timer.requestAnimationFrame 2
 ## debt

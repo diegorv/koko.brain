@@ -7,15 +7,15 @@ imp src/lib/plugins/kanban/KanbanTableView.svelte:4 -> src/lib/plugins/kanban/ka
 imp src/lib/plugins/kanban/KanbanTableView.svelte:5 -> src/lib/utils/date.ts formatNow
 imp src/lib/plugins/kanban/KanbanTableView.svelte:6 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_TEXT
 ## imported-by
-imp src/lib/plugins/kanban/KanbanView.svelte:50 -> src/lib/plugins/kanban/KanbanTableView.svelte default
+imp src/lib/plugins/kanban/KanbanView.svelte:52 -> src/lib/plugins/kanban/KanbanTableView.svelte default
 ## reach
 in2 src/lib/plugins/kanban/KanbanTableView.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/plugins/kanban/KanbanTableView.svelte 1 files in 1 modules: src/lib/utils(1)
 ## symbols
 sym src/lib/plugins/kanban/KanbanTableView.svelte:1 component KanbanTableView props:board,onToggleItem L82
-by src/lib/plugins/kanban/KanbanTableView.svelte:default <- src/lib/plugins/kanban/KanbanView.svelte:513 in (markup) mount
+by src/lib/plugins/kanban/KanbanTableView.svelte:default <- src/lib/plugins/kanban/KanbanView.svelte:550 in (markup) mount
 ## mounted-at
-mount src/lib/plugins/kanban/KanbanView.svelte:513 KanbanTableView -> src/lib/plugins/kanban/KanbanTableView.svelte
+mount src/lib/plugins/kanban/KanbanView.svelte:550 KanbanTableView -> src/lib/plugins/kanban/KanbanTableView.svelte
 ## calls
 call src/lib/plugins/kanban/KanbanTableView.svelte:33 in (markup) -> src/lib/plugins/kanban/kanban.logic.ts:extractCardDate markup
 call src/lib/plugins/kanban/KanbanTableView.svelte:34 in (markup) -> src/lib/plugins/kanban/kanban.logic.ts:extractCardColor markup

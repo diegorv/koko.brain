@@ -26,7 +26,7 @@ dep src/lib/features/tasks -> src/lib/components 12
 dep src/lib/features/todoist-sync -> src/lib/components 6
 dep src/lib/features/type-definitions -> src/lib/components 6
 dep src/lib/plugins/graph-view -> src/lib/components 4
-dep src/lib/plugins/kanban -> src/lib/components 2
+dep src/lib/plugins/kanban -> src/lib/components 3
 dep src/lib/plugins/mods -> src/lib/components 8
 dep src/lib/plugins/one-on-one -> src/lib/components 1
 dep src/lib/plugins/periodic-notes -> src/lib/components 2
@@ -45,8 +45,8 @@ entry src/lib/components/ui/dropdown-menu/index.ts ext-in11 src/lib/core/markdow
 entry src/lib/components/ui/context-menu/index.ts ext-in9 src/lib/core/markdown-editor/EditorTabs.svelte src/lib/core/markdown-editor/MarkdownEditor.svelte src/lib/features/collection/CollectionView.svelte src/lib/features/note-list/NoteRowMenu.svelte src/lib/features/rail-shell/FilesNavigator.svelte more importers 4 not shown: src/lib/plugins/kanban(2) src/lib/features/rail-shell(1) src/lib/features/tasks(1): q importers src/lib/components/ui/context-menu/index.ts
 entry src/lib/components/ui/dialog/index.ts ext-in9 src/lib/features/event-calendar/EventDialog.svelte src/lib/features/event-calendar/EventShortcutsDialog.svelte src/lib/features/file-history/FileHistoryDialog.svelte src/lib/features/file-icons/IconPicker.svelte src/lib/features/tasks/TasksView.svelte more importers 4 not shown: src/lib/features/type-definitions(2) src/lib/features/todoist-sync(1) src/lib/plugins/mods(1): q importers src/lib/components/ui/dialog/index.ts
 entry src/lib/components/ui/popover/index.ts ext-in9 src/lib/core/settings/sections/EditorSection.svelte src/lib/features/collection/CollectionView.svelte src/lib/features/event-calendar/EventPopover.svelte src/lib/features/properties/RelationshipSearch.svelte src/lib/features/rail-shell/RailArchivedMenu.svelte more importers 4 not shown: src/lib/features/rail-shell(3) src/lib/features/tags(1): q importers src/lib/components/ui/popover/index.ts
+entry src/lib/components/ui/select/index.ts ext-in9 src/lib/core/settings/sections/HeadingTypographyEditor.svelte src/lib/core/settings/sections/UpdateSection.svelte src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte src/lib/features/event-calendar/EventCalendarSection.svelte more importers 4 not shown: src/lib/features/todoist-sync(1) src/lib/plugins/graph-view(1) src/lib/plugins/kanban(1) +1 modules: q importers src/lib/components/ui/select/index.ts
 entry src/lib/components/ui/scroll-area/index.ts ext-in8 src/lib/app/AppShell.svelte src/lib/app/SettingsPanel.svelte src/lib/core/settings/sections/TrashSection.svelte src/lib/features/file-history/DiffViewer.svelte src/lib/features/file-history/SnapshotList.svelte more importers 3 not shown: src/lib/features/file-icons(1) src/lib/features/search(1) src/lib/features/tasks(1): q importers src/lib/components/ui/scroll-area/index.ts
-entry src/lib/components/ui/select/index.ts ext-in8 src/lib/core/settings/sections/HeadingTypographyEditor.svelte src/lib/core/settings/sections/UpdateSection.svelte src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte src/lib/features/event-calendar/EventCalendarSection.svelte more importers 3 not shown: src/lib/features/todoist-sync(1) src/lib/plugins/graph-view(1) src/lib/plugins/queryjs(1): q importers src/lib/components/ui/select/index.ts
 entry src/lib/components/ui/command/index.ts ext-in7 src/lib/core/settings/sections/EditorSection.svelte src/lib/features/command-palette/CommandPalette.svelte src/lib/features/quick-switcher/QuickSwitcher.svelte src/lib/plugins/mods/ModActionPicker.svelte src/lib/plugins/mods/ModDialogHost.svelte more importers 2 not shown: src/lib/plugins/one-on-one(1) src/lib/plugins/templates(1): q importers src/lib/components/ui/command/index.ts
 entry src/lib/components/ui/separator/index.ts ext-in5 src/lib/features/backlinks/BacklinksPanel.svelte src/lib/features/collection/toolbar/FilterPanel.svelte src/lib/features/outgoing-links/OutgoingLinksPanel.svelte src/lib/features/properties/PropertiesView.svelte src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte
 entry src/lib/components/ui/collapsible/index.ts ext-in4 src/lib/core/layout/SidebarSection.svelte src/lib/features/backlinks/BacklinksPanel.svelte src/lib/features/collection/toolbar/FilterPanel.svelte src/lib/features/tags/TagItem.svelte
@@ -130,7 +130,7 @@ file src/lib/components/ui/resizable/resizable-pane-group.svelte component L20 m
 file src/lib/components/ui/scroll-area/index.ts other L10 module src/lib/components in9 t0
 file src/lib/components/ui/scroll-area/scroll-area-scrollbar.svelte component L31 module src/lib/components in1 t0
 file src/lib/components/ui/scroll-area/scroll-area.svelte component L43 module src/lib/components in1 t0
-file src/lib/components/ui/select/index.ts other L37 module src/lib/components in8 t0
+file src/lib/components/ui/select/index.ts other L37 module src/lib/components in9 t0
 file src/lib/components/ui/select/select-content.svelte component L45 module src/lib/components in1 t0
 file src/lib/components/ui/select/select-group-heading.svelte component L21 module src/lib/components in1 t0
 file src/lib/components/ui/select/select-group.svelte component L7 module src/lib/components in1 t0
