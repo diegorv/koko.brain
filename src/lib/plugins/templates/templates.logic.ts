@@ -1,3 +1,5 @@
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+
 /** A template file entry loaded from the _templates/ folder */
 export interface TemplateEntry {
 	/** Template display name (filename without extension) */
@@ -29,4 +31,40 @@ export function filterTemplates(query: string, templates: TemplateEntry[]): Temp
 	if (!query.trim()) return templates;
 	const lower = query.toLowerCase();
 	return templates.filter((t) => t.name.toLowerCase().includes(lower));
+}
+
+/**
+ * The file name `createFileFromTemplate` writes for a typed name: `.md` is
+ * appended unless the name already ends with it (case-sensitive, like the service).
+ */
+export function withMdExtension(name: string): string {
+	return name.endsWith('.md') ? name : `${name}.md`;
+}
+
+/**
+ * Whether the note a typed name resolves to (`<vaultPath>/<name>.md`) is a
+ * file in the tree. The compare folds case and Unicode normalization because
+ * `exists()` is on APFS, which ignores both, so `standup` must match
+ * `Standup.md` and an NFC `café` an NFD `café.md` (`findFileNode` is exact). Walks
+ * the path's segments from the root; an empty or unloaded tree reports false.
+ */
+export function noteExistsInTree(tree: FileTreeNode[], vaultPath: string, name: string): boolean {
+	const segments = withMdExtension(name).split('/');
+	let level: FileTreeNode[] | undefined = tree;
+	let current = vaultPath;
+	for (let i = 0; i < segments.length; i++) {
+		current = `${current}/${segments[i]}`;
+		const target = foldPath(current);
+		const node: FileTreeNode | undefined = level?.find((n) => foldPath(n.path) === target);
+		if (!node) return false;
+		if (i === segments.length - 1) return !node.isDirectory;
+		if (!node.isDirectory) return false;
+		level = node.children;
+	}
+	return false;
+}
+
+/** A path folded the way APFS compares names: NFC, then lowercase. */
+function foldPath(path: string): string {
+	return path.normalize('NFC').toLowerCase();
 }

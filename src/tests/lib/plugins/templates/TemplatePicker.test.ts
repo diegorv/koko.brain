@@ -11,6 +11,8 @@ vi.mock('#lib/plugins/templates/templates.service.js', () => ({
 import { mount, unmount, flushSync } from 'svelte';
 import TemplatePicker from '#lib/plugins/templates/TemplatePicker.svelte';
 import { createFileFromTemplate } from '#lib/plugins/templates/templates.service.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { templatesStore } from '#lib/plugins/templates/templates.store.svelte.js';
 
 // bits-ui's Command scrolls its first item into view; jsdom does not implement it.
@@ -22,6 +24,9 @@ describe('TemplatePicker — confirmCreate', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		fsStore.reset();
+		vaultStore._reset();
+		vaultStore.open('/vault');
 		templatesStore.reset();
 		templatesStore.setTemplates([
 			{ name: 'Daily', path: '/vault/_templates/Daily.md' },
@@ -63,6 +68,16 @@ describe('TemplatePicker — confirmCreate', () => {
 		flushSync();
 	}
 
+	function pressBackspace(input: HTMLInputElement, repeat = false) {
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', repeat, bubbles: true, cancelable: true }));
+		flushSync();
+	}
+
+	/** The dialog's rendered text (Command.Dialog portals to document.body). */
+	function dialogText(): string {
+		return document.querySelector('[role="dialog"]')?.textContent ?? '';
+	}
+
 	it('creates the file from the selected template with the typed name', async () => {
 		const input = reachNamingStep();
 		typeName(input, 'My Note');
@@ -98,5 +113,79 @@ describe('TemplatePicker — confirmCreate', () => {
 		expect(createFileFromTemplate).not.toHaveBeenCalled();
 		// Still on the naming step — the dialog stays open.
 		expect(templatesStore.isOpen).toBe(true);
+	});
+
+	it('names the chosen template and where the new note goes', () => {
+		const input = reachNamingStep();
+		typeName(input, 'Standup');
+
+		const text = dialogText();
+		expect(text).toContain('Daily');
+		expect(text).toContain('Creates Standup.md in the vault root');
+	});
+
+	it('shows the typed folder when the name has a slash', () => {
+		const input = reachNamingStep();
+		typeName(input, 'Projects/Standup');
+
+		expect(dialogText()).toContain('Creates Projects/Standup.md in the vault');
+		expect(dialogText()).not.toContain('vault root');
+	});
+
+	it('keeps the empty-name text', () => {
+		reachNamingStep();
+
+		expect(dialogText()).toContain('Type a name for the new file');
+	});
+
+	it('says Enter opens the existing note when the name matches one, ignoring case', async () => {
+		fsStore.setFileTree([{ name: 'Standup.md', path: '/vault/Standup.md', isDirectory: false }]);
+		const input = reachNamingStep();
+		typeName(input, 'standup');
+
+		expect(dialogText()).toContain('Enter opens the existing note');
+		expect(dialogText()).not.toContain('Creates');
+
+		pressEnter(input);
+		await Promise.resolve();
+		expect(createFileFromTemplate).toHaveBeenCalledTimes(1);
+		expect(createFileFromTemplate).toHaveBeenCalledWith('/vault/_templates/Daily.md', 'standup');
+	});
+
+	it('never claims an existing note with an empty tree', () => {
+		const input = reachNamingStep();
+		typeName(input, 'Standup');
+
+		expect(dialogText()).not.toContain('opens the existing note');
+	});
+
+	it('Backspace on the empty name returns to the template list without creating', async () => {
+		const input = reachNamingStep();
+		pressBackspace(input);
+
+		expect(document.querySelector('input[placeholder="File name..."]')).toBeNull();
+		const search = document.querySelector('input[placeholder="Search templates..."]');
+		expect(search).not.toBeNull();
+		// bits-ui's Command.Input autofocus fires after a short timer.
+		await vi.waitFor(() => expect(document.activeElement).toBe(search));
+		expect(dialogText()).toContain('Daily');
+		expect(templatesStore.isOpen).toBe(true);
+		expect(createFileFromTemplate).not.toHaveBeenCalled();
+	});
+
+	it('a held (auto-repeated) Backspace on the empty name stays on the naming step', () => {
+		const input = reachNamingStep();
+		pressBackspace(input, true);
+
+		expect(document.querySelector('input[placeholder="File name..."]')).not.toBeNull();
+		expect(dialogText()).toContain('Daily');
+	});
+
+	it('Backspace with a typed name stays on the naming step', () => {
+		const input = reachNamingStep();
+		typeName(input, 'Standup');
+		pressBackspace(input);
+
+		expect(document.querySelector('input[placeholder="File name..."]')).not.toBeNull();
 	});
 });
