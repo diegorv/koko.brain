@@ -43,7 +43,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 06 | [Canvas surfaces and overlays draw from theme tokens](issues/06-canvas-surfaces-overlays-draw-theme-tokens.md) | 04 | todo | | |
 | 07 | [Quick Capture says what it does and shows Saving (copy and state only)](issues/07-quick-capture-copy-saving-state.md) | none | todo | | |
 | 08 | [Live-preview widgets show failure and progress](issues/08-livepreview-widgets-show-failure-progress.md) | 03 | done | issue/08-livepreview-widgets-show-failure-progress (e118671bf) | 2026-11-18 |
-| 09 | [Collection table: readable names, visible sort order, sticky header](issues/09-collection-table-readable-names-visible-sort.md) | none | in-progress | | |
+| 09 | [Collection table: readable names, visible sort order, sticky header](issues/09-collection-table-readable-names-visible-sort.md) | none | done | issue/09-collection-table-readable-names-visible-sort (8611869b7) | 2026-11-18 |
 | 10 | [Kanban cards: no empty date row, clamped preview, growing editor](issues/10-kanban-cards-no-empty-date-row.md) | 05 | todo | | |
 | 11 | [Kanban lanes: visible add row, empty and filtered counts, collapsed rail](issues/11-kanban-lanes-visible-add-row-empty.md) | 05, 10 | todo | | |
 | 12 | [Kanban list, table and archive: named checks, clean cells, restore feedback](issues/12-kanban-list-table-archive-named-checks.md) | 05, 11 | todo | | |
@@ -93,3 +93,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 14:04 — 13 — start — launched by /relay-lite:run — 1d46dd5d6
 - 2026-11-18 14:22 — 13 — deliver — merged after review 1 APPROVED, fix round (meta-bind rule pin, --cm-lp-callout-accent rename for theme-css-contract), re-review 2 APPROVED (claude); full vitest suite passed on second run (17409 tests); owner eye check in WKWebView still open — 51497add3
 - 2026-11-18 14:23 — 09 — start — launched by /relay-lite:run — 66030ac65
+- 2026-11-18 14:38 — 09 — deliver — merged after review 1 APPROVED, fix round (sortState computed once per header), re-review 2 APPROVED (claude); full vitest suite passed (17440 tests); manual sticky-header check with 60+ rows still open — 8611869b7
