@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Lock from '@lucide/svelte/icons/lock';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { dayOfWeek, formatLong, formatWeekday, fromKey, WEEKDAYS_SHORT } from './event-calendar-dates.logic';
 	import { DayDrag } from './event-calendar-day-drag.svelte';
@@ -133,7 +134,10 @@
 						data-archived={item.event.archived || undefined}
 						onclick={(e) => eventCalendarViewStore.openPopover(item.event.path, e.currentTarget.getBoundingClientRect())}
 					>
-						<span class="min-w-0 flex-1 truncate">{item.label}</span>
+						<!-- The chip's name is its text, so the read-only suffix is sr-only text, with no space before it. -->
+						<span class="min-w-0 flex-1 truncate">{item.label}</span>{#if item.event.readOnly}<span class="sr-only"
+								>, read-only</span
+							><Lock class="ml-1 size-3 shrink-0 opacity-70" aria-hidden="true" data-readonly-lock />{/if}
 					</button>
 				{/each}
 				{#each tasks.slice(0, slots.tasks) as task (`${task.path}:${task.line}`)}

@@ -4,6 +4,7 @@
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { timeInputValue } from './event-calendar-dates.logic';
+	import { READ_ONLY_TIMING_NOTE } from './event-calendar-event.logic';
 	import {
 		applyEndChange,
 		applyStartChange,
@@ -34,9 +35,12 @@
 	let draft = $state<EventFormDraft>(untrack(() => ({ ...initial })));
 	let saving = $state(false);
 	let submitError = $state<string | null>(null);
+	/** Set by typing in or leaving the title, so a new event's empty title is not flagged on open. */
+	let titleTouched = $state(false);
 
 	let errors = $derived(validateDraft(draft));
 	let valid = $derived(Object.keys(errors).length === 0);
+	let titleError = $derived(titleTouched ? errors.title : undefined);
 	let locked = $derived(draft.timingLocked);
 
 	/** The value of the input an `input` event came from. */
@@ -46,6 +50,8 @@
 
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
+		// Enter in an untouched empty title would otherwise do nothing, with no message.
+		titleTouched = true;
 		if (!valid || saving) return;
 		saving = true;
 		submitError = null;
@@ -65,19 +71,31 @@
 		<Input
 			id="{id}-title"
 			value={draft.title}
-			oninput={(e) => (draft.title = inputValue(e))}
-			aria-invalid={errors.title ? true : undefined}
-			aria-describedby={errors.title ? `${id}-title-error` : undefined}
+			placeholder="Event title"
+			oninput={(e) => {
+				draft.title = inputValue(e);
+				titleTouched = true;
+			}}
+			onblur={() => (titleTouched = true)}
+			aria-invalid={titleError ? true : undefined}
+			aria-describedby={titleError ? `${id}-title-error` : undefined}
 			data-field="title"
 		/>
-		{#if errors.title}
-			<p id="{id}-title-error" class="text-xs text-destructive" data-error="title">{errors.title}</p>
-		{/if}
+		<!-- Always rendered, so the row the error takes is already there: a row appearing on blur
+			moves the footer between mousedown and mouseup and loses a click on Cancel. -->
+		<p
+			id={titleError ? `${id}-title-error` : undefined}
+			class="min-h-4 text-meta text-destructive"
+			data-title-message
+			data-error={titleError ? 'title' : undefined}
+		>
+			{titleError ?? ''}
+		</p>
 	</div>
 
 	{#if locked}
 		<p class="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground" data-timing-locked>
-			This event has an end date or crosses midnight. Change its date and time in the note.
+			{READ_ONLY_TIMING_NOTE}
 		</p>
 	{/if}
 

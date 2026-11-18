@@ -167,6 +167,20 @@ describe('EventMonthGrid: chips', () => {
 		expect(q('[data-month-cell="2026-11-10"] [data-event-path]')).toBeNull();
 	});
 
+	it('gives a read-only chip a lock and a name ending in "read-only"', () => {
+		seed([
+			event({ path: P('Retreat'), title: 'Retreat', date: '2026-11-11', endDate: '2026-11-12', allDay: true, start: 0, end: 1440, readOnly: true }),
+			event({ path: P('Standup'), title: 'Standup', date: '2026-11-11' }),
+		]);
+		mountGrid();
+
+		const chip = (name: string) => q(`[data-month-cell="2026-11-11"] [data-event-path="${P(name)}"]`)!;
+		expect(chip('Retreat').textContent?.trim()).toBe('Retreat, read-only');
+		expect(chip('Retreat').querySelector('[data-readonly-lock]')?.getAttribute('aria-hidden')).toBe('true');
+		expect(chip('Standup').textContent?.trim()).toBe('09:00 Standup');
+		expect(chip('Standup').querySelector('[data-readonly-lock]')).toBeNull();
+	});
+
 	it('uses the 12h time format in chip labels', () => {
 		settingsStore.updateEventCalendar({ timeFormat: '12h' });
 		seed([event({ path: P('Lunch'), title: 'Lunch', date: '2026-11-11', start: 780 })]);
@@ -445,7 +459,8 @@ describe('EventMonthGrid: spans', () => {
 			event({ path: P('Late'), title: 'Late show', date: '2026-11-10', endDate: '2026-11-11', start: 1380, end: 60, readOnly: true }),
 		]);
 		mountGrid();
-		const chip = (day: string, name: string) => cell(day).querySelector(`[data-event-path="${P(name)}"]`)?.textContent?.trim();
+		// The visible label, without the screen-reader ", read-only" suffix of these spans.
+		const chip = (day: string, name: string) => cell(day).querySelector(`[data-event-path="${P(name)}"] > span`)?.textContent?.trim();
 
 		expect(['2026-11-14', '2026-11-15', '2026-11-16', '2026-11-17', '2026-11-18'].map((d) => chip(d, 'Retreat'))).toEqual([
 			undefined,

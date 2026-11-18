@@ -172,6 +172,24 @@ describe('EventPopover: opening', () => {
 		expect(card.querySelector('[data-popover-time]')?.textContent?.trim()).toBe('23:00 – 01:00 · 2h');
 	});
 
+	it('says why a read-only event cannot be moved, and says nothing for a normal one', async () => {
+		const late = event({ path: P('Late'), title: 'Late show', date: '2026-11-10', endDate: '2026-11-11', start: 1380, end: 60, readOnly: true });
+		eventCalendarStore.setSnapshot({ events: [STANDUP, late], issues: [], archivedCount: 0 }, 2);
+		mountView();
+
+		block(P('Late')).click();
+		await settle();
+		expect(popover()?.querySelector('[data-popover-readonly]')?.textContent?.trim()).toBe(
+			'This event has an end date or crosses midnight. Change its date and time in the note.',
+		);
+
+		quickClick(block(P('Standup')));
+		await settle();
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
+		expect(popover()?.querySelector('[data-popover-title]')?.textContent?.trim()).toBe('Standup');
+		expect(popover()?.querySelector('[data-popover-readonly]')).toBeNull();
+	});
+
 	it('opens on Enter and on Space on a focused block', async () => {
 		mountView();
 		const el = block(P('Review'));

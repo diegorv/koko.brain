@@ -161,6 +161,28 @@ describe('EventTimeGrid: timed blocks', () => {
 		expect(q(`[data-event-path="${P('Plain')}"]`)!.getAttribute('data-pending')).toBe('true');
 	});
 
+	it('gives a read-only block a lock, a default cursor and a name ending in "read-only"', () => {
+		seed([
+			event({ path: P('Trip'), title: 'Trip', date: '2026-11-10', readOnly: true }),
+			event({ path: P('Plain'), title: 'Plain', date: '2026-11-12' }),
+		]);
+		mountGrid();
+
+		const trip = q(`[data-event-path="${P('Trip')}"]`)!;
+		expect(trip.getAttribute('aria-label')).toBe('Trip, 09:00 – 10:00, read-only');
+		expect(trip.querySelector('[data-readonly-lock]')?.getAttribute('aria-hidden')).toBe('true');
+		expect(trip.className).toContain('cursor-default');
+		expect(trip.className).not.toContain('cursor-pointer');
+		// The content leaves room on the right so the lock does not cover the title.
+		expect(trip.querySelector('[data-event-content]')!.className).toContain('pr-4');
+
+		const plain = q(`[data-event-path="${P('Plain')}"]`)!;
+		expect(plain.getAttribute('aria-label')).toBe('Plain, 09:00 – 10:00');
+		expect(plain.querySelector('[data-readonly-lock]')).toBeNull();
+		expect(plain.querySelector('[data-event-content]')!.className).not.toContain('pr-4');
+		expect(plain.className).toContain('cursor-pointer');
+	});
+
 	it('gives writable blocks a bottom resize handle and read-only blocks none', () => {
 		seed([
 			event({ path: P('Trip'), title: 'Trip', date: '2026-11-10', readOnly: true }),

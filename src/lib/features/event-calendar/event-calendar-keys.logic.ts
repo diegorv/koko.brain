@@ -66,6 +66,31 @@ export const CALENDAR_SHORTCUTS: readonly CalendarShortcut[] = [
 	{ keys: ['?'], label: 'Show keyboard shortcuts', action: 'help' },
 ];
 
+/** One mouse row of the shortcuts help: a pointer gesture the grids handle. */
+export interface CalendarGesture {
+	/** What the pointer does, as a sentence the creation table of `27-calendar.md` contains. */
+	gesture: string;
+	/** What the gesture does. */
+	label: string;
+	/** The views whose grid takes the gesture. */
+	views: readonly CalendarViewMode[];
+}
+
+/**
+ * The pointer gestures of the Calendar grids, in the order the help dialog
+ * lists them under "Mouse". A test ties each row to the creation table of
+ * `help/documentation/27-calendar.md`.
+ */
+export const CALENDAR_GESTURES: readonly CalendarGesture[] = [
+	{ gesture: 'Click an empty spot on the time grid, or drag over a range', label: 'New event', views: ['day', 'week'] },
+	{ gesture: 'Click an empty spot in the All day lane', label: 'New all-day event', views: ['day', 'week'] },
+	{ gesture: 'Double-click an empty part of a day cell', label: 'New event', views: ['month'] },
+	{ gesture: "Drag an event's block to another time or day", label: 'Move an event', views: ['day', 'week'] },
+	{ gesture: "Drag the bottom edge of an event's block", label: "Change an event's length", views: ['day', 'week'] },
+	{ gesture: 'Drag an all-day chip to another day', label: 'Move an all-day event', views: ['day', 'week'] },
+	{ gesture: 'Drag an event chip to another day', label: 'Move an event', views: ['month'] },
+];
+
 /** Single-letter view keys. */
 const VIEW_KEYS: Record<string, CalendarViewMode> = { d: 'day', w: 'week', m: 'month' };
 

@@ -1,7 +1,13 @@
 <script lang="ts">
 	import * as Dialog from '#lib/components/ui/dialog/index.js';
 	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
-	import { CALENDAR_SHORTCUTS } from './event-calendar-keys.logic';
+	import { CALENDAR_GESTURES, CALENDAR_SHORTCUTS } from './event-calendar-keys.logic';
+	import type { CalendarViewMode } from './event-calendar.types';
+
+	const id = $props.id();
+
+	/** How a gesture row names the views it applies to. */
+	const VIEW_NAMES: Record<CalendarViewMode, string> = { day: 'Day', week: 'Week', month: 'Month' };
 
 	function handleOpenChange(next: boolean) {
 		if (!next) eventCalendarViewStore.closeHelp();
@@ -26,6 +32,21 @@
 							{/each}
 						</td>
 						<td class="py-1.5 text-muted-foreground">{row.label}</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+		<!-- The description above covers keys only, so the gestures get their own heading. -->
+		<h3 id="{id}-mouse" class="section-label" data-gesture-heading>Mouse</h3>
+		<table class="w-full text-sm" aria-labelledby="{id}-mouse">
+			<tbody>
+				{#each CALENDAR_GESTURES as row (row.gesture)}
+					<tr class="border-b border-border last:border-0" data-gesture>
+						<td class="py-1.5 pr-4 align-top" data-gesture-text>{row.gesture}</td>
+						<td class="py-1.5 align-top text-muted-foreground">
+							<span class="block" data-gesture-label>{row.label}</span>
+							<span class="block text-meta" data-gesture-views>{row.views.map((v) => VIEW_NAMES[v]).join(', ')}</span>
+						</td>
 					</tr>
 				{/each}
 			</tbody>

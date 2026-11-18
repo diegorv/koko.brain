@@ -91,8 +91,8 @@ test.describe('Event calendar day drag: month view', () => {
 		const to = (await page.locator('[data-month-cell="2026-11-17"]').boundingBox())!;
 		await dragTo(page, from, to);
 
-		await expect(chip(page, '2026-11-10', RETREAT)).toHaveText('Retreat');
-		await expect(chip(page, '2026-11-11', RETREAT)).toHaveText('Retreat');
+		await expect(chip(page, '2026-11-10', RETREAT)).toHaveText('Retreat, read-only');
+		await expect(chip(page, '2026-11-11', RETREAT)).toHaveText('Retreat, read-only');
 		await expect(chip(page, '2026-11-17', RETREAT)).toHaveCount(0);
 		expect(await readNote(page, RETREAT)).toBe(FILES[RETREAT]);
 	});
@@ -136,8 +136,8 @@ test.describe('Event calendar day drag: all-day lane', () => {
 		const to = (await page.locator('[data-all-day-cell="2026-11-13"]').boundingBox())!;
 		await dragTo(page, from, to);
 
-		await expect(chip(page, '2026-11-10', RETREAT)).toHaveText('Retreat');
-		await expect(chip(page, '2026-11-11', RETREAT)).toHaveText('Retreat');
+		await expect(chip(page, '2026-11-10', RETREAT)).toHaveText('Retreat, read-only');
+		await expect(chip(page, '2026-11-11', RETREAT)).toHaveText('Retreat, read-only');
 		await expect(chip(page, '2026-11-13', RETREAT)).toHaveCount(0);
 		expect(await readNote(page, RETREAT)).toBe(FILES[RETREAT]);
 	});

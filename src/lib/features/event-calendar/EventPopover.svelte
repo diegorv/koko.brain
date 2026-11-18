@@ -1,11 +1,13 @@
 <script lang="ts">
 	import Copy from '@lucide/svelte/icons/copy';
+	import Lock from '@lucide/svelte/icons/lock';
 	import MapPin from '@lucide/svelte/icons/map-pin';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Popover from '#lib/components/ui/popover/index.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { READ_ONLY_TIMING_NOTE } from './event-calendar-event.logic';
 	import { focusReturnTarget } from './event-calendar-focus.logic';
 	import { eventWhenLabel } from './event-calendar-view.logic';
 	import { deleteEventFromUi, duplicateEventFromUi } from './event-calendar.service';
@@ -175,6 +177,12 @@
 					{/if}
 					{#if event.snippet}
 						<p class="line-clamp-4 text-sm leading-5 break-words" data-popover-snippet>{event.snippet}</p>
+					{/if}
+					{#if event.readOnly}
+						<p class="flex gap-1.5 text-meta text-muted-foreground" data-popover-readonly>
+							<Lock class="mt-0.5 size-3 shrink-0" aria-hidden="true" />
+							<span>{READ_ONLY_TIMING_NOTE}</span>
+						</p>
 					{/if}
 				</div>
 			</div>

@@ -51,8 +51,10 @@ Click a task to open its note with the cursor on the task line. Tasks are not ev
 | New all-day event | Click an empty spot in the **All day** lane |
 | New event in the month view | Double-click an empty part of a day cell (the start is the **Day starts at** hour) |
 | New event anywhere | Press `N` in the Calendar, or run **New Calendar Event** |
-| Move an event | In the day or week view, drag its block to another time or day |
-| Change its length | In the day or week view, drag the bottom edge of its block |
+| Move an event | In the day or week view, drag an event's block to another time or day |
+| Change an event's length | In the day or week view, drag the bottom edge of an event's block |
+| Move an all-day event | In the day or week view, drag an all-day chip to another day |
+| Move an event in the month view | In the month view, drag an event chip to another day |
 | See details | Click the event: the popover shows its time, location and a note excerpt |
 | Edit the fields | **Edit** in the popover |
 | Open the note | **Open note** in the popover |

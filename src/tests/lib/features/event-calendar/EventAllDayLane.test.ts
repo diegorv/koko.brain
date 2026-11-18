@@ -236,3 +236,16 @@ describe('EventAllDayLane: drag to another day', () => {
 		expect(moveEventToDay).toHaveBeenCalledWith(P('Holiday'), '2026-11-12');
 	});
 });
+
+describe('EventAllDayLane: read-only chips', () => {
+	it('gives a read-only chip a lock and a name ending in "read-only"', () => {
+		mountLane([allDay('Retreat', '2026-11-10', { endDate: '2026-11-11', readOnly: true }), allDay('Holiday', '2026-11-12')]);
+
+		for (const day of ['2026-11-10', '2026-11-11']) {
+			expect(chipIn(day, 'Retreat')!.textContent?.trim()).toBe('Retreat, read-only');
+			expect(chipIn(day, 'Retreat')!.querySelector('[data-readonly-lock]')?.getAttribute('aria-hidden')).toBe('true');
+		}
+		expect(chipIn('2026-11-12', 'Holiday')!.textContent?.trim()).toBe('Holiday');
+		expect(chipIn('2026-11-12', 'Holiday')!.querySelector('[data-readonly-lock]')).toBeNull();
+	});
+});
