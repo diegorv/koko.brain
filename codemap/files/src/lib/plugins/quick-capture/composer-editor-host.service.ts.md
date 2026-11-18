@@ -16,7 +16,7 @@ test src/tests/lib/plugins/quick-capture/composer-editor-host.service.test.ts im
 ## symbols
 sym src/lib/plugins/quick-capture/composer-editor-host.service.ts:7 interface ComposerEditorHost L4 | The composer's editor host, plus the per-summon reset of its reads.
 sym src/lib/plugins/quick-capture/composer-editor-host.service.ts:24 fn createComposerEditorHost(): ComposerEditorHost L48 | The editor host of the composer popover.
-by src/lib/plugins/quick-capture/composer-editor-host.service.ts:createComposerEditorHost <- src/routes/composer/+page.svelte:36 in host call
+by src/lib/plugins/quick-capture/composer-editor-host.service.ts:createComposerEditorHost <- src/routes/composer/+page.svelte:37 in host call
 ## calls
 call src/lib/plugins/quick-capture/composer-editor-host.service.ts:30 in createComposerEditorHost -> src/lib/contracts/ipc.ts:call call +1
 call src/lib/plugins/quick-capture/composer-editor-host.service.ts:43 in createComposerEditorHost -> src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile call

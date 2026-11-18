@@ -3,8 +3,11 @@ import {
 	extractTitleFromPath,
 	buildTemplatesFolderPath,
 	filterTemplates,
+	withMdExtension,
+	noteExistsInTree,
 	type TemplateEntry,
 } from '#lib/plugins/templates/templates.logic.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 
 describe('extractTitleFromPath', () => {
 	it('extracts filename without extension', () => {
@@ -82,5 +85,83 @@ describe('filterTemplates', () => {
 
 	it('handles empty templates list', () => {
 		expect(filterTemplates('test', [])).toEqual([]);
+	});
+});
+
+describe('withMdExtension', () => {
+	it('appends .md to a bare name', () => {
+		expect(withMdExtension('Standup')).toBe('Standup.md');
+	});
+
+	it('does not double an existing .md', () => {
+		expect(withMdExtension('Standup.md')).toBe('Standup.md');
+	});
+
+	it('appends .md after another extension, as the service does', () => {
+		expect(withMdExtension('notes.txt')).toBe('notes.txt.md');
+	});
+
+	it('keeps the folder part of the name', () => {
+		expect(withMdExtension('Projects/Standup')).toBe('Projects/Standup.md');
+	});
+});
+
+describe('noteExistsInTree', () => {
+	const tree: FileTreeNode[] = [
+		{ name: 'Standup.md', path: '/vault/Standup.md', isDirectory: false },
+		{
+			name: 'Projects',
+			path: '/vault/Projects',
+			isDirectory: true,
+			children: [
+				{ name: 'Roadmap.md', path: '/vault/Projects/Roadmap.md', isDirectory: false },
+				{
+					name: 'Archive.md',
+					path: '/vault/Projects/Archive.md',
+					isDirectory: true,
+					children: [],
+				},
+			],
+		},
+	];
+
+	it('matches a root note case-insensitively', () => {
+		expect(noteExistsInTree(tree, '/vault', 'standup')).toBe(true);
+		expect(noteExistsInTree(tree, '/vault', 'STANDUP.md')).toBe(true);
+	});
+
+	it('matches a note in a folder case-insensitively', () => {
+		expect(noteExistsInTree(tree, '/vault', 'projects/roadmap')).toBe(true);
+	});
+
+	it('matches across Unicode normalization forms, as APFS does', () => {
+		const nfdTree: FileTreeNode[] = [
+			{ name: 'Cafe\u0301.md', path: '/vault/Cafe\u0301.md', isDirectory: false },
+		];
+		expect(noteExistsInTree(nfdTree, '/vault', 'caf\u00e9')).toBe(true);
+	});
+
+	it('ignores a directory with the same name', () => {
+		expect(noteExistsInTree(tree, '/vault', 'Projects/Archive')).toBe(false);
+		expect(noteExistsInTree(tree, '/vault', 'Projects.md')).toBe(false);
+	});
+
+	it('adds .md the way the service does', () => {
+		// "Standup.MD" becomes "Standup.MD.md", which is not in the tree.
+		expect(noteExistsInTree(tree, '/vault', 'Standup.MD')).toBe(false);
+	});
+
+	it('does not treat a file as a folder', () => {
+		expect(noteExistsInTree(tree, '/vault', 'Standup.md/Inner')).toBe(false);
+	});
+
+	it('returns false for an empty tree', () => {
+		expect(noteExistsInTree([], '/vault', 'Standup')).toBe(false);
+	});
+
+	it('returns false for a path outside the tree', () => {
+		expect(noteExistsInTree(tree, '/vault', 'Missing/Standup')).toBe(false);
+		expect(noteExistsInTree(tree, '/vault', 'Other')).toBe(false);
+		expect(noteExistsInTree(tree, '/other-vault', 'Standup')).toBe(false);
 	});
 });

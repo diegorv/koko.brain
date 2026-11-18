@@ -1,9 +1,11 @@
 <script lang="ts">
 	import * as Command from '#lib/components/ui/command/index.js';
+	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { toast } from 'svelte-sonner';
 	import { templatesStore } from './templates.store.svelte';
 	import { createFileFromTemplate } from './templates.service';
-	import { filterTemplates } from './templates.logic';
+	import { filterTemplates, noteExistsInTree, withMdExtension } from './templates.logic';
 	import FileText from '@lucide/svelte/icons/file-text';
 
 	let searchQuery = $state('');
@@ -17,6 +19,20 @@
 
 	/** Whether we're in the "enter filename" step */
 	let isNamingStep = $derived(selectedTemplatePath !== null);
+
+	/** Display name of the chosen template, shown as a chip in the naming step */
+	let selectedTemplateName = $derived(
+		templatesStore.templates.find((t) => t.path === selectedTemplatePath)?.name ?? '',
+	);
+
+	/** The vault-relative file `createFileFromTemplate` will create or open */
+	let targetFileName = $derived(withMdExtension(fileName.trim()));
+
+	/** Whether Enter opens a note that already exists instead of creating one */
+	let targetExists = $derived(
+		vaultStore.path !== null && fileName.trim() !== ''
+			&& noteExistsInTree(fsStore.fileTree, vaultStore.path, fileName.trim()),
+	);
 
 	function handleOpenChange(open: boolean) {
 		if (!open) {
@@ -51,6 +67,11 @@
 			isCreating = true;
 			confirmCreate()
 				.finally(() => { isCreating = false; });
+		} else if (e.key === 'Backspace' && !e.repeat && isNamingStep && fileName === '') {
+			// Back to the template list; the dialog stays open. A held Backspace
+			// that just cleared the name auto-repeats and must not go back too.
+			e.preventDefault();
+			selectedTemplatePath = null;
 		}
 	}
 
@@ -71,7 +92,11 @@
 >
 	{#if isNamingStep}
 		<!-- svelte-ignore a11y_autofocus -->
-		<div class="flex items-center border-b px-3">
+		<div class="flex items-center gap-2 border-b px-3">
+			<span class="flex shrink-0 items-center gap-1 rounded-sm border px-1.5 py-0.5 text-xs text-muted-foreground">
+				<FileText class="size-3" />
+				{selectedTemplateName}
+			</span>
 			<input
 				class="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
 				placeholder="File name..."
@@ -81,15 +106,19 @@
 			/>
 		</div>
 		<div class="p-4 text-center text-sm text-muted-foreground">
-			{#if fileName.trim()}
-				Press <kbd class="rounded-xs border px-1.5 py-0.5 text-xs">Enter</kbd> to create
-				<span class="font-medium text-foreground">{fileName.trim()}{fileName.trim().endsWith('.md') ? '' : '.md'}</span>
-			{:else}
+			{#if !fileName.trim()}
 				Type a name for the new file
+			{:else if targetExists}
+				<kbd class="rounded-xs border px-1.5 py-0.5 text-xs">Enter</kbd> opens the existing note
+			{:else}
+				Creates <span class="font-medium text-foreground">{targetFileName}</span>
+				{targetFileName.includes('/') ? 'in the vault' : 'in the vault root'}
 			{/if}
 		</div>
 	{:else}
-		<Command.Input placeholder="Search templates..." bind:value={searchQuery} />
+		<!-- Focus returns here after Backspace unmounts the naming input. -->
+		<!-- svelte-ignore a11y_autofocus -->
+		<Command.Input placeholder="Search templates..." bind:value={searchQuery} autofocus />
 		<Command.List>
 			{#if filteredTemplates.length > 0}
 				<Command.Group>

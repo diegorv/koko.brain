@@ -92,7 +92,7 @@ reg src/lib/core/markdown-editor/editor-host.ts:editorHost facet src/lib/core/ma
 reg src/lib/core/markdown-editor/editor-host.ts:editorHost registered-at src/lib/core/markdown-editor/setup/editor-extensions.ts:129 in createExtensions args=opts.host -> src/lib/core/markdown-editor/setup/editor-extensions.ts:createExtensions
 reg src/lib/core/markdown-editor/editor-host.ts:editorHost registered-at src/lib/plugins/quick-capture/composer-editor.ts:108 in createComposerEditor args=opts.host -> src/lib/plugins/quick-capture/composer-editor.ts:createComposerEditor
 reg src/lib/core/markdown-editor/editor-host.ts:editorHost invoked-at src/lib/core/markdown-editor/MarkdownEditor.svelte:112 in freshState
-reg src/lib/core/markdown-editor/editor-host.ts:editorHost invoked-at src/routes/composer/+page.svelte:202 in (script)
+reg src/lib/core/markdown-editor/editor-host.ts:editorHost invoked-at src/routes/composer/+page.svelte:203 in (script)
 reg src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:fencedBlockRenderers facet src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:34 | doc The registered renderers by language.
 reg src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:fencedBlockRenderers registered-at src/lib/core/markdown-editor/setup/editor-extensions.ts:130 in createExtensions args=renderer -> src/lib/core/markdown-editor/setup/editor-extensions.ts:createExtensions
 reg src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:fencedBlockRenderers invoked-at src/lib/core/markdown-editor/MarkdownEditor.svelte:112 in freshState

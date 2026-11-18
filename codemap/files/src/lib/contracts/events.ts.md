@@ -26,7 +26,7 @@ by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/core/filesystem/fs.watcher
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/features/search/search.service.ts:98 in startSemanticProgressListener member
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/plugins/quick-capture/quick-capture.service.ts:62 in registerQuickCaptureListener member
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/utils/debug.ts:128 in startTauriDebugListener member
-by src/lib/contracts/events.ts:EVENT_NAMES <- src/routes/composer/+page.svelte:214 in (script) member +1
+by src/lib/contracts/events.ts:EVENT_NAMES <- src/routes/composer/+page.svelte:215 in (script) member +1
 sym src/lib/contracts/events.ts:29 type EventName L1 | A Rust-emitted event name.
 sym src/lib/contracts/events.ts:32 interface EventMap L26 | The payload of each event, as it arrives in JS.
 by src/lib/contracts/events.ts:EventMap <- src/lib/contracts/ipc.ts:4 in (module) import

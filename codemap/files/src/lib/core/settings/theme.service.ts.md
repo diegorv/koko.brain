@@ -26,12 +26,12 @@ test src/tests/lib/features/tasks/TasksView.lists.test.ts mocks src/lib/core/set
 test src/tests/lib/features/tasks/tasks-view-settings.test.ts mocks src/lib/core/settings/theme.service.ts
 ## symbols
 sym src/lib/core/settings/theme.service.ts:13 const THEME_VARS_STORAGE_KEY L1 | localStorage key holding the CSS variables of the theme last applied in the main window.
-by src/lib/core/settings/theme.service.ts:THEME_VARS_STORAGE_KEY <- src/routes/composer/+page.svelte:161 in onStorage ref
+by src/lib/core/settings/theme.service.ts:THEME_VARS_STORAGE_KEY <- src/routes/composer/+page.svelte:162 in onStorage ref
 sym src/lib/core/settings/theme.service.ts:44 fn applyTheme(theme: Theme): void L5 | Applies a theme by setting all its color tokens as CSS custom properties on the document root element.
 by src/lib/core/settings/theme.service.ts:applyTheme <- src/lib/core/settings/sections/ThemeEditor.svelte:68 in applyDraft call
 sym src/lib/core/settings/theme.service.ts:54 fn applyStoredTheme(): void L15 | Applies the theme the main window last mirrored to localStorage.
 by src/lib/core/settings/theme.service.ts:applyStoredTheme <- src/routes/(app)/+layout.svelte:37 in (script) call
-by src/lib/core/settings/theme.service.ts:applyStoredTheme <- src/routes/composer/+page.svelte:162 in onStorage call +2
+by src/lib/core/settings/theme.service.ts:applyStoredTheme <- src/routes/composer/+page.svelte:163 in onStorage call +2
 sym src/lib/core/settings/theme.service.ts:76 fn applyActiveTheme(): void L12 | Reads the active theme from the settings store, applies it, and mirrors its CSS variables to localStorage for the secondary windows (see `THEME_VARS_STORAGE_KE…
 by src/lib/core/settings/theme.service.ts:applyActiveTheme <- src/lib/core/settings/sections/AppearanceSection.svelte:77 in updateTheme call +5
 by src/lib/core/settings/theme.service.ts:applyActiveTheme <- src/lib/core/settings/settings.service.ts:251 in applyLoadedSettings call

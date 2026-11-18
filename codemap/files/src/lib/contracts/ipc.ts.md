@@ -78,7 +78,7 @@ by src/lib/contracts/ipc.ts:on <- src/lib/core/filesystem/fs.watcher.ts:276 in s
 by src/lib/contracts/ipc.ts:on <- src/lib/features/search/search.service.ts:98 in startSemanticProgressListener call
 by src/lib/contracts/ipc.ts:on <- src/lib/plugins/quick-capture/quick-capture.service.ts:62 in registerQuickCaptureListener call
 by src/lib/contracts/ipc.ts:on <- src/lib/utils/debug.ts:128 in startTauriDebugListener call
-by src/lib/contracts/ipc.ts:on <- src/routes/composer/+page.svelte:214 in (script) call +1
+by src/lib/contracts/ipc.ts:on <- src/routes/composer/+page.svelte:215 in (script) call +1
 ## locals
 local src/lib/contracts/ipc.ts:41 fn recordInvoke(cmd: string): void L9
 ## calls

@@ -180,14 +180,14 @@ Templates are `.md` files that serve as starting points for new notes. Instead o
 1. Open the Command Palette (`Cmd+P`).
 2. Type "New File from Template."
 3. A picker shows all templates in your templates folder.
-4. Select a template, then type a filename for the new note.
-5. Press Enter — the new note is created with the template content.
+4. Select a template, then type a filename for the new note. A chip next to the name shows the template you picked, and the line below says what Enter will do: "Creates Standup.md in the vault root", or "Enter opens the existing note" when a note with that name already exists (the match ignores case). To pick a different template, press Backspace on an empty name to go back to the list.
+5. Press Enter. A new note is created with the template content; if the note already exists, it opens unchanged.
 
 ![Template picker dialog](screenshots/template-picker.png)
 
 **Configure the templates folder** in Settings → Files & Folders → Templates folder (default: `_system/templates`).
 
-New notes from templates are created at the **vault root**.
+New notes from templates are created at the **vault root**. A name with a folder part, such as `Projects/Standup`, creates the note in that folder (the folder is created if needed), and the hint shows the full path.
 
 > [!NOTE]
 > On vault initialization, Kokobrain auto-creates the templates folder and placeholder files for all configured periodic note, Quick Capture per-kind, and 1:1 note templates if they don't exist yet.
