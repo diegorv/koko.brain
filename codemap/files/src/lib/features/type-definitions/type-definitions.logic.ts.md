@@ -1,6 +1,6 @@
 # file card src/lib/features/type-definitions/type-definitions.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/type-definitions/type-definitions.logic.ts ' codemap/files
-file src/lib/features/type-definitions/type-definitions.logic.ts logic L275 module src/lib/features/type-definitions in9 t22
+file src/lib/features/type-definitions/type-definitions.logic.ts logic L275 module src/lib/features/type-definitions in9 t23
 ## imports
 imp src/lib/features/type-definitions/type-definitions.logic.ts:1 -> src/lib/types/vault-v2.types.ts type:NoteEntryV2,type:FrontmatterValue
 imp src/lib/features/type-definitions/type-definitions.logic.ts:2 -> src/lib/core/filesystem/fs.logic.ts getFileNameError,isValidFileName
@@ -17,7 +17,7 @@ imp src/lib/features/type-definitions/type-definitions.store.svelte.ts:3 -> src/
 imp src/lib/features/type-definitions/type-sidebar.logic.ts:7 -> src/lib/features/type-definitions/type-definitions.logic.ts type:TypeMetadata
 imp src/lib/features/type-definitions/type-sidebar.logic.ts:8 -> src/lib/features/type-definitions/type-definitions.logic.ts getTypeMetadataFallback
 ## reach
-in2 src/lib/features/type-definitions/type-definitions.logic.ts 44 files in 14 modules: src/lib/features/rail-shell(18) src/lib/app(9) src/lib/plugins/calendar(3) src/lib/features/event-calendar(2) src/lib/features/note-list(2) +9 modules: q impact src/lib/features/type-definitions/type-definitions.logic.ts --depth 2
+in2 src/lib/features/type-definitions/type-definitions.logic.ts 45 files in 14 modules: src/lib/features/rail-shell(18) src/lib/app(9) src/lib/plugins/calendar(3) src/lib/features/auto-organize(2) src/lib/features/event-calendar(2) +9 modules: q impact src/lib/features/type-definitions/type-definitions.logic.ts --depth 2
 out2 src/lib/features/type-definitions/type-definitions.logic.ts 5 files in 4 modules: src/lib/utils(2) src/lib/contracts(1) src/lib/core/filesystem(1) src/lib/core/frontmatter(1)
 ## tests
 test src/tests/lib/features/type-definitions/type-definitions.logic.test.ts imports src/lib/features/type-definitions/type-definitions.logic.ts mirror
@@ -25,6 +25,7 @@ test src/tests/help/type-definitions-views.test.ts imports src/lib/features/type
 test src/tests/lib/app/AppShell.test.ts imports src/lib/features/type-definitions/type-definitions.logic.ts
 test src/tests/lib/app/commands.test.ts imports src/lib/features/type-definitions/type-definitions.logic.ts
 test src/tests/lib/app/meta-bind-open-view.test.ts imports src/lib/features/type-definitions/type-definitions.logic.ts
+test src/tests/lib/features/auto-organize/AutoOrganizeSection.test.ts imports src/lib/features/type-definitions/type-definitions.logic.ts
 test src/tests/lib/features/collection/CollectionView.test.ts imports src/lib/features/type-definitions/type-definitions.logic.ts
 test src/tests/lib/features/event-calendar/EventCalendarSection.test.ts imports src/lib/features/type-definitions/type-definitions.logic.ts
 test src/tests/lib/features/note-action-bar/NoteActionBar.test.ts imports src/lib/features/type-definitions/type-definitions.logic.ts

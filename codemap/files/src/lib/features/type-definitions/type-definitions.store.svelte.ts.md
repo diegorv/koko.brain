@@ -1,7 +1,7 @@
 # file card src/lib/features/type-definitions/type-definitions.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/type-definitions/type-definitions.store.svelte.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, store, locals, calls
-file src/lib/features/type-definitions/type-definitions.store.svelte.ts store L125 module src/lib/features/type-definitions in20 t38
+file src/lib/features/type-definitions/type-definitions.store.svelte.ts store L125 module src/lib/features/type-definitions in21 t39
 ## imports
 imp src/lib/features/type-definitions/type-definitions.store.svelte.ts:1 -> src/lib/types/vault-v2.types.ts type:NoteEntryV2
 imp src/lib/features/type-definitions/type-definitions.store.svelte.ts:2 -> src/lib/core/frontmatter/properties.logic.ts normalizeTypeCasing
@@ -14,6 +14,7 @@ imp src/lib/app/commands.ts:20 -> src/lib/features/type-definitions/type-definit
 imp src/lib/app/editor-host.ts:32 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:74 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/app/tauri-listeners.service.ts:13 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
+imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:14 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/features/auto-organize/auto-organize.service.ts:44 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/features/event-calendar/EventCalendarSection.svelte:16 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/features/event-calendar/event-calendar.service.ts:32 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
@@ -29,7 +30,7 @@ imp src/lib/plugins/calendar/CalendarNavigator.svelte:12 -> src/lib/features/typ
 imp src/lib/plugins/mods/mod-app.service.ts:12 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:12 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 ## reach
-in2 src/lib/features/type-definitions/type-definitions.store.svelte.ts 18 files in 9 modules: src/lib/features/event-calendar(7) src/lib/app(4) src/lib/features/auto-organize(1) src/lib/features/rail-shell(1) src/lib/features/type-definitions(1) +4 modules: q impact src/lib/features/type-definitions/type-definitions.store.svelte.ts --depth 2
+in2 src/lib/features/type-definitions/type-definitions.store.svelte.ts 17 files in 8 modules: src/lib/features/event-calendar(7) src/lib/app(4) src/lib/features/rail-shell(1) src/lib/features/type-definitions(1) src/lib/plugins/calendar(1) +3 modules: q impact src/lib/features/type-definitions/type-definitions.store.svelte.ts --depth 2
 out2 src/lib/features/type-definitions/type-definitions.store.svelte.ts 8 files in 6 modules: src/lib/core/filesystem(2) src/lib/features/collection(2) src/lib/contracts(1) src/lib/core/frontmatter(1) src/lib/features/file-icons(1) +1 modules
 ## tests
 test src/tests/lib/features/type-definitions/type-definitions.store.test.ts imports src/lib/features/type-definitions/type-definitions.store.svelte.ts mirror
@@ -42,6 +43,7 @@ test src/tests/lib/app/editor-host.test.ts imports src/lib/features/type-definit
 test src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts imports src/lib/features/type-definitions/type-definitions.store.svelte.ts
 test src/tests/lib/app/meta-bind-open-view.test.ts imports src/lib/features/type-definitions/type-definitions.store.svelte.ts
 test src/tests/lib/app/tauri-listeners.service.test.ts imports src/lib/features/type-definitions/type-definitions.store.svelte.ts
+test src/tests/lib/features/auto-organize/AutoOrganizeSection.test.ts imports src/lib/features/type-definitions/type-definitions.store.svelte.ts
 test src/tests/lib/features/collection/CollectionView.restored-view.test.ts imports src/lib/features/type-definitions/type-definitions.store.svelte.ts
 test src/tests/lib/features/collection/CollectionView.test.ts imports src/lib/features/type-definitions/type-definitions.store.svelte.ts
 test src/tests/lib/features/collection/collection-block-row-rule.test.ts imports src/lib/features/type-definitions/type-definitions.store.svelte.ts
@@ -78,13 +80,13 @@ by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefini
 by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/app/editor-host.ts:187 in appEditorHost.openView mcall
 by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/app/lifecycle/app-lifecycle.service.ts:684 in teardownVault mcall
 by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/app/tauri-listeners.service.ts:214 in registerVaultIndexUpdatedListener mcall +3
+by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:31 in archiveTypeCount=$derived member
 by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/features/auto-organize/auto-organize.service.ts:214 in registerAutoOrganizeHook member +1
-by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/features/event-calendar/EventCalendarSection.svelte:49 in eventType=$derived member
-more by 12 not shown: src/lib/features/rail-shell(4) src/lib/features/event-calendar(1) src/lib/features/note-action-bar(1) src/lib/features/note-list(1) src/lib/features/properties(1) src/lib/features/type-definitions(1) src/lib/plugins/calendar(1) src/lib/plugins/mods(1) +1 modules: q importers src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore
+more by 13 not shown: src/lib/features/rail-shell(4) src/lib/features/event-calendar(2) src/lib/features/note-action-bar(1) src/lib/features/note-list(1) src/lib/features/properties(1) src/lib/features/type-definitions(1) src/lib/plugins/calendar(1) src/lib/plugins/mods(1) +1 modules: q importers src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore
 ## store
 store src/lib/features/type-definitions/type-definitions.store.svelte.ts:19 typeDefinitionsStore esc:4
-mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:20 get typeDefinitionsStore.typeMetadataMap r:15 w-via:setTypeMetadataMap,reset
-more r 15 not shown: src/lib/features/rail-shell(5) src/lib/app(3) src/lib/features/auto-organize(2) src/lib/features/event-calendar(2) src/lib/features/type-definitions(2) src/lib/features/note-action-bar(1): q store src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore.typeMetadataMap
+mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:20 get typeDefinitionsStore.typeMetadataMap r:16 w-via:setTypeMetadataMap,reset
+more r 16 not shown: src/lib/features/rail-shell(5) src/lib/app(3) src/lib/features/auto-organize(3) src/lib/features/event-calendar(2) src/lib/features/type-definitions(2) src/lib/features/note-action-bar(1): q store src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore.typeMetadataMap
 mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:21 get typeDefinitionsStore.entries r:12 w-via:setEntries,patchEntries,reset
 more r 12 not shown: src/lib/app(6) src/lib/features/rail-shell(4) src/lib/plugins/calendar(1) src/lib/plugins/one-on-one(1): q store src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore.entries
 mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:22 get typeDefinitionsStore.entriesVersion r:11 w-via:setEntries,patchEntries,reset

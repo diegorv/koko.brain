@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -41,6 +41,8 @@
 		sanitizeRename,
 		sanitizeRuleProperties,
 		sanitizeRunAction,
+		TEMPLATE_VARIABLES,
+		unknownTemplateVariables,
 	} from './auto-organize.logic';
 	import { autoOrganizeStore } from './auto-organize.store.svelte';
 	import AutoOrganizeRuleProperty from './AutoOrganizeRuleProperty.svelte';
@@ -49,6 +51,7 @@
 		rule,
 		isFirst,
 		isLast,
+		focusName = false,
 		onupdate,
 		onremove,
 		onmoveup,
@@ -57,6 +60,8 @@
 		rule: AutoOrganizeRule;
 		isFirst: boolean;
 		isLast: boolean;
+		/** Whether the name field takes focus when the row mounts, for a rule just added */
+		focusName?: boolean;
 		onupdate: (id: string, updates: Partial<AutoOrganizeRule>) => void;
 		onremove: (id: string) => void;
 		onmoveup: (id: string) => void;
@@ -87,6 +92,27 @@
 	let typing = false;
 	let iconPickerOpen = $state(false);
 
+	let nameInput = $state<HTMLInputElement | null>(null);
+	/** The containers whose added rows `focusAdded` looks in */
+	let filterBox = $state<HTMLElement>();
+	let propertiesBox = $state<HTMLElement>();
+	let createBox = $state<HTMLElement>();
+
+	onMount(() => {
+		if (focusName) nameInput?.focus();
+	});
+
+	/**
+	 * Runs `add`, then focuses the first input it put under `box`, so the
+	 * keyboard lands in the row just added. `focus()` also scrolls it into view.
+	 */
+	async function focusAdded(box: HTMLElement | undefined, add: () => void) {
+		const before = new Set(box?.querySelectorAll('input'));
+		add();
+		await tick();
+		[...(box?.querySelectorAll('input') ?? [])].find((input) => !before.has(input))?.focus();
+	}
+
 	/** The filter the match count was last computed for, behind the typing by `COUNT_DELAY_MS` */
 	let countedFilter = $state.raw<FilterItem>(untrack(() => filterDraft));
 	$effect(() => {
@@ -110,6 +136,31 @@
 
 	let properties = $derived(rule.properties ?? []);
 	let createProperties = $derived(rule.createNote?.properties ?? []);
+
+	/** The last row key handed out; keys are never reused, so a removed row's state cannot reach another row */
+	let lastRowKey = 0;
+	function newRowKeys(count: number): number[] {
+		return Array.from({ length: count }, () => ++lastRowKey);
+	}
+	/**
+	 * One key per row of `properties` and `createProperties`, in order, so each
+	 * row keeps its own draft and error when a row above it is removed. They
+	 * live here, never in the rule: the store's deep `$state` hands back a new
+	 * proxy for the same object, so the objects cannot key a WeakMap.
+	 */
+	let propertyKeys = $state(untrack(() => newRowKeys(properties.length)));
+	let createPropertyKeys = $state(untrack(() => newRowKeys(createProperties.length)));
+	// Add and remove update the keys with the rows; a count changed from outside
+	// (a config reload, a removed create note) gets fresh keys. `.pre`, so the
+	// keyed `#each` never renders with a count of keys other than its rows'.
+	$effect.pre(() => {
+		const count = properties.length;
+		if (untrack(() => propertyKeys.length) !== count) propertyKeys = newRowKeys(count);
+	});
+	$effect.pre(() => {
+		const count = createProperties.length;
+		if (untrack(() => createPropertyKeys.length) !== count) createPropertyKeys = newRowKeys(count);
+	});
 	/** The rule's mod action id as a run reads it; undefined when it has none */
 	let actionId = $derived(sanitizeRunAction(rule.runAction)?.id);
 	/** True when the rule neither renames, moves, sets, creates nor runs anything, so it does nothing */
@@ -175,7 +226,13 @@
 	}
 
 	function addProperty() {
+		propertyKeys.push(...newRowKeys(1));
 		setProperties([...properties, { key: '', value: '', mode: 'if-missing' }]);
+	}
+
+	function removeProperty(i: number) {
+		propertyKeys.splice(i, 1);
+		setProperties(properties.filter((_, j) => j !== i));
 	}
 
 	/**
@@ -215,6 +272,16 @@
 		updateCreateNote({ properties: next });
 	}
 
+	function addCreateProperty() {
+		createPropertyKeys.push(...newRowKeys(1));
+		setCreateProperties([...createProperties, { key: '', value: '', mode: 'if-missing' }]);
+	}
+
+	function removeCreateProperty(i: number) {
+		createPropertyKeys.splice(i, 1);
+		setCreateProperties(createProperties.filter((_, j) => j !== i));
+	}
+
 	const RENAME_SOURCES = { name: 'Name', expr: 'Expression' } as const;
 	/** Whether the rename field holds a name template or an expression */
 	let renameSource = $state<keyof typeof RENAME_SOURCES>(untrack(() => (rule.rename?.expr !== undefined ? 'expr' : 'name')));
@@ -230,6 +297,25 @@
 	let renameRefusal = $state<string | null>(null);
 	/** The refusal, else why a run ignores the stored rename */
 	let renameError = $derived(renameRefusal ?? (rule.rename !== undefined ? renameProblem(rule.rename) : null));
+	/** The rename field's text: the unsaved draft, else the stored rename */
+	let renameText = $derived(renameDraft ?? rule.rename?.name ?? rule.rename?.expr ?? '');
+
+	/** "Variables: {folder} {parent} ..." under Move to folder */
+	const VARIABLES_LINE = `Variables: ${TEMPLATE_VARIABLES.map((name) => `{${name}}`).join(' ')}`;
+
+	/** One warning per unknown `{name}` in `template`: a run keeps it literally, in a folder or in the new name. */
+	function variableWarnings(template: string, into: 'folder' | 'name'): string[] {
+		return unknownTemplateVariables(template).map((name) => {
+			const token = `{${name}}`;
+			return into === 'folder'
+				? `${token} is not a variable, so a folder named ${token} would be created`
+				: `${token} is not a variable, so the new name would contain ${token}`;
+		});
+	}
+	let destinationWarnings = $derived(variableWarnings(rule.destination, 'folder'));
+	let createPathWarnings = $derived(variableWarnings(rule.createNote?.path ?? '', 'folder'));
+	/** Only a name template has variables; an expression has none */
+	let renameWarnings = $derived(renameSource === 'name' ? variableWarnings(renameText, 'name') : []);
 
 	/** Saves the rename field's text as `source`; blank removes the rename, a refused one is shown and not saved. */
 	function commitRename(raw: string, source: keyof typeof RENAME_SOURCES) {
@@ -274,6 +360,9 @@
 		iconPickerOpen = false;
 	}
 
+	/** The icon button's title and name */
+	let iconLabel = $derived(rule.icon ? `Icon: ${rule.icon.iconPack}:${rule.icon.iconName}` : 'Set file icon');
+
 	/** Resolve the icon for rendering (sync lookup from cache) */
 	function getResolvedIcon() {
 		void fileIconsStore.packVersion;
@@ -282,16 +371,29 @@
 	}
 </script>
 
-<div class="flex flex-col gap-2 rounded-lg border border-border bg-setting-item-bg p-3">
+<!-- A disabled rule stays fully editable: only the dashed border and the Off pill mark it. -->
+<div
+	class={[
+		'flex flex-col gap-2 rounded-lg border border-border bg-setting-item-bg p-3 focus-within:border-ring',
+		!rule.enabled && 'border-dashed',
+	]}
+	data-rule-card
+>
 	<!-- Header row: name + enable toggle + move + delete -->
 	<div class="flex items-center gap-2">
 		<Input
 			class="flex-1 font-medium"
+			aria-label="Rule name"
+			bind:ref={nameInput}
 			value={rule.name}
 			placeholder="Rule name"
 			oninput={(e) => onupdate(rule.id, { name: (e.currentTarget as HTMLInputElement).value })}
 		/>
+		{#if !rule.enabled}
+			<span class="rounded-full bg-muted px-2 py-0.5 text-label text-muted-foreground" title="This rule is skipped" data-rule-off>Off</span>
+		{/if}
 		<Switch
+			aria-label="Enable rule"
 			checked={rule.enabled}
 			onCheckedChange={(enabled) => onupdate(rule.id, { enabled })}
 		/>
@@ -299,6 +401,7 @@
 			variant="ghost"
 			size="icon"
 			class="size-7"
+			aria-label="Move rule up"
 			disabled={isFirst}
 			onclick={() => onmoveup(rule.id)}
 		>
@@ -308,6 +411,7 @@
 			variant="ghost"
 			size="icon"
 			class="size-7"
+			aria-label="Move rule down"
 			disabled={isLast}
 			onclick={() => onmovedown(rule.id)}
 		>
@@ -317,6 +421,7 @@
 			variant="ghost"
 			size="icon"
 			class="size-7 text-destructive hover:text-destructive"
+			aria-label="Delete rule"
 			onclick={() => onremove(rule.id)}
 		>
 			<TrashIcon class="size-3.5" />
@@ -328,7 +433,7 @@
 		<div class="flex items-start gap-2">
 			<span class="w-24 shrink-0 text-meta text-muted-foreground">Filter</span>
 			<!-- Value and raw-expression inputs report every keystroke; they save when left. -->
-			<div class="min-w-0 flex-1" data-rule-filter oninputcapture={() => (typing = true)} onchange={commitFilter}>
+			<div class="min-w-0 flex-1" data-rule-filter bind:this={filterBox} oninputcapture={() => (typing = true)} onchange={commitFilter}>
 				<FilterPanel
 					showGlobal={false}
 					globalFilters={[]}
@@ -344,7 +449,7 @@
 			variant="ghost"
 			size="sm"
 			class="ml-[6.5rem] h-7 w-fit gap-1 px-2 text-muted-foreground"
-			onclick={addExpression}
+			onclick={() => focusAdded(filterBox, addExpression)}
 		>
 			<PlusIcon class="size-3" />
 			Add expression
@@ -393,46 +498,60 @@
 			{#if renameError !== null}
 				<p class="text-meta text-destructive" data-rename-error>{renameError}</p>
 			{/if}
+			{#each renameWarnings as warning (warning)}
+				<p class="text-meta text-destructive" data-template-warning>{warning}</p>
+			{/each}
 		</div>
 	</div>
 
 	<!-- Destination folder + icon row -->
-	<div class="flex items-center gap-2">
-		<span class="w-24 shrink-0 text-meta text-muted-foreground">Move to folder</span>
-		<Input
-			class="flex-1"
-			value={rule.destination}
-			placeholder="Empty: do not move"
-			oninput={(e) => onupdate(rule.id, { destination: (e.currentTarget as HTMLInputElement).value })}
-		/>
-		<Button
-			variant="outline"
-			size="icon"
-			class="size-7 shrink-0"
-			title={rule.icon ? `Icon: ${rule.icon.iconPack}:${rule.icon.iconName}` : 'Set file icon'}
-			onclick={() => iconPickerOpen = true}
-		>
-			{@const resolvedIcon = getResolvedIcon()}
-			{#if resolvedIcon}
-				<IconRenderer icon={resolvedIcon} class="size-3.5" color={rule.icon?.color} />
+	<div class="flex items-start gap-2">
+		<span class="w-24 shrink-0 pt-2 text-meta text-muted-foreground">Move to folder</span>
+		<div class="flex min-w-0 flex-1 flex-col gap-1">
+			<div class="flex items-center gap-2">
+				<Input
+					class="flex-1"
+					aria-label="Move to folder"
+					value={rule.destination}
+					placeholder="Empty: do not move"
+					oninput={(e) => onupdate(rule.id, { destination: (e.currentTarget as HTMLInputElement).value })}
+				/>
+				<Button
+					variant="outline"
+					size="icon"
+					class="size-7 shrink-0"
+					title={iconLabel}
+					aria-label={iconLabel}
+					onclick={() => iconPickerOpen = true}
+				>
+					{@const resolvedIcon = getResolvedIcon()}
+					{#if resolvedIcon}
+						<IconRenderer icon={resolvedIcon} class="size-3.5" color={rule.icon?.color} />
+					{:else}
+						<ImageIcon class="size-3.5 text-muted-foreground" />
+					{/if}
+				</Button>
+			</div>
+			{#each destinationWarnings as warning (warning)}
+				<p class="text-meta text-destructive" data-template-warning>{warning}</p>
 			{:else}
-				<ImageIcon class="size-3.5 text-muted-foreground" />
-			{/if}
-		</Button>
+				<p class="text-meta text-muted-foreground" data-template-variables>{VARIABLES_LINE}</p>
+			{/each}
+		</div>
 	</div>
 
 	<div class="flex items-start gap-2">
 		<span class="w-24 shrink-0 pt-2 text-meta text-muted-foreground">Set properties</span>
-		<div class="flex min-w-0 flex-1 flex-col gap-2">
-			{#each properties as property, i (i)}
+		<div class="flex min-w-0 flex-1 flex-col gap-2" bind:this={propertiesBox}>
+			{#each properties as property, i (propertyKeys[i])}
 				<AutoOrganizeRuleProperty
 					{property}
 					listId={keyListId}
 					onchange={(next) => setProperties(properties.map((p, j) => (j === i ? next : p)))}
-					onremove={() => setProperties(properties.filter((_, j) => j !== i))}
+					onremove={() => removeProperty(i)}
 				/>
 			{/each}
-			<Button variant="outline" size="sm" class="self-start" onclick={addProperty}>
+			<Button variant="outline" size="sm" class="self-start" onclick={() => focusAdded(propertiesBox, addProperty)}>
 				<PlusIcon class="size-3.5" />
 				Add property
 			</Button>
@@ -441,7 +560,7 @@
 
 	<div class="flex items-start gap-2">
 		<span class="w-24 shrink-0 pt-2 text-meta text-muted-foreground">Create note</span>
-		<div class="flex min-w-0 flex-1 flex-col gap-2">
+		<div class="flex min-w-0 flex-1 flex-col gap-2" bind:this={createBox}>
 			<Input
 				aria-label="Create note path"
 				value={rule.createNote?.path ?? ''}
@@ -453,6 +572,9 @@
 					The path must end in .md and must not start with /. It is not saved.
 				</p>
 			{/if}
+			{#each createPathWarnings as warning (warning)}
+				<p class="text-meta text-destructive" data-template-warning>{warning}</p>
+			{/each}
 			{#if rule.createNote}
 				<Input
 					aria-label="Create note template"
@@ -465,20 +587,20 @@
 						The template must be inside the vault: no .. and not starting with /. It is not saved.
 					</p>
 				{/if}
-				{#each createProperties as property, i (i)}
+				{#each createProperties as property, i (createPropertyKeys[i])}
 					<AutoOrganizeRuleProperty
 						{property}
 						listId={keyListId}
 						allowRemove={false}
 						onchange={(next) => setCreateProperties(createProperties.map((p, j) => (j === i ? next : p)))}
-						onremove={() => setCreateProperties(createProperties.filter((_, j) => j !== i))}
+						onremove={() => removeCreateProperty(i)}
 					/>
 				{/each}
 				<Button
 					variant="outline"
 					size="sm"
 					class="self-start"
-					onclick={() => setCreateProperties([...createProperties, { key: '', value: '', mode: 'if-missing' }])}
+					onclick={() => focusAdded(createBox, addCreateProperty)}
 				>
 					<PlusIcon class="size-3.5" />
 					Add note property

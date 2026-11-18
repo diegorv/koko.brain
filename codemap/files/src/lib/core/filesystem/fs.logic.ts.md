@@ -1,7 +1,7 @@
 # file card src/lib/core/filesystem/fs.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/filesystem/fs.logic.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls
-file src/lib/core/filesystem/fs.logic.ts logic L642 module src/lib/core/filesystem in46 t15
+file src/lib/core/filesystem/fs.logic.ts logic L642 module src/lib/core/filesystem in47 t15
 ## imports
 imp src/lib/core/filesystem/fs.logic.ts:4 -> src/lib/utils/path.ts basename,relativePath
 imp src/lib/core/filesystem/fs.logic.ts:6 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode,type:FolderOrderMap
@@ -22,6 +22,7 @@ imp src/lib/core/note-creator/note-creator.service.ts:6 -> src/lib/core/filesyst
 imp src/lib/core/settings/settings.logic.ts:2 -> src/lib/core/filesystem/fs.logic.ts findFileNode
 imp src/lib/core/trash/trash.service.ts:14 -> src/lib/core/filesystem/fs.logic.ts collectFilePathsUnder,findNodeByPath,getRelativePath,isViewFile
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:15 -> src/lib/core/filesystem/fs.logic.ts isMarkdownFile
+imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:12 -> src/lib/core/filesystem/fs.logic.ts collectAllDirPaths,getRelativePath
 imp src/lib/features/auto-organize/auto-organize.logic.ts:3 -> src/lib/core/filesystem/fs.logic.ts isMarkdownFile,isViewFile
 imp src/lib/features/auto-organize/auto-organize.service.ts:4 -> src/lib/core/filesystem/fs.logic.ts fileOperationErrorMessage,isViewFile,TargetExistsError
 imp src/lib/features/collection/collection.logic.ts:16 -> src/lib/core/filesystem/fs.logic.ts getFileExtension,getFileName
@@ -45,10 +46,9 @@ imp src/lib/features/search/search.logic.ts:2 -> src/lib/core/filesystem/fs.logi
 imp src/lib/features/search/search.service.ts:5 -> src/lib/core/filesystem/fs.logic.ts isViewFile
 imp src/lib/features/type-definitions/ViewDialog.svelte:6 -> src/lib/core/filesystem/fs.logic.ts fileOperationErrorMessage,getFileName
 imp src/lib/features/type-definitions/type-definitions.logic.ts:2 -> src/lib/core/filesystem/fs.logic.ts getFileNameError,isValidFileName
-imp src/lib/features/type-definitions/type-definitions.service.ts:15 -> src/lib/core/filesystem/fs.logic.ts generateUniqueName
-more imported-by 6 not shown: src/lib/features/type-definitions(2) src/lib/plugins/graph-view(1) src/lib/plugins/mods(1) src/lib/plugins/one-on-one(1) src/lib/plugins/queryjs(1): q importers src/lib/core/filesystem/fs.logic.ts
+more imported-by 7 not shown: src/lib/features/type-definitions(3) src/lib/plugins/graph-view(1) src/lib/plugins/mods(1) src/lib/plugins/one-on-one(1) src/lib/plugins/queryjs(1): q importers src/lib/core/filesystem/fs.logic.ts
 ## reach
-in2 src/lib/core/filesystem/fs.logic.ts 109 files in 34 modules: src/lib/features/rail-shell(13) src/lib/features/event-calendar(11) src/lib/app(9) src/lib/features/collection(9) src/lib/core/settings(8) +29 modules: q impact src/lib/core/filesystem/fs.logic.ts --depth 2
+in2 src/lib/core/filesystem/fs.logic.ts 108 files in 34 modules: src/lib/features/rail-shell(13) src/lib/features/event-calendar(11) src/lib/app(9) src/lib/features/collection(9) src/lib/core/settings(8) +29 modules: q impact src/lib/core/filesystem/fs.logic.ts --depth 2
 out2 src/lib/core/filesystem/fs.logic.ts 1 files in 1 modules: src/lib/contracts(1)
 ## tests
 test src/tests/lib/core/filesystem/fs.logic.test.ts imports src/lib/core/filesystem/fs.logic.ts mirror
@@ -158,6 +158,7 @@ by src/lib/core/filesystem/fs.logic.ts:generateUniqueName <- src/lib/features/ev
 by src/lib/core/filesystem/fs.logic.ts:generateUniqueName <- src/lib/features/type-definitions/type-definitions.service.ts:74 in resolveTypedNoteTarget call
 sym src/lib/core/filesystem/fs.logic.ts:276 fn getRelativePath(vaultPath: string, filePath: string): string L3 | Strips the vault root prefix from an absolute path to produce a vault-relative path
 by src/lib/core/filesystem/fs.logic.ts:getRelativePath <- src/lib/core/trash/trash.service.ts:50 in moveToTrash call
+by src/lib/core/filesystem/fs.logic.ts:getRelativePath <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:38 in vaultFolders=$derived call
 by src/lib/core/filesystem/fs.logic.ts:getRelativePath <- src/lib/features/event-calendar/event-calendar.service.ts:1061 in deleteNow call +1
 by src/lib/core/filesystem/fs.logic.ts:getRelativePath <- src/lib/features/note-list/NoteRowMenu.svelte:249 in (markup) markup +1
 by src/lib/core/filesystem/fs.logic.ts:getRelativePath <- src/lib/features/rail-shell/FilesNavigator.svelte:106 in pickedPlace=$derived call +2
@@ -166,6 +167,7 @@ by src/lib/core/filesystem/fs.logic.ts:getRelativePath <- src/lib/features/rail-
 sym src/lib/core/filesystem/fs.logic.ts:284 fn validateDragDrop(sourcePath: string, targetDirPath: string): string | null L11 | Validates whether a drag-and-drop move operation is allowed.
 by src/lib/core/filesystem/fs.logic.ts:validateDragDrop <- src/lib/features/rail-shell/FilesNavigator.svelte:335 in handleDrop call
 sym src/lib/core/filesystem/fs.logic.ts:297 fn collectAllDirPaths(nodes: FileTreeNode[]): Set<string> L14 | Recursively collects the paths of every directory in the tree into a flat Set
+by src/lib/core/filesystem/fs.logic.ts:collectAllDirPaths <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:38 in vaultFolders=$derived call
 sym src/lib/core/filesystem/fs.logic.ts:322 fn resolveRescanParents(changedPaths: string[], vaultPath: string, tree: FileTreeNode[]): string[] L16 | Picks the directories to rescan for a batch of changed paths.
 by src/lib/core/filesystem/fs.logic.ts:resolveRescanParents <- src/lib/core/filesystem/fs.watcher.ts:200 in handleChangedPaths call
 sym src/lib/core/filesystem/fs.logic.ts:344 fn removeNodeByPath(nodes: FileTreeNode[], path: string): FileTreeNode[] L20 | Returns the tree without the node at `path` (and, for a folder, everything under it).

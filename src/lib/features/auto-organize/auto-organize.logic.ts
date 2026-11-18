@@ -951,6 +951,19 @@ export function validateExpression(expression: string): string | null {
 	}
 }
 
+/** The `{name}` variables `resolveDestination` replaces; keep in step with its `vars`. */
+export const TEMPLATE_VARIABLES: readonly string[] = ['folder', 'parent', 'basename', 'type', 'status', 'year', 'month'];
+
+/**
+ * The `{name}` variables in `template` that are not template variables, each
+ * once, in order. `resolveDestination` keeps them literally, so they end up
+ * in the folder or file name.
+ */
+export function unknownTemplateVariables(template: string): string[] {
+	const names = [...template.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
+	return [...new Set(names.filter((name) => !TEMPLATE_VARIABLES.includes(name)))];
+}
+
 /**
  * Resolves template variables in a destination string.
  * Variables use {name} syntax (e.g. "{folder}/_archive").

@@ -7,7 +7,7 @@ imp src/lib/features/auto-organize/auto-organize.types.ts:81 -> src/lib/features
 ## imported-by
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:20 -> src/lib/features/auto-organize/auto-organize.types.ts type:RuleProperty
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:29 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeRule,type:RuleCreateNote,type:RuleProperty,type:RuleRename
-imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:15 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeRule
+imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:19 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeRule
 imp src/lib/features/auto-organize/auto-organize.logic.ts:1 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeRule,type:RuleCreateNote,type:RuleProperty,type:RuleRename,type:RuleRunAction,type:RuleValue
 imp src/lib/features/auto-organize/auto-organize.service.ts:42 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeConfig,type:AutoOrganizeRule
 imp src/lib/features/auto-organize/auto-organize.store.svelte.ts:1 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeRule,type:AutoOrganizeConfig
@@ -40,7 +40,7 @@ by src/lib/features/auto-organize/auto-organize.types.ts:RuleRename <- src/lib/f
 by src/lib/features/auto-organize/auto-organize.types.ts:RuleRename <- src/lib/features/auto-organize/auto-organize.logic.ts:1 in (module) import
 sym src/lib/features/auto-organize/auto-organize.types.ts:72 interface AutoOrganizeRule L29 | A single auto-organize rule: a filter plus rename, move, property and create-note consequences
 by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeRule <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:29 in (script) import
-by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeRule <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:15 in (script) import
+by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeRule <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:19 in (script) import
 by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeRule <- src/lib/features/auto-organize/auto-organize.logic.ts:1 in (module) import
 by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeRule <- src/lib/features/auto-organize/auto-organize.service.ts:42 in (module) import
 by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeRule <- src/lib/features/auto-organize/auto-organize.store.svelte.ts:1 in (module) import

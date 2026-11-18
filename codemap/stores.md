@@ -1,7 +1,7 @@
 # stores: one line per store object
 cols: store <loc> <name> get <n> set <n> do <n> readers <reader files> writers <writer files> card <card path> · grep: grep -F -- ' editorStore ' codemap/stores.md
 store src/lib/core/editor/editor.store.svelte.ts:33 editorStore get 9 set 0 do 16 readers 49 writers 13 card codemap/files/src/lib/core/editor/editor.store.svelte.ts.md
-store src/lib/core/filesystem/fs.store.svelte.ts:25 fsStore get 5 set 0 do 7 readers 25 writers 6 card codemap/files/src/lib/core/filesystem/fs.store.svelte.ts.md
+store src/lib/core/filesystem/fs.store.svelte.ts:25 fsStore get 5 set 0 do 7 readers 26 writers 6 card codemap/files/src/lib/core/filesystem/fs.store.svelte.ts.md
 store src/lib/core/rule-actions/rule-actions.store.svelte.ts:38 ruleActionsStore get 1 set 0 do 3 readers 1 writers 3 card codemap/files/src/lib/core/rule-actions/rule-actions.store.svelte.ts.md
 store src/lib/core/settings/applied-theme.store.svelte.ts:14 appliedThemeStore get 2 set 0 do 3 readers 5 writers 1 card codemap/files/src/lib/core/settings/applied-theme.store.svelte.ts.md
 store src/lib/core/settings/settings-panel.store.svelte.ts:7 settingsPanelStore get 2 set 0 do 5 readers 1 writers 7 card codemap/files/src/lib/core/settings/settings-panel.store.svelte.ts.md
@@ -30,7 +30,7 @@ store src/lib/features/search/search.store.svelte.ts:41 searchStore get 18 set 0
 store src/lib/features/tags/tags.store.svelte.ts:11 tagsStore get 6 set 0 do 7 readers 2 writers 2 card codemap/files/src/lib/features/tags/tags.store.svelte.ts.md
 store src/lib/features/tasks/tasks.store.svelte.ts:100 tasksStore get 18 set 0 do 17 readers 5 writers 4 card codemap/files/src/lib/features/tasks/tasks.store.svelte.ts.md
 store src/lib/features/todoist-sync/todoist-sync.store.svelte.ts:45 todoistSyncStore get 7 set 0 do 6 readers 4 writers 5 card codemap/files/src/lib/features/todoist-sync/todoist-sync.store.svelte.ts.md
-store src/lib/features/type-definitions/type-definitions.store.svelte.ts:19 typeDefinitionsStore get 6 set 0 do 8 readers 16 writers 7 card codemap/files/src/lib/features/type-definitions/type-definitions.store.svelte.ts.md
+store src/lib/features/type-definitions/type-definitions.store.svelte.ts:19 typeDefinitionsStore get 6 set 0 do 8 readers 17 writers 7 card codemap/files/src/lib/features/type-definitions/type-definitions.store.svelte.ts.md
 store src/lib/plugins/calendar/calendar.store.svelte.ts:7 calendarStore get 2 set 0 do 7 readers 1 writers 2 card codemap/files/src/lib/plugins/calendar/calendar.store.svelte.ts.md
 store src/lib/plugins/graph-view/graph-view.store.svelte.ts:26 graphViewStore get 6 set 0 do 7 readers 2 writers 2 card codemap/files/src/lib/plugins/graph-view/graph-view.store.svelte.ts.md
 store src/lib/plugins/kanban/kanban.store.svelte.ts:15 kanbanStore get 9 set 0 do 7 readers 1 writers 2 card codemap/files/src/lib/plugins/kanban/kanban.store.svelte.ts.md

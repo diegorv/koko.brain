@@ -14,7 +14,7 @@ imp src/lib/core/settings/sections/SentrySection.svelte:7 -> src/lib/core/settin
 imp src/lib/core/settings/sections/TroubleshootingSection.svelte:13 -> src/lib/core/settings/sections/SettingItem.svelte default
 imp src/lib/core/settings/sections/TypesSection.svelte:5 -> src/lib/core/settings/sections/SettingItem.svelte default
 imp src/lib/core/settings/sections/UpdateSection.svelte:15 -> src/lib/core/settings/sections/SettingItem.svelte default
-imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:10 -> src/lib/core/settings/sections/SettingItem.svelte default
+imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:13 -> src/lib/core/settings/sections/SettingItem.svelte default
 imp src/lib/features/event-calendar/EventCalendarSection.svelte:11 -> src/lib/core/settings/sections/SettingItem.svelte default
 imp src/lib/features/rail-shell/LayoutSection.svelte:7 -> src/lib/core/settings/sections/SettingItem.svelte default
 imp src/lib/features/search/SearchSection.svelte:17 -> src/lib/core/settings/sections/SettingItem.svelte default

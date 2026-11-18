@@ -5,7 +5,7 @@ file src/lib/features/auto-organize/auto-organize.store.svelte.ts store L59 modu
 imp src/lib/features/auto-organize/auto-organize.store.svelte.ts:1 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeRule,type:AutoOrganizeConfig
 ## imported-by
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:45 -> src/lib/features/auto-organize/auto-organize.store.svelte.ts autoOrganizeStore
-imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:12 -> src/lib/features/auto-organize/auto-organize.store.svelte.ts autoOrganizeStore
+imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:16 -> src/lib/features/auto-organize/auto-organize.store.svelte.ts autoOrganizeStore
 imp src/lib/features/auto-organize/auto-organize.service.ts:14 -> src/lib/features/auto-organize/auto-organize.store.svelte.ts autoOrganizeStore
 ## reach
 in2 src/lib/features/auto-organize/auto-organize.store.svelte.ts 2 files in 1 modules: src/lib/app(2)
@@ -19,7 +19,7 @@ test src/tests/lib/features/auto-organize/auto-organize.service.test.ts imports 
 ## symbols
 sym src/lib/features/auto-organize/auto-organize.store.svelte.ts:9 store autoOrganizeStore L51 | Reactive store for auto-organize rules and excluded folders
 by src/lib/features/auto-organize/auto-organize.store.svelte.ts:autoOrganizeStore <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:106 in createCount=$derived member
-by src/lib/features/auto-organize/auto-organize.store.svelte.ts:autoOrganizeStore <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:58 in addRule mcall +16
+by src/lib/features/auto-organize/auto-organize.store.svelte.ts:autoOrganizeStore <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:79 in addRule mcall +16
 by src/lib/features/auto-organize/auto-organize.store.svelte.ts:autoOrganizeStore <- src/lib/features/auto-organize/auto-organize.service.ts:118 in loadAutoOrganizeConfig mcall +12
 ## store
 store src/lib/features/auto-organize/auto-organize.store.svelte.ts:9 autoOrganizeStore esc:0
@@ -30,9 +30,9 @@ more r 10 not shown: src/lib/features/auto-organize(10): q store src/lib/feature
 mem src/lib/features/auto-organize/auto-organize.store.svelte.ts:15 get autoOrganizeStore.isConfigLoaded r:- w-via:setConfig,reset | Whether the config has been loaded from disk
 mem src/lib/features/auto-organize/auto-organize.store.svelte.ts:17 get autoOrganizeStore.enabledRules r:src/lib/features/auto-organize/auto-organize.service.ts:213,src/lib/features/auto-organize/auto-organize.service.ts:297 w-via:setConfig,addRule,updateRule,removeRule,reorderRules,+1 | Only enabled rules, preserving order
 mem src/lib/features/auto-organize/auto-organize.store.svelte.ts:22 do autoOrganizeStore.setConfig w:src/lib/features/auto-organize/auto-organize.service.ts:118,src/lib/features/auto-organize/auto-organize.service.ts:123,src/lib/features/auto-organize/auto-organize.service.ts:127,src/lib/features/auto-organize/auto-organize.service.ts:134 | Replaces all state from a loaded config
-mem src/lib/features/auto-organize/auto-organize.store.svelte.ts:29 do autoOrganizeStore.addRule w:src/lib/features/auto-organize/AutoOrganizeSection.svelte:58 | Appends a new rule to the end of the list
-mem src/lib/features/auto-organize/auto-organize.store.svelte.ts:34 do autoOrganizeStore.updateRule w:src/lib/features/auto-organize/AutoOrganizeSection.svelte:63 | Merges partial updates into an existing rule by id
-mem src/lib/features/auto-organize/auto-organize.store.svelte.ts:39 do autoOrganizeStore.removeRule w:src/lib/features/auto-organize/AutoOrganizeSection.svelte:68 | Removes a rule by id
-mem src/lib/features/auto-organize/auto-organize.store.svelte.ts:44 do autoOrganizeStore.reorderRules w:src/lib/features/auto-organize/AutoOrganizeSection.svelte:77,src/lib/features/auto-organize/AutoOrganizeSection.svelte:86 | Replaces the entire rules array (for drag reorder)
-mem src/lib/features/auto-organize/auto-organize.store.svelte.ts:49 do autoOrganizeStore.setExcludedFolders w:src/lib/features/auto-organize/AutoOrganizeSection.svelte:94,src/lib/features/auto-organize/AutoOrganizeSection.svelte:100 | Replaces the excluded folders list
+mem src/lib/features/auto-organize/auto-organize.store.svelte.ts:29 do autoOrganizeStore.addRule w:src/lib/features/auto-organize/AutoOrganizeSection.svelte:79 | Appends a new rule to the end of the list
+mem src/lib/features/auto-organize/auto-organize.store.svelte.ts:34 do autoOrganizeStore.updateRule w:src/lib/features/auto-organize/AutoOrganizeSection.svelte:84 | Merges partial updates into an existing rule by id
+mem src/lib/features/auto-organize/auto-organize.store.svelte.ts:39 do autoOrganizeStore.removeRule w:src/lib/features/auto-organize/AutoOrganizeSection.svelte:89 | Removes a rule by id
+mem src/lib/features/auto-organize/auto-organize.store.svelte.ts:44 do autoOrganizeStore.reorderRules w:src/lib/features/auto-organize/AutoOrganizeSection.svelte:98,src/lib/features/auto-organize/AutoOrganizeSection.svelte:107 | Replaces the entire rules array (for drag reorder)
+mem src/lib/features/auto-organize/auto-organize.store.svelte.ts:49 do autoOrganizeStore.setExcludedFolders w:src/lib/features/auto-organize/AutoOrganizeSection.svelte:118,src/lib/features/auto-organize/AutoOrganizeSection.svelte:125 | Replaces the excluded folders list
 mem src/lib/features/auto-organize/auto-organize.store.svelte.ts:54 do autoOrganizeStore.reset w:src/lib/features/auto-organize/auto-organize.service.ts:775 | Resets all state to initial values
