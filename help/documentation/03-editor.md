@@ -179,6 +179,10 @@ You can scale the entire interface up or down. Zoom affects the whole UI, not ju
 
 Zoom steps through 11 fixed levels from 50% to 200% (the default is 100%). Each press moves one level up or down.
 
+Each change shows a small chip with the new level (for example **110%**) in the bottom-right corner, above the status bar, for about a second and a half. Click the chip to reset to 100%.
+
+The zoom level is remembered on this Mac and applied the next time you open the app, on the vault picker too. It is not stored in the vault, so it does not follow the vault to another computer.
+
 See [Keyboard Shortcuts](20-keyboard-shortcuts.md) for the full shortcut list.
 
 ## Right-Click in the Editor

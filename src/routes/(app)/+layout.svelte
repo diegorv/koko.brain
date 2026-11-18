@@ -3,6 +3,7 @@
 	import { toast } from 'svelte-sonner';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { applyStoredTheme } from '#lib/core/settings/theme.service.js';
+	import { restoreZoom } from '#lib/core/zoom/zoom.service.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { searchStore } from '#lib/features/search/search.store.svelte.js';
 	import { performSearch } from '#lib/features/search/search.service.js';
@@ -18,7 +19,7 @@
 	import { outgoingLinksStore } from '#lib/features/outgoing-links/outgoing-links.store.svelte.js';
 	import { updateIndexesForFile } from '#lib/app/lifecycle/index-updater.service.js';
 	import { isVirtualTab } from '#lib/core/editor/editor.logic.js';
-	import { debug, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
+	import { debug, error, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
 	import { appendLog } from '#lib/utils/log.service.js';
 	import AppOverlays from '#lib/app/AppOverlays.svelte';
 	import AppShell from '#lib/app/AppShell.svelte';
@@ -34,6 +35,10 @@
 	// (the start screen) only the last applied theme, mirrored to localStorage,
 	// is known. initializeVault replaces it with the vault's own theme.
 	applyStoredTheme();
+
+	// Zoom is remembered per machine in localStorage, not in a vault, so it
+	// applies on the start screen too.
+	restoreZoom().catch((err) => error('ZOOM', 'restoreZoom failed:', err));
 
 	let { children } = $props();
 

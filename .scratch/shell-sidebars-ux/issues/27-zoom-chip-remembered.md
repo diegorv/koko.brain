@@ -14,16 +14,16 @@ Not in this ticket: zoom palette commands; a per-vault zoom in `settings.json`; 
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, `src/tests/lib/core/zoom/zoom.service.test.ts` (mock only `@tauri-apps/api/webviewWindow`; `localStorage.clear()` per test): after `zoomIn()` the key is `'1.1'`; `restoreZoom()` with `'1.25'` calls `setZoom(1.25)` once and a following `zoomIn()` calls `setZoom(1.5)`; `'abc'`, `'1.3'`, `'NaN'`, `'1'` or no key make no call and the next `zoomIn()` goes to 1.1; `resetZoom()` removes the key; a rejecting `setZoom` propagates and leaves the key and `zoomStore.level`; two `zoomIn()` started without awaiting end at 1.25. The existing cases (`:1-40`, which reset through `resetZoom()` in `beforeEach`) stay green.
-- [ ] Fake timers, real store and service: a change sets `level` and `chipVisible`; it hides after 1500 ms; a second change at 1000 ms keeps it visible until 2500 ms; `restoreZoom()` never sets `chipVisible`. `zoom.store.test.ts` covers each getter.
-- [ ] `ZoomChip.test.ts`: absent before a change; "110%" after one `zoomIn()`; the button name is "Reset zoom to 100%"; clicking calls the mocked `setZoom(1)` and shows "100%".
-- [ ] `src/tests/lib/app/AppOverlays.test.ts`: the chip appears after `zoomIn()` with no vault open.
-- [ ] Not covered by tests, stated in the PR: WKWebView zoom after a real relaunch, the chip at 50% and 200%, and the composer window staying at 100%.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/core/zoom/zoom.service.test.ts` (mock only `@tauri-apps/api/webviewWindow`; `localStorage.clear()` per test): after `zoomIn()` the key is `'1.1'`; `restoreZoom()` with `'1.25'` calls `setZoom(1.25)` once and a following `zoomIn()` calls `setZoom(1.5)`; `'abc'`, `'1.3'`, `'NaN'`, `'1'` or no key make no call and the next `zoomIn()` goes to 1.1; `resetZoom()` removes the key; a rejecting `setZoom` propagates and leaves the key and `zoomStore.level`; two `zoomIn()` started without awaiting end at 1.25. The existing cases (`:1-40`, which reset through `resetZoom()` in `beforeEach`) stay green.
+- [x] Fake timers, real store and service: a change sets `level` and `chipVisible`; it hides after 1500 ms; a second change at 1000 ms keeps it visible until 2500 ms; `restoreZoom()` never sets `chipVisible`. `zoom.store.test.ts` covers each getter.
+- [x] `ZoomChip.test.ts`: absent before a change; "110%" after one `zoomIn()`; the button name is "Reset zoom to 100%"; clicking calls the mocked `setZoom(1)` and shows "100%".
+- [x] `src/tests/lib/app/AppOverlays.test.ts`: the chip appears after `zoomIn()` with no vault open.
+- [x] Not covered by tests, stated in the PR: WKWebView zoom after a real relaunch, the chip at 50% and 200%, and the composer window staying at 100%.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -54,3 +54,4 @@ Checked at `ab143a411`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided by the owner: the 34-ticket consolidation (this ticket keeps its old scope). Defaults (not individually answered): 27.1 zoom is remembered per machine in `localStorage`, so it applies on the vault picker and never syncs with a vault, instead of per vault in `settings.json` (breakdown.md question 35.1).
+- 2026-11-18, delivered from `issue/27-zoom-chip-remembered`: the zoom level is saved in `localStorage` and restored at launch (`restoreZoom()` next to `applyStoredTheme()`), `zoom.store.svelte.ts` tracks the level and the chip's visibility, and `ZoomChip.svelte` (mounted in `AppOverlays.svelte`, so it also shows on the vault picker) shows the percentage for 1.5 s and resets to 100% on click; help doc updated. Not covered by tests: WKWebView zoom after a real relaunch, the chip at 50% and 200%, the composer window staying at 100%; the chip fades in with no fade-out. Tests: `pnpm vitest run` 653 files, 17341 passed, 54 skipped, 1 todo, exit 0. Review round 1: APPROVED (1 minor, 3 nits; all left as is, reasons in `work/27/review.md` Resolution).
