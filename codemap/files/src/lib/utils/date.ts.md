@@ -31,7 +31,7 @@ by src/lib/utils/date.ts:formatNow <- src/lib/core/markdown-editor/extensions/da
 by src/lib/utils/date.ts:formatNow <- src/lib/features/tasks/TaskLists.svelte:55 in savedCounts=$derived call
 by src/lib/utils/date.ts:formatNow <- src/lib/features/tasks/TasksView.svelte:174 in today=$derived call
 by src/lib/utils/date.ts:formatNow <- src/lib/features/tasks/tasks.store.svelte.ts:89 in visibleRows=$derived call +1
-by src/lib/utils/date.ts:formatNow <- src/lib/plugins/kanban/KanbanCard.svelte:119 in dateProximity=$derived call
+by src/lib/utils/date.ts:formatNow <- src/lib/plugins/kanban/KanbanCard.svelte:152 in dateProximity=$derived call
 by src/lib/utils/date.ts:formatNow <- src/lib/plugins/kanban/KanbanListView.svelte:30 in (markup) markup
 by src/lib/utils/date.ts:formatNow <- src/lib/plugins/kanban/KanbanTableView.svelte:37 in (markup) markup
 by src/lib/utils/date.ts:formatNow <- src/lib/utils/template.ts:115 in evaluateDateNow call

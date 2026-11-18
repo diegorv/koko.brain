@@ -33,7 +33,7 @@ fx src/lib/features/collection/CollectionView.svelte:465 timer.requestAnimationF
 fx src/lib/features/collection/toolbar/PropertiesPanel.svelte:69 timer.requestAnimationFrame in handleAddFormula
 fx src/lib/features/note-list/NoteRowMenu.svelte:120 timer.requestAnimationFrame in $effect@109
 fx src/lib/features/rail-shell/FilesNavigator.svelte:195 timer.requestAnimationFrame in focusRenameInput
-fx src/lib/plugins/kanban/KanbanCard.svelte:87 timer.requestAnimationFrame in handleWikilinkSelect
+fx src/lib/plugins/kanban/KanbanCard.svelte:107 timer.requestAnimationFrame in handleWikilinkSelect
 fx src/lib/plugins/kanban/KanbanLane.svelte:134 timer.requestAnimationFrame in handleAddWikilinkSelect
 fx src/lib/plugins/queryjs/queryjs-block-widget.ts:58 timer.requestAnimationFrame in markAutoRunAfterRenderPass
 fx src/lib/utils/log.service.ts:198 timer.requestAnimationFrame in logClickToPaint

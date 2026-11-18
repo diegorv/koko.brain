@@ -34,6 +34,24 @@ describe('KanbanWikilinkSuggestions', () => {
 		expect(suggested('see [[Pro')).toEqual(['Projects']);
 	});
 
+	it('opens below the input by default and above it with placement "above"', () => {
+		fsStore.setFileTree([file('/vault/Projects.md')]);
+		const listClass = (placement?: 'below' | 'above'): string => {
+			const target = document.body.appendChild(document.createElement('div'));
+			const props = { text: '[[Pro', cursorPos: 5, onSelect: () => {}, ...(placement ? { placement } : {}) };
+			const mounted = mount(KanbanWikilinkSuggestions, { target, props });
+			flushSync();
+			const cls = target.querySelector('div')?.className ?? '';
+			unmount(mounted);
+			return cls;
+		};
+
+		expect(listClass()).toContain('mt-1');
+		expect(listClass()).not.toContain('bottom-full');
+		expect(listClass('above')).toContain('bottom-full');
+		expect(listClass('above')).not.toContain('mt-1');
+	});
+
 	it('suggests nothing outside a wikilink or with an empty tree', () => {
 		fsStore.setFileTree([file('/vault/Projects.md')]);
 		expect(suggested('see Pro')).toEqual([]);

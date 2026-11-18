@@ -617,6 +617,7 @@
 			laneWidth={board.settings.laneWidth ?? DEFAULT_LANE_WIDTH}
 			maxItems={getLaneMaxItems(board, lane.title)}
 			atLimit={isLaneAtLimit(board, lane.title)}
+			totalCount={kanbanStore.filterQuery.trim() ? board.lanes[laneIndex].items.length : undefined}
 			autoComplete={isLaneAutoComplete(board, lane.title)}
 			tagColors={board.settings.tagColors ?? {}}
 			disableDrag={!canReorder}

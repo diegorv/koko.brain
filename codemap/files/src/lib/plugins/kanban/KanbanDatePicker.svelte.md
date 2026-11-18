@@ -10,14 +10,15 @@ in2 src/lib/plugins/kanban/KanbanDatePicker.svelte 1 files in 1 modules: src/lib
 out2 src/lib/plugins/kanban/KanbanDatePicker.svelte 2 files in 2 modules: src/lib/plugins/kanban(1) src/lib/utils(1)
 ## symbols
 sym src/lib/plugins/kanban/KanbanDatePicker.svelte:1 component KanbanDatePicker props:date,proximity=,onDateChange L146
-by src/lib/plugins/kanban/KanbanDatePicker.svelte:default <- src/lib/plugins/kanban/KanbanCard.svelte:212 in (markup) mount
+by src/lib/plugins/kanban/KanbanDatePicker.svelte:default <- src/lib/plugins/kanban/KanbanCard.svelte:248 in (markup) mount +1
 ## locals
 local src/lib/plugins/kanban/KanbanDatePicker.svelte:23 fn toCalendarDate(dateStr: string): CalendarDate L4
 local src/lib/plugins/kanban/KanbanDatePicker.svelte:29 fn toDateString(dv: DateValue): string L6
 local src/lib/plugins/kanban/KanbanDatePicker.svelte:38 fn handleSelect(newValue: DateValue | undefined) L6
 local src/lib/plugins/kanban/KanbanDatePicker.svelte:45 fn handleRemove(e: MouseEvent) L5
 ## mounted-at
-mount src/lib/plugins/kanban/KanbanCard.svelte:212 KanbanDatePicker -> src/lib/plugins/kanban/KanbanDatePicker.svelte
+mount src/lib/plugins/kanban/KanbanCard.svelte:248 KanbanDatePicker -> src/lib/plugins/kanban/KanbanDatePicker.svelte
+mount src/lib/plugins/kanban/KanbanCard.svelte:254 KanbanDatePicker -> src/lib/plugins/kanban/KanbanDatePicker.svelte
 ## calls
 call src/lib/plugins/kanban/KanbanDatePicker.svelte:36 in value=$derived -> src/lib/plugins/kanban/KanbanDatePicker.svelte:toCalendarDate call
 call src/lib/plugins/kanban/KanbanDatePicker.svelte:40 in handleSelect -> src/lib/plugins/kanban/KanbanDatePicker.svelte:toDateString call

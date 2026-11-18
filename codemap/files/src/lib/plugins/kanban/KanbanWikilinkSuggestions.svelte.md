@@ -17,13 +17,13 @@ out2 src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte 5 files in 4 module
 test src/tests/lib/plugins/kanban/KanbanWikilinkSuggestions.test.ts imports src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte mirror
 ## symbols
 sym src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:1 component KanbanWikilinkSuggestions props:text,cursorPos,onSelect L91
-by src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:default <- src/lib/plugins/kanban/KanbanCard.svelte:195 in (markup) mount
+by src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:default <- src/lib/plugins/kanban/KanbanCard.svelte:228 in (markup) mount
 by src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:default <- src/lib/plugins/kanban/KanbanLane.svelte:372 in (markup) mount
 sym src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:42 method handleKeydown(e: KeyboardEvent): boolean L27 | Parent calls this on keydown.
 ## locals
 local src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:70 fn selectItem(index: number) L7
 ## mounted-at
-mount src/lib/plugins/kanban/KanbanCard.svelte:195 KanbanWikilinkSuggestions -> src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte
+mount src/lib/plugins/kanban/KanbanCard.svelte:228 KanbanWikilinkSuggestions -> src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte
 mount src/lib/plugins/kanban/KanbanLane.svelte:372 KanbanWikilinkSuggestions -> src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte
 ## calls
 call src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:23 in context=$derived -> src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:detectWikilinkContext call
