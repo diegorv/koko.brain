@@ -67,3 +67,4 @@ Checked at `ab143a411`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided by the owner: granularity of 34 consolidated tickets (this is old ticket 17 unchanged). Defaults (not individually answered): 16.1 (old 17.1) Clear filters rewrites the view's definition with no confirm, inside the panel only, not on the trigger or in the empty state; 16.2 (old 17.2) Columns shows a dot and "some hidden", not a count.
+- 2026-11-18, from ux-quick-wins 47 review 1: 47 landed first and put `aria-label="Calendar settings"` and `title="Calendar settings"` on the outer `PopoverTrigger` of the calendar config in `CollectionView.svelte` (the `openConfig` test helper in `CollectionView.test.ts` finds the trigger by that name). When this ticket rebases over those lines, keep the name "Calendar settings" on whichever element becomes the single trigger, drop the `title` tooltip if it is not wanted, and remove the nested inner `Button`, which has no name.

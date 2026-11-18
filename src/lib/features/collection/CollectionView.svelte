@@ -2,6 +2,7 @@
 	import { toast } from 'svelte-sonner';
 	import { parseCollectionYaml, addView, removeView, renameView, setViewType, type CollectionYamlUpdates, type ViewType } from './yaml-parser';
 	import { executeQuery } from './collection.logic';
+	import { countUndated } from './calendar.logic';
 	import {
 		applyEditorKeyEdit,
 		CollectionEditConflict,
@@ -34,6 +35,8 @@
 	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
 	import Columns3 from '@lucide/svelte/icons/columns-3';
 	import Calendar from '@lucide/svelte/icons/calendar';
+	import CalendarRange from '@lucide/svelte/icons/calendar-range';
+	import Table from '@lucide/svelte/icons/table';
 	import Plus from '@lucide/svelte/icons/plus';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 
@@ -274,6 +277,19 @@
 			rowSet ? (records, view, def) => rowSet.rows(filePath, records, view, def) : undefined,
 		);
 	});
+
+	/**
+	 * Results the active calendar or linear-calendar view cannot place (no
+	 * parseable `dateProperty`); 0 for a table view or without a `dateProperty`.
+	 */
+	let undatedCount = $derived.by(() => {
+		if (!queryResult || !activeView?.dateProperty) return 0;
+		if (activeView.type !== 'calendar' && activeView.type !== 'linear-calendar') return 0;
+		return countUndated(queryResult.records, activeView.dateProperty);
+	});
+
+	/** True when the calendar has results and none of them is dated. */
+	let noDatedEntries = $derived(undatedCount > 0 && undatedCount === queryResult?.records.length);
 
 	/** The Sort panel's empty-state text: for a `.view`, the sort its list falls back to. */
 	let sortEmptyText = $derived.by(() => {
@@ -531,12 +547,14 @@
 												style="min-width: 80px;"
 											/>
 										{:else}
+											{@const TabIcon = v.type === 'calendar' ? Calendar : v.type === 'linear-calendar' ? CalendarRange : Table}
 											<button
-												class="text-xs px-2 py-0.5 rounded-xs shrink-0 cursor-default {i === activeViewIndex ? 'bg-primary/15 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
+												class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-xs shrink-0 cursor-default {i === activeViewIndex ? 'bg-primary/15 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
 												onclick={() => activeViewIndex = i}
 												ondblclick={() => startTabRename(i)}
 												oncontextmenu={() => { tabContextIndex = i; }}
 											>
+												<TabIcon class="size-3" aria-hidden="true" />
 												{v.name}
 											</button>
 										{/if}
@@ -578,20 +596,28 @@
 									disabled={definition.views.length <= 1}
 									onclick={() => handleDeleteView(idx)}
 								>
-									<span>Delete view</span>
+									{#if definition.views.length <= 1}
+										<!-- Inside the item: a disabled item gets no hover, so a tooltip would never show. -->
+										<div class="flex flex-col items-start">
+											<span>Delete view</span>
+											<span class="text-muted-foreground">A collection needs at least one view</span>
+										</div>
+									{:else}
+										<span>Delete view</span>
+									{/if}
 								</ContextMenu.Item>
 							{/if}
 						</ContextMenu.Content>
 					</ContextMenu.Root>
 				{/if}
-				<span class="ml-1 text-xs text-muted-foreground/60">{queryResult.records.length} results</span>
+				<span class="ml-1 text-xs text-muted-foreground/60">{queryResult.records.length} results{undatedCount > 0 ? `, ${undatedCount} without ${activeView.dateProperty}` : ''}</span>
 
 				<!-- Right: toolbar buttons -->
 				<div class="ml-auto flex items-center gap-0.5">
 					<!-- Calendar config (only for calendar views) -->
 					{#if activeView.type === 'calendar' || activeView.type === 'linear-calendar'}
 						<Popover bind:open={calendarConfigOpen}>
-							<PopoverTrigger>
+							<PopoverTrigger aria-label="Calendar settings" title="Calendar settings">
 								<Button
 									variant="ghost"
 									size="icon-sm"
@@ -693,7 +719,9 @@
 					</div>
 				</div>
 			{:else if activeView?.type === 'calendar'}
-				{#if activeView.dateProperty}
+				{#if noDatedEntries}
+					<div class="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">No dated entries</div>
+				{:else if activeView.dateProperty}
 					<CollectionCalendarView
 						result={queryResult}
 						dateProperty={activeView.dateProperty}
@@ -707,7 +735,9 @@
 					</div>
 				{/if}
 			{:else if activeView?.type === 'linear-calendar'}
-				{#if activeView.dateProperty}
+				{#if noDatedEntries}
+					<div class="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">No dated entries</div>
+				{:else if activeView.dateProperty}
 					<CollectionLinearCalendarView
 						result={queryResult}
 						dateProperty={activeView.dateProperty}

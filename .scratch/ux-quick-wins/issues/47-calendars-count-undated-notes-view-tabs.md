@@ -16,17 +16,17 @@ Not in this ticket: a chevron menu on the tab (one click to a Delete view with n
 
 **Blocked by:** 09, 14
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh collection-block.spec.ts only when a selector or E2E surface changes.
 
-- [ ] Failing test first, `src/tests/lib/features/collection/calendar-logic.test.ts`: `countUndated` is 0 for an empty list, counts a record with a missing date and one with an unparseable date, ignores `endDateProperty`, and counts nothing for fully dated records.
-- [ ] `collection-block-widget.test.ts`: a calendar block over 3 records with 1 undated shows `1 without date` in its header on first render and on a cache hit (second `toDOM()` of the same yaml and version); a table block shows no such text; all records undated shows "No dated entries"; in the style of the existing cache test at `:241` (records change in the store with no version bump), the second `toDOM()` still shows the first count, so the number is served from the cache entry with the result and no mock of `calendar.logic.ts` is involved.
-- [ ] `CollectionView.test.ts`: the same counts in the toolbar for a calendar and a linear-calendar view; a table view still reads `N results` (`CollectionView.restored-view.test.ts:115-136` stays green); all undated shows the muted line, not the empty grid.
-- [ ] Table, calendar and linear-calendar tabs render three different icons; with one view the Delete item contains the reason text and is still disabled; with several views it is enabled and has no reason.
-- [ ] The `openConfig` helper (`CollectionView.test.ts:748-760`) finds the trigger by its name "Calendar settings" (given by shell-sidebars-ux 16), not by `svg.lucide-calendar`: a Calendar icon on a calendar tab comes first in DOM order, and the old lookup would click the tab and fail the two calendar-config tests. This changes a test helper on purpose.
-- [ ] Context-menu and double-click rename tests and `CollectionView.view-writes.test.ts` pass unchanged (nothing here writes).
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, `src/tests/lib/features/collection/calendar-logic.test.ts`: `countUndated` is 0 for an empty list, counts a record with a missing date and one with an unparseable date, ignores `endDateProperty`, and counts nothing for fully dated records.
+- [x] `collection-block-widget.test.ts`: a calendar block over 3 records with 1 undated shows `1 without date` in its header on first render and on a cache hit (second `toDOM()` of the same yaml and version); a table block shows no such text; all records undated shows "No dated entries"; in the style of the existing cache test at `:241` (records change in the store with no version bump), the second `toDOM()` still shows the first count, so the number is served from the cache entry with the result and no mock of `calendar.logic.ts` is involved.
+- [x] `CollectionView.test.ts`: the same counts in the toolbar for a calendar and a linear-calendar view; a table view still reads `N results` (`CollectionView.restored-view.test.ts:115-136` stays green); all undated shows the muted line, not the empty grid.
+- [x] Table, calendar and linear-calendar tabs render three different icons; with one view the Delete item contains the reason text and is still disabled; with several views it is enabled and has no reason.
+- [x] The `openConfig` helper (`CollectionView.test.ts:748-760`) finds the trigger by its name "Calendar settings" (given by shell-sidebars-ux 16), not by `svg.lucide-calendar`: a Calendar icon on a calendar tab comes first in DOM order, and the old lookup would click the tab and fail the two calendar-config tests. This changes a test helper on purpose.
+- [x] Context-menu and double-click rename tests and `CollectionView.view-writes.test.ts` pass unchanged (nothing here writes).
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Original proposal
 
@@ -63,3 +63,4 @@ Tickets 09 and 14 land first (see Why blocked). Ticket 15 and 44 edit the filter
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): 47.1 (old 25.1, a deferred decision): the Delete view guard for the tab chevron. Default: the chevron is not built and Delete stays in the context menu until the owner picks a guard.
+- 2026-11-18, deliver (branch issue/47-calendars-count-undated-notes-view-tabs): inline calendar blocks and .view calendars show a count of undated notes (countUndated in calendar.logic.ts, served from the block cache); view tabs show a per-type icon; the Delete view item carries its reason when disabled. Deliver fix: removed text-xs from the Delete reason span (menu-item-anatomy.test.ts). Tests: first full suite failed 1 of 17795 (that text-xs); after the fix pnpm check and targeted vitest exit 0; second full suite at e41deb45c passed 662/662 files, 17738 tests, exit 0. Reviews: round 1 APPROVED (review.md), round 2 APPROVED after the fix round (review-2.md).

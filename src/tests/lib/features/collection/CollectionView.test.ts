@@ -745,14 +745,18 @@ describe('CollectionView — calendar config popover', () => {
 		document.body.innerHTML = '';
 	});
 
-	/** Mounts a one-view file of `type` and opens the calendar config popover from its toolbar trigger. */
+	/**
+	 * Mounts a one-view file of `type` and opens the calendar config popover
+	 * from its toolbar trigger, found by its name: a calendar tab shows a
+	 * Calendar icon too, ahead of the trigger in DOM order.
+	 */
 	function openConfig(type: string): string {
 		component = mount(CollectionViewHarness, {
 			target,
 			props: { initialYaml: `views:\n  - type: ${type}\n    name: Cal\n    dateProperty: due\n` },
 		});
 		flushSync();
-		const trigger = document.querySelector('svg.lucide-calendar')?.closest('button');
+		const trigger = document.querySelector<HTMLElement>('button[aria-label="Calendar settings"]');
 		if (!trigger) throw new Error('calendar config button not found');
 		trigger.click();
 		flushSync();
@@ -779,6 +783,156 @@ describe('CollectionView — calendar config popover', () => {
 		const text = openConfig('linear-calendar');
 		expect(text).toContain('Start date property');
 		expect(text).not.toContain('Week starts on');
+	});
+});
+
+describe('CollectionView — undated notes on calendar views', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	const CALENDAR = 'views:\n  - type: calendar\n    name: Cal\n    dateProperty: due\n';
+	const LINEAR = 'views:\n  - type: linear-calendar\n    name: Year\n    dateProperty: due\n';
+	const TABLE = 'views:\n  - type: table\n    name: All\n';
+
+	beforeEach(() => {
+		clearLocalStorage();
+		collectionStore.reset();
+		collectionStore.setPropertyIndex(
+			new Map([
+				['/vault/a.md', makeRecord('/vault/a.md', { due: '2026-06-10' })],
+				['/vault/b.md', makeRecord('/vault/b.md', { due: '2026-06-11' })],
+				['/vault/c.md', makeRecord('/vault/c.md', { due: 'someday' })],
+			]),
+		);
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	function mountYaml(yaml: string): void {
+		component = mount(CollectionViewHarness, { target, props: { initialYaml: yaml } });
+		flushSync();
+	}
+
+	/** The toolbar count: the span that starts with the result count. */
+	function countText(): string | undefined {
+		return [...target.querySelectorAll('span')].map((s) => s.textContent?.trim()).find((t) => /^\d+ results/.test(t ?? ''));
+	}
+
+	it.each([
+		['calendar', CALENDAR],
+		['linear-calendar', LINEAR],
+	])('names the undated notes in the toolbar count of a %s view', (_type, yaml) => {
+		mountYaml(yaml);
+		expect(countText()).toBe('3 results, 1 without due');
+		expect(target.textContent).not.toContain('No dated entries');
+	});
+
+	it('keeps "N results" on a table view', () => {
+		mountYaml(TABLE);
+		expect(countText()).toBe('3 results');
+	});
+
+	it('keeps "N results" when every note is dated', () => {
+		collectionStore.setPropertyIndex(new Map([['/vault/a.md', makeRecord('/vault/a.md', { due: '2026-06-10' })]]));
+		mountYaml(CALENDAR);
+		expect(countText()).toBe('1 results');
+	});
+
+	it.each([
+		['calendar', CALENDAR],
+		['linear-calendar', LINEAR],
+	])('shows "No dated entries" in place of the %s grid when no note is dated', (_type, yaml) => {
+		collectionStore.setPropertyIndex(
+			new Map([
+				['/vault/a.md', makeRecord('/vault/a.md', {})],
+				['/vault/b.md', makeRecord('/vault/b.md', { due: 'someday' })],
+			]),
+		);
+		mountYaml(yaml);
+		expect(countText()).toBe('2 results, 2 without due');
+		expect(target.textContent).toContain('No dated entries');
+		// Both calendar views start with a month / year navigation row.
+		expect(target.querySelector('svg.lucide-chevrons-left')).toBeNull();
+	});
+
+	it('keeps the calendar grid when there are no notes at all', () => {
+		collectionStore.setPropertyIndex(new Map());
+		mountYaml(CALENDAR);
+		expect(target.textContent).not.toContain('No dated entries');
+		expect(target.querySelector('svg.lucide-chevrons-left')).not.toBeNull();
+	});
+});
+
+describe('CollectionView — view tab icons and the Delete reason', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		collectionStore.reset();
+		collectionStore.setPropertyIndex(new Map());
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	function mountYaml(yaml: string): void {
+		component = mount(CollectionViewHarness, { target, props: { initialYaml: yaml } });
+		flushSync();
+	}
+
+	function tab(name: string): HTMLButtonElement {
+		const found = [...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === name);
+		if (!found) throw new Error(`tab ${name} not found`);
+		return found;
+	}
+
+	/** Opens the tab context menu on `name` and returns its Delete view item. */
+	async function deleteItem(name: string): Promise<HTMLElement> {
+		tab(name).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 1, clientY: 1 }));
+		for (let i = 0; i < 5; i++) await Promise.resolve();
+		flushSync();
+		const menu = [...document.querySelectorAll('[role="menu"]')].find((m) => m.getAttribute('data-state') === 'open')!;
+		const item = [...menu.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((m) => m.textContent?.includes('Delete view'));
+		if (!item) throw new Error('Delete view item not found');
+		return item;
+	}
+
+	it('shows a different icon on table, calendar and linear-calendar tabs, hidden from assistive tech', () => {
+		mountYaml(
+			'views:\n  - type: table\n    name: T\n  - type: calendar\n    name: C\n  - type: linear-calendar\n    name: L\n',
+		);
+
+		const icons = ['T', 'C', 'L'].map((name) => tab(name).querySelector('svg')!);
+		expect(icons[0].classList.contains('lucide-table')).toBe(true);
+		expect(icons[1].classList.contains('lucide-calendar')).toBe(true);
+		expect(icons[2].classList.contains('lucide-calendar-range')).toBe(true);
+		for (const icon of icons) expect(icon.getAttribute('aria-hidden')).toBe('true');
+	});
+
+	it('says why Delete view is disabled when the file has one view', async () => {
+		mountYaml('views:\n  - type: table\n    name: Only\n');
+
+		const item = await deleteItem('Only');
+		expect(item.textContent).toContain('A collection needs at least one view');
+		expect(item.hasAttribute('data-disabled')).toBe(true);
+	});
+
+	it('enables Delete view with no reason when the file has several views', async () => {
+		mountYaml('views:\n  - type: table\n    name: First\n  - type: table\n    name: Second\n');
+
+		const item = await deleteItem('First');
+		expect(item.textContent?.trim()).toBe('Delete view');
+		expect(item.hasAttribute('data-disabled')).toBe(false);
 	});
 });
 

@@ -3,6 +3,7 @@ import {
 	getCalendarGrid,
 	extractDateFromRecord,
 	groupRecordsByDate,
+	countUndated,
 	navigateMonth,
 	formatMonthYear,
 	getWeekDayLabels,
@@ -296,6 +297,37 @@ describe('groupRecordsByDate', () => {
 		const groups = groupRecordsByDate(records, 'start');
 		expect(groups.size).toBe(1);
 		expect(groups.get('2026-03-10')?.length).toBe(1);
+	});
+});
+
+describe('countUndated', () => {
+	it('is 0 for an empty list', () => {
+		expect(countUndated([], 'due')).toBe(0);
+	});
+
+	it('counts a record with a missing date and one with an unparseable date', () => {
+		const records = [
+			makeRecord('/a.md', { due: '2026-03-15' }),
+			makeRecord('/b.md', {}),
+			makeRecord('/c.md', { due: 'someday' }),
+		];
+		expect(countUndated(records, 'due')).toBe(2);
+	});
+
+	it('ignores the end date: a record with only an end date is undated, one with only a start date is not', () => {
+		const records = [
+			makeRecord('/a.md', { end: '2026-03-20' }),
+			makeRecord('/b.md', { due: '2026-03-15', end: 'never' }),
+		];
+		expect(countUndated(records, 'due')).toBe(1);
+	});
+
+	it('counts nothing when every record is dated', () => {
+		const records = [
+			makeRecord('/a.md', { due: '2026-03-15' }),
+			makeRecord('/b.md', { due: new Date(2026, 2, 16) }),
+		];
+		expect(countUndated(records, 'due')).toBe(0);
 	});
 });
 
