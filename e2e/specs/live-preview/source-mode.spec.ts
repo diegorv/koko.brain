@@ -77,3 +77,36 @@ test.describe('Live Preview - Source Mode (Cmd+\\)', () => {
 		await expect(page.locator('.cm-lp-bold').filter({ hasText: 'bold' }).first()).toBeVisible();
 	});
 });
+
+/**
+ * The closing `---` makes the YAML above it a setext H2. In source mode the
+ * `cm-source-frontmatter` rule must win over the heading highlight on the
+ * span, so the block reads at body size and weight.
+ */
+test.describe('Source Mode - frontmatter', () => {
+	test.beforeEach(async ({ lpPage: page }) => {
+		await openMarkdownFile(page, 'source-mode-frontmatter.md', '---\n_type: Meeting\n---\n\nBody text here.\n');
+	});
+
+	test('draws the frontmatter at body size and normal weight', async ({ lpPage: page }) => {
+		await page.keyboard.press('Meta+Backslash');
+		await page.waitForTimeout(150);
+
+		await expect(page.locator('.cm-source-frontmatter')).toHaveCount(3);
+		const styles = await page.evaluate(() => {
+			const lines = Array.from(document.querySelectorAll('.cm-content .cm-line'));
+			const yamlLine = lines.find((l) => l.textContent === '_type: Meeting')!;
+			const yamlSpan = Array.from(yamlLine.querySelectorAll('span')).find((s) =>
+				s.textContent?.includes('Meeting'),
+			)!;
+			const bodyLine = lines.find((l) => l.textContent === 'Body text here.')!;
+			return {
+				span: parseFloat(getComputedStyle(yamlSpan).fontSize),
+				body: parseFloat(getComputedStyle(bodyLine).fontSize),
+				weight: getComputedStyle(yamlSpan).fontWeight,
+			};
+		});
+		expect(styles.span).toBe(styles.body);
+		expect(styles.weight).toBe('400');
+	});
+});

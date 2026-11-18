@@ -15,16 +15,16 @@ Not in this ticket: keys styled apart from values in source mode (polish on top 
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh live-preview/source-mode.spec.ts and bash scripts/e2e.sh source-mode-toggle.spec.ts (the surface is the source-mode editor).
 
-- [ ] Failing test first, `src/tests/lib/core/markdown-editor/setup/editor-extensions.test.ts` (real CodeMirror view via `mountMarkdownView`, as the file does): in source mode `---\n_type: Meeting\n---\n# Title` puts `cm-source-frontmatter` on lines 1 to 3 and not on line 4; live preview puts it on none; the mode compartment swap toggles it. The `legacyClasses` helper (`:459-465`) gains a `frontmatter` count on purpose, so its four `toEqual` assertions (`:470,479,490,493`) gain the key.
-- [ ] No class for a doc that does not start with `---`, for an unclosed fence, or for a body `---` after the block; typing the closing fence adds the class and deleting it removes it.
-- [ ] The new theme has a rule for `.cm-source-frontmatter` and its spans with `font-weight: normal` and `var(--syntax-meta)`, asserted by collecting the rule strings from the exported extension (the approach of `themeRules()` in `live-preview/styles.test.ts`).
-- [ ] The decoration is not rebuilt on a selection-only or scroll-only update (spy on the builder or count decoration objects across a selection change).
-- [ ] `e2e/specs/live-preview/source-mode.spec.ts` and `e2e/specs/source-mode-toggle.spec.ts` pass. Owner eye check: a typed note in source mode, light and dark, including a note with a long frontmatter.
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, `src/tests/lib/core/markdown-editor/setup/editor-extensions.test.ts` (real CodeMirror view via `mountMarkdownView`, as the file does): in source mode `---\n_type: Meeting\n---\n# Title` puts `cm-source-frontmatter` on lines 1 to 3 and not on line 4; live preview puts it on none; the mode compartment swap toggles it. The `legacyClasses` helper (`:459-465`) gains a `frontmatter` count on purpose, so its four `toEqual` assertions (`:470,479,490,493`) gain the key.
+- [x] No class for a doc that does not start with `---`, for an unclosed fence, or for a body `---` after the block; typing the closing fence adds the class and deleting it removes it.
+- [x] The new theme has a rule for `.cm-source-frontmatter` and its spans with `font-weight: normal` and `var(--syntax-meta)`, asserted by collecting the rule strings from the exported extension (the approach of `themeRules()` in `live-preview/styles.test.ts`).
+- [x] The decoration is not rebuilt on a selection-only or scroll-only update (spy on the builder or count decoration objects across a selection change).
+- [x] `e2e/specs/live-preview/source-mode.spec.ts` and `e2e/specs/source-mode-toggle.spec.ts` pass. Owner eye check: a typed note in source mode, light and dark, including a note with a long frontmatter.
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Original proposal
 
@@ -56,3 +56,4 @@ Open-itens 002, 061, 089, 095 and 252 mention `setup/editor-extensions.ts`; this
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping, and for this ticket "tickets at the end, run only when named". Defaults (not individually answered): none in the old ticket. The theme file is named here (the new extension's own `baseTheme`), as the coverage check required.
+- 2026-11-18, delivery (branch issue/46-frontmatter-reads-as-metadata-source-mode): new `source-frontmatter` extension, wired into `sourceModeExtensions()` only, puts `cm-source-frontmatter` on the frontmatter lines (fences included) and a base theme draws them at body size and weight in `--syntax-meta`; rebuilds only on doc changes. Tests: unit tests for the extension, `editor-extensions.test.ts` source/live-preview/swap cases, an E2E case in `source-mode.spec.ts`. Review round 1: APPROVED (one minor finding, the whole-doc line array per doc change, left as in live preview's `frontmatterField` for a follow-up; three nits, no change). Full suite: 662 files, 17715 passed, 56 skipped, exit 0. Owner eye check (light, dark, long frontmatter, wikilinks inside frontmatter now in the meta colour) still outstanding.

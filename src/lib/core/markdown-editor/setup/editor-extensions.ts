@@ -20,6 +20,7 @@ import { wikilinkCompletionSource, wikilinkDecoration } from '../extensions/wiki
 import { dateShortcutCompletionSource } from '../extensions/date-shortcut/completion';
 import { tagCompletionSource } from '../extensions/tag/completion';
 import { calloutDecoration } from '../extensions/callout';
+import { sourceFrontmatter } from '../extensions/source-frontmatter';
 import { compositionAwareBracketMatching } from '../extensions/composition-aware-bracket-matching';
 import { livePreview, livePreviewCompartment, livePreviewExtensions } from '../extensions/live-preview';
 import { markdownHighlight, markdownLanguage, sourceHeadingSize } from '../highlight-styles';
@@ -94,7 +95,9 @@ export interface CreateExtensionsOptions {
  * live preview the inline wikilink handler and `calloutField` own them, so
  * installing these there would style the same text twice. `sourceHeadingSize`
  * is the source-mode heading size owner; in live preview the `cm-lp-hN` line
- * class owns it, and the two together would compound.
+ * class owns it, and the two together would compound. `sourceFrontmatter`
+ * draws the frontmatter as metadata, overriding the setext H2 style the
+ * closing fence gives it; live preview hides that block in `frontmatterField`.
  */
 export function sourceModeExtensions(): Extension[] {
 	return [
@@ -102,6 +105,7 @@ export function sourceModeExtensions(): Extension[] {
 		highlightActiveLineGutter(),
 		wikilinkDecoration(),
 		calloutDecoration(),
+		sourceFrontmatter(),
 		syntaxHighlighting(sourceHeadingSize),
 	];
 }
