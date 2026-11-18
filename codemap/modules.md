@@ -24,7 +24,7 @@ module src/lib/core/status-bar core files 2 in-modules 1 out-modules 1 pub 2/2 i
 module src/lib/core/trash core files 4 in-modules 4 out-modules 3 pub 9/17 ipc 0/0 card ~1.3k
 module src/lib/core/vault core files 7 in-modules 34 out-modules 5 pub 9/17 ipc 1/0 card ~2.2k
 module src/lib/core/zoom core files 3 in-modules 2 out-modules 1 pub 5/7 ipc 0/0 card ~0.7k
-module src/lib/features/auto-organize features files 8 in-modules 1 out-modules 12 pub 4/63 ipc 0/0 card ~1.2k
+module src/lib/features/auto-organize features files 8 in-modules 1 out-modules 12 pub 4/65 ipc 0/0 card ~1.2k
 module src/lib/features/backlinks features files 6 in-modules 2 out-modules 8 pub 6/13 ipc 4/0 card ~1.1k
 module src/lib/features/canvas features files 19 in-modules 2 out-modules 4 pub 2/62 ipc 0/0 card ~1.2k
 module src/lib/features/collection features files 32 in-modules 6 out-modules 9 pub 49/162 ipc 1/0 card ~6.4k

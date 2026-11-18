@@ -22,7 +22,7 @@ sym src/lib/utils/clamp.ts:7 fn clamp(value: number, min: number, max: number): 
 by src/lib/utils/clamp.ts:clamp <- src/lib/core/editor/open-note-at.service.ts:48 in openNoteAt call
 by src/lib/utils/clamp.ts:clamp <- src/lib/core/settings/sections/FileHistorySection.svelte:9 in clampRetentionDays call
 by src/lib/utils/clamp.ts:clamp <- src/lib/core/settings/settings.logic.ts:70 in clampFontSize call +8
-by src/lib/utils/clamp.ts:clamp <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:49 in clampDebounce call
+by src/lib/utils/clamp.ts:clamp <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:52 in clampDebounce call
 by src/lib/utils/clamp.ts:clamp <- src/lib/features/collection/expression/evaluator.ts:456 in evaluateCall call
 by src/lib/utils/clamp.ts:clamp <- src/lib/features/rail-shell/rail-items.logic.ts:178 in parseRailWidth call
 by src/lib/utils/clamp.ts:clamp <- src/lib/plugins/kanban/KanbanLane.svelte:237 in handleResizeMove call
