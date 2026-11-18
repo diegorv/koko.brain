@@ -8,7 +8,7 @@
 
 **Stale in the text below:** Line numbers shifted (SearchResult about 176 is now 175-178; LinkItem about 34 is the same). The action is not hover-only: it shows whenever the note is an event, which the owner does not list as daily use.
 
-**What to build:** The hover calendar action covers the end of the text in `SearchResult.svelte` (about line 176) and `LinkItem.svelte` (about line 34). Reserve a `pr-7` gutter for the action. Also align the LayoutSection chevrons on one column and reserve the switch slot.
+**What to build:** The hover calendar action covers the end of the text in `SearchResult.svelte` (about line 176). Reserve a `pr-7` gutter for the action. Also align the LayoutSection chevrons on one column and reserve the switch slot.
 
 **Blocked by:** none
 
@@ -28,3 +28,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/71-hover-action-gutter.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-17, triage: partly replaced. The `LinkItem.svelte` half moved to `.scratch/shell-sidebars-ux/issues/06-backlinks-outgoing-stay-open-readable-rows.md`. The `SearchResult.svelte` and `LayoutSection` chevron halves stay here.

@@ -6,7 +6,7 @@
 
 **Audit check at `5f8003d67`:** design_or_refactor (polish, low). src/lib/components/ui/button/button.svelte:23-25 has only icon, icon-sm, icon-lg (no icon-xs or icon-chrome); src/lib/utils/text-roles.ts:6 lists only label, meta, row, title (no heading); Rail.svelte:122,144 and NoteActionBar.svelte:148,157,175,188,228 still use native title= for labels. Blocker Issue 37 is done (ledger row 37, 56072aa3d), so it is unblocked. Consistency and tooltip polish, not a defect.
 
-**What to build:** Chrome icon buttons are hand-rolled at several sizes and use `title=` for their labels. Add `icon-xs` (24px, icon 3.5) and `icon-chrome` (28px, icon 4) sizes to the shadcn Button, add the `text-heading` (18/26/600) role to `app.css` and `utils/text-roles.ts`, and move rail, tab band, note action bar and note list header buttons to `Button variant="ghost"` with a shadcn Tooltip that shows the label and shortcut.
+**What to build:** Chrome icon buttons are hand-rolled at several sizes and use `title=` for their labels. Add `icon-xs` (24px, icon 3.5) and `icon-chrome` (28px, icon 4) sizes to the shadcn Button, add the `text-heading` (18/26/600) role to `app.css` and `utils/text-roles.ts`, and move rail, tab band and note action bar buttons to `Button variant="ghost"` with a shadcn Tooltip that shows the label and shortcut.
 
 **Blocked by:** none
 
@@ -30,3 +30,4 @@
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/66-chrome-icon-buttons.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: moved out of the first wave by the owner after the challenge review.
+- 2026-11-17, triage: partly replaced. The note-list header buttons clause moved to `.scratch/shell-sidebars-ux/issues/17-note-list-display-popover.md`. The rail, tab band, note action bar, button sizes and `text-heading` parts stay here.

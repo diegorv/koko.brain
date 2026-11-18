@@ -10,7 +10,7 @@
 
 **Blocked by:** none
 
-**Status:** needs-info
+**Status:** wontfix
 
 **Owner decision needed:** for item 2, drop the "Relationships" heading (the kind labels already name themselves), or keep it and make it weightier (for example a stronger weight plus `mb-2`).
 
@@ -28,3 +28,4 @@
 ## Comments
 
 - 2026-11-06: filed by the main session from Issue 94's review.
+- 2026-11-17, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/shell-sidebars-ux/issues/05-right-sidebar-pinned-headers-hide-menu.md` (items 1 and 3) and `.scratch/shell-sidebars-ux/issues/09-relationships-add-row-keyboard-picker.md` (item 2). Item 2's owner decision is settled by the prototype: the Relationships heading shows only when links exist.
