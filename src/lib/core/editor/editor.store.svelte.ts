@@ -1,6 +1,6 @@
 import type { EditorView } from '@codemirror/view';
 import type { EditorTab } from './editor.types';
-import { reorderTabsAfterPinChange, getPinnedBoundary } from './editor.logic';
+import { reorderTabsAfterPinChange, getPinnedBoundary, moveTab } from './editor.logic';
 
 // --- Reactive state (Svelte 5 runes) ---
 
@@ -148,6 +148,13 @@ export const editorStore = {
 		if (index < 0 || index >= tabs.length) return;
 		const pin = !tabs[index].pinned;
 		const result = reorderTabsAfterPinChange(tabs, index, activeIndex, pin);
+		tabs = result.tabs;
+		activeIndex = result.activeIndex;
+	},
+
+	/** Moves the tab at `from` to the insertion slot `to` (see `moveTab` in editor.logic), keeping the active tab */
+	moveTab(from: number, to: number) {
+		const result = moveTab(tabs, activeIndex, from, to);
 		tabs = result.tabs;
 		activeIndex = result.activeIndex;
 	},

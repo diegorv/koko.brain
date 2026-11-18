@@ -12,9 +12,18 @@
 	import { untrack, type Snippet } from 'svelte';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { switchTab, closeTab, togglePinTab } from '#lib/core/editor/editor.service.js';
-	import { isTabDirty, isTabPinned, isVirtualTab } from '#lib/core/editor/editor.logic.js';
+	import {
+		clampTabInsertion,
+		isMarkdownNoteTab,
+		isTabDirty,
+		isTabPinned,
+		isVirtualTab,
+		tabTooltipText,
+	} from '#lib/core/editor/editor.logic.js';
 	import { hidesRightSidebar } from '#lib/core/layout/layout.logic.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { stem } from '#lib/utils/path.js';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 	import {
 		DropdownMenu,
@@ -91,6 +100,65 @@
 	// With the right sidebar hidden its toggle floats over the strip's right end (AppShell),
 	// so the strip stops short of it. Tabs in hidesRightSidebar show no toggle.
 	const reservesToggle = $derived(!hidesRightSidebar(editorStore.activeTabPath) && !settingsStore.layout.rightSidebarVisible);
+
+	// A private drag type: a text/plain payload would move the note on disk when dropped on
+	// a Files folder, add a canvas node, or insert text in the editor.
+	const TAB_DRAG_TYPE = 'application/x-kokobrain-tab';
+	/** Distance from a strip edge within which a tab drag scrolls the strip. */
+	const AUTO_SCROLL_EDGE = 40;
+	/** Pixels scrolled per dragover event near an edge. */
+	const AUTO_SCROLL_STEP = 14;
+
+	/** Index of the tab being dragged, or null outside a tab drag. */
+	let dragFrom: number | null = null;
+	/** The insertion slot under the pointer and the marker's x inside the strip's content. */
+	let drop = $state<{ slot: number; left: number } | null>(null);
+
+	function isTabDrag(event: DragEvent): boolean {
+		return event.dataTransfer?.types.includes(TAB_DRAG_TYPE) ?? false;
+	}
+
+	function handleDragStart(event: DragEvent, index: number): void {
+		if (!event.dataTransfer) return;
+		event.dataTransfer.setData(TAB_DRAG_TYPE, String(index));
+		event.dataTransfer.effectAllowed = 'move';
+		dragFrom = index;
+	}
+
+	/** Places the marker at the slot left of the first tab whose midpoint is past the pointer. */
+	function handleDragOver(event: DragEvent): void {
+		if (!strip || dragFrom === null || !isTabDrag(event)) return;
+		event.preventDefault();
+		event.dataTransfer!.dropEffect = 'move';
+		const rects = [...strip.querySelectorAll('[role="tab"]')].map((tab) => tab.getBoundingClientRect());
+		if (rects.length === 0) return;
+		const past = rects.findIndex((r) => event.clientX < r.left + r.width / 2);
+		const slot = clampTabInsertion(editorStore.tabs, dragFrom, past < 0 ? rects.length : past);
+		const stripRect = strip.getBoundingClientRect();
+		const edge = slot < rects.length ? rects[slot].left : rects[rects.length - 1].right;
+		drop = { slot, left: edge - stripRect.left + strip.scrollLeft };
+		if (event.clientX < stripRect.left + AUTO_SCROLL_EDGE) strip.scrollLeft -= AUTO_SCROLL_STEP;
+		else if (event.clientX > stripRect.right - AUTO_SCROLL_EDGE) strip.scrollLeft += AUTO_SCROLL_STEP;
+	}
+
+	function handleDrop(event: DragEvent): void {
+		if (!isTabDrag(event)) return;
+		event.preventDefault();
+		if (dragFrom !== null && drop) editorStore.moveTab(dragFrom, drop.slot);
+		endDrag();
+	}
+
+	/** Hides the marker once the pointer leaves the strip, not when it crosses into a tab. */
+	function handleDragLeave(event: DragEvent): void {
+		const related = event.relatedTarget as Node | null;
+		if (related && strip?.contains(related)) return;
+		drop = null;
+	}
+
+	function endDrag(): void {
+		dragFrom = null;
+		drop = null;
+	}
 </script>
 
 {#snippet kindIcon(tab: EditorTab)}
@@ -117,14 +185,19 @@
 	<!-- Both this wrapper and the scroller are drag regions, or the empty strip right of the last tab stops dragging the window. -->
 	<div class="tab-strip relative flex items-end h-10 bg-tab-bar {reservesToggle ? 'pr-10' : ''}" data-tab-strip data-tauri-drag-region>
 		<div class="relative flex-1 min-w-0 h-full">
+			<!-- svelte-ignore a11y_interactive_supports_focus (the tabs are the focus stops; the strip only takes tab drops) -->
 			<div
 				bind:this={strip}
-				class="editor-tabs-bar flex items-end h-full overflow-x-auto pt-1 px-1 gap-0.5"
+				class="editor-tabs-bar relative flex items-end h-full overflow-x-auto pt-1 px-1 gap-0.5"
 				style:scroll-padding-inline="{FADE_WIDTH}px"
 				role="tablist"
 				data-tauri-drag-region
 				onscroll={measure}
 				onwheel={handleWheel}
+				ondragover={handleDragOver}
+				ondrop={handleDrop}
+				ondragleave={handleDragLeave}
+				ondragend={endDrag}
 			>
 				{#each editorStore.tabs as tab, index}
 					{@const pinned = isTabPinned(tab)}
@@ -141,18 +214,22 @@
 									role="tab"
 									tabindex="0"
 									aria-selected={index === editorStore.activeIndex}
+									aria-label={tab.name}
+									title={tabTooltipText(tab, vaultStore.path)}
+									draggable="true"
 									onclick={() => switchTab(index)}
 									onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') switchTab(index); }}
+									ondragstart={(e) => handleDragStart(e, index)}
 								>
 									{#if isTabDirty(tab) && !isVirtualTab(tab)}
-										<span class="size-2 rounded-full bg-foreground shrink-0"></span>
+										<span class="size-2 rounded-full bg-foreground shrink-0" title="Unsaved changes"></span>
 									{/if}
 									{#if pinned}
 										<Pin class="size-3 shrink-0 text-muted-foreground" />
 									{/if}
 									{@render kindIcon(tab)}
 									{#if !pinned}
-										<span class="min-w-0 truncate" style:color={tabTitleColor?.(tab.path) || undefined}>{tab.name}</span>
+										<span class="flex-1 min-w-0 truncate" style:color={tabTitleColor?.(tab.path) || undefined}>{isMarkdownNoteTab(tab) ? stem(tab.path) : tab.name}</span>
 										<button
 											class="ml-1 rounded-xs p-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-muted transition-opacity
 												{index === editorStore.activeIndex ? 'opacity-100' : ''}"
@@ -179,6 +256,13 @@
 						</ContextMenu.Content>
 					</ContextMenu.Root>
 				{/each}
+				{#if drop}
+					<div
+						class="pointer-events-none absolute top-1 bottom-0 z-10 w-[3px] -translate-x-1/2 rounded-xs bg-primary"
+						style:left="{drop.left}px"
+						data-tab-drop-marker
+					></div>
+				{/if}
 			</div>
 			{#if fades.left}
 				<div class="pointer-events-none absolute inset-y-0 left-0 bg-linear-to-r from-tab-bar from-20% to-transparent" style:width="{FADE_WIDTH}px" data-tab-fade="left"></div>

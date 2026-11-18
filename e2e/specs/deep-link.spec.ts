@@ -38,7 +38,7 @@ test.describe('Deep links', () => {
 	test('open shows an existing note in a tab', async ({ vaultPage: page }) => {
 		await openDeepLink(page, 'kokobrain://open?vault=test-vault&file=Inbox.md');
 
-		await expectTabActive(page, 'Inbox.md');
+		await expectTabActive(page, 'Inbox');
 		await expect(page.locator('.cm-content')).toContainText('Quick capture area');
 	});
 
@@ -48,7 +48,7 @@ test.describe('Deep links', () => {
 
 		await openDeepLink(page, `kokobrain://new?vault=test-vault&name=${encodeURIComponent('Projects/Deep Note')}&content=${encodeURIComponent('Written by a deep link')}`);
 
-		await expectTabActive(page, 'Deep Note.md');
+		await expectTabActive(page, 'Deep Note');
 		await expect(page.locator('.cm-content')).toContainText('Written by a deep link');
 		await expect.poll(() => fileContent(page, path)).toContain('Written by a deep link');
 	});
@@ -59,7 +59,7 @@ test.describe('Deep links', () => {
 
 		await openDeepLink(page, `kokobrain://daily?vault=test-vault&content=${encodeURIComponent('Logged by a deep link')}`);
 
-		await expectTabActive(page, '2026-11-10.md');
+		await expectTabActive(page, '2026-11-10');
 		await expect(page.locator('.cm-content')).toContainText('Logged by a deep link');
 		await expect.poll(() => fileContent(page, path)).toContain('Logged by a deep link');
 	});

@@ -17,18 +17,18 @@ Not in this ticket: a styled bits-ui tooltip (needs a `Tooltip.Provider`, `toolt
 
 **Blocked by:** 21
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` for `tabs`, `tab-pinning`, `rail-shell` and every spec touched by the label change.
 
-- [ ] Failing test first, `editor.logic.test.ts`: `moveTab` forward and backward; no-op for the same slot and out-of-range; clamps a pinned tab into the pinned group and an unpinned one out of it; keeps `activeIndex` on the same path when the active tab moves, when another tab moves across it and elsewhere; returns the same objects (`toBe`).
-- [ ] `editor.store.test.ts`: `moveTab(0, 3)` reorders and keeps `activeTab`; invalid indices change nothing.
-- [ ] `EditorTabs.test.ts`: tabs are `draggable="true"`; `dragstart` stores `application/x-kokobrain-tab` and no `text/plain` (stub `dataTransfer` recording `setData`); `dragover` past a midpoint shows exactly one marker; `drop` reorders the real store with pinned tabs first; `dragend` without a drop removes the marker. A `dragover` with only `['text/plain']` is not prevented and shows no marker; its `drop` changes nothing.
-- [ ] `tabTooltipText` cases (file, `TASKS_VIRTUAL_PATH`, dirty, pinned); every tab has `aria-label` equal to its name and a `title` equal to `tabTooltipText`; the dot has `title="Unsaved changes"`; tabs keep `tabindex="0"`; the context-menu tests at `EditorTabs.test.ts:114-158` stay green.
-- [ ] Failing test first, `EditorTabs.test.ts`: `Roadmap.md` renders `Roadmap`, `Map.canvas` renders `Map.canvas`, `notes.txt` renders `notes.txt`, the close button is still "Close Roadmap.md", and `editorStore.tabs[i].name` still ends in `.md`.
-- [ ] Every E2E assertion on rendered tab text is updated; find them with `grep -rnE 'role="tab"[^)]*\.md|editor-tabs-bar[^)]*\.md' e2e` and `grep -rnE "(toContainText|toHaveText)\(['\"][^'\"]*\.md" e2e/specs`, plus the `activeTab(page)` and `[aria-selected="true"]` forms. No fixed count; `bash scripts/e2e.sh` is green for every touched spec.
-- [ ] E2E `tabs.spec.ts`: a real `dragTo` (precedent `rail-shell.spec.ts:901`) of the last tab onto the first unpinned slot reorders and keeps it active; a pinned tab dragged past the unpinned group stays at the end of the pinned group; a tab dragged onto a Files folder moves nothing on disk (the inverse of `rail-shell.spec.ts:897-905`).
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `editor.logic.test.ts`: `moveTab` forward and backward; no-op for the same slot and out-of-range; clamps a pinned tab into the pinned group and an unpinned one out of it; keeps `activeIndex` on the same path when the active tab moves, when another tab moves across it and elsewhere; returns the same objects (`toBe`).
+- [x] `editor.store.test.ts`: `moveTab(0, 3)` reorders and keeps `activeTab`; invalid indices change nothing.
+- [x] `EditorTabs.test.ts`: tabs are `draggable="true"`; `dragstart` stores `application/x-kokobrain-tab` and no `text/plain` (stub `dataTransfer` recording `setData`); `dragover` past a midpoint shows exactly one marker; `drop` reorders the real store with pinned tabs first; `dragend` without a drop removes the marker. A `dragover` with only `['text/plain']` is not prevented and shows no marker; its `drop` changes nothing.
+- [x] `tabTooltipText` cases (file, `TASKS_VIRTUAL_PATH`, dirty, pinned); every tab has `aria-label` equal to its name and a `title` equal to `tabTooltipText`; the dot has `title="Unsaved changes"`; tabs keep `tabindex="0"`; the context-menu tests at `EditorTabs.test.ts:114-158` stay green.
+- [x] Failing test first, `EditorTabs.test.ts`: `Roadmap.md` renders `Roadmap`, `Map.canvas` renders `Map.canvas`, `notes.txt` renders `notes.txt`, the close button is still "Close Roadmap.md", and `editorStore.tabs[i].name` still ends in `.md`.
+- [x] Every E2E assertion on rendered tab text is updated; find them with `grep -rnE 'role="tab"[^)]*\.md|editor-tabs-bar[^)]*\.md' e2e` and `grep -rnE "(toContainText|toHaveText)\(['\"][^'\"]*\.md" e2e/specs`, plus the `activeTab(page)` and `[aria-selected="true"]` forms. No fixed count; `bash scripts/e2e.sh` is green for every touched spec.
+- [x] E2E `tabs.spec.ts`: a real `dragTo` (precedent `rail-shell.spec.ts:901`) of the last tab onto the first unpinned slot reorders and keeps it active; a pinned tab dragged past the unpinned group stays at the end of the pinned group; a tab dragged onto a Files folder moves nothing on disk (the inverse of `rail-shell.spec.ts:897-905`).
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -63,3 +63,4 @@ Checked at `ab143a411`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided by the owner: hide `.md` in markdown tab labels (old 44.1, yes). Defaults (not individually answered): 22.1 (old 29.1) a native multi-line `title` rather than a styled tooltip; 22.2 (old 29.2) no keyboard reorder for now (if wanted later, "Move tab left/right" goes into new 23's menu).
+- 2026-11-18, deliver (branch issue/22-tab-drag-path-tooltip-no-md): tabs drag to reorder within their pinned group (`moveTab`, `application/x-kokobrain-tab` payload), a full-path `title` tooltip, and markdown labels without `.md`. Review round 1 APPROVED (findings fixed: text/plain drag test now isolates the payload gate; label span and WebKit hand check noted), round 2 APPROVED with no findings. Tests: EditorTabs.test.ts 42 passed; `pnpm check` 0 errors; full suite 651 files / 17312 tests passed, exit 0.

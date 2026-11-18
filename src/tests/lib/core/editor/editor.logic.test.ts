@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getFileName, findTabIndex, isTabDirty, isTabPinned, getPinnedBoundary, reorderTabsAfterPinChange, isVirtualTab, isMarkdownNoteTab, TASKS_VIRTUAL_PATH, GRAPH_VIRTUAL_PATH, EVENT_CALENDAR_VIRTUAL_PATH, getPositionAfterFrontmatter, lineStartToOffset } from '#lib/core/editor/editor.logic.js';
+import { getFileName, findTabIndex, isTabDirty, isTabPinned, getPinnedBoundary, reorderTabsAfterPinChange, clampTabInsertion, moveTab, tabTooltipText, isVirtualTab, isMarkdownNoteTab, TASKS_VIRTUAL_PATH, GRAPH_VIRTUAL_PATH, EVENT_CALENDAR_VIRTUAL_PATH, getPositionAfterFrontmatter, lineStartToOffset } from '#lib/core/editor/editor.logic.js';
 import type { EditorTab } from '#lib/core/editor/editor.types.js';
 
 describe('getFileName', () => {
@@ -210,6 +210,168 @@ describe('reorderTabsAfterPinChange', () => {
 
 		expect(result.tabs).toBe(tabs);
 		expect(result.activeIndex).toBe(0);
+	});
+});
+
+describe('clampTabInsertion', () => {
+	function makeTab(name: string, pinned?: boolean): EditorTab {
+		return { path: `/vault/${name}.md`, name: `${name}.md`, content: '', savedContent: '', pinned };
+	}
+	const tabs = [makeTab('p1', true), makeTab('p2', true), makeTab('a'), makeTab('b')];
+
+	it('keeps an unclamped slot as is', () => {
+		expect(clampTabInsertion(tabs, 0, 1)).toBe(1);
+		expect(clampTabInsertion(tabs, 2, 4)).toBe(4);
+	});
+
+	it('keeps a pinned tab at or before the pinned boundary', () => {
+		expect(clampTabInsertion(tabs, 0, 4)).toBe(2);
+	});
+
+	it('keeps an unpinned tab at or after the pinned boundary', () => {
+		expect(clampTabInsertion(tabs, 3, 0)).toBe(2);
+	});
+
+	it('returns the slot unchanged for an unknown source tab', () => {
+		expect(clampTabInsertion(tabs, 9, 0)).toBe(0);
+	});
+});
+
+describe('moveTab', () => {
+	function makeTab(name: string, pinned?: boolean): EditorTab {
+		return { path: `/vault/${name}.md`, name: `${name}.md`, content: '', savedContent: '', pinned };
+	}
+	const names = (tabs: EditorTab[]) => tabs.map((t) => t.name.replace('.md', ''));
+
+	it('moves a tab forward, `to` being an insertion index before the removal', () => {
+		const tabs = [makeTab('a'), makeTab('b'), makeTab('c'), makeTab('d')];
+		const result = moveTab(tabs, 0, 0, 3);
+
+		expect(names(result.tabs)).toEqual(['b', 'c', 'a', 'd']);
+	});
+
+	it('moves a tab to the end', () => {
+		const tabs = [makeTab('a'), makeTab('b'), makeTab('c')];
+		expect(names(moveTab(tabs, 0, 0, 3).tabs)).toEqual(['b', 'c', 'a']);
+	});
+
+	it('moves a tab backward', () => {
+		const tabs = [makeTab('a'), makeTab('b'), makeTab('c'), makeTab('d')];
+		const result = moveTab(tabs, 0, 3, 1);
+
+		expect(names(result.tabs)).toEqual(['a', 'd', 'b', 'c']);
+	});
+
+	it('returns the same tab objects', () => {
+		const tabs = [makeTab('a'), makeTab('b'), makeTab('c')];
+		const result = moveTab(tabs, 0, 2, 0);
+
+		expect(result.tabs[0]).toBe(tabs[2]);
+		expect(result.tabs[1]).toBe(tabs[0]);
+		expect(result.tabs[2]).toBe(tabs[1]);
+		expect(names(tabs)).toEqual(['a', 'b', 'c']);
+	});
+
+	it.each([
+		['the same slot', 1, 1],
+		['the slot right after itself', 1, 2],
+		['a negative source', -1, 0],
+		['a source past the end', 3, 0],
+		['a negative slot', 0, -1],
+		['a slot past the end', 0, 4],
+		['a fractional slot', 0, 1.5],
+	])('is a no-op for %s', (_label, from, to) => {
+		const tabs = [makeTab('a'), makeTab('b'), makeTab('c')];
+		const result = moveTab(tabs, 1, from, to);
+
+		expect(result.tabs).toBe(tabs);
+		expect(result.activeIndex).toBe(1);
+	});
+
+	it('clamps a pinned tab dragged past the unpinned group to the end of the pinned group', () => {
+		const tabs = [makeTab('p1', true), makeTab('p2', true), makeTab('a'), makeTab('b')];
+		const result = moveTab(tabs, 0, 0, 4);
+
+		expect(names(result.tabs)).toEqual(['p2', 'p1', 'a', 'b']);
+		expect(result.tabs.slice(0, 2).every((t) => t.pinned)).toBe(true);
+	});
+
+	it('clamps an unpinned tab dragged into the pinned group to the first unpinned slot', () => {
+		const tabs = [makeTab('p1', true), makeTab('a'), makeTab('b')];
+		const result = moveTab(tabs, 0, 2, 0);
+
+		expect(names(result.tabs)).toEqual(['p1', 'b', 'a']);
+	});
+
+	it('is a no-op when the clamp lands the tab back in its slot', () => {
+		const tabs = [makeTab('p1', true), makeTab('a'), makeTab('b')];
+		const result = moveTab(tabs, 2, 1, 0);
+
+		expect(result.tabs).toBe(tabs);
+		expect(result.activeIndex).toBe(2);
+	});
+
+	it('keeps the active tab active when it is the one moved', () => {
+		const tabs = [makeTab('a'), makeTab('b'), makeTab('c'), makeTab('d')];
+		const result = moveTab(tabs, 3, 3, 0);
+
+		expect(result.tabs[result.activeIndex].path).toBe('/vault/d.md');
+		expect(result.activeIndex).toBe(0);
+	});
+
+	it('shifts the active index when another tab moves across it', () => {
+		const tabs = [makeTab('a'), makeTab('b'), makeTab('c'), makeTab('d')];
+
+		const forward = moveTab(tabs, 1, 0, 3);
+		expect(forward.activeIndex).toBe(0);
+		expect(forward.tabs[forward.activeIndex].path).toBe('/vault/b.md');
+
+		const backward = moveTab(tabs, 1, 3, 0);
+		expect(backward.activeIndex).toBe(2);
+		expect(backward.tabs[backward.activeIndex].path).toBe('/vault/b.md');
+	});
+
+	it('leaves the active index alone when a tab moves elsewhere', () => {
+		const tabs = [makeTab('a'), makeTab('b'), makeTab('c'), makeTab('d')];
+		const result = moveTab(tabs, 0, 3, 2);
+
+		expect(names(result.tabs)).toEqual(['a', 'b', 'd', 'c']);
+		expect(result.activeIndex).toBe(0);
+	});
+});
+
+describe('tabTooltipText', () => {
+	const tab = (overrides: Partial<EditorTab> = {}): EditorTab => ({
+		path: '/vault/Projects/Roadmap.md',
+		name: 'Roadmap.md',
+		content: '',
+		savedContent: '',
+		...overrides,
+	});
+
+	it('shows the name and the vault-relative path of a file tab', () => {
+		expect(tabTooltipText(tab(), '/vault')).toBe('Roadmap.md\nProjects/Roadmap.md');
+	});
+
+	it('shows only the name of a virtual tab, even when pinned or with content', () => {
+		const tasks = tab({ path: TASKS_VIRTUAL_PATH, name: 'Tasks', content: 'x', fileType: 'tasks', pinned: true });
+		expect(tabTooltipText(tasks, '/vault')).toBe('Tasks');
+	});
+
+	it('adds Unsaved changes for a dirty file tab', () => {
+		expect(tabTooltipText(tab({ content: 'edited' }), '/vault')).toBe('Roadmap.md\nProjects/Roadmap.md\nUnsaved changes');
+	});
+
+	it('adds Pinned for a pinned file tab, after Unsaved changes', () => {
+		expect(tabTooltipText(tab({ pinned: true }), '/vault')).toBe('Roadmap.md\nProjects/Roadmap.md\nPinned');
+		expect(tabTooltipText(tab({ pinned: true, content: 'edited' }), '/vault')).toBe(
+			'Roadmap.md\nProjects/Roadmap.md\nUnsaved changes\nPinned',
+		);
+	});
+
+	it('shows the full path when no vault is open or the file is outside it', () => {
+		expect(tabTooltipText(tab(), null)).toBe('Roadmap.md\n/vault/Projects/Roadmap.md');
+		expect(tabTooltipText(tab(), '/other')).toBe('Roadmap.md\n/vault/Projects/Roadmap.md');
 	});
 });
 

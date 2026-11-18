@@ -1,4 +1,4 @@
-import { basename } from '#lib/utils/path.js';
+import { basename, relativePath } from '#lib/utils/path.js';
 
 import type { EditorTab } from './editor.types';
 
@@ -100,6 +100,58 @@ export function reorderTabsAfterPinChange(
 	}
 
 	return { tabs: newTabs, activeIndex: newActiveIndex };
+}
+
+/**
+ * Clamps the insertion slot `to` for the tab at `from` so pinned tabs stay
+ * first: a pinned tab lands at or before the pinned boundary, an unpinned one
+ * at or after it. Returns `to` unchanged when `from` names no tab.
+ */
+export function clampTabInsertion(tabs: Pick<EditorTab, 'pinned'>[], from: number, to: number): number {
+	const tab = tabs[from];
+	if (!tab) return to;
+	const boundary = getPinnedBoundary(tabs);
+	return tab.pinned ? Math.min(to, boundary) : Math.max(to, boundary);
+}
+
+/**
+ * Moves the tab at `from` to the insertion slot `to` (0..length, counted
+ * before the removal), clamped by `clampTabInsertion`. The active index
+ * follows the active tab object, and the result holds the same tab objects,
+ * so per-tab state moves with its tab. Returns the input unchanged for the
+ * same slot or an invalid index.
+ */
+export function moveTab(
+	tabs: EditorTab[],
+	activeIndex: number,
+	from: number,
+	to: number,
+): { tabs: EditorTab[]; activeIndex: number } {
+	if (!Number.isInteger(from) || !Number.isInteger(to)) return { tabs, activeIndex };
+	if (from < 0 || from >= tabs.length || to < 0 || to > tabs.length) return { tabs, activeIndex };
+	const slot = clampTabInsertion(tabs, from, to);
+	const target = slot > from ? slot - 1 : slot;
+	if (target === from) return { tabs, activeIndex };
+
+	const moved = tabs[from];
+	const remaining = tabs.filter((_, i) => i !== from);
+	const newTabs = [...remaining.slice(0, target), moved, ...remaining.slice(target)];
+	const active = tabs[activeIndex];
+	return { tabs: newTabs, activeIndex: active ? newTabs.indexOf(active) : activeIndex };
+}
+
+/**
+ * The hover text of a tab, one item per line: its name, then for a file tab
+ * its vault-relative path, "Unsaved changes" when dirty and "Pinned" when
+ * pinned. A virtual tab shows its name only. With no vault open the path is
+ * shown in full.
+ */
+export function tabTooltipText(tab: EditorTab, vaultPath: string | null): string {
+	if (isVirtualTab(tab)) return tab.name;
+	const lines = [tab.name, vaultPath ? relativePath(vaultPath, tab.path) : tab.path];
+	if (isTabDirty(tab)) lines.push('Unsaved changes');
+	if (isTabPinned(tab)) lines.push('Pinned');
+	return lines.join('\n');
 }
 
 /**

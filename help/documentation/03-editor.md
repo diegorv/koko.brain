@@ -8,6 +8,14 @@ Every file you open appears as a tab at the top of the editor area. The active t
 
 Tabs also show different icons based on file type — markdown, canvas, kanban, tasks, graph, and others each have their own icon for quick identification.
 
+A note's tab shows its name without the `.md` extension (`Roadmap.md` reads **Roadmap**). Other files keep their extension, such as `Board.canvas` or `notes.txt`.
+
+Hover a tab to see its full name and its path in the vault, plus "Unsaved changes" or "Pinned" when they apply.
+
+### Reordering Tabs
+
+Drag a tab along the tab bar to move it. A line marks where it will land, and the tab bar scrolls when you drag near either end. Pinned tabs always stay first: a pinned tab moves only among the pinned tabs, and an unpinned tab only among the unpinned ones.
+
 ### Dirty Indicator
 
 When you have unsaved changes, a filled dot appears next to the tab name. Press **Cmd+S** to save the current file and the dot disappears.

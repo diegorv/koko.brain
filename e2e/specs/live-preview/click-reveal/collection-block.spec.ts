@@ -103,8 +103,8 @@ test.describe('Live Preview - click reveal: collection block', () => {
 		await clickAtOffset(page, row, { from: 'center' });
 
 		await expect(activeTab(page)).toContainText(OTHER_NOTE);
-		await page.locator('.editor-tabs-bar [role="tab"]', { hasText: 'test.md' }).click();
-		await expect(activeTab(page)).toContainText('test.md');
+		await page.locator('.editor-tabs-bar').getByRole('tab', { name: 'test.md', exact: true }).click();
+		await expect(activeTab(page)).toHaveText('test');
 		await expect(block(page)).toHaveCount(1);
 		expect(await isRevealed(page, RAW_FENCE)).toBe(false);
 		expect(await activeLineText(page)).toBe(END_LINE);
@@ -152,8 +152,8 @@ test.describe('Live Preview - click reveal: collection block', () => {
 			await clickAtOffset(page, event, { from: 'center' });
 
 			await expect(activeTab(page)).toContainText('Event-Note');
-			await page.locator('.editor-tabs-bar [role="tab"]', { hasText: 'test.md' }).click();
-			await expect(activeTab(page)).toContainText('test.md');
+			await page.locator('.editor-tabs-bar').getByRole('tab', { name: 'test.md', exact: true }).click();
+			await expect(activeTab(page)).toHaveText('test');
 			await expect(block(page)).toHaveCount(1);
 			expect(await isRevealed(page, RAW_FENCE)).toBe(false);
 			expect(await activeLineText(page)).toBe(END_LINE);

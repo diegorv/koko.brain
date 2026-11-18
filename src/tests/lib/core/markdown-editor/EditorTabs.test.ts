@@ -12,8 +12,10 @@ import {
 	GRAPH_VIRTUAL_PATH,
 	TAGS_VIRTUAL_PATH,
 	TASKS_VIRTUAL_PATH,
+	tabTooltipText,
 } from '#lib/core/editor/editor.logic.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import type { EditorTab } from '#lib/core/editor/editor.types.js';
 import EditorTabs from '#lib/core/markdown-editor/EditorTabs.svelte';
 
@@ -533,5 +535,266 @@ describe('EditorTabs right sidebar toggle reserve', () => {
 		expect(strip.getAttribute('role')).toBe('tablist');
 		expect(wrapper().contains(strip)).toBe(true);
 		expect(wrapper().querySelector('[aria-label="List all tabs"]')).not.toBeNull();
+	});
+});
+
+describe('EditorTabs labels, names and hover text', () => {
+	let component: Record<string, unknown> | null = null;
+	let target: HTMLElement;
+
+	beforeEach(() => {
+		editorStore.reset();
+		vaultStore.open('/vault');
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.replaceChildren();
+		editorStore.reset();
+		vaultStore.close();
+	});
+
+	const tabs = () => [...target.querySelectorAll<HTMLElement>('[role="tab"]')];
+
+	function mountTabs(list: EditorTab[]): void {
+		for (const tab of list) editorStore.addTab(tab);
+		component = mount(EditorTabs, { target });
+		flushSync();
+	}
+
+	it('drops .md from a markdown note label and keeps other extensions', () => {
+		mountTabs([
+			{ path: '/vault/Projects/Roadmap.md', name: 'Roadmap.md', content: '', savedContent: '' },
+			{ path: '/vault/Map.canvas', name: 'Map.canvas', content: '', savedContent: '', fileType: 'canvas' },
+			{ path: '/vault/notes.txt', name: 'notes.txt', content: '', savedContent: '' },
+		]);
+
+		expect(tabs().map((tab) => tab.textContent?.trim())).toEqual(['Roadmap', 'Map.canvas', 'notes.txt']);
+		expect(tabs()[0].querySelector('button')?.getAttribute('aria-label')).toBe('Close Roadmap.md');
+		expect(editorStore.tabs[0].name).toBe('Roadmap.md');
+	});
+
+	it('names every tab, pinned included, and gives it the tooltip text as its title', () => {
+		mountTabs([
+			{ path: '/vault/Daily.md', name: 'Daily.md', content: '', savedContent: '', pinned: true },
+			{ path: '/vault/Projects/Roadmap.md', name: 'Roadmap.md', content: 'edited', savedContent: '' },
+			{ path: TASKS_VIRTUAL_PATH, name: 'Tasks', content: 'x', savedContent: '', fileType: 'tasks' },
+		]);
+
+		expect(tabs().map((tab) => tab.getAttribute('aria-label'))).toEqual(['Daily.md', 'Roadmap.md', 'Tasks']);
+		expect(tabs().map((tab) => tab.getAttribute('title'))).toEqual(
+			editorStore.tabs.map((tab) => tabTooltipText(tab, '/vault')),
+		);
+		expect(tabs()[0].getAttribute('title')).toBe('Daily.md\nDaily.md\nPinned');
+		expect(tabs()[1].getAttribute('title')).toBe('Roadmap.md\nProjects/Roadmap.md\nUnsaved changes');
+		expect(tabs()[2].getAttribute('title')).toBe('Tasks');
+		expect(tabs().map((tab) => tab.getAttribute('tabindex'))).toEqual(['0', '0', '0']);
+	});
+
+	it('titles the dirty dot Unsaved changes', () => {
+		mountTabs([{ path: '/vault/Roadmap.md', name: 'Roadmap.md', content: 'edited', savedContent: '' }]);
+
+		const dots = tabs()[0].querySelectorAll('[title="Unsaved changes"]');
+		expect(dots).toHaveLength(1);
+		expect(dots[0].classList).toContain('rounded-full');
+	});
+});
+
+describe('EditorTabs drag to reorder', () => {
+	let component: Record<string, unknown> | null = null;
+	let target: HTMLElement;
+
+	// jsdom has no layout: every tab is TAB_WIDTH wide, laid out from the strip's left edge
+	// and moved by its scrollLeft.
+	const TAB_WIDTH = 100;
+	const STRIP_WIDTH = 300;
+	let stripScrollLeft = 0;
+	const realRect = Element.prototype.getBoundingClientRect;
+	const rect = (left: number, right: number) =>
+		({ x: left, y: 0, left, right, top: 0, bottom: 32, width: right - left, height: 32, toJSON: () => ({}) }) as DOMRect;
+	const isStrip = (el: Element) => el.classList.contains('editor-tabs-bar');
+
+	beforeEach(() => {
+		editorStore.reset();
+		stripScrollLeft = 0;
+		target = document.body.appendChild(document.createElement('div'));
+		vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+			if (isStrip(this)) return rect(0, STRIP_WIDTH);
+			const strip = this.closest('.editor-tabs-bar');
+			if (strip && this.getAttribute('role') === 'tab') {
+				const left = [...strip.querySelectorAll('[role="tab"]')].indexOf(this) * TAB_WIDTH - stripScrollLeft;
+				return rect(left, left + TAB_WIDTH);
+			}
+			return realRect.call(this);
+		});
+		vi.spyOn(Element.prototype, 'scrollLeft', 'get').mockImplementation(function (this: Element) {
+			return isStrip(this) ? stripScrollLeft : 0;
+		});
+		vi.spyOn(Element.prototype, 'scrollLeft', 'set').mockImplementation(function (this: Element, value: number) {
+			if (isStrip(this)) stripScrollLeft = value;
+		});
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.replaceChildren();
+		editorStore.reset();
+		vi.restoreAllMocks();
+	});
+
+	const strip = () => target.querySelector<HTMLElement>('.editor-tabs-bar')!;
+	const tabs = () => [...target.querySelectorAll<HTMLElement>('[role="tab"]')];
+	const markers = () => target.querySelectorAll<HTMLElement>('[data-tab-drop-marker]');
+	const paths = () => editorStore.tabs.map((tab) => tab.path.replace('/vault/', '').replace('.md', ''));
+
+	/** A fake DataTransfer: jsdom has no DragEvent, so the drag events carry this one. */
+	function fakeDataTransfer(types?: string[]) {
+		const data = new Map<string, string>();
+		const setData = vi.fn((type: string, value: string) => void data.set(type, value));
+		return {
+			setData,
+			getData: (type: string) => data.get(type) ?? '',
+			get types() {
+				return types ?? [...data.keys()];
+			},
+			effectAllowed: 'uninitialized',
+			dropEffect: 'none',
+		};
+	}
+	type FakeDataTransfer = ReturnType<typeof fakeDataTransfer>;
+
+	function fire(el: Element, type: string, dataTransfer: FakeDataTransfer, clientX = 0): Event {
+		const event = new Event(type, { bubbles: true, cancelable: true });
+		Object.defineProperty(event, 'dataTransfer', { value: dataTransfer });
+		Object.defineProperty(event, 'clientX', { value: clientX });
+		el.dispatchEvent(event);
+		flushSync();
+		return event;
+	}
+
+	function mountWith(names: string[], pinned = 0): void {
+		for (const name of names) addNote(name);
+		for (let i = 0; i < pinned; i++) editorStore.togglePin(i);
+		component = mount(EditorTabs, { target });
+		flushSync();
+	}
+
+	/** Starts dragging the tab at `index` and returns its data transfer. */
+	function startDrag(index: number): FakeDataTransfer {
+		const dataTransfer = fakeDataTransfer();
+		fire(tabs()[index], 'dragstart', dataTransfer);
+		return dataTransfer;
+	}
+
+	it('makes every tab draggable', () => {
+		mountWith(['A', 'B'], 1);
+
+		expect(tabs().map((tab) => tab.getAttribute('draggable'))).toEqual(['true', 'true']);
+	});
+
+	it('puts only the private tab type in the drag payload, never text/plain', () => {
+		mountWith(['A', 'B', 'C']);
+
+		const dataTransfer = startDrag(2);
+
+		expect(dataTransfer.setData.mock.calls).toEqual([['application/x-kokobrain-tab', '2']]);
+		expect(dataTransfer.types).not.toContain('text/plain');
+		expect(dataTransfer.effectAllowed).toBe('move');
+	});
+
+	it('shows one marker at the slot past the hovered tab midpoint', () => {
+		mountWith(['A', 'B', 'C']);
+		const dataTransfer = startDrag(0);
+
+		const event = fire(tabs()[1], 'dragover', dataTransfer, 160);
+		fire(tabs()[1], 'dragover', dataTransfer, 170);
+
+		expect(event.defaultPrevented).toBe(true);
+		expect(markers()).toHaveLength(1);
+		// Past B's midpoint (150), so the slot is after B, at C's left edge.
+		expect(markers()[0].style.left).toBe('200px');
+	});
+
+	it('reorders the real store on drop and keeps the active tab', () => {
+		mountWith(['P', 'A', 'B', 'C'], 1);
+		editorStore.setActiveIndex(3);
+		flushSync();
+		const dataTransfer = startDrag(3);
+
+		fire(tabs()[1], 'dragover', dataTransfer, 110);
+		const drop = fire(tabs()[1], 'drop', dataTransfer, 110);
+
+		expect(drop.defaultPrevented).toBe(true);
+		expect(paths()).toEqual(['P', 'C', 'A', 'B']);
+		expect(editorStore.activeTabPath).toBe('/vault/C.md');
+		expect(tabs()[1].getAttribute('aria-selected')).toBe('true');
+		expect(markers()).toHaveLength(0);
+	});
+
+	it('keeps an unpinned tab out of the pinned group', () => {
+		mountWith(['P', 'A', 'B'], 1);
+		const dataTransfer = startDrag(2);
+
+		fire(tabs()[0], 'dragover', dataTransfer, 10);
+		expect(markers()[0].style.left).toBe('100px');
+		fire(tabs()[0], 'drop', dataTransfer, 10);
+
+		expect(paths()).toEqual(['P', 'B', 'A']);
+	});
+
+	it('keeps a pinned tab dragged past the unpinned group at the end of the pinned group', () => {
+		mountWith(['P1', 'P2', 'A'], 2);
+		const dataTransfer = startDrag(0);
+
+		fire(tabs()[2], 'dragover', dataTransfer, 290);
+		fire(tabs()[2], 'drop', dataTransfer, 290);
+
+		expect(paths()).toEqual(['P2', 'P1', 'A']);
+		expect(editorStore.tabs.slice(0, 2).every((tab) => tab.pinned)).toBe(true);
+	});
+
+	it('removes the marker and keeps the order when the drag ends without a drop', () => {
+		mountWith(['A', 'B', 'C']);
+		const dataTransfer = startDrag(0);
+		fire(tabs()[2], 'dragover', dataTransfer, 260);
+		expect(markers()).toHaveLength(1);
+
+		fire(tabs()[0], 'dragend', dataTransfer);
+
+		expect(markers()).toHaveLength(0);
+		expect(paths()).toEqual(['A', 'B', 'C']);
+	});
+
+	it('ignores a text/plain drag over the strip: no marker, not prevented, a drop changes nothing', () => {
+		mountWith(['A', 'B', 'C']);
+		// A tab drag is in progress, so the payload type is the only gate left.
+		startDrag(0);
+		const dataTransfer = fakeDataTransfer(['text/plain']);
+
+		const over = fire(tabs()[1], 'dragover', dataTransfer, 160);
+		const drop = fire(tabs()[1], 'drop', dataTransfer, 160);
+
+		expect(over.defaultPrevented).toBe(false);
+		expect(drop.defaultPrevented).toBe(false);
+		expect(markers()).toHaveLength(0);
+		expect(paths()).toEqual(['A', 'B', 'C']);
+	});
+
+	it('scrolls the strip while the drag is within 40 px of an edge', () => {
+		mountWith(['A', 'B', 'C', 'D', 'E']);
+		const dataTransfer = startDrag(0);
+
+		fire(strip(), 'dragover', dataTransfer, STRIP_WIDTH - 10);
+		expect(strip().scrollLeft).toBeGreaterThan(0);
+		const scrolled = strip().scrollLeft;
+
+		fire(strip(), 'dragover', dataTransfer, 150);
+		expect(strip().scrollLeft).toBe(scrolled);
+
+		fire(strip(), 'dragover', dataTransfer, 10);
+		expect(strip().scrollLeft).toBeLessThan(scrolled);
 	});
 });

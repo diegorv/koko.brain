@@ -28,7 +28,7 @@ async function seedEvents(page: Page): Promise<void> {
 /** Seeds the events and opens the Calendar tab once the auto-opened daily note has landed. */
 async function openCalendar(page: Page): Promise<void> {
 	await seedEvents(page);
-	await expect(page.locator('[role="tab"]', { hasText: '2026-11-10.md' })).toBeVisible({ timeout: 10_000 });
+	await expect(page.locator('[role="tab"]', { hasText: '2026-11-10' })).toBeVisible({ timeout: 10_000 });
 	await openCommandPalette(page);
 	await page.locator('input[placeholder*="command"]:visible').first().fill('Toggle Calendar View');
 	await page.getByRole('option', { name: /Toggle Calendar View/ }).click();
