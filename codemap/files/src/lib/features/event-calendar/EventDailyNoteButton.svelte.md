@@ -6,19 +6,19 @@ imp src/lib/features/event-calendar/EventDailyNoteButton.svelte:4 -> src/lib/fea
 imp src/lib/features/event-calendar/EventDailyNoteButton.svelte:5 -> src/lib/features/event-calendar/event-calendar-daily-note.store.svelte.ts eventCalendarDailyNoteStore
 ## imported-by
 imp src/lib/features/event-calendar/EventDayHeaders.svelte:4 -> src/lib/features/event-calendar/EventDailyNoteButton.svelte default
-imp src/lib/features/event-calendar/EventMonthGrid.svelte:11 -> src/lib/features/event-calendar/EventDailyNoteButton.svelte default
+imp src/lib/features/event-calendar/EventMonthGrid.svelte:12 -> src/lib/features/event-calendar/EventDailyNoteButton.svelte default
 ## reach
 in2 src/lib/features/event-calendar/EventDailyNoteButton.svelte 2 files in 1 modules: src/lib/features/event-calendar(2)
 out2 src/lib/features/event-calendar/EventDailyNoteButton.svelte 0 files in 0 modules: -
 ## symbols
 sym src/lib/features/event-calendar/EventDailyNoteButton.svelte:1 component EventDailyNoteButton props:day,class= L38
 by src/lib/features/event-calendar/EventDailyNoteButton.svelte:default <- src/lib/features/event-calendar/EventDayHeaders.svelte:47 in (markup) mount
-by src/lib/features/event-calendar/EventDailyNoteButton.svelte:default <- src/lib/features/event-calendar/EventMonthGrid.svelte:120 in (markup) mount
+by src/lib/features/event-calendar/EventDailyNoteButton.svelte:default <- src/lib/features/event-calendar/EventMonthGrid.svelte:121 in (markup) mount
 ## locals
 local src/lib/features/event-calendar/EventDailyNoteButton.svelte:17 fn handleClick() L7
 ## mounted-at
 mount src/lib/features/event-calendar/EventDayHeaders.svelte:47 EventDailyNoteButton -> src/lib/features/event-calendar/EventDailyNoteButton.svelte
-mount src/lib/features/event-calendar/EventMonthGrid.svelte:120 EventDailyNoteButton -> src/lib/features/event-calendar/EventDailyNoteButton.svelte
+mount src/lib/features/event-calendar/EventMonthGrid.svelte:121 EventDailyNoteButton -> src/lib/features/event-calendar/EventDailyNoteButton.svelte
 ## calls
 call src/lib/features/event-calendar/EventDailyNoteButton.svelte:18 in handleClick -> src/lib/features/event-calendar/event-calendar-daily-note.store.svelte.ts:eventCalendarDailyNoteStore.open mcall
 call src/lib/features/event-calendar/EventDailyNoteButton.svelte:31 in (markup) -> src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatLong markup

@@ -3,11 +3,11 @@ cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t
 sections: imported-by, reach, tests, symbols, locals, calls
 file src/lib/features/event-calendar/event-calendar-dates.logic.ts logic L346 module src/lib/features/event-calendar in13 t9 | Native, dependency-free date helpers for the event calendar.
 ## imported-by
-imp src/lib/features/event-calendar/EventBlock.svelte:2 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts formatTime,formatTimeRange,type:TimeFormat
+imp src/lib/features/event-calendar/EventBlock.svelte:3 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts formatTime,formatTimeRange,type:TimeFormat
 imp src/lib/features/event-calendar/EventDailyNoteButton.svelte:4 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts formatLong
 imp src/lib/features/event-calendar/EventDayHeaders.svelte:2 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts dayOfWeek,formatLong,formatWeekday,fromKey,WEEKDAYS_SHORT
 imp src/lib/features/event-calendar/EventForm.svelte:6 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts timeInputValue
-imp src/lib/features/event-calendar/EventMonthGrid.svelte:3 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts dayOfWeek,formatLong,formatWeekday,fromKey,WEEKDAYS_SHORT
+imp src/lib/features/event-calendar/EventMonthGrid.svelte:4 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts dayOfWeek,formatLong,formatWeekday,fromKey,WEEKDAYS_SHORT
 imp src/lib/features/event-calendar/EventTimeGrid.svelte:4 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts formatLong,formatTime,formatTimeRange
 imp src/lib/features/event-calendar/EventWeekStrip.svelte:3 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts dayOfWeek,formatLong,formatWeekday,fromKey,weekDays,WEEKDAYS_SHORT
 imp src/lib/features/event-calendar/event-calendar-event.logic.ts:18 -> src/lib/features/event-calendar/event-calendar-dates.logic.ts addDays,formatTime,isValidDayKey,parseTimeStrict
@@ -31,7 +31,7 @@ test src/tests/lib/features/event-calendar/event-calendar-gestures.characterizat
 test src/tests/lib/features/event-calendar/event-calendar-view.logic.test.ts imports src/lib/features/event-calendar/event-calendar-dates.logic.ts
 ## symbols
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:12 type TimeFormat L1 | Time display format, matching `EventCalendarSettings.timeFormat`.
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:TimeFormat <- src/lib/features/event-calendar/EventBlock.svelte:2 in (script) import
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:TimeFormat <- src/lib/features/event-calendar/EventBlock.svelte:3 in (script) import
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:TimeFormat <- src/lib/features/event-calendar/event-calendar-view.logic.ts:34 in (module) import
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:15 type WeekStart L1 | First day of the week: 0 = Sunday, 1 = Monday.
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:WeekStart <- src/lib/features/event-calendar/event-calendar-view.logic.ts:35 in (module) import
@@ -41,28 +41,28 @@ sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:34 const MONTH
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:37 const WEEKDAYS: readonly string[] L1 | Full English weekday names, Sunday first (index = `dayOfWeek`).
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:40 const WEEKDAYS_SHORT: readonly string[] L1 | Upper-case grid column headings (`SUN`..`SAT`), Sunday first.
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:WEEKDAYS_SHORT <- src/lib/features/event-calendar/EventDayHeaders.svelte:35 in (markup) markup
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:WEEKDAYS_SHORT <- src/lib/features/event-calendar/EventMonthGrid.svelte:16 in headers=$derived ref
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:WEEKDAYS_SHORT <- src/lib/features/event-calendar/EventMonthGrid.svelte:17 in headers=$derived ref
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:WEEKDAYS_SHORT <- src/lib/features/event-calendar/EventWeekStrip.svelte:47 in (markup) markup
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:57 fn toKey(date: Date): string L3 | Converts a `Date` to its local day key.
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:toKey <- src/lib/features/event-calendar/event-calendar-view.logic.ts:395 in nowOffsetMinutes call
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:toKey <- src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:27 in focusedDate call +3
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:66 fn fromKey(key: string): Date L4 | Converts a day key to local midnight of that day.
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:fromKey <- src/lib/features/event-calendar/EventDayHeaders.svelte:44 in (markup) markup
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:fromKey <- src/lib/features/event-calendar/EventMonthGrid.svelte:118 in (markup) markup
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:fromKey <- src/lib/features/event-calendar/EventMonthGrid.svelte:119 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:fromKey <- src/lib/features/event-calendar/EventWeekStrip.svelte:56 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:fromKey <- src/lib/features/event-calendar/event-calendar-view.logic.ts:165 in rangeLabel call
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:77 fn isValidDayKey(value: unknown): value is string L3 | Checks that a value is a well-formed key of a real calendar day.
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:isValidDayKey <- src/lib/features/event-calendar/event-calendar-event.logic.ts:167 in entryToEvent call +1
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:isValidDayKey <- src/lib/features/event-calendar/event-calendar-event.logic.ts:173 in entryToEvent call +1
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:isValidDayKey <- src/lib/features/event-calendar/event-calendar-form.logic.ts:164 in validateDraft call
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:isValidDayKey <- src/lib/features/event-calendar/event-calendar-tasks.logic.ts:54 in tasksFromGroups call
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:87 fn addDays(key: string, n: number): string L5 | Adds whole days to a key.
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:addDays <- src/lib/features/event-calendar/event-calendar-event.logic.ts:196 in entryToEvent call
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:addDays <- src/lib/features/event-calendar/event-calendar-event.logic.ts:202 in entryToEvent call
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:addDays <- src/lib/features/event-calendar/event-calendar-view.logic.ts:134 in visibleDays call +4
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:100 fn addMonths(key: string, n: number): string L9 | Adds whole months to a key, clamping the day to the target month's last day (`2026-01-31` + 1 month is `2026-02-28`).
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:addMonths <- src/lib/features/event-calendar/event-calendar-view.logic.ts:149 in stepDate call
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:115 fn dayOfWeek(key: string): number L3 | Weekday of a key.
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:dayOfWeek <- src/lib/features/event-calendar/EventDayHeaders.svelte:35 in (markup) markup
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:dayOfWeek <- src/lib/features/event-calendar/EventMonthGrid.svelte:16 in headers=$derived call
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:dayOfWeek <- src/lib/features/event-calendar/EventMonthGrid.svelte:17 in headers=$derived call
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:dayOfWeek <- src/lib/features/event-calendar/EventWeekStrip.svelte:47 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:dayOfWeek <- src/lib/features/event-calendar/event-calendar-view.logic.ts:173 in rangeLabel call
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:125 fn startOfWeek(key: string, weekStartsOn: WeekStart): string L4 | First day of the week that contains `key`.
@@ -87,7 +87,7 @@ by src/lib/features/event-calendar/event-calendar-dates.logic.ts:monthName <- sr
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:235 fn formatLong(key: string): string L4 | Long date label without the weekday (callers prepend `formatWeekday`).
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatLong <- src/lib/features/event-calendar/EventDailyNoteButton.svelte:31 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatLong <- src/lib/features/event-calendar/EventDayHeaders.svelte:31 in (markup) markup
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatLong <- src/lib/features/event-calendar/EventMonthGrid.svelte:113 in (markup) markup
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatLong <- src/lib/features/event-calendar/EventMonthGrid.svelte:114 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatLong <- src/lib/features/event-calendar/EventTimeGrid.svelte:298 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatLong <- src/lib/features/event-calendar/EventWeekStrip.svelte:42 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatLong <- src/lib/features/event-calendar/event-calendar-view.logic.ts:332 in eventWhenLabel call
@@ -95,27 +95,27 @@ sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:245 fn formatS
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatShort <- src/lib/features/event-calendar/event-calendar-view.logic.ts:171 in rangeLabel call +2
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:255 fn formatWeekday(key: string): string L3 | Full weekday name.
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatWeekday <- src/lib/features/event-calendar/EventDayHeaders.svelte:31 in (markup) markup
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatWeekday <- src/lib/features/event-calendar/EventMonthGrid.svelte:113 in (markup) markup
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatWeekday <- src/lib/features/event-calendar/EventMonthGrid.svelte:114 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatWeekday <- src/lib/features/event-calendar/EventWeekStrip.svelte:42 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatWeekday <- src/lib/features/event-calendar/event-calendar-view.logic.ts:171 in rangeLabel call +1
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:268 fn formatRange(from: string, to: string): string L8 | Label for a span of days, without the year (the header title carries it).
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatRange <- src/lib/features/event-calendar/event-calendar-view.logic.ts:168 in rangeLabel call +1
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:285 fn formatTime(minutes: number, format: TimeFormat = '24h'): string L9 | Formats minutes from midnight as a clock time.
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/EventBlock.svelte:93 in (markup) markup
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/EventBlock.svelte:98 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/EventTimeGrid.svelte:94 in hourLabel call
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/event-calendar-event.logic.ts:281 in formatEventTime call
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/event-calendar-event.logic.ts:287 in formatEventTime call
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/event-calendar-view.logic.ts:295 in itemsForDay call +2
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:302 fn formatTimeRange(start: number, end: number, format: TimeFormat = '24h'): string L3 | Formats a start and end time.
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTimeRange <- src/lib/features/event-calendar/EventBlock.svelte:38 in time=$derived call
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTimeRange <- src/lib/features/event-calendar/EventBlock.svelte:39 in time=$derived call
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTimeRange <- src/lib/features/event-calendar/EventTimeGrid.svelte:317 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTimeRange <- src/lib/features/event-calendar/event-calendar-view.logic.ts:340 in eventWhenLabel call +1
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:311 fn formatDuration(minutes: number): string L6 | Formats a length of time.
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatDuration <- src/lib/features/event-calendar/event-calendar-view.logic.ts:339 in eventWhenLabel call +1
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:326 fn parseTimeStrict(value: string): number | null L9 | Parses a clock time strictly.
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:parseTimeStrict <- src/lib/features/event-calendar/event-calendar-event.logic.ts:114 in parseEventTime call
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:parseTimeStrict <- src/lib/features/event-calendar/event-calendar-event.logic.ts:120 in parseEventTime call
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:parseTimeStrict <- src/lib/features/event-calendar/event-calendar-form.logic.ts:124 in applyStartChange call +1
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:342 fn timeInputValue(minutes: number): string L5 | Value for an `<input type="time">`, which cannot show `24:00`.
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:timeInputValue <- src/lib/features/event-calendar/EventForm.svelte:121 in (markup) markup +1
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:timeInputValue <- src/lib/features/event-calendar/EventForm.svelte:139 in (markup) markup +1
 ## locals
 local src/lib/features/event-calendar/event-calendar-dates.logic.ts:48 fn pad2(n: number): string L3
 ## calls

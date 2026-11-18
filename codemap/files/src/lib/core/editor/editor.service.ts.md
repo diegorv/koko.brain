@@ -42,7 +42,7 @@ imp src/lib/features/deep-link/deep-link.service.ts:8 -> src/lib/core/editor/edi
 imp src/lib/features/event-calendar/EventCalendarNeedsAttention.svelte:2 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/event-calendar/EventCalendarSection.svelte:15 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/event-calendar/EventDialog.svelte:8 -> src/lib/core/editor/editor.service.ts openFileInEditor
-imp src/lib/features/event-calendar/EventPopover.svelte:7 -> src/lib/core/editor/editor.service.ts openFileInEditor
+imp src/lib/features/event-calendar/EventPopover.svelte:8 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/event-calendar/event-calendar.service.ts:18 -> src/lib/core/editor/editor.service.ts openFileInEditor,saveFileByPath
 imp src/lib/features/file-history/file-history.service.ts:9 -> src/lib/core/editor/editor.service.ts saveCurrentFile
 imp src/lib/features/note-action-bar/NoteActionBar.svelte:26 -> src/lib/core/editor/editor.service.ts toggleSourceMode

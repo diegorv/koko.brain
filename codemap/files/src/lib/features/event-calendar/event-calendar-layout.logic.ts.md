@@ -4,7 +4,7 @@ file src/lib/features/event-calendar/event-calendar-layout.logic.ts logic L77 mo
 ## imports
 imp src/lib/features/event-calendar/event-calendar-layout.logic.ts:8 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventNote,type:PositionedEvent
 ## imported-by
-imp src/lib/features/event-calendar/EventBlock.svelte:4 -> src/lib/features/event-calendar/event-calendar-layout.logic.ts minutesToPx
+imp src/lib/features/event-calendar/EventBlock.svelte:5 -> src/lib/features/event-calendar/event-calendar-layout.logic.ts minutesToPx
 imp src/lib/features/event-calendar/EventTimeGrid.svelte:18 -> src/lib/features/event-calendar/event-calendar-layout.logic.ts HOUR_HEIGHT,layoutDay,MIN_COLUMN_PX,minutesToPx
 imp src/lib/features/event-calendar/event-calendar-drag.logic.ts:13 -> src/lib/features/event-calendar/event-calendar-layout.logic.ts clampMinutes,floorToSnap,MIN_EVENT_MINUTES,pxToMinutes,snap
 imp src/lib/features/event-calendar/event-calendar-form.logic.ts:14 -> src/lib/features/event-calendar/event-calendar-layout.logic.ts MIN_EVENT_MINUTES
@@ -27,7 +27,7 @@ by src/lib/features/event-calendar/event-calendar-layout.logic.ts:MIN_EVENT_MINU
 sym src/lib/features/event-calendar/event-calendar-layout.logic.ts:20 const MIN_COLUMN_PX L1 | Narrowest day column, in px; below it the week scrolls sideways.
 by src/lib/features/event-calendar/event-calendar-layout.logic.ts:MIN_COLUMN_PX <- src/lib/features/event-calendar/EventTimeGrid.svelte:249 in (markup) markup
 sym src/lib/features/event-calendar/event-calendar-layout.logic.ts:23 fn minutesToPx(m: number): number L1 | Converts minutes to a vertical offset in px on the time grid.
-by src/lib/features/event-calendar/event-calendar-layout.logic.ts:minutesToPx <- src/lib/features/event-calendar/EventBlock.svelte:37 in height=$derived call +1
+by src/lib/features/event-calendar/event-calendar-layout.logic.ts:minutesToPx <- src/lib/features/event-calendar/EventBlock.svelte:38 in height=$derived call +1
 by src/lib/features/event-calendar/event-calendar-layout.logic.ts:minutesToPx <- src/lib/features/event-calendar/EventTimeGrid.svelte:313 in (markup) markup +2
 sym src/lib/features/event-calendar/event-calendar-layout.logic.ts:26 fn pxToMinutes(px: number): number L1 | Converts a vertical offset in px on the time grid to minutes.
 by src/lib/features/event-calendar/event-calendar-layout.logic.ts:pxToMinutes <- src/lib/features/event-calendar/event-calendar-drag.logic.ts:90 in slotFromPoint call

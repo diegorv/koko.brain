@@ -8,8 +8,8 @@ imp src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:3 -> src/l
 imp src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:4 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
 imp src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:5 -> src/lib/features/event-calendar/event-calendar.types.ts type:DayDragState,type:EventNote
 ## imported-by
-imp src/lib/features/event-calendar/EventAllDayLane.svelte:2 -> src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts DayDrag
-imp src/lib/features/event-calendar/EventMonthGrid.svelte:4 -> src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts DayDrag
+imp src/lib/features/event-calendar/EventAllDayLane.svelte:3 -> src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts DayDrag
+imp src/lib/features/event-calendar/EventMonthGrid.svelte:5 -> src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts DayDrag
 ## reach
 in2 src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts 2 files in 1 modules: src/lib/features/event-calendar(2)
 out2 src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts 28 files in 11 modules: src/lib/features/event-calendar(8) src/lib/core/editor(3) src/lib/core/filesystem(3) src/lib/core/trash(3) src/lib/core/frontmatter(2) +6 modules
@@ -19,8 +19,8 @@ test src/tests/lib/features/event-calendar/event-calendar-gestures.characterizat
 ## symbols
 sym src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:8 interface DayDragOptions L10 | What a day-cell surface (the month grid, the all-day lane) tells its drag.
 sym src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:27 class DayDrag L117 | Pointer drag of an event chip to another day cell.
-by src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:DayDrag <- src/lib/features/event-calendar/EventAllDayLane.svelte:27 in drag new
-by src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:DayDrag <- src/lib/features/event-calendar/EventMonthGrid.svelte:22 in drag new
+by src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:DayDrag <- src/lib/features/event-calendar/EventAllDayLane.svelte:28 in drag new
+by src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:DayDrag <- src/lib/features/event-calendar/EventMonthGrid.svelte:23 in drag new
 ## calls
 call src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:36 in DayDrag.constructor -> src/lib/features/event-calendar/event-calendar-gesture-guard.ts:GestureGuard new
 call src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:59 in DayDrag.pointerdown -> src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:DayDrag.#cellAt call
