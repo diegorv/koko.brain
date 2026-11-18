@@ -63,7 +63,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 26 | [The empty editor becomes a launch point and drops the empty right sidebar](issues/26-empty-editor-launch-point.md) | none | todo | | |
 | 27 | [Zoom shows a chip and is remembered on this machine](issues/27-zoom-chip-remembered.md) | none | done | issue/27-zoom-chip-remembered (b89a14386) | 2026-11-18 |
 | 28 | [Switch vaults from inside a vault: palette commands, Cmd+Shift+O and a File menu](issues/28-switch-vaults-menu.md) | none | todo | | |
-| 29 | [The day navigator stops being called Calendar, and Tasks, Graph and Tags get rail entries that open their tab](issues/29-days-rename-rail-entries.md) | none | in-progress | | |
+| 29 | [The day navigator stops being called Calendar, and Tasks, Graph and Tags get rail entries that open their tab](issues/29-days-rename-rail-entries.md) | none | done | issue/29-days-rename-rail-entries (e5e08038f) | 2026-11-18 |
 | 30 | [Direct keys for rail items](issues/30-rail-direct-keys.md) | 29 | todo | | |
 | 31 | [Note-list rows open in the active tab and record a per-tab history](issues/31-open-in-active-tab-history.md) | none | todo | | |
 | 32 | [Back and Forward: keys, palette, action bar, mouse buttons](issues/32-back-forward.md) | 31 | todo | | |
@@ -94,3 +94,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 05:15 — 27 — start — launched by /relay-lite:run — bab56ec9c
 - 2026-11-18 05:25 — 27 — deliver — review APPROVED with 1 minor and 3 nits, all answered without code change; full suite 17341 passed; relaunch persistence not checked in the real app; squashed and pushed — b89a14386
 - 2026-11-18 05:25 — 29 — start — launched by /relay-lite:run — f112fd79f
+- 2026-11-18 05:51 — 29 — deliver — review 1 APPROVED with findings (help pages name the rail entries, Days wording in comments and an E2E title), fixed; round 2 APPROVED; full suite 17369 passed; E2E not run; squashed and pushed — e5e08038f
