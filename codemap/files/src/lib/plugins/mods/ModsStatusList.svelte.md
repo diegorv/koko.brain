@@ -19,7 +19,7 @@ out2 src/lib/plugins/mods/ModsStatusList.svelte 30 files in 12 modules: src/lib/
 test src/tests/lib/plugins/mods/ModsStatusList.test.ts imports src/lib/plugins/mods/ModsStatusList.svelte mirror
 ## symbols
 sym src/lib/plugins/mods/ModsStatusList.svelte:1 component ModsStatusList L168
-by src/lib/plugins/mods/ModsStatusList.svelte:default <- src/lib/app/LabsSection.svelte:50 in (markup) mount
+by src/lib/plugins/mods/ModsStatusList.svelte:default <- src/lib/app/LabsSection.svelte:60 in (markup) mount
 ## locals
 local src/lib/plugins/mods/ModsStatusList.svelte:25 fn setModEnabled(entry: ModStatusEntry, enabled: boolean) L17
 local src/lib/plugins/mods/ModsStatusList.svelte:69 fn settingValue(field: ModSettingField, values: Record<string, unknown>): boolean | string L5
@@ -29,7 +29,7 @@ mount src/lib/plugins/mods/ModsStatusList.svelte:104 Switch -> src/lib/component
 mount src/lib/plugins/mods/ModsStatusList.svelte:147 Switch -> src/lib/components/ui/switch/switch.svelte
 mount src/lib/plugins/mods/ModsStatusList.svelte:152 Input -> src/lib/components/ui/input/input.svelte
 ## mounted-at
-mount src/lib/app/LabsSection.svelte:50 ModsStatusList -> src/lib/plugins/mods/ModsStatusList.svelte
+mount src/lib/app/LabsSection.svelte:60 ModsStatusList -> src/lib/plugins/mods/ModsStatusList.svelte
 ## calls
 call src/lib/plugins/mods/ModsStatusList.svelte:27 in setModEnabled -> src/lib/plugins/mods/mods-enabled.store.svelte.ts:modsEnabledStore.setModEnabled mcall
 call src/lib/plugins/mods/ModsStatusList.svelte:29 in setModEnabled -> src/lib/utils/debug.ts:error call +1

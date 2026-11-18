@@ -5,7 +5,7 @@ file src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.t
 imp src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:10 -> src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts type:BlockDecoratorName
 imp src/lib/core/markdown-editor/extensions/live-preview/inline/inline-extensions.ts:20 -> src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts type:InlineHandlerName
 imp src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:24 -> src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts BLOCK_DECORATOR_NAMES,INLINE_PLUGIN_NAMES,type:BlockDecoratorName,type:DecoratorName,type:InlinePluginName
-imp src/lib/core/settings/sections/TroubleshootingSection.svelte:9 -> src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts DECORATOR_LABELS,DECORATOR_NAMES
+imp src/lib/core/settings/sections/TroubleshootingSection.svelte:11 -> src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts DECORATOR_LABELS,DECORATOR_NAMES
 ## reach
 in2 src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts 13 files in 2 modules: src/lib/core/markdown-editor(12) src/lib/app(1)
 out2 src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts 0 files in 0 modules: -
@@ -19,7 +19,7 @@ sym src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts
 by src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:INLINE_PLUGIN_NAMES <- src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:96 in livePreviewExtensions ref
 sym src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:49 const INLINE_HANDLER_NAMES L8 | Names owned by the inline pipeline's handler registry (`inline/inline-extensions.ts` -> `TOGGLEABLE_HANDLERS`).
 sym src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:63 const DECORATOR_NAMES L5 | Every kill-switch name, in Troubleshooting display order.
-by src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:DECORATOR_NAMES <- src/lib/core/settings/sections/TroubleshootingSection.svelte:111 in (markup) markup
+by src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:DECORATOR_NAMES <- src/lib/core/settings/sections/TroubleshootingSection.svelte:135 in (markup) markup
 sym src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:70 type BlockDecoratorName L1 | A block decorator's kill-switch name (`BlockDecoratorSpec.settingsKey`).
 by src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:BlockDecoratorName <- src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:10 in (module) import
 by src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:BlockDecoratorName <- src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:27 in (module) import
@@ -30,4 +30,4 @@ by src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:
 sym src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:79 type DecoratorName L1 | Any live-preview decorator kill-switch name.
 by src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:DecoratorName <- src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:28 in (module) import
 sym src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:85 const DECORATOR_LABELS: Record<DecoratorName, string> L24 | What each kill-switch is called in Troubleshooting.
-by src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:DECORATOR_LABELS <- src/lib/core/settings/sections/TroubleshootingSection.svelte:113 in (markup) markup +1
+by src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:DECORATOR_LABELS <- src/lib/core/settings/sections/TroubleshootingSection.svelte:137 in (markup) markup +1

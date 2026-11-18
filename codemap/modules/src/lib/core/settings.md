@@ -79,7 +79,7 @@ file src/lib/core/settings/sections/FileHistorySection.svelte component L63 modu
 file src/lib/core/settings/sections/FilesSection.svelte component L46 module src/lib/core/settings in1 t2
 file src/lib/core/settings/sections/HeadingTypographyEditor.svelte component L118 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/OneOnOneSection.svelte component L105 module src/lib/core/settings in1 t1
-file src/lib/core/settings/sections/PeriodicNotesSection.svelte component L132 module src/lib/core/settings in1 t1
+file src/lib/core/settings/sections/PeriodicNotesSection.svelte component L135 module src/lib/core/settings in1 t2
 file src/lib/core/settings/sections/QuickCaptureSection.svelte component L79 module src/lib/core/settings in1 t2
 file src/lib/core/settings/sections/SentrySection.svelte component L95 module src/lib/core/settings in1 t0
 file src/lib/core/settings/sections/SettingItem.svelte component L41 module src/lib/core/settings in18 t1
@@ -87,7 +87,7 @@ file src/lib/core/settings/sections/ThemeColorRow.svelte component L73 module sr
 file src/lib/core/settings/sections/ThemeEditor.svelte component L202 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/ThemePreview.svelte component L53 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/TrashSection.svelte component L138 module src/lib/core/settings in1 t1
-file src/lib/core/settings/sections/TroubleshootingSection.svelte component L158 module src/lib/core/settings in1 t1
+file src/lib/core/settings/sections/TroubleshootingSection.svelte component L180 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/TypesSection.svelte component L58 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/UpdateSection.svelte component L376 module src/lib/core/settings in1 t4
 file src/lib/core/settings/sentry.logic.ts logic L28 module src/lib/core/settings in1 t1
@@ -96,7 +96,7 @@ file src/lib/core/settings/settings-panel.store.svelte.ts store L24 module src/l
 file src/lib/core/settings/settings-persistence.svelte.ts other L122 module src/lib/core/settings in2 t9
 file src/lib/core/settings/settings.logic.ts logic L303 module src/lib/core/settings in11 t2
 file src/lib/core/settings/settings.service.ts service L297 module src/lib/core/settings in3 t6
-file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in85 t133
+file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in85 t134
 file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in25 t0
 file src/lib/core/settings/theme-builder.logic.ts logic L318 module src/lib/core/settings in3 t10
 file src/lib/core/settings/theme-catalog.service.ts service L45 module src/lib/core/settings in1 t1
@@ -119,12 +119,12 @@ sym src/lib/core/settings/sections/EditorSection.svelte:1 component EditorSectio
 sym src/lib/core/settings/sections/FileHistorySection.svelte:1 component FileHistorySection L63
 sym src/lib/core/settings/sections/FilesSection.svelte:1 component FilesSection L46
 sym src/lib/core/settings/sections/OneOnOneSection.svelte:1 component OneOnOneSection L105
-sym src/lib/core/settings/sections/PeriodicNotesSection.svelte:1 component PeriodicNotesSection L132
+sym src/lib/core/settings/sections/PeriodicNotesSection.svelte:1 component PeriodicNotesSection L135
 sym src/lib/core/settings/sections/QuickCaptureSection.svelte:1 component QuickCaptureSection L79
 sym src/lib/core/settings/sections/SentrySection.svelte:1 component SentrySection L95
 sym src/lib/core/settings/sections/SettingItem.svelte:1 component SettingItem props:label,description,layout=,children L41
 sym src/lib/core/settings/sections/TrashSection.svelte:1 component TrashSection L138
-sym src/lib/core/settings/sections/TroubleshootingSection.svelte:1 component TroubleshootingSection L158
+sym src/lib/core/settings/sections/TroubleshootingSection.svelte:1 component TroubleshootingSection L180
 sym src/lib/core/settings/sections/TypesSection.svelte:1 component TypesSection L58
 sym src/lib/core/settings/sections/UpdateSection.svelte:1 component UpdateSection L376
 sym src/lib/core/settings/sentry.service.ts:94 fn configureSentry(settings: SentrySettings): Promise<SentryConfigurationResult> L6 | Enables or disables error monitoring for one vault.

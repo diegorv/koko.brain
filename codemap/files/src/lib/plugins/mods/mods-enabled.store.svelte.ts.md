@@ -27,13 +27,13 @@ test src/tests/lib/plugins/mods/mods-host-trace.service.test.ts imports src/lib/
 test src/tests/lib/plugins/mods/mods-host.service.test.ts imports src/lib/plugins/mods/mods-enabled.store.svelte.ts
 ## symbols
 sym src/lib/plugins/mods/mods-enabled.store.svelte.ts:46 store modsEnabledStore L43 | Reactive store for the per-vault "Vault mods" flag
-by src/lib/plugins/mods/mods-enabled.store.svelte.ts:modsEnabledStore <- src/lib/app/LabsSection.svelte:19 in setModsEnabled mcall +2
+by src/lib/plugins/mods/mods-enabled.store.svelte.ts:modsEnabledStore <- src/lib/app/LabsSection.svelte:22 in setModsEnabled mcall +3
 by src/lib/plugins/mods/mods-enabled.store.svelte.ts:modsEnabledStore <- src/lib/plugins/mods/ModsStatusList.svelte:27 in setModEnabled mcall +1
 by src/lib/plugins/mods/mods-enabled.store.svelte.ts:modsEnabledStore <- src/lib/plugins/mods/mods-host.service.ts:933 in reloadFolder member +4
 ## store
 store src/lib/plugins/mods/mods-enabled.store.svelte.ts:46 modsEnabledStore esc:0
-mem src/lib/plugins/mods/mods-enabled.store.svelte.ts:48 get modsEnabledStore.enabled r:src/lib/app/LabsSection.svelte:45,src/lib/app/LabsSection.svelte:49,src/lib/plugins/mods/mods-host.service.ts:1014,src/lib/plugins/mods/mods-host.service.ts:1074,src/lib/plugins/mods/mods-host.service.ts:1105 w-via:setEnabled,_reset | Whether mods are on for the open vault (false when no vault is open)
-mem src/lib/plugins/mods/mods-enabled.store.svelte.ts:57 do modsEnabledStore.setEnabled w:src/lib/app/LabsSection.svelte:19 | Turns mods on or off for the open vault and persists it.
+mem src/lib/plugins/mods/mods-enabled.store.svelte.ts:48 get modsEnabledStore.enabled r:src/lib/app/LabsSection.svelte:55,src/lib/app/LabsSection.svelte:59,src/lib/plugins/mods/mods-host.service.ts:1014,src/lib/plugins/mods/mods-host.service.ts:1074,src/lib/plugins/mods/mods-host.service.ts:1105 w-via:setEnabled,_reset | Whether mods are on for the open vault (false when no vault is open)
+mem src/lib/plugins/mods/mods-enabled.store.svelte.ts:57 do modsEnabledStore.setEnabled w:src/lib/app/LabsSection.svelte:22,src/lib/app/LabsSection.svelte:35 | Turns mods on or off for the open vault and persists it.
 mem src/lib/plugins/mods/mods-enabled.store.svelte.ts:66 get modsEnabledStore.disabledMods r:src/lib/plugins/mods/ModsStatusList.svelte:107,src/lib/plugins/mods/mods-host.service.ts:933,src/lib/plugins/mods/mods-host.service.ts:1089 w-via:setModEnabled,_reset | Mod folders switched off in the open vault (empty when no vault is open); every other mod is on
 mem src/lib/plugins/mods/mods-enabled.store.svelte.ts:75 do modsEnabledStore.setModEnabled w:src/lib/plugins/mods/ModsStatusList.svelte:27 | Switches one mod on or off for the open vault and persists it.
 mem src/lib/plugins/mods/mods-enabled.store.svelte.ts:84 do modsEnabledStore._reset w:-
