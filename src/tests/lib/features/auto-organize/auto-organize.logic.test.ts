@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
 	findMatchingRule,
 	isInExcludedFolder,
+	isDuplicateExcluded,
+	isExcludedFolderMissing,
 	isAlreadyInDestination,
 	validateExpression,
 	generateRuleId,
@@ -273,6 +275,52 @@ describe('isInExcludedFolder', () => {
 		expect(
 			isInExcludedFolder('/Users/me/vault/note.md', vaultPath, ['_templates']),
 		).toBe(false);
+	});
+});
+
+describe('isDuplicateExcluded', () => {
+	it('matches an entry of another case and with surrounding spaces', () => {
+		expect(isDuplicateExcluded(['Archive'], 'Archive')).toBe(true);
+		expect(isDuplicateExcluded(['Archive'], 'archive')).toBe(true);
+		expect(isDuplicateExcluded(['Archive'], '  ARCHIVE ')).toBe(true);
+	});
+
+	it('does not match another folder or a nested one', () => {
+		expect(isDuplicateExcluded(['Archive'], 'Archived')).toBe(false);
+		expect(isDuplicateExcluded(['Archive'], 'Archive/Old')).toBe(false);
+	});
+
+	it('is false for an empty list or a blank folder', () => {
+		expect(isDuplicateExcluded([], 'Archive')).toBe(false);
+		expect(isDuplicateExcluded(['Archive'], '   ')).toBe(false);
+	});
+});
+
+describe('isExcludedFolderMissing', () => {
+	const vaultFolders = ['Archive', 'Projects', 'Projects/Old'];
+
+	it('is false for a folder in the tree, compared case-insensitively', () => {
+		expect(isExcludedFolderMissing('Archive', vaultFolders)).toBe(false);
+		expect(isExcludedFolderMissing('archive', vaultFolders)).toBe(false);
+		expect(isExcludedFolderMissing('projects/old', vaultFolders)).toBe(false);
+	});
+
+	it('is true for a folder not in the tree', () => {
+		expect(isExcludedFolderMissing('Old Notes', vaultFolders)).toBe(true);
+		expect(isExcludedFolderMissing('Old', vaultFolders)).toBe(true);
+	});
+
+	it('is false for a dot-prefixed folder, which the tree does not list', () => {
+		expect(isExcludedFolderMissing('.kokobrain', vaultFolders)).toBe(false);
+	});
+
+	it('is false for a nested dot-prefixed folder, which the tree does not list either', () => {
+		expect(isExcludedFolderMissing('Notes/.drafts', vaultFolders)).toBe(false);
+		expect(isExcludedFolderMissing('Notes/.drafts/old', vaultFolders)).toBe(false);
+	});
+
+	it('is false for every folder when the tree is empty', () => {
+		expect(isExcludedFolderMissing('Old Notes', [])).toBe(false);
 	});
 });
 

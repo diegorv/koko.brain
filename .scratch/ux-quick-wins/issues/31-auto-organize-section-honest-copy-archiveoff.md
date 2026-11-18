@@ -16,17 +16,17 @@ Not in this ticket: the read-only "From your types" rule list, the loader guard 
 
 **Blocked by:** 21
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh auto-organize-flows.spec.ts (the section markup changes).
 
-- [ ] Failing test first, `src/tests/lib/features/auto-organize/AutoOrganizeSection.test.ts`: the text contains "The first matching rule wins for rename, move to folder and run mod action", "apply from every matching rule", "archive rules run last" and "Rules never run on notes inside these folders", and no longer "determines the destination folder" or "never be automatically moved".
-- [ ] With Auto Organize off and `typeDefinitionsStore.setTypeMetadataMap` holding two types with `archiveTo` and one without, the hint reads "2 of your types set an archive folder"; on, or no `archiveTo`, shows no hint; the section renders no new button.
-- [ ] With `writeTextFile` (`@tauri-apps/plugin-fs`) rejecting, "Add rule" toasts "Could not save auto-organize rules" once and `autoOrganizeStore.rules` still holds the new rule. Mock `svelte-sonner` and the Tauri boundary, never the service.
-- [ ] Adding "Archive", then "Archive" and "archive", leaves `['Archive']` and shows "Already excluded"; with `/vault/Archive` in the tree the datalist offers it; chip "Old Notes" shows "missing", "archive" and ".kokobrain" do not; an empty tree shows no marks; an empty list shows "No excluded folders". `isDuplicateExcluded` and the case-insensitive match are covered in `auto-organize.logic.test.ts`.
-- [ ] The four controls are found by role and name; removing `_templates` by name empties `autoOrganizeStore.excludedFolders`.
-- [ ] `settings-copy`, `settings-text` and `settings-controls` tests pass unchanged (still one raw button); `isInExcludedFolder` unchanged; `auto-organize.service.ts` is not in the diff.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass; `bash scripts/e2e.sh auto-organize-flows.spec.ts` passes.
+- [x] Failing test first, `src/tests/lib/features/auto-organize/AutoOrganizeSection.test.ts`: the text contains "The first matching rule wins for rename, move to folder and run mod action", "apply from every matching rule", "archive rules run last" and "Rules never run on notes inside these folders", and no longer "determines the destination folder" or "never be automatically moved".
+- [x] With Auto Organize off and `typeDefinitionsStore.setTypeMetadataMap` holding two types with `archiveTo` and one without, the hint reads "2 of your types set an archive folder"; on, or no `archiveTo`, shows no hint; the section renders no new button.
+- [x] With `writeTextFile` (`@tauri-apps/plugin-fs`) rejecting, "Add rule" toasts "Could not save auto-organize rules" once and `autoOrganizeStore.rules` still holds the new rule. Mock `svelte-sonner` and the Tauri boundary, never the service.
+- [x] Adding "Archive", then "Archive" and "archive", leaves `['Archive']` and shows "Already excluded"; with `/vault/Archive` in the tree the datalist offers it; chip "Old Notes" shows "missing", "archive" and ".kokobrain" do not; an empty tree shows no marks; an empty list shows "No excluded folders". `isDuplicateExcluded` and the case-insensitive match are covered in `auto-organize.logic.test.ts`.
+- [x] The four controls are found by role and name; removing `_templates` by name empties `autoOrganizeStore.excludedFolders`.
+- [x] `settings-copy`, `settings-text` and `settings-controls` tests pass unchanged (still one raw button); `isInExcludedFolder` unchanged; `auto-organize.service.ts` is not in the diff.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass; `bash scripts/e2e.sh auto-organize-flows.spec.ts` passes.
 
 ## Original proposal
 
@@ -61,3 +61,4 @@ Ticket 32 adds a focus prop to `AutoOrganizeSection.svelte` (two or three lines)
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping.
+- 2026-11-18, deliver (branch issue/31-auto-organize-section-honest-copy-archiveoff): honest section copy, archive-off hint, save-failure toast, excluded folders with duplicate check, datalist and missing marks, named controls; round-1 fix skips nested dot folders in the missing mark. Tests: targeted 248/248, pnpm check clean, full suite at a2c51faa2 662 files / 17758 tests passed, exit 0. Reviews: round 1 APPROVED, round 2 APPROVED (no findings).
