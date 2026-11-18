@@ -76,7 +76,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 39 | [Readable text on coloured fills and faded text in the note list and search](issues/39-readable-chips-faded-text.md) | 12 | blocked | | |
 | 40 | [Default theme: a darker tab strip with a visible tab hover, bold and italic off the link blue](issues/40-default-theme-darker-tab-strip-visible.md) | 20, 39 | todo | | |
 | 41 | [Word count and graph stats read correctly for 0 and 1; graph mode buttons show their state](issues/41-word-count-graph-stats-read-correctly.md) | none | todo | | |
-| 42 | [Kanban cards move between lanes from the card menu](issues/42-kanban-cards-move-between-lanes-card.md) | 10, 11, 12 | in-progress | | |
+| 42 | [Kanban cards move between lanes from the card menu](issues/42-kanban-cards-move-between-lanes-card.md) | 10, 11, 12 | done | issue/42-kanban-cards-move-between-lanes-card (8258ffac3) | 2026-11-18 |
 | 43 | [New canvas text cards open ready to type and cascade; Enter or F2 edits a selected card](issues/43-new-canvas-text-cards-open-ready.md) | 06, 16 | todo | | |
 | 44 | [Sort order can be changed from the keyboard](issues/44-sort-keyboard-reorder.md) | 15 | todo | | |
 | 45 | [Quick Capture keeps the draft until it is written, with Discard and a short hold](issues/45-quick-capture-draft-discard.md) | 07 | todo | | |
@@ -137,3 +137,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 19:39 — 39 — start — launched by /relay-lite:run — be1dbc51e
 - 2026-11-18 19:45 — 39 — deliver — blocked: Issue contradicts itself, items 4-5 wait on shell-sidebars-ux 15 and 19 but the criteria need them now; items 1-3 (39a) built in the worktree, owner to split 39a/39b or wait — 5741efb62
 - 2026-11-18 19:46 — 42 — start — launched by /relay-lite:run — 8485a955e
+- 2026-11-18 19:59 — 42 — deliver — merged after review 1 APPROVED with 3 findings, fix round (chip title wording; card-menu key deferred to Issue 50; board-only chip kept), re-review 2 APPROVED (claude); full vitest suite passed (17703 tests) — 8258ffac3
