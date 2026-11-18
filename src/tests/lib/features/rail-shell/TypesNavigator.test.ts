@@ -138,6 +138,11 @@ describe('TypesNavigator', () => {
 		await settle();
 	}
 
+	/** bits-ui keeps a closing dialog mounted through its exit transition, marked `data-state="closed"`. */
+	function dialogIsOpen(): boolean {
+		return document.querySelector('[role="dialog"][data-state="open"]') !== null;
+	}
+
 	/** Types a name into the open TypeNameDialog and presses Enter. */
 	async function submitDialog(name: string) {
 		const input = document.querySelector<HTMLInputElement>('input[placeholder="Type name"]')!;
@@ -359,7 +364,32 @@ describe('TypesNavigator', () => {
 		expect(renameType).toHaveBeenCalledWith('Project', 'Initiative', '/vault/Project.md');
 	});
 
-	it('creates a type with New type and picks it', async () => {
+	it('keeps the rename dialog open with "Updating notes..." while the rename runs, then closes it', async () => {
+		let finish!: () => void;
+		vi.mocked(renameType).mockImplementation(() => {
+			// The rename moves the definition note, so the store knows the new name mid-await.
+			const renamed = [entryV2('/vault/Initiative.md', { isA: 'Type' }), ...ENTRIES.slice(1)];
+			typeDefinitionsStore.setEntries(renamed);
+			typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap(renamed));
+			return new Promise<void>((resolve) => (finish = resolve));
+		});
+		await mountNavigator();
+		await rightClick(rowEl('Project'));
+		await clickItem('Rename');
+		await submitDialog('Initiative');
+		expect(renameType).toHaveBeenCalledTimes(1);
+
+		const busyButton = [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find((b) => b.textContent?.trim() === 'Updating notes...');
+		expect(busyButton?.disabled).toBe(true);
+		expect(dialogIsOpen()).toBe(true);
+		expect(document.body.textContent).not.toContain('A type with this name already exists');
+
+		finish();
+		await settle();
+		expect(dialogIsOpen()).toBe(false);
+	});
+
+	it('creates a type with New type, closes the dialog and picks it', async () => {
 		vi.mocked(createTypeDefinition).mockResolvedValue('/vault/Area.md');
 		await mountNavigator();
 		target.querySelector<HTMLButtonElement>('[data-types-navigator-new-type]')!.click();
@@ -367,6 +397,7 @@ describe('TypesNavigator', () => {
 		await submitDialog('Area');
 		expect(createTypeDefinition).toHaveBeenCalledWith('Area', { select: true });
 		expect(onPick).toHaveBeenCalledWith({ kind: 'type', target: 'Area' });
+		expect(dialogIsOpen()).toBe(false);
 	});
 
 	it('does not pick a type New type failed to create', async () => {

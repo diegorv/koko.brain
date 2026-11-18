@@ -1,6 +1,6 @@
 # file card src/lib/core/filesystem/fs.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/filesystem/fs.store.svelte.ts ' codemap/files
-file src/lib/core/filesystem/fs.store.svelte.ts store L48 module src/lib/core/filesystem in22 t57
+file src/lib/core/filesystem/fs.store.svelte.ts store L48 module src/lib/core/filesystem in23 t58
 ## imports
 imp src/lib/core/filesystem/fs.store.svelte.ts:1 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode,type:FolderOrderMap
 ## imported-by
@@ -26,6 +26,7 @@ imp src/lib/features/rail-shell/RailNoteList.svelte:21 -> src/lib/core/filesyste
 imp src/lib/features/rail-shell/TypesNavigator.svelte:23 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:5 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/plugins/kanban/kanban.service.ts:6 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
+imp src/lib/plugins/templates/TemplatePicker.svelte:3 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 ## reach
 in2 src/lib/core/filesystem/fs.store.svelte.ts 29 files in 18 modules: src/lib/app(5) src/lib/features/rail-shell(4) src/lib/features/canvas(2) src/lib/features/todoist-sync(2) src/lib/plugins/kanban(2) +13 modules: q impact src/lib/core/filesystem/fs.store.svelte.ts --depth 2
 out2 src/lib/core/filesystem/fs.store.svelte.ts 1 files in 1 modules: src/lib/contracts(1)
@@ -70,7 +71,7 @@ test src/tests/lib/features/rail-shell/RailNoteList.search.test.ts imports src/l
 test src/tests/lib/features/rail-shell/RailNoteList.sort.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
 test src/tests/lib/features/rail-shell/RailNoteList.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
 test src/tests/lib/features/rail-shell/RailNoteList.toolbar.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
-more tests 17 not shown: src/tests/lib/features/rail-shell(5) src/tests/lib/plugins/mods(4) src/tests/lib/features/todoist-sync(3) src/tests/lib/plugins/kanban(2) src/tests/lib/features/type-definitions(1) src/tests/lib/plugins/calendar(1) src/tests/lib/plugins/templates(1): q tests src/lib/core/filesystem/fs.store.svelte.ts
+more tests 18 not shown: src/tests/lib/features/rail-shell(5) src/tests/lib/plugins/mods(4) src/tests/lib/features/todoist-sync(3) src/tests/lib/plugins/kanban(2) src/tests/lib/plugins/templates(2) src/tests/lib/features/type-definitions(1) src/tests/lib/plugins/calendar(1): q tests src/lib/core/filesystem/fs.store.svelte.ts
 ## symbols
 sym src/lib/core/filesystem/fs.store.svelte.ts:25 store fsStore L24 | Central store for the file system / file explorer state.
 by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/AppShell.svelte:123 in viewFilesKey=$derived member +3
@@ -81,11 +82,11 @@ by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/tauri-liste
 by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/core/filesystem/fs.service.ts:49 in loadFolderOrder mcall +12
 by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/core/filesystem/fs.watcher.ts:184 in handleChangedPaths member +5
 by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/core/filesystem/link-updater.service.ts:41 in updateLinksAfterRename member
-more by 14 not shown: src/lib/features/rail-shell(3) src/lib/features/note-list(2) src/lib/features/properties(2) src/lib/plugins/kanban(2) src/lib/core/filesystem(1) src/lib/core/trash(1) src/lib/features/canvas(1) src/lib/features/event-calendar(1) +1 modules: q importers src/lib/core/filesystem/fs.store.svelte.ts:fsStore
+more by 15 not shown: src/lib/features/rail-shell(3) src/lib/features/note-list(2) src/lib/features/properties(2) src/lib/plugins/kanban(2) src/lib/core/filesystem(1) src/lib/core/trash(1) src/lib/features/canvas(1) src/lib/features/event-calendar(1) +2 modules: q importers src/lib/core/filesystem/fs.store.svelte.ts:fsStore
 ## store
 store src/lib/core/filesystem/fs.store.svelte.ts:25 fsStore esc:0
-mem src/lib/core/filesystem/fs.store.svelte.ts:26 get fsStore.fileTree r:36 w-via:setFileTree,reset
-more r 36 not shown: src/lib/app(9) src/lib/core/filesystem(9) src/lib/features/rail-shell(9) src/lib/core/trash(2) src/lib/features/properties(2) src/lib/plugins/kanban(2) src/lib/features/canvas(1) src/lib/features/event-calendar(1) +1 modules: q store src/lib/core/filesystem/fs.store.svelte.ts:fsStore.fileTree
+mem src/lib/core/filesystem/fs.store.svelte.ts:26 get fsStore.fileTree r:37 w-via:setFileTree,reset
+more r 37 not shown: src/lib/app(9) src/lib/core/filesystem(9) src/lib/features/rail-shell(9) src/lib/core/trash(2) src/lib/features/properties(2) src/lib/plugins/kanban(2) src/lib/features/canvas(1) src/lib/features/event-calendar(1) +2 modules: q store src/lib/core/filesystem/fs.store.svelte.ts:fsStore.fileTree
 mem src/lib/core/filesystem/fs.store.svelte.ts:27 get fsStore.isLoading r:- w-via:startLoading,stopLoading,reset
 mem src/lib/core/filesystem/fs.store.svelte.ts:28 get fsStore.renamingPath r:src/lib/features/note-list/NoteRow.svelte:47,src/lib/features/note-list/NoteRowMenu.svelte:110,src/lib/features/note-list/NoteRowMenu.svelte:132 w-via:setRenamingPath,reset
 mem src/lib/core/filesystem/fs.store.svelte.ts:29 get fsStore.folderOrder r:src/lib/app/lifecycle/app-lifecycle.service.ts:389,src/lib/core/filesystem/fs.service.ts:139,src/lib/core/filesystem/fs.watcher.ts:218,src/lib/features/rail-shell/FilesNavigator.svelte:99 w-via:setFolderOrder,reset

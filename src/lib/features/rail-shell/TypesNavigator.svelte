@@ -488,6 +488,7 @@
 		bind:open={renameDialogOpen}
 		title="Rename type"
 		confirmLabel="Rename"
+		busyLabel="Updating notes..."
 		initialValue={target.name}
 		description={`This will update ${target.count} ${target.count === 1 ? 'note' : 'notes'}`}
 		validate={(name) => validateTypeName(name, existingTypeNames.filter((n) => n !== target.name))}
