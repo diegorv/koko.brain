@@ -22,6 +22,7 @@ import { toast } from 'svelte-sonner';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -70,6 +71,7 @@ describe('MyPeopleSection', () => {
 		vaultStore._reset();
 		vaultStore.open('/vault');
 		settingsStore.reset();
+		settingsPanelStore._reset();
 		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		editorStore.reset();
 		typeDefinitionsStore.reset();
@@ -106,7 +108,7 @@ describe('MyPeopleSection', () => {
 		await mountSection();
 
 		expect(names()).toEqual(['Bruno', 'Ana']);
-		expect(days('Ana').textContent?.trim()).toBe('5d');
+		expect(days('Ana').textContent?.trim()).toBe('5d ago');
 		expect(days('Bruno').textContent?.trim()).toBe('never');
 	});
 
@@ -115,7 +117,7 @@ describe('MyPeopleSection', () => {
 		await mountSection();
 
 		// Exactly 14 days: not flagged; never: flagged.
-		expect(days('Ana').textContent?.trim()).toBe('14d');
+		expect(days('Ana').textContent?.trim()).toBe('14d ago');
 		expect(days('Ana').classList.contains('text-warning')).toBe(false);
 		expect(days('Ana').classList.contains('text-file-explorer-muted-fg')).toBe(true);
 		expect(days('Bruno').classList.contains('text-warning')).toBe(true);
@@ -149,10 +151,10 @@ describe('MyPeopleSection', () => {
 		expect(openFileInEditor).toHaveBeenCalledWith(`${PEOPLE}/Ana.md`);
 	});
 
-	it('New 1:1 creates the linked 1:1 and, once the index has it, the row reads 0d', async () => {
+	it('New 1:1 creates the linked 1:1 and, once the index has it, the row reads today', async () => {
 		typeDefinitionsStore.setEntries([person('Ana'), oneOnOne('/vault/m/a.md', 'Ana', '2026-10-01')]);
 		await mountSection();
-		expect(days('Ana').textContent?.trim()).toBe('31d');
+		expect(days('Ana').textContent?.trim()).toBe('31d ago');
 
 		rowEl('Ana').querySelector<HTMLButtonElement>('[data-my-people-new]')!.click();
 		await settle();
@@ -170,7 +172,7 @@ describe('MyPeopleSection', () => {
 			entryV2(ANA_NOTE, { relatedTo: ['Ana'], frontmatter: { kind: 'one-on-one' }, createdAt: Math.floor(NOW.getTime() / 1000) }),
 		]);
 		await settle();
-		expect(days('Ana').textContent?.trim()).toBe('0d');
+		expect(days('Ana').textContent?.trim()).toBe('today');
 		expect(days('Ana').classList.contains('text-warning')).toBe(false);
 	});
 
@@ -188,13 +190,64 @@ describe('MyPeopleSection', () => {
 		expect(days('Ana').textContent?.trim()).toBe('never');
 	});
 
-	it('shows how to track someone, naming the folder, when it holds no tracked people', async () => {
+	it('offers a setup button that opens the one-on-one Settings page when nobody is tracked', async () => {
 		typeDefinitionsStore.setEntries([entryV2('/vault/Personal/_people/Mom.md'), entryV2(`${PEOPLE}/Bruno.md`, { isA: 'Person' })]);
 		await mountSection();
 		expect(names()).toEqual([]);
-		expect(target.querySelector('[data-my-people-empty]')?.textContent?.trim()).toBe(
-			'Add _one_on_one_every to a person in Work/_people to track 1:1s',
-		);
+		const empty = target.querySelector<HTMLElement>('[data-my-people-empty]');
+		expect(empty).not.toBeNull();
+		expect(target.textContent).not.toContain('_one_on_one_every');
+		expect(target.textContent).not.toContain('Work/_people');
+		const setup = empty!.querySelector<HTMLButtonElement>('button');
+		expect(setup?.textContent?.trim()).toBe('Set up 1:1 tracking');
+
+		expect(settingsPanelStore.isOpen).toBe(false);
+		setup!.click();
+		flushSync();
+		expect(settingsPanelStore.isOpen).toBe(true);
+		expect(settingsPanelStore.activeSection).toBe('one-on-one');
+	});
+
+	it('marks overdue and never rows with an icon and hidden "Overdue" text, on-time rows with neither', async () => {
+		typeDefinitionsStore.setEntries([
+			person('Ana'),
+			person('Bruno'),
+			person('Caio'),
+			oneOnOne('/vault/m/a.md', 'Ana', '2026-10-27'),
+			oneOnOne('/vault/m/c.md', 'Caio', '2026-10-01'),
+		]);
+		await mountSection();
+
+		const overdueIcon = (name: string) => rowEl(name).querySelector<SVGElement>('[data-my-people-overdue]');
+		const srText = (name: string) => [...rowEl(name).querySelectorAll('.sr-only')].map((el) => el.textContent?.trim());
+
+		for (const name of ['Bruno', 'Caio']) {
+			expect(days(name).dataset.overdue).toBe('true');
+			expect(overdueIcon(name)?.getAttribute('aria-hidden')).toBe('true');
+			expect(overdueIcon(name)?.classList.contains('text-warning')).toBe(true);
+			expect(srText(name)).toEqual(['Overdue']);
+			// Inside the open button, so a Tab stop on the row announces it, not only browse mode.
+			expect(rowEl(name).querySelector('[data-my-people-open] .sr-only')?.textContent?.trim()).toBe('Overdue');
+		}
+		expect(days('Ana').dataset.overdue).toBe('false');
+		expect(overdueIcon('Ana')).toBeNull();
+		expect(rowEl('Ana').textContent).not.toContain('Overdue');
+	});
+
+	it('draws one inset row ring for the open button, which drops its own outline', async () => {
+		typeDefinitionsStore.setEntries([person('Ana')]);
+		await mountSection();
+		const row = rowEl('Ana');
+		for (const cls of [
+			'has-[[data-my-people-open]:focus-visible]:ring-2',
+			'has-[[data-my-people-open]:focus-visible]:ring-ring/50',
+			'has-[[data-my-people-open]:focus-visible]:ring-inset',
+		]) {
+			expect(row.classList).toContain(cls);
+		}
+		expect(row.querySelector('[data-my-people-open]')!.classList).toContain('focus-visible:outline-none');
+		// New 1:1 keeps the UA outline as its single indicator; the row ring is scoped to the open button.
+		expect(row.querySelector('[data-my-people-new]')!.className).not.toContain('outline-none');
 	});
 
 	it('registers as the My people Today section and unregisters', () => {

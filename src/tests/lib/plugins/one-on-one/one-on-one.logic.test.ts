@@ -515,9 +515,10 @@ describe('withOneOnOneKind', () => {
 });
 
 describe('myPeopleDaysLabel', () => {
-	it('shows days as Nd and no 1:1 as never', () => {
-		expect(myPeopleDaysLabel(0)).toBe('0d');
-		expect(myPeopleDaysLabel(15)).toBe('15d');
+	it('shows 0 days as today, others as Nd ago and no 1:1 as never', () => {
+		expect(myPeopleDaysLabel(0)).toBe('today');
+		expect(myPeopleDaysLabel(1)).toBe('1d ago');
+		expect(myPeopleDaysLabel(15)).toBe('15d ago');
 		expect(myPeopleDaysLabel(null)).toBe('never');
 	});
 });

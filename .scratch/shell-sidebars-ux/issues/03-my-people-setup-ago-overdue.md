@@ -15,17 +15,17 @@ Not in this ticket: hiding the section when nobody is tracked (needs a visibilit
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, `src/tests/lib/plugins/one-on-one/MyPeopleSection.test.ts` (real stores): with nobody tracked the text contains neither `_one_on_one_every` nor `Work/_people` (asserted today at `:195-196`) and a "Set up 1:1 tracking" button is inside `[data-my-people-empty]`; clicking it leaves the real `settingsPanelStore` (reset in `beforeEach`) with `isOpen` and `activeSection === 'one-on-one'`.
-- [ ] Failing test first, `src/tests/lib/core/settings/OneOnOneSection.test.ts`: the page names `_one_on_one_every` and the configured work people folder.
-- [ ] Failing test first, `src/tests/lib/plugins/one-on-one/one-on-one.logic.test.ts:517-523`: `0` is `today`, `1` is `1d ago`, `15` is `15d ago`, `null` is `never`; the section assertions at `MyPeopleSection.test.ts` `:109`, `:118`, `:155`, `:173`, `:188` follow the new strings.
-- [ ] Overdue and `never` rows render the icon and "Overdue"; on-time rows neither; the theme-token test (`:129-135`) stays green.
-- [ ] Class assertions for the row ring and `focus-visible:outline-none` (jsdom has no `:focus-visible`; `focus-ring.spec.ts:74-92` pins the pattern in a browser).
-- [ ] `RailNoteList.test.ts:464-475` (Loading, then `[data-my-people-empty]`) and the registration test (`:202`) stay green.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/plugins/one-on-one/MyPeopleSection.test.ts` (real stores): with nobody tracked the text contains neither `_one_on_one_every` nor `Work/_people` (asserted today at `:195-196`) and a "Set up 1:1 tracking" button is inside `[data-my-people-empty]`; clicking it leaves the real `settingsPanelStore` (reset in `beforeEach`) with `isOpen` and `activeSection === 'one-on-one'`.
+- [x] Failing test first, `src/tests/lib/core/settings/OneOnOneSection.test.ts`: the page names `_one_on_one_every` and the configured work people folder.
+- [x] Failing test first, `src/tests/lib/plugins/one-on-one/one-on-one.logic.test.ts:517-523`: `0` is `today`, `1` is `1d ago`, `15` is `15d ago`, `null` is `never`; the section assertions at `MyPeopleSection.test.ts` `:109`, `:118`, `:155`, `:173`, `:188` follow the new strings.
+- [x] Overdue and `never` rows render the icon and "Overdue"; on-time rows neither; the theme-token test (`:129-135`) stays green.
+- [x] Class assertions for the row ring and `focus-visible:outline-none` (jsdom has no `:focus-visible`; `focus-ring.spec.ts:74-92` pins the pattern in a browser).
+- [x] `RailNoteList.test.ts:464-475` (Loading, then `[data-my-people-empty]`) and the registration test (`:202`) stay green.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -53,3 +53,4 @@ None on shared lines. Compatible with ticket 19: its roving keys keep the Today 
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided by the owner: the consolidated 34-ticket numbering and granularity. Defaults (not individually answered): 03.1 with nobody tracked, show the setup button rather than hiding My people; 03.2 a 1:1 held today reads `today`, not `0d ago`.
+- 2026-11-18, deliver (branch `issue/03-my-people-setup-ago-overdue`): My people shows a "Set up 1:1 tracking" button when nobody is tracked, "today"/"Nd ago" labels, an Overdue icon with sr-only text inside the open button, and a row focus ring; the 1:1 settings page explains how people are picked. Review round 1 APPROVED (findings fixed: Overdue text moved into the open button, OneOnOneSection tests pin the property constant and the folder fallback); round 2 APPROVED with no findings. Tests: pnpm check 0 errors; full suite at 816708f2a passed (647 files, 17131 tests).

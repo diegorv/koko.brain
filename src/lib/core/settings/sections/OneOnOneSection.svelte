@@ -19,6 +19,10 @@
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">1:1 Notes</h2>
 
+	<p class="mb-4 text-sm text-muted-foreground" data-one-on-one-intro>
+		A person in {settingsStore.oneOnOne.workPeopleFolder || 'the work people folder'} is listed in My people on Today when their note sets _one_on_one_every.
+	</p>
+
 	<h3 class="section-label mb-2">People</h3>
 
 	<SettingItem

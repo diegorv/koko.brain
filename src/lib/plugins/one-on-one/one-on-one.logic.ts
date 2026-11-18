@@ -235,7 +235,8 @@ export function buildMyPeople(entries: NoteEntryV2[], options: MyPeopleOptions):
 		.map(({ row }) => row);
 }
 
-/** A My people row's days label: `Nd`, or `never` without a 1:1. */
+/** A My people row's days label: `today`, `Nd ago`, or `never` without a 1:1. */
 export function myPeopleDaysLabel(days: number | null): string {
-	return days === null ? 'never' : `${days}d`;
+	if (days === null) return 'never';
+	return days === 0 ? 'today' : `${days}d ago`;
 }
