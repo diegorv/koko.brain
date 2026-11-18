@@ -56,10 +56,10 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 19 | [Toasts follow the theme; Copy block link confirms](issues/19-toasts-follow-theme-copy-block-link.md) | none | todo | | |
 | 20 | [Keyboard focus shows at full strength; spinners and pulses respect Reduce motion](issues/20-keyboard-focus-shows-at-full-strength.md) | none | done | issue/20-keyboard-focus-shows-at-full-strength (70af959e5) | 2026-11-18 |
 | 21 | [Settings number fields write only valid values and clamp on commit](issues/21-settings-number-fields-write-only-valid.md) | none | done | issue/21-settings-number-fields-write-only-valid (725b3f677) | 2026-11-18 |
-| 22 | [Settings switches: dependents disable while their parent is off, and a switch that failed to start turns back off](issues/22-settings-switches-dependents-disable-while-parent.md) | none | in-progress | | |
+| 22 | [Settings switches: dependents disable while their parent is off, and a switch that failed to start turns back off](issues/22-settings-switches-dependents-disable-while-parent.md) | none | done | issue/22-settings-switches-dependents-disable-while-parent (7adcde4d4) | 2026-11-18 |
 | 23 | [File History says what it compares and when something failed](issues/23-file-history-compares-something-failed.md) | 20 | todo | | |
 | 24 | [Calendar events say what you can do; the new-event form opens without an error](issues/24-calendar-events-say-you-can-do.md) | none | done | issue/24-calendar-events-say-you-can-do (bd8d1575b) | 2026-11-18 |
-| 25 | [Calendar time grid shows what is now and what is hidden](issues/25-calendar-time-grid-shows-now-hidden.md) | 24 | todo | | |
+| 25 | [Calendar time grid shows what is now and what is hidden](issues/25-calendar-time-grid-shows-now-hidden.md) | 24 | in-progress | | |
 | 26 | [Calendar month grid reads at a glance](issues/26-calendar-month-grid-reads-at-glance.md) | 24, 25 | todo | | |
 | 27 | [The Tasks toolbar and list say what they do](issues/27-tasks-toolbar-list-say-they-do.md) | none | done | issue/27-tasks-toolbar-list-say-they-do (765d89506) | 2026-11-18 |
 | 28 | [The Days mini month works narrow and by screen reader](issues/28-days-mini-month-works-narrow-by.md) | 26 | todo | | |
@@ -125,3 +125,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 18:19 — 21 — start — launched by /relay-lite:run — 66b7cd38d
 - 2026-11-18 18:29 — 21 — deliver — merged after review 1 APPROVED, fix round (content-width clamp test starts from a stored 800), re-review 2 APPROVED (claude); full vitest suite passed (17620 tests) — 725b3f677
 - 2026-11-18 18:29 — 22 — start — launched by /relay-lite:run — 8a52acc9c
+- 2026-11-18 18:40 — 22 — deliver — merged after review 1 APPROVED, fix round (LabsSection stops the mods host before writing the flag off), re-review 2 APPROVED (claude) with one rare-case nit left; full vitest suite passed (17634 tests) — 7adcde4d4
+- 2026-11-18 18:40 — 25 — start — launched by /relay-lite:run — 9fa660b19

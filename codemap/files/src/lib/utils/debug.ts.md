@@ -28,7 +28,7 @@ imp src/lib/core/filesystem/path-change.service.ts:12 -> src/lib/utils/debug.ts 
 imp src/lib/core/markdown-editor/MarkdownEditor.svelte:31 -> src/lib/utils/debug.ts debug,error,perfStart,perfEnd,perfBaseline
 imp src/lib/core/note-creator/note-creator.service.ts:11 -> src/lib/utils/debug.ts error
 imp src/lib/core/settings/sections/AppearanceSection.svelte:5 -> src/lib/utils/debug.ts debug
-imp src/lib/core/settings/sections/TroubleshootingSection.svelte:4 -> src/lib/utils/debug.ts setTauriDebugMode
+imp src/lib/core/settings/sections/TroubleshootingSection.svelte:6 -> src/lib/utils/debug.ts setTauriDebugMode
 imp src/lib/core/settings/settings-persistence.svelte.ts:4 -> src/lib/utils/debug.ts debug,error
 imp src/lib/core/settings/settings.service.ts:8 -> src/lib/utils/debug.ts debug,error
 imp src/lib/core/settings/theme-catalog.service.ts:2 -> src/lib/utils/debug.ts debug
@@ -108,7 +108,7 @@ by src/lib/utils/debug.ts:debug <- src/lib/core/filesystem/fs.watcher.ts:43 in l
 by src/lib/utils/debug.ts:debug <- src/lib/core/filesystem/note-change.service.ts:111 in registerNoteChangeConsumer call +3
 more by 27 not shown: src/lib/core/settings(4) src/lib/plugins/mods(3) src/lib/features/search(2) src/lib/features/todoist-sync(2) src/lib/core/filesystem(1) src/lib/core/markdown-editor(1) src/lib/core/trash(1) src/lib/core/vault(1) +12 modules: q importers src/lib/utils/debug.ts:debug
 sym src/lib/utils/debug.ts:27 fn error(tag: string, ...args: unknown[]): void L7 | Logs an error message to the console.
-by src/lib/utils/debug.ts:error <- src/lib/app/LabsSection.svelte:21 in setModsEnabled call +1
+by src/lib/utils/debug.ts:error <- src/lib/app/LabsSection.svelte:24 in setModsEnabled call +2
 by src/lib/utils/debug.ts:error <- src/lib/app/editor-host.ts:168 in appEditorHost.createNote call
 by src/lib/utils/debug.ts:error <- src/lib/app/global-keybindings.ts:152 in GLOBAL_KEYBINDINGS call +7
 by src/lib/utils/debug.ts:error <- src/lib/app/lifecycle/app-lifecycle.service.ts:217 in initializeVault call +18
@@ -151,7 +151,7 @@ by src/lib/utils/debug.ts:perfBaseline <- src/lib/core/markdown-editor/MarkdownE
 by src/lib/utils/debug.ts:perfBaseline <- src/routes/(app)/+layout.svelte:139 in $effect@110 call
 sym src/lib/utils/debug.ts:105 fn setTauriDebugMode(enabled: boolean): Promise<void> L14 | Enables or disables Tauri backend debug logging.
 by src/lib/utils/debug.ts:setTauriDebugMode <- src/lib/app/lifecycle/app-lifecycle.service.ts:229 in initializeVault call
-by src/lib/utils/debug.ts:setTauriDebugMode <- src/lib/core/settings/sections/TroubleshootingSection.svelte:135 in (markup) markup
+by src/lib/utils/debug.ts:setTauriDebugMode <- src/lib/core/settings/sections/TroubleshootingSection.svelte:159 in (markup) markup
 sym src/lib/utils/debug.ts:148 fn stopTauriDebugListener(): void L7 | Stops listening for Tauri debug log events.
 by src/lib/utils/debug.ts:stopTauriDebugListener <- src/lib/app/lifecycle/app-lifecycle.service.ts:613 in teardownVault call
 sym src/lib/utils/debug.ts:159 fn logProcessMemory(): Promise<void> L8 | Queries the Rust backend for the current process RSS and logs it via debug().

@@ -46,7 +46,7 @@ reg src/lib/core/filesystem/fs.watcher.ts:onFileChange read-by src/lib/core/file
 reg src/lib/core/filesystem/fs.watcher.ts:onFileChange fired-by src/lib/core/filesystem/fs.watcher.ts:177 in handleChangedPaths <- src/lib/core/filesystem/fs.watcher.ts:277 in startWatching
 reg src/lib/core/filesystem/fs.watcher.ts:onFileChange registered-at src/lib/app/lifecycle/app-lifecycle.service.ts:519 in initializeVault args=(paths) => { debug('LIFECYCLE', `file change listener fired at ${Date.now()}, p… -> src/lib/app/lifecycle/app-lifecycle.service.ts:initializeVault
 reg src/lib/core/filesystem/fs.watcher.ts:onFileChange registered-at src/lib/plugins/mods/mods-host.service.ts:1077 in startModsHost args=(paths) => onModFilesChanged(vaultPath, paths, startGeneration) -> src/lib/plugins/mods/mods-host.service.ts:startModsHost
-reg src/lib/core/filesystem/fs.watcher.ts:onFileChange invoked-at src/lib/app/LabsSection.svelte:27 in setModsEnabled
+reg src/lib/core/filesystem/fs.watcher.ts:onFileChange invoked-at src/lib/app/LabsSection.svelte:30 in setModsEnabled
 reg src/lib/core/filesystem/fs.watcher.ts:onFileChange invoked-at src/lib/app/lifecycle/app-lifecycle.service.ts:550 in initializeVault
 reg src/lib/core/filesystem/fs.watcher.ts:onFileChange invoked-at src/routes/(app)/+layout.svelte:86 in $effect@80
 reg src/lib/core/filesystem/note-change.service.ts:registerContentInvalidationListener sink src/lib/core/filesystem/note-change.service.ts:144 | stores contentInvalidationListeners push | doc Registers a listener for the vault-wide "note content changed" signal.

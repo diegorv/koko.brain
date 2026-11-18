@@ -6,7 +6,7 @@
 
 import type { FileTaskGroupV2, TaskStatusV2 } from '#lib/types/vault-v2.types.js';
 import { isValidDayKey } from './event-calendar-dates.logic';
-import { MONTH_MAX_CHIPS } from './event-calendar-view.logic';
+import { ALL_DAY_MAX_ROWS, MONTH_MAX_CHIPS } from './event-calendar-view.logic';
 
 /** A dated task as the Calendar shows it. */
 export interface CalendarTask {
@@ -81,6 +81,35 @@ export function tasksByDay(tasks: CalendarTask[], days: string[]): Map<string, C
 		else byDay.set(task.date, [task]);
 	}
 	return byDay;
+}
+
+/** One day's cell of the week and day Tasks lane. */
+export interface TaskLaneCell {
+	/** Day key. */
+	day: string;
+	/** Tasks shown as chips, in display order. */
+	chips: CalendarTask[];
+	/** Tasks behind "+N". */
+	overflow: number;
+}
+
+/**
+ * Cells of the Tasks lane. With more than one visible day, a day with more
+ * than `ALL_DAY_MAX_ROWS` tasks shows one row fewer of chips and leaves the
+ * last row to "+N", like `buildAllDayChips`. With one visible day nothing is
+ * capped: the cell scrolls instead.
+ * @param tasks - dated tasks, in display order
+ * @param days - the visible day keys
+ * @returns one cell per day, in `days` order
+ */
+export function taskLaneCells(tasks: CalendarTask[], days: string[]): TaskLaneCell[] {
+	const byDay = tasksByDay(tasks, days);
+	const cap = days.length > 1;
+	return days.map((day) => {
+		const all = byDay.get(day) ?? [];
+		const chips = cap && all.length > ALL_DAY_MAX_ROWS ? all.slice(0, ALL_DAY_MAX_ROWS - 1) : all;
+		return { day, chips, overflow: all.length - chips.length };
+	});
 }
 
 /**

@@ -15,7 +15,7 @@
 		type Slot,
 	} from './event-calendar-drag.logic';
 	import { GestureGuard } from './event-calendar-gesture-guard';
-	import { HOUR_HEIGHT, layoutDay, MIN_COLUMN_PX, minutesToPx } from './event-calendar-layout.logic';
+	import { HOUR_HEIGHT, layoutDay, MIN_COLUMN_PX, minutesToPx, mountScrollTop } from './event-calendar-layout.logic';
 	import { groupEventsByDay, nowOffsetMinutes } from './event-calendar-view.logic';
 	import { moveEvent, resizeEvent, toastEventError } from './event-calendar.service';
 	import { eventCalendarStore } from './event-calendar.store.svelte';
@@ -40,6 +40,8 @@
 	const HOURS = Array.from({ length: 23 }, (_, i) => i + 1);
 
 	let scroller: HTMLDivElement | undefined = $state();
+	/** The sticky header block (day headers and lanes), measured by the mount scroll. */
+	let headerEl: HTMLDivElement | undefined = $state();
 	/** The day-columns body: pointer capture target and the rect the slot math reads. */
 	let bodyEl: HTMLDivElement | undefined = $state();
 
@@ -94,9 +96,20 @@
 		return formatTime(hour * 60, timeFormat).replace(':00 ', ' ');
 	}
 
-	// Open on the working day; `{#key view}` in the parent remounts the grid.
+	// Open on the working day, or at the now-line when it would start below the
+	// view; `{#key view}` in the parent remounts the grid. `Date.now()`, not the
+	// store clock: the parent acquires the clock in an `$effect` after this runs,
+	// so the store can be hours stale here.
 	onMount(() => {
-		if (scroller) scroller.scrollTop = settingsStore.eventCalendar.dayStartHour * HOUR_HEIGHT;
+		if (scroller) {
+			scroller.scrollTop = mountScrollTop({
+				nowMs: Date.now(),
+				days,
+				viewportHeight: scroller.clientHeight,
+				headerHeight: headerEl?.offsetHeight ?? 0,
+				dayStartHour: settingsStore.eventCalendar.dayStartHour,
+			});
+		}
 		return () => guard.reset();
 	});
 
@@ -249,7 +262,7 @@
 		style="min-width: calc(var(--axis) + {days.length} * {MIN_COLUMN_PX}px)"
 		data-time-grid-columns
 	>
-		<div class="sticky top-0 z-40 bg-editor-bg" data-time-grid-header>
+		<div bind:this={headerEl} class="sticky top-0 z-40 bg-editor-bg" data-time-grid-header>
 			<EventDayHeaders {days} />
 			<EventAllDayLane {days} {events} />
 			{#if showTasks}

@@ -13,7 +13,7 @@ imp src/lib/app/boot.ts:19 -> src/lib/utils/log.service.ts appendLog
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:10 -> src/lib/utils/log.service.ts initLogSession,teardownLogSession,startHeartbeat
 imp src/lib/core/editor/editor.service.ts:12 -> src/lib/utils/log.service.ts appendLog
 imp src/lib/core/note-creator/note-creator.service.ts:12 -> src/lib/utils/log.service.ts appendLog
-imp src/lib/core/settings/sections/TroubleshootingSection.svelte:5 -> src/lib/utils/log.service.ts initLogSession,teardownLogSession,openLogDir,startHeartbeat,stopHeartbeat,isLogSessionActive
+imp src/lib/core/settings/sections/TroubleshootingSection.svelte:7 -> src/lib/utils/log.service.ts initLogSession,teardownLogSession,openLogDir,startHeartbeat,stopHeartbeat,isLogSessionActive
 imp src/lib/features/properties/properties.service.ts:19 -> src/lib/utils/log.service.ts appendLog
 imp src/lib/features/rail-shell/RailNoteList.svelte:26 -> src/lib/utils/log.service.ts appendLog
 imp src/lib/features/rail-shell/view-lens.service.ts:2 -> src/lib/utils/log.service.ts appendLog
@@ -72,7 +72,7 @@ sym src/lib/utils/log.service.ts:26 const LOG_FLUSH_MS L1 | Flush window and lin
 sym src/lib/utils/log.service.ts:27 const LOG_FLUSH_LINES L1
 sym src/lib/utils/log.service.ts:58 fn initLogSession(): Promise<void> L17 | Initializes a log session by creating the logs directory and setting the active log file path.
 by src/lib/utils/log.service.ts:initLogSession <- src/lib/app/lifecycle/app-lifecycle.service.ts:235 in initializeVault call
-by src/lib/utils/log.service.ts:initLogSession <- src/lib/core/settings/sections/TroubleshootingSection.svelte:44 in (markup) markup +1
+by src/lib/utils/log.service.ts:initLogSession <- src/lib/core/settings/sections/TroubleshootingSection.svelte:26 in startLogSession call
 sym src/lib/utils/log.service.ts:79 fn appendLog(tag: string, ...args: unknown[]): void L11 | Appends a tagged log entry to the active log file.
 by src/lib/utils/log.service.ts:appendLog <- src/lib/app/AppShell.svelte:82 in (script) call +2
 by src/lib/utils/log.service.ts:appendLog <- src/lib/app/boot.ts:38 in registerAppPorts ref
@@ -85,17 +85,17 @@ by src/lib/utils/log.service.ts:appendLog <- src/lib/plugins/periodic-notes/peri
 more by 4 not shown: src/lib/plugins/queryjs(2) src/lib/utils(1) src/routes(1): q importers src/lib/utils/log.service.ts:appendLog
 sym src/lib/utils/log.service.ts:111 fn teardownLogSession(): void L6 | Tears down the active log session: writes the buffered lines, then clears the log file path and cached directory.
 by src/lib/utils/log.service.ts:teardownLogSession <- src/lib/app/lifecycle/app-lifecycle.service.ts:614 in teardownVault call
-by src/lib/utils/log.service.ts:teardownLogSession <- src/lib/core/settings/sections/TroubleshootingSection.svelte:48 in (markup) markup +1
+by src/lib/utils/log.service.ts:teardownLogSession <- src/lib/core/settings/sections/TroubleshootingSection.svelte:67 in (markup) markup +1
 sym src/lib/utils/log.service.ts:131 fn startHeartbeat(): void L18 | Starts a 250 ms heartbeat that emits a `[HB]` log line each tick.
 by src/lib/utils/log.service.ts:startHeartbeat <- src/lib/app/lifecycle/app-lifecycle.service.ts:237 in initializeVault call
-by src/lib/utils/log.service.ts:startHeartbeat <- src/lib/core/settings/sections/TroubleshootingSection.svelte:45 in (markup) markup +2
+by src/lib/utils/log.service.ts:startHeartbeat <- src/lib/core/settings/sections/TroubleshootingSection.svelte:32 in startLogSession call +1
 sym src/lib/utils/log.service.ts:159 fn stopHeartbeat(): void L10 | Stops the heartbeat.
-by src/lib/utils/log.service.ts:stopHeartbeat <- src/lib/core/settings/sections/TroubleshootingSection.svelte:76 in (markup) markup
+by src/lib/utils/log.service.ts:stopHeartbeat <- src/lib/core/settings/sections/TroubleshootingSection.svelte:98 in (markup) markup
 sym src/lib/utils/log.service.ts:218 fn isLogSessionActive(): boolean L3 | Returns whether a log session is currently active.
-by src/lib/utils/log.service.ts:isLogSessionActive <- src/lib/core/settings/sections/TroubleshootingSection.svelte:73 in (markup) markup
+by src/lib/utils/log.service.ts:isLogSessionActive <- src/lib/core/settings/sections/TroubleshootingSection.svelte:27 in startLogSession call +1
 sym src/lib/utils/log.service.ts:223 fn flushLog(): Promise<void> L4 | Writes the buffered lines and returns the pending write queue.
 sym src/lib/utils/log.service.ts:229 fn openLogDir(): Promise<void> L8 | Opens the system log directory in the file manager.
-by src/lib/utils/log.service.ts:openLogDir <- src/lib/core/settings/sections/TroubleshootingSection.svelte:86 in (markup) markup
+by src/lib/utils/log.service.ts:openLogDir <- src/lib/core/settings/sections/TroubleshootingSection.svelte:108 in (markup) markup
 ## locals
 local src/lib/utils/log.service.ts:30 fn formatTimestamp(date: Date): string L4
 local src/lib/utils/log.service.ts:36 fn logTime(): string L3

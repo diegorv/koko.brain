@@ -11,7 +11,7 @@ imp src/lib/core/settings/sections/OneOnOneSection.svelte:4 -> src/lib/core/sett
 imp src/lib/core/settings/sections/PeriodicNotesSection.svelte:5 -> src/lib/core/settings/sections/SettingItem.svelte default
 imp src/lib/core/settings/sections/QuickCaptureSection.svelte:4 -> src/lib/core/settings/sections/SettingItem.svelte default
 imp src/lib/core/settings/sections/SentrySection.svelte:7 -> src/lib/core/settings/sections/SettingItem.svelte default
-imp src/lib/core/settings/sections/TroubleshootingSection.svelte:11 -> src/lib/core/settings/sections/SettingItem.svelte default
+imp src/lib/core/settings/sections/TroubleshootingSection.svelte:13 -> src/lib/core/settings/sections/SettingItem.svelte default
 imp src/lib/core/settings/sections/TypesSection.svelte:5 -> src/lib/core/settings/sections/SettingItem.svelte default
 imp src/lib/core/settings/sections/UpdateSection.svelte:15 -> src/lib/core/settings/sections/SettingItem.svelte default
 imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:10 -> src/lib/core/settings/sections/SettingItem.svelte default
@@ -27,7 +27,7 @@ out2 src/lib/core/settings/sections/SettingItem.svelte 0 files in 0 modules: -
 test src/tests/lib/core/settings/SettingItem.test.ts harness src/lib/core/settings/sections/SettingItem.svelte via src/tests/fixtures/SettingItemHarness.svelte
 ## symbols
 sym src/lib/core/settings/sections/SettingItem.svelte:1 component SettingItem props:label,description,layout=,children L41
-by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/app/LabsSection.svelte:39 in (markup) mount
+by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/app/LabsSection.svelte:49 in (markup) mount
 by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/EditorSection.svelte:70 in (markup) mount +4
 by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/FileHistorySection.svelte:16 in (markup) mount +2
 by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/FilesSection.svelte:11 in (markup) mount +2
@@ -37,7 +37,7 @@ by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/set
 by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/QuickCaptureSection.svelte:38 in (markup) mount +2
 more by 10 not shown: src/lib/core/settings(4) src/lib/features/auto-organize(1) src/lib/features/event-calendar(1) src/lib/features/rail-shell(1) src/lib/features/search(1) src/lib/features/todoist-sync(1) src/lib/plugins/queryjs(1): q importers src/lib/core/settings/sections/SettingItem.svelte:default
 ## mounted-at
-mount src/lib/app/LabsSection.svelte:39 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/app/LabsSection.svelte:49 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/EditorSection.svelte:70 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/EditorSection.svelte:116 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/EditorSection.svelte:131 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
@@ -64,14 +64,14 @@ mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:37 SettingItem 
 mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:44 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:51 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:58 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:68 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:75 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:85 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:92 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:102 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:109 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:119 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:126 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:71 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:78 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:88 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:95 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:105 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:112 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:122 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/PeriodicNotesSection.svelte:129 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/QuickCaptureSection.svelte:38 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/QuickCaptureSection.svelte:50 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/QuickCaptureSection.svelte:68 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte

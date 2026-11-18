@@ -5,6 +5,7 @@
  * Times are minutes from midnight (0..1440). Pure logic: no framework imports.
  */
 
+import { toKey } from './event-calendar-dates.logic';
 import type { EventNote, PositionedEvent } from './event-calendar.types';
 
 /** One hour of the time grid, in px (the design draws a line every 64 px). */
@@ -74,4 +75,34 @@ export function layoutDay(events: EventNote[]): PositionedEvent[] {
 	}
 	if (cluster.length) flush();
 	return out;
+}
+
+/** What the time grid's first scroll depends on. */
+export interface MountScrollInput {
+	/** The current instant (`Date.now()`), read at mount: the store clock can be stale then. */
+	nowMs: number;
+	/** Visible day keys. */
+	days: string[];
+	/** Height of the scroller, in px. */
+	viewportHeight: number;
+	/** Height of the sticky header block above the hours, in px. */
+	headerHeight: number;
+	/** Settings' "Day starts at" hour. */
+	dayStartHour: number;
+}
+
+/**
+ * First vertical scroll of the time grid: the start hour at the top, unless
+ * today is visible and its now-line would sit below the visible body, then
+ * the line a third of the way down the body. A third leaves room for the
+ * Tasks lane, which loads after mount and can push the body down one lane.
+ * @returns the scroller's `scrollTop`, in px
+ */
+export function mountScrollTop({ nowMs, days, viewportHeight, headerHeight, dayStartHour }: MountScrollInput): number {
+	const start = dayStartHour * HOUR_HEIGHT;
+	const now = new Date(nowMs);
+	if (!days.includes(toKey(now))) return start;
+	const body = Math.max(0, viewportHeight - headerHeight);
+	const line = minutesToPx(now.getHours() * 60 + now.getMinutes());
+	return line > start + body ? line - body / 3 : start;
 }

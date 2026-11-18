@@ -67,14 +67,14 @@ by src/lib/plugins/mods/mods-host.service.ts:readModSettings <- src/lib/plugins/
 sym src/lib/plugins/mods/mods-host.service.ts:1013 fn saveModSetting(vaultPath: string, folder: string, key: string, value: boolean | string): void L5 | Saves one Labs setting of a loaded mod.
 by src/lib/plugins/mods/mods-host.service.ts:saveModSetting <- src/lib/plugins/mods/ModsStatusList.svelte:82 in commitSetting call
 sym src/lib/plugins/mods/mods-host.service.ts:1072 fn startModsHost(vaultPath: string): Promise<void> L26 | Loads every mod in `<vaultPath>/_system/mods/` when mods are on for that vault, after stopping any mods already loaded.
-by src/lib/plugins/mods/mods-host.service.ts:startModsHost <- src/lib/app/LabsSection.svelte:27 in setModsEnabled call
+by src/lib/plugins/mods/mods-host.service.ts:startModsHost <- src/lib/app/LabsSection.svelte:30 in setModsEnabled call
 by src/lib/plugins/mods/mods-host.service.ts:startModsHost <- src/lib/app/lifecycle/app-lifecycle.service.ts:550 in initializeVault call
 sym src/lib/plugins/mods/mods-host.service.ts:1104 fn enableMod(vaultPath: string, folder: string): Promise<void> L6 | Loads one mod after it was switched on in Labs.
 by src/lib/plugins/mods/mods-host.service.ts:enableMod <- src/lib/plugins/mods/ModsStatusList.svelte:35 in setModEnabled call
 sym src/lib/plugins/mods/mods-host.service.ts:1116 fn disableMod(folder: string): void L18 | Unloads one mod after it was switched off in Labs, including one whose `onload` is still running, and lists it as disabled.
 by src/lib/plugins/mods/mods-host.service.ts:disableMod <- src/lib/plugins/mods/ModsStatusList.svelte:39 in setModEnabled call
 sym src/lib/plugins/mods/mods-host.service.ts:1142 fn stopModsHost(): void L16 | Unloads every mod, including one whose `onload` is still running, which aborts every run; closes the picker and its run view, empties the status list, detaches…
-by src/lib/plugins/mods/mods-host.service.ts:stopModsHost <- src/lib/app/LabsSection.svelte:31 in setModsEnabled call
+by src/lib/plugins/mods/mods-host.service.ts:stopModsHost <- src/lib/app/LabsSection.svelte:33 in setModsEnabled call +1
 by src/lib/plugins/mods/mods-host.service.ts:stopModsHost <- src/lib/app/lifecycle/app-lifecycle.service.ts:167 in initializeVault call +1
 ## locals
 local src/lib/plugins/mods/mods-host.service.ts:136 fn messageOf(err: unknown): string L3

@@ -94,7 +94,7 @@ more tests 114 not shown: src/tests/lib/features/rail-shell(17) src/tests/lib/pl
 ## symbols
 sym src/lib/core/vault/vault.store.svelte.ts:60 store vaultStore L100 | Reactive store for the current vault and the recent vaults list
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/AppShell.svelte:71 in $effect@66 member +6
-by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/LabsSection.svelte:25 in setModsEnabled member
+by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/LabsSection.svelte:28 in setModsEnabled member
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/boot.ts:64 in registerAppPorts member +2
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/commands.ts:156 in getBuiltInCommands member +4
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/editor-host.ts:99 in vaultTags member +5

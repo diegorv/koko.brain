@@ -1,6 +1,6 @@
 # file card src/lib/app/LabsSection.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/app/LabsSection.svelte ' codemap/files
-file src/lib/app/LabsSection.svelte component L52 module src/lib/app in1 t1
+file src/lib/app/LabsSection.svelte component L62 module src/lib/app in1 t1
 ## imports
 imp src/lib/app/LabsSection.svelte:5 -> src/lib/components/ui/switch/index.ts Switch
 imp src/lib/app/LabsSection.svelte:6 -> src/lib/core/settings/sections/SettingItem.svelte default
@@ -17,17 +17,17 @@ out2 src/lib/app/LabsSection.svelte 32 files in 12 modules: src/lib/plugins/mods
 ## tests
 test src/tests/lib/app/LabsSection.test.ts imports src/lib/app/LabsSection.svelte mirror
 ## symbols
-sym src/lib/app/LabsSection.svelte:1 component LabsSection L52
+sym src/lib/app/LabsSection.svelte:1 component LabsSection L62
 by src/lib/app/LabsSection.svelte:default <- src/lib/app/SettingsPanel.svelte:90 in sectionComponents ref
 ## locals
-local src/lib/app/LabsSection.svelte:17 fn setModsEnabled(enabled: boolean) L17
+local src/lib/app/LabsSection.svelte:20 fn setModsEnabled(enabled: boolean) L24
 ## mounts
-mount src/lib/app/LabsSection.svelte:39 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/app/LabsSection.svelte:43 Switch -> src/lib/components/ui/switch/switch.svelte
-mount src/lib/app/LabsSection.svelte:50 ModsStatusList -> src/lib/plugins/mods/ModsStatusList.svelte
+mount src/lib/app/LabsSection.svelte:49 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/app/LabsSection.svelte:53 Switch -> src/lib/components/ui/switch/switch.svelte
+mount src/lib/app/LabsSection.svelte:60 ModsStatusList -> src/lib/plugins/mods/ModsStatusList.svelte
 ## calls
-call src/lib/app/LabsSection.svelte:19 in setModsEnabled -> src/lib/plugins/mods/mods-enabled.store.svelte.ts:modsEnabledStore.setEnabled mcall
-call src/lib/app/LabsSection.svelte:21 in setModsEnabled -> src/lib/utils/debug.ts:error call +1
-call src/lib/app/LabsSection.svelte:27 in setModsEnabled -> src/lib/plugins/mods/mods-host.service.ts:startModsHost call
-call src/lib/app/LabsSection.svelte:31 in setModsEnabled -> src/lib/plugins/mods/mods-host.service.ts:stopModsHost call
-call src/lib/app/LabsSection.svelte:45 in (markup) -> src/lib/app/LabsSection.svelte:setModsEnabled markup
+call src/lib/app/LabsSection.svelte:22 in setModsEnabled -> src/lib/plugins/mods/mods-enabled.store.svelte.ts:modsEnabledStore.setEnabled mcall +1
+call src/lib/app/LabsSection.svelte:24 in setModsEnabled -> src/lib/utils/debug.ts:error call +2
+call src/lib/app/LabsSection.svelte:30 in setModsEnabled -> src/lib/plugins/mods/mods-host.service.ts:startModsHost call
+call src/lib/app/LabsSection.svelte:33 in setModsEnabled -> src/lib/plugins/mods/mods-host.service.ts:stopModsHost call +1
+call src/lib/app/LabsSection.svelte:55 in (markup) -> src/lib/app/LabsSection.svelte:setModsEnabled markup

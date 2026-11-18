@@ -10,6 +10,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import EventTaskLane from '#lib/features/event-calendar/EventTaskLane.svelte';
+import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 import type { CalendarTask } from '#lib/features/event-calendar/event-calendar-tasks.logic.js';
 
 const DAYS = ['2026-11-10', '2026-11-11', '2026-11-12'];
@@ -32,6 +33,7 @@ const qa = <T extends Element = HTMLElement>(selector: string) => [...target.que
 beforeEach(() => {
 	vi.clearAllMocks();
 	editorStore.reset();
+	eventCalendarViewStore.reset();
 	target = document.body.appendChild(document.createElement('div'));
 });
 
@@ -57,9 +59,8 @@ describe('EventTaskLane', () => {
 		unmount(component!);
 
 		mountLane(['A', 'B', 'C', 'D', 'E'].map((n, i) => datedTask(n, '2026-11-11', i + 1)));
+		// Two chips and the "+N" button fill the three rows.
 		expect(q('[data-task-lane]')!.style.height).toBe(`${6 * 2 + 3 * 24 + 2 * 4 + 1}px`);
-		// Every task stays reachable: the cell scrolls instead of hiding the rest.
-		expect(qa('[data-task-lane-cell="2026-11-11"] [data-calendar-task]')).toHaveLength(5);
 	});
 
 	it('renders nothing when no visible day has a task', () => {
@@ -92,13 +93,14 @@ describe('EventTaskLane', () => {
 	});
 
 	it('keeps a todo, in-progress, question, important or forwarded task open', () => {
+		// Day view: one visible day shows every task.
 		mountLane([
 			datedTask('Bills', '2026-11-10', 1, { description: 'Pay bills', status: 'todo' }),
 			datedTask('Draft', '2026-11-10', 2, { description: 'Write draft', status: 'in-progress' }),
 			datedTask('Ask', '2026-11-10', 3, { description: 'Ask Ana', status: 'question' }),
 			datedTask('Taxes', '2026-11-10', 5, { description: 'Pay taxes', status: 'important' }),
 			datedTask('Report', '2026-11-10', 6, { description: 'Hand off report', status: 'forwarded' }),
-		]);
+		], ['2026-11-10']);
 
 		const chips = qa('[data-calendar-task]');
 		expect(chips.map((c) => c.dataset.taskStatus)).toEqual(['todo', 'in-progress', 'question', 'important', 'forwarded']);
@@ -124,5 +126,44 @@ describe('EventTaskLane', () => {
 
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/Rent.md');
 		expect(editorStore.pendingScrollPosition).toBe('# Rent\n\n'.length);
+	});
+});
+
+describe('EventTaskLane: overflow', () => {
+	/** `n` tasks due on `date`, named T1..Tn. */
+	const busy = (date: string, n: number) => Array.from({ length: n }, (_, i) => datedTask(`T${i + 1}`, date, i + 1));
+
+	it('caps a busy day of the week at 2 chips and a "+N" that opens day view', () => {
+		mountLane(busy('2026-11-11', 5));
+
+		const cell = q('[data-task-lane-cell="2026-11-11"]')!;
+		expect([...cell.querySelectorAll<HTMLElement>('[data-calendar-task]')].map((c) => c.textContent?.trim())).toEqual(['T1', 'T2']);
+		const more = qa<HTMLButtonElement>('[data-task-lane-more]');
+		expect(more).toHaveLength(1);
+		expect(cell.contains(more[0])).toBe(true);
+		expect(more[0].textContent?.trim()).toBe('+3');
+		expect(more[0].getAttribute('aria-label')).toBe('3 more tasks, open day view');
+		expect(q('[data-task-lane] span')!.textContent).toBe('Tasks');
+
+		more[0].click();
+		flushSync();
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-11');
+		expect(eventCalendarViewStore.view).toBe('day');
+	});
+
+	it('shows every task, no "+N" and the count in the label in day view', () => {
+		mountLane(busy('2026-11-11', 5), ['2026-11-11']);
+
+		expect(qa('[data-calendar-task]')).toHaveLength(5);
+		expect(q('[data-task-lane-more]')).toBeNull();
+		expect(q('[data-task-lane] span')!.textContent).toBe('Tasks 5');
+		expect(q('[data-task-lane]')!.style.height).toBe(`${6 * 2 + 3 * 24 + 2 * 4 + 1}px`);
+	});
+
+	it('has no "+N" for a week day with exactly 3 tasks', () => {
+		mountLane(busy('2026-11-10', 3));
+
+		expect(qa('[data-calendar-task]')).toHaveLength(3);
+		expect(q('[data-task-lane-more]')).toBeNull();
 	});
 });
