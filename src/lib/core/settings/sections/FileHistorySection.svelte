@@ -35,9 +35,16 @@
 			min={1}
 			max={365}
 			value={String(settingsStore.history.retentionDays)}
-			oninput={(e) => {
-				const val = clampRetentionDays(Number((e.currentTarget as HTMLInputElement).value));
-				settingsStore.updateHistory({ retentionDays: val });
+			onchange={(e) => {
+				// Commit only, never on input: the value feeds `cleanup_history` at vault
+				// open, which deletes snapshots, so a half-typed value must not be stored.
+				const input = e.currentTarget as HTMLInputElement;
+				const n = Number(input.value);
+				if (input.value.trim() !== '' && Number.isFinite(n)) {
+					settingsStore.updateHistory({ retentionDays: clampRetentionDays(n) });
+				}
+				// Svelte skips the DOM write when the bound value did not change.
+				input.value = String(settingsStore.history.retentionDays);
 			}}
 		/>
 	</SettingItem>

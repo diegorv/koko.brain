@@ -16,16 +16,16 @@ Not in this ticket: `HeadingTypographyEditor.svelte`, `OneOnOneSection.svelte` a
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first (real `settingsStore`, in `src/tests/lib/core/settings/EditorSection.test.ts`): from the stored font size, typing `''` or `'1'` leaves the store unchanged; typing `'14'` stores 14; committing `'999'` stores 32 and shows `32`; committing `''` keeps the store and restores the field. Content width: typing `'5'` leaves the store, committing it stores 400; `0` and `800` store. Line height and paragraph spacing follow the same pattern with their bounds.
-- [ ] Failing test first, new `src/tests/lib/core/settings/FileHistorySection.test.ts`: retention days from 7: typing `''`, `'1'` or `'30'` leaves 7; committing `'30'` stores 30; committing `'400'` stores 365 and shows `365`; committing `''` keeps 30.
-- [ ] Failing test first, `src/tests/lib/features/auto-organize/AutoOrganizeSection.test.ts`: debounce from 3000: typing `''` or `'0'` leaves 3000; `'2'` stores 2000; `'45'` leaves 2000 and committing it stores 30000.
-- [ ] `EditorSection.test.ts:84-130` (the "raw while typing is deliberate" assertions: 999, 1, 9, 50 and 9 stored before the commit) are rewritten to the new contract on purpose; say in the commit that the review approved the change. The commit-clamp assertions and the heading typography tests (`:132-155`) stay unchanged.
-- [ ] No test mocks `settingsStore` or `settings.logic.ts`; only the Tauri font-list call stays mocked, as in `EditorSection.test.ts:8-10`.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first (real `settingsStore`, in `src/tests/lib/core/settings/EditorSection.test.ts`): from the stored font size, typing `''` or `'1'` leaves the store unchanged; typing `'14'` stores 14; committing `'999'` stores 32 and shows `32`; committing `''` keeps the store and restores the field. Content width: typing `'5'` leaves the store, committing it stores 400; `0` and `800` store. Line height and paragraph spacing follow the same pattern with their bounds.
+- [x] Failing test first, new `src/tests/lib/core/settings/FileHistorySection.test.ts`: retention days from 7: typing `''`, `'1'` or `'30'` leaves 7; committing `'30'` stores 30; committing `'400'` stores 365 and shows `365`; committing `''` keeps 30.
+- [x] Failing test first, `src/tests/lib/features/auto-organize/AutoOrganizeSection.test.ts`: debounce from 3000: typing `''` or `'0'` leaves 3000; `'2'` stores 2000; `'45'` leaves 2000 and committing it stores 30000.
+- [x] `EditorSection.test.ts:84-130` (the "raw while typing is deliberate" assertions: 999, 1, 9, 50 and 9 stored before the commit) are rewritten to the new contract on purpose; say in the commit that the review approved the change. The commit-clamp assertions and the heading typography tests (`:132-155`) stay unchanged.
+- [x] No test mocks `settingsStore` or `settings.logic.ts`; only the Tauri font-list call stays mocked, as in `EditorSection.test.ts:8-10`.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -53,3 +53,4 @@ Ticket 31 edits the rest of `AutoOrganizeSection.svelte` and `AutoOrganizeSectio
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): this ticket had no owner question in the old breakdown.
+- 2026-11-18, delivered from `issue/21-settings-number-fields-write-only-valid`: editor number fields (font size, content width, line height, paragraph spacing), file history retention days and auto-organize debounce write only in-range values while typing and clamp on commit; blank or partial input restores the field. Review fix: the content width clamp test starts from a stored 800. Tests: `pnpm check` exit 0; full suite at 876b47043: 660 files, 17620 passed, 56 skipped, 1 todo, exit 0. Reviews: round 1 APPROVED, round 2 APPROVED.
