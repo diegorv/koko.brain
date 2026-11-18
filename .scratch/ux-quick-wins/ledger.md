@@ -54,7 +54,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 17 | [The canvas context menu and pickers work from the keyboard and show Mac shortcut glyphs](issues/17-canvas-context-menu-pickers-work-keyboard.md) | 06 | todo | | |
 | 18 | [Note action bar: Mac glyph tooltips, and the width toggle says when it cannot work](issues/18-note-action-bar-mac-glyph-tooltips.md) | 17 | todo | | |
 | 19 | [Toasts follow the theme; Copy block link confirms](issues/19-toasts-follow-theme-copy-block-link.md) | none | todo | | |
-| 20 | [Keyboard focus shows at full strength; spinners and pulses respect Reduce motion](issues/20-keyboard-focus-shows-at-full-strength.md) | none | todo | | |
+| 20 | [Keyboard focus shows at full strength; spinners and pulses respect Reduce motion](issues/20-keyboard-focus-shows-at-full-strength.md) | none | in-progress | | |
 | 21 | [Settings number fields write only valid values and clamp on commit](issues/21-settings-number-fields-write-only-valid.md) | none | todo | | |
 | 22 | [Settings switches: dependents disable while their parent is off, and a switch that failed to start turns back off](issues/22-settings-switches-dependents-disable-while-parent.md) | none | todo | | |
 | 23 | [File History says what it compares and when something failed](issues/23-file-history-compares-something-failed.md) | 20 | todo | | |
@@ -120,3 +120,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 17:56 — 12 — deliver — merged after review 1 APPROVED, fix round (help restore toast placeholder; restoreItem guard rejected), re-review 2 APPROVED (claude); full vitest suite passed (17591 tests) — 00dcb35b4
 - 2026-11-18 17:57 — 15 — start — launched by /relay-lite:run — c0377cab6
 - 2026-11-18 18:06 — 15 — deliver — merged after review 1 APPROVED with 3 nits, fix round (attribute layout, chevron test; w-fit kept), re-review 2 APPROVED (claude); full vitest suite passed (17600 tests) — 6a3c28e99
+- 2026-11-18 18:06 — 20 — start — launched by /relay-lite:run — bff7c04b2
