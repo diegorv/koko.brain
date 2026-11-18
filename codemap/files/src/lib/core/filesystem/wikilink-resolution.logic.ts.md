@@ -56,7 +56,7 @@ by src/lib/core/filesystem/wikilink-resolution.logic.ts:buildResolutionCache <- 
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:buildResolutionCache <- src/lib/features/rail-shell/lens.logic.ts:397 in resolveNeighbourhoodLens call
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:buildResolutionCache <- src/lib/plugins/graph-view/graph-view.logic.ts:29 in buildGraphData call
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:buildResolutionCache <- src/lib/plugins/kanban/kanban.service.ts:73 in loadLinkedFileContent call
-by src/lib/core/filesystem/wikilink-resolution.logic.ts:buildResolutionCache <- src/lib/plugins/queryjs/kb-api.ts:452 in KBAPI.ensureCache call
+by src/lib/core/filesystem/wikilink-resolution.logic.ts:buildResolutionCache <- src/lib/plugins/queryjs/kb-api.ts:456 in KBAPI.ensureCache call
 sym src/lib/core/filesystem/wikilink-resolution.logic.ts:128 fn resolveWikilinkCached(target: string, cache: WikilinkResolutionCache, vaultRoot?: string | null): string | null L22 | O(1) wikilink resolution using a pre-built cache.
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:resolveWikilinkCached <- src/lib/app/editor-host.ts:125 in appEditorHost.resolveLink call
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:resolveWikilinkCached <- src/lib/core/filesystem/link-updater.logic.ts:105 in replaceWikilinks call +1

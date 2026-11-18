@@ -1,6 +1,6 @@
 # file card src/lib/features/collection/collection.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/collection/collection.store.svelte.ts ' codemap/files
-file src/lib/features/collection/collection.store.svelte.ts store L83 module src/lib/features/collection in13 t44
+file src/lib/features/collection/collection.store.svelte.ts store L83 module src/lib/features/collection in13 t45
 ## imports
 imp src/lib/features/collection/collection.store.svelte.ts:1 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
 ## imported-by
@@ -61,7 +61,7 @@ test src/tests/lib/features/rail-shell/TypesNavigator.test.ts imports src/lib/fe
 test src/tests/lib/features/type-definitions/ViewDialog.svelte.test.ts imports src/lib/features/collection/collection.store.svelte.ts
 test src/tests/lib/features/type-definitions/type-definitions.service.test.ts imports src/lib/features/collection/collection.store.svelte.ts
 test src/tests/lib/plugins/mods/mod-note-saved.test.ts imports src/lib/features/collection/collection.store.svelte.ts
-more tests 4 not shown: src/tests/lib/plugins/mods(2) src/tests/lib/plugins/queryjs(2): q tests src/lib/features/collection/collection.store.svelte.ts
+more tests 5 not shown: src/tests/lib/plugins/queryjs(3) src/tests/lib/plugins/mods(2): q tests src/lib/features/collection/collection.store.svelte.ts
 ## symbols
 sym src/lib/features/collection/collection.store.svelte.ts:28 store collectionStore L56 | Reactive store for the collection property index
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/app/boot.ts:79 in registerAppPorts member

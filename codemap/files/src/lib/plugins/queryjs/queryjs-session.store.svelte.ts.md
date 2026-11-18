@@ -1,6 +1,6 @@
 # file card src/lib/plugins/queryjs/queryjs-session.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/plugins/queryjs/queryjs-session.store.svelte.ts ' codemap/files
-file src/lib/plugins/queryjs/queryjs-session.store.svelte.ts store L198 module src/lib/plugins/queryjs in4 t4 | Session-scoped state for the QueryJS execution model (Phase 12 of the Híbrido D refactor).
+file src/lib/plugins/queryjs/queryjs-session.store.svelte.ts store L198 module src/lib/plugins/queryjs in4 t5 | Session-scoped state for the QueryJS execution model (Phase 12 of the Híbrido D refactor).
 ## imports
 imp src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:52 -> src/lib/plugins/queryjs/queryjs-charts.ts destroyChartsIn
 ## imported-by
@@ -16,6 +16,7 @@ test src/tests/lib/plugins/queryjs/queryjs-session.store.test.ts imports src/lib
 test src/tests/lib/app/boot.test.ts imports src/lib/plugins/queryjs/queryjs-session.store.svelte.ts
 test src/tests/lib/core/trash/trash.service.test.ts imports src/lib/plugins/queryjs/queryjs-session.store.svelte.ts
 test src/tests/lib/plugins/queryjs/queryjs-block-widget.test.ts imports src/lib/plugins/queryjs/queryjs-session.store.svelte.ts
+test src/tests/lib/plugins/queryjs/queryjs-table-pager-click.test.ts imports src/lib/plugins/queryjs/queryjs-session.store.svelte.ts
 ## symbols
 sym src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:72 store queryjsSessionStore L127
 by src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:queryjsSessionStore <- src/lib/app/lifecycle/app-lifecycle.service.ts:652 in teardownVault mcall

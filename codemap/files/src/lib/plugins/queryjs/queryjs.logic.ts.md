@@ -21,10 +21,10 @@ sym src/lib/plugins/queryjs/queryjs.logic.ts:20 fn buildKBLink(filePath: string)
 by src/lib/plugins/queryjs/queryjs.logic.ts:buildKBLink <- src/lib/plugins/queryjs/kb-api.ts:211 in KBAPI.fileLink call
 sym src/lib/plugins/queryjs/queryjs.logic.ts:28 fn resolveWikiLinkTarget(target: string, allFilePaths: string[]): string | null L14 | Resolves a wikilink target name to an absolute file path (case-insensitive).
 sym src/lib/plugins/queryjs/queryjs.logic.ts:47 fn buildReverseIndex(entries: NoteEntryV2[]): Map<string, Set<string>> L17 | Pre-computes a reverse index: basename (lowercase) → set of source file paths that link to that basename.
-by src/lib/plugins/queryjs/queryjs.logic.ts:buildReverseIndex <- src/lib/plugins/queryjs/kb-api.ts:446 in KBAPI.ensureCache call
+by src/lib/plugins/queryjs/queryjs.logic.ts:buildReverseIndex <- src/lib/plugins/queryjs/kb-api.ts:450 in KBAPI.ensureCache call
 sym src/lib/plugins/queryjs/queryjs.logic.ts:71 fn resolveInlinks(filePath: string, reverseIndex: Map<string, Set<string>>): KBLink[] L17 | Finds all files whose outgoing wikilinks target the given file.
 sym src/lib/plugins/queryjs/queryjs.logic.ts:113 fn buildKBPage(record: PropertyIndexRecord, entry: NoteEntryV2 | undefined, allFilePaths: string[], reverseIndex?: Map<string, Set<st… L61 | Builds a KBPage from a PropertyIndexRecord and its corresponding Rust-parsed `NoteEntryV2` (matched by absolute path).
-by src/lib/plugins/queryjs/queryjs.logic.ts:buildKBPage <- src/lib/plugins/queryjs/kb-api.ts:456 in KBAPI.ensureCache call
+by src/lib/plugins/queryjs/queryjs.logic.ts:buildKBPage <- src/lib/plugins/queryjs/kb-api.ts:460 in KBAPI.ensureCache call
 sym src/lib/plugins/queryjs/queryjs.logic.ts:184 fn parseSource(source: string | undefined, vaultPath: string): ((page: KBPage) => boolean) | null L35 | Parses a kb.pages() source string into a filter function.
 by src/lib/plugins/queryjs/queryjs.logic.ts:parseSource <- src/lib/plugins/queryjs/kb-api.ts:123 in KBAPI.pages call
 ## locals

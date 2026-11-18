@@ -65,12 +65,12 @@ by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/rail-shell/Rail.svelte:68 in inboxCount=$derived call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/rail-shell/lens.logic.ts:329 in listEntries call +4
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/plugins/calendar/day-lens.logic.ts:48 in noteDateCounts call
-by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/plugins/queryjs/kb-api.ts:473 in KBAPI.ensureCache call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/plugins/queryjs/kb-api.ts:477 in KBAPI.ensureCache call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:85 fn isListableNote(entry: NoteEntryV2): boolean L3 | True when an entry may be listed as a note: not a `.view` file and not a type definition (`_type: Type`).
 by src/lib/features/type-definitions/type-sidebar.logic.ts:isListableNote <- src/lib/features/rail-shell/lens.logic.ts:314 in BUILT_IN_LENSES call +4
 by src/lib/features/type-definitions/type-sidebar.logic.ts:isListableNote <- src/lib/features/type-definitions/inbox-workflow.logic.ts:11 in isInboxEntry call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:isListableNote <- src/lib/plugins/calendar/day-lens.logic.ts:41 in resolveDayLens call +1
-by src/lib/features/type-definitions/type-sidebar.logic.ts:isListableNote <- src/lib/plugins/queryjs/kb-api.ts:476 in KBAPI.ensureCache call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:isListableNote <- src/lib/plugins/queryjs/kb-api.ts:480 in KBAPI.ensureCache call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:95 fn getNotesForSelection(entries: NoteEntryV2[], selection: TypeSidebarSelection, archived: ArchivedFilter = 'active'): TypeSidebarNote[] L26 | Returns the notes matching the current sidebar selection, most-recently-modified first, with `_order` pins on top.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getNotesForSelection <- src/lib/features/rail-shell/lens.logic.ts:373 in resolveTypeLens call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:128 fn getNotesForViewPaths(entries: NoteEntryV2[], matchingPaths: ReadonlySet<string>, sort: string | null = 'modified', includeArchived = false)… L20 | Converts the entries matching a set of paths into sidebar notes, archived ones left out unless `includeArchived`.

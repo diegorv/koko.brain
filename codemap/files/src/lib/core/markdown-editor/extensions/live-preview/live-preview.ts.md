@@ -1,6 +1,6 @@
 # file card src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts ' codemap/files
-file src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts other L111 module src/lib/core/markdown-editor in1 t16
+file src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts other L111 module src/lib/core/markdown-editor in1 t17
 ## imports
 imp src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:3 -> src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts livePreviewClickHandler
 imp src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:4 -> src/lib/core/markdown-editor/extensions/live-preview/styles.ts livePreviewActiveLineTheme,livePreviewStyles
@@ -51,6 +51,7 @@ test src/tests/lib/core/markdown-editor/extensions/live-preview/widgets/math-wid
 test src/tests/lib/core/markdown-editor/setup/editor-extensions.test.ts imports src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts
 test src/tests/lib/features/collection/collection-block-click.test.ts imports src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts
 test src/tests/lib/features/collection/collection-block-row-rule.test.ts imports src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts
+test src/tests/lib/plugins/queryjs/queryjs-table-pager-click.test.ts imports src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts
 ## symbols
 sym src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:35 reexport forceDecorationRebuild = src/lib/core/markdown-editor/extensions/live-preview/core/effects.ts:forceDecorationRebuild L1
 sym src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts:38 const livePreviewCompartment L1

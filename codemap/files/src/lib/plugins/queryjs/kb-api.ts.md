@@ -1,6 +1,6 @@
 # file card src/lib/plugins/queryjs/kb-api.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/plugins/queryjs/kb-api.ts ' codemap/files
-file src/lib/plugins/queryjs/kb-api.ts other L556 module src/lib/plugins/queryjs in3 t6
+file src/lib/plugins/queryjs/kb-api.ts other L565 module src/lib/plugins/queryjs in3 t6
 ## imports
 imp src/lib/plugins/queryjs/kb-api.ts:1 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
 imp src/lib/plugins/queryjs/kb-api.ts:2 -> src/lib/types/vault-v2.types.ts type:NoteEntryV2
@@ -32,11 +32,11 @@ test src/tests/help/queryjs-contract.test.ts imports src/lib/plugins/queryjs/kb-
 test src/tests/help/queryjs-features-scoping.test.ts imports src/lib/plugins/queryjs/kb-api.ts
 test src/tests/lib/features/collection/collection.service.test.ts imports src/lib/plugins/queryjs/kb-api.ts
 ## symbols
-sym src/lib/plugins/queryjs/kb-api.ts:55 class KBAPI L486 | QueryJS API object.
+sym src/lib/plugins/queryjs/kb-api.ts:55 class KBAPI L495 | QueryJS API object.
 by src/lib/plugins/queryjs/kb-api.ts:KBAPI <- src/lib/plugins/mods/mod-app.service.ts:84 in createModKb new
 by src/lib/plugins/queryjs/kb-api.ts:KBAPI <- src/lib/plugins/mods/mods-host.service.ts:15 in (module) import
 by src/lib/plugins/queryjs/kb-api.ts:KBAPI <- src/lib/plugins/queryjs/queryjs-block-widget.ts:254 in QueryjsBlockWidget.execute new
-sym src/lib/plugins/queryjs/kb-api.ts:552 fn runQueryjsBlock(api: KBAPI, jsContent: string): Promise<void> L5 | Runs the body of a `` ```queryjs `` block against `api`, the step the block widget and the help-example contract tests share.
+sym src/lib/plugins/queryjs/kb-api.ts:561 fn runQueryjsBlock(api: KBAPI, jsContent: string): Promise<void> L5 | Runs the body of a `` ```queryjs `` block against `api`, the step the block widget and the help-example contract tests share.
 by src/lib/plugins/queryjs/kb-api.ts:runQueryjsBlock <- src/lib/plugins/queryjs/queryjs-block-widget.ts:265 in QueryjsBlockWidget.execute call
 ## calls
 call src/lib/plugins/queryjs/kb-api.ts:120 in KBAPI.pages -> src/lib/plugins/queryjs/kb-api.ts:KBAPI.ensureCache call
@@ -61,16 +61,16 @@ call src/lib/plugins/queryjs/kb-api.ts:289 in KBAPI.header -> src/lib/plugins/qu
 call src/lib/plugins/queryjs/kb-api.ts:296 in KBAPI.span -> src/lib/plugins/queryjs/kb-api.ts:KBAPI.el call
 call src/lib/plugins/queryjs/kb-api.ts:307 in KBAPI.list -> src/lib/plugins/queryjs/kb-api.ts:KBAPI.renderValue call
 call src/lib/plugins/queryjs/kb-api.ts:337 in KBAPI.table -> src/lib/plugins/queryjs/kb-api.ts:KBAPI.renderValue call
-call src/lib/plugins/queryjs/kb-api.ts:383 in KBAPI.view -> src/lib/plugins/queryjs/kb-api.ts:KBAPI.runView call
-call src/lib/plugins/queryjs/kb-api.ts:404 in KBAPI.runView -> src/lib/plugins/queryjs/kb-api.ts:KBAPI.resolveScriptPath call
-call src/lib/plugins/queryjs/kb-api.ts:446 in KBAPI.ensureCache -> src/lib/plugins/queryjs/queryjs.logic.ts:buildReverseIndex call
-call src/lib/plugins/queryjs/kb-api.ts:452 in KBAPI.ensureCache -> src/lib/core/filesystem/wikilink-resolution.logic.ts:buildResolutionCache call
-call src/lib/plugins/queryjs/kb-api.ts:456 in KBAPI.ensureCache -> src/lib/plugins/queryjs/queryjs.logic.ts:buildKBPage call
-call src/lib/plugins/queryjs/kb-api.ts:473 in KBAPI.ensureCache -> src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder call
-call src/lib/plugins/queryjs/kb-api.ts:476 in KBAPI.ensureCache -> src/lib/core/filesystem/fs.logic.ts:isViewFile call
-call src/lib/plugins/queryjs/kb-api.ts:476 in KBAPI.ensureCache -> src/lib/features/type-definitions/type-sidebar.logic.ts:isListableNote call
-call src/lib/plugins/queryjs/kb-api.ts:484 in KBAPI.ensureCache -> src/lib/utils/log.service.ts:appendLog call
-call src/lib/plugins/queryjs/kb-api.ts:509 in KBAPI.renderValue -> src/lib/utils/platform.ts:isMacContextClick call
-call src/lib/plugins/queryjs/kb-api.ts:512 in KBAPI.renderValue -> src/lib/core/editor/editor.service.ts:openFileInEditor call
+call src/lib/plugins/queryjs/kb-api.ts:387 in KBAPI.view -> src/lib/plugins/queryjs/kb-api.ts:KBAPI.runView call
+call src/lib/plugins/queryjs/kb-api.ts:408 in KBAPI.runView -> src/lib/plugins/queryjs/kb-api.ts:KBAPI.resolveScriptPath call
+call src/lib/plugins/queryjs/kb-api.ts:450 in KBAPI.ensureCache -> src/lib/plugins/queryjs/queryjs.logic.ts:buildReverseIndex call
+call src/lib/plugins/queryjs/kb-api.ts:456 in KBAPI.ensureCache -> src/lib/core/filesystem/wikilink-resolution.logic.ts:buildResolutionCache call
+call src/lib/plugins/queryjs/kb-api.ts:460 in KBAPI.ensureCache -> src/lib/plugins/queryjs/queryjs.logic.ts:buildKBPage call
+call src/lib/plugins/queryjs/kb-api.ts:477 in KBAPI.ensureCache -> src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder call
+call src/lib/plugins/queryjs/kb-api.ts:480 in KBAPI.ensureCache -> src/lib/core/filesystem/fs.logic.ts:isViewFile call
+call src/lib/plugins/queryjs/kb-api.ts:480 in KBAPI.ensureCache -> src/lib/features/type-definitions/type-sidebar.logic.ts:isListableNote call
+call src/lib/plugins/queryjs/kb-api.ts:488 in KBAPI.ensureCache -> src/lib/utils/log.service.ts:appendLog call
+call src/lib/plugins/queryjs/kb-api.ts:513 in KBAPI.renderValue -> src/lib/utils/platform.ts:isMacContextClick call
+call src/lib/plugins/queryjs/kb-api.ts:516 in KBAPI.renderValue -> src/lib/core/editor/editor.service.ts:openFileInEditor call
 ## effects
-fx src/lib/plugins/queryjs/kb-api.ts:507 dom.mousedown a in KBAPI.renderValue
+fx src/lib/plugins/queryjs/kb-api.ts:511 dom.mousedown a in KBAPI.renderValue

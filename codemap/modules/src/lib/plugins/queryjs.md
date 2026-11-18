@@ -27,20 +27,20 @@ entry src/lib/plugins/queryjs/queryjs.service.ts ext-in1 src/lib/plugins/mods/mo
 file src/lib/plugins/queryjs/QueryjsSection.svelte component L80 module src/lib/plugins/queryjs in1 t1
 file src/lib/plugins/queryjs/contract/kb-api.v1.ts other L739 module src/lib/plugins/queryjs in6 t0 | QueryJS scripting API, contract version 1: the public surface user scripts see as `kb` / `dv` (ADR-0010 amendment 2026-11-01).
 file src/lib/plugins/queryjs/data-array.ts other L358 module src/lib/plugins/queryjs in2 t5
-file src/lib/plugins/queryjs/kb-api.ts other L556 module src/lib/plugins/queryjs in3 t6
+file src/lib/plugins/queryjs/kb-api.ts other L565 module src/lib/plugins/queryjs in3 t6
 file src/lib/plugins/queryjs/kb-datetime.ts other L231 module src/lib/plugins/queryjs in3 t5
-file src/lib/plugins/queryjs/kb-ui.ts other L1069 module src/lib/plugins/queryjs in1 t2
+file src/lib/plugins/queryjs/kb-ui.ts other L1080 module src/lib/plugins/queryjs in1 t3
 file src/lib/plugins/queryjs/kb-ui.types.ts types L23 module src/lib/plugins/queryjs in1 t0
-file src/lib/plugins/queryjs/queryjs-block-widget.ts other L348 module src/lib/plugins/queryjs in2 t5
+file src/lib/plugins/queryjs/queryjs-block-widget.ts other L348 module src/lib/plugins/queryjs in2 t6
 file src/lib/plugins/queryjs/queryjs-charts.ts other L31 module src/lib/plugins/queryjs in3 t3 | Chart.js instances created by `kb.ui.chart()`, by canvas.
 file src/lib/plugins/queryjs/queryjs-ports.ts other L21 module src/lib/plugins/queryjs in1 t0
-file src/lib/plugins/queryjs/queryjs-session.store.svelte.ts store L198 module src/lib/plugins/queryjs in4 t4 | Session-scoped state for the QueryJS execution model (Phase 12 of the Híbrido D refactor).
+file src/lib/plugins/queryjs/queryjs-session.store.svelte.ts store L198 module src/lib/plugins/queryjs in4 t5 | Session-scoped state for the QueryJS execution model (Phase 12 of the Híbrido D refactor).
 file src/lib/plugins/queryjs/queryjs.logic.ts logic L218 module src/lib/plugins/queryjs in1 t3
 file src/lib/plugins/queryjs/queryjs.service.ts service L6 module src/lib/plugins/queryjs in2 t1
 file src/lib/plugins/queryjs/queryjs.types.ts types L9 module src/lib/plugins/queryjs in3 t0
 ## public
 sym src/lib/plugins/queryjs/QueryjsSection.svelte:1 component QueryjsSection L80
-sym src/lib/plugins/queryjs/kb-api.ts:55 class KBAPI L486 | QueryJS API object.
+sym src/lib/plugins/queryjs/kb-api.ts:55 class KBAPI L495 | QueryJS API object.
 sym src/lib/plugins/queryjs/queryjs-block-widget.ts:343 const queryjsBlockRenderer: FencedBlockRenderer L6 | Renders `` ```queryjs `` blocks; the app installs it in the editor's `fencedBlockRenderers`.
 sym src/lib/plugins/queryjs/queryjs-ports.ts:13 fn registerQueryjsBlockPorts(): () => void L9 | Wires the queryjs blocks' app-lifetime ports: a content change clears the cached results (`invalidateQueryjsCache`), and a closed tab drops its file's autoRun …
 sym src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:72 store queryjsSessionStore L127
@@ -48,7 +48,7 @@ sym src/lib/plugins/queryjs/queryjs.service.ts:4 fn loadExternalScript(absoluteP
 ## stores
 store src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:72 queryjsSessionStore esc:0
 ## effects
-fx-count dom.mousedown 3
+fx-count dom.mousedown 5
 fx-count tauri-fs.readTextFile 1
 fx-count timer.requestAnimationFrame 1
 fx-count timer.setTimeout 1

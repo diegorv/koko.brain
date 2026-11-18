@@ -20,7 +20,7 @@ by src/lib/utils/color-presets.ts:COLOR_PRESET_BG <- src/lib/plugins/kanban/Kanb
 by src/lib/utils/color-presets.ts:COLOR_PRESET_BG <- src/lib/plugins/kanban/KanbanCardText.svelte:38 in (markup) markup +1
 by src/lib/utils/color-presets.ts:COLOR_PRESET_BG <- src/lib/plugins/kanban/KanbanListView.svelte:33 in (markup) markup
 by src/lib/utils/color-presets.ts:COLOR_PRESET_BG <- src/lib/plugins/kanban/KanbanTableView.svelte:40 in (markup) markup +1
-by src/lib/utils/color-presets.ts:COLOR_PRESET_BG <- src/lib/plugins/queryjs/kb-ui.ts:910 in KBUI.resolveCardColor ref
+by src/lib/utils/color-presets.ts:COLOR_PRESET_BG <- src/lib/plugins/queryjs/kb-ui.ts:921 in KBUI.resolveCardColor ref
 sym src/lib/utils/color-presets.ts:28 const COLOR_PRESET_TEXT: Record<string, string> L3 | Named color presets with full opacity for text/bars.
 by src/lib/utils/color-presets.ts:COLOR_PRESET_TEXT <- src/lib/features/collection/expression/evaluator.ts:448 in evaluateCall ref +5
 by src/lib/utils/color-presets.ts:COLOR_PRESET_TEXT <- src/lib/plugins/kanban/KanbanCard.svelte:244 in (markup) markup
