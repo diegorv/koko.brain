@@ -450,11 +450,18 @@ Click a view in the Types navigator to see its matching notes in the note list. 
 
 When a picked view has no list to show, the note list says why instead of an empty list:
 
-- **Loading...** while the vault index is still being built or the notes have not loaded yet, or while the `.view` file is being read for the first time.
-- **This view no longer exists** when the `.view` file is no longer in the vault (for example, moved or deleted outside Kokobrain).
-- **This view cannot be shown**, with the reason, when the file cannot be read, its YAML does not parse, a view entry is wrong (no `name`, a missing or unknown `type`, a `sort` without `direction`) or a filter does not parse (a typo such as `status = 'active'`). The **Open view** button under it opens the `.view` in the editor so you can fix it.
+- **Loading notes**, with a spinner, while the vault index is still being built or the notes have not loaded yet, or while the `.view` file is being read for the first time.
+- **This view no longer exists** when the `.view` file is no longer in the vault (for example, moved or deleted outside Kokobrain). The hint under it says its `.view` file was moved or deleted; this holds for a view pinned to the rail too.
+- **This view cannot be shown**, with the reason, when the file cannot be read, its YAML does not parse, a view entry is wrong (no `name`, a missing or unknown `type`, a `sort` without `direction`) or a filter does not parse (a typo such as `status = 'active'`). Fix the `.view` file and the list reloads. The **Open view** button under it opens the `.view` in the editor so you can fix it.
 
-Sort, Filter and **New here** are hidden in these three states. **No notes here** means the view ran and no note matches.
+Sort, Filter and **New here** are hidden in these three states.
+
+When the view ran and no note matches, the list says which:
+
+- **No notes in this view** when the view has no filters.
+- **No notes match N filters** (or **1 filter**) when it has filters. **Edit filters** opens the Filter panel, where you can change them; the button itself saves nothing.
+
+The other lists name their cause the same way: **No favorites yet** (star a note with ⌘D, the star above the note, or its row menu), **Inbox zero** (mark a note organized with ⌘E), **Nothing archived**, **No Project notes yet** for a type (use **+** to create one), **This folder is empty.**, and **No types yet** in Types before there is any. With the archived filter on a type or Untyped, **Only archived** with nothing archived offers **Show active**, and **Hide archived** over notes that are all archived says **All N Project notes are archived** with **Show archived**. A search that matches nothing says **No notes match "..."** with **Clear search**, which empties the search box and keeps it open; while the search of note contents is still running it says **Searching note contents...** instead.
 
 In Views, the count of a view whose YAML or filter does not parse is replaced by a red mark; hover it for the reason. A grey mark next to the count lists the keys set to a value that is ignored (see [View Metadata Fields](#view-metadata-fields)). Counts appear once each view has run, so they can show up a moment after the rows; a `_rail_view` that names no view is marked at that moment too, because the check reads the parsed file.
 

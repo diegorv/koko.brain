@@ -192,6 +192,11 @@ describe('RailNoteList - view lens', () => {
 		);
 	}
 
+	/** The title of the empty state or view status behind `hook`. */
+	function stateTitle(hook: string): string | undefined {
+		return target.querySelector(`[${hook}] [data-empty-state-title]`)?.textContent ?? undefined;
+	}
+
 	function rowPills(): string[][] {
 		return [...target.querySelectorAll('[data-note-row]')].map((row) =>
 			[...row.querySelectorAll('.flex-wrap span')].map((el) => el.textContent?.trim() ?? ''),
@@ -586,7 +591,7 @@ views:
 		await settle();
 
 		expect(rowTitles()).toEqual(['alpha', 'beta', 'gamma']);
-		expect(target.textContent).not.toContain('This view no longer exists');
+		expect(stateTitle('data-note-list-missing')).toBeUndefined();
 	});
 
 	it('reads the file again on an index bump, with no manual refresh: rows and Filter popover follow it', async () => {
@@ -608,7 +613,7 @@ views:
 
 		fsStore.setFileTree([{ name: 'People.view', path: PEOPLE_VIEW, isDirectory: false }]);
 		await settle();
-		expect(target.textContent).toContain('This view no longer exists');
+		expect(stateTitle('data-note-list-missing')).toBe('This view no longer exists');
 
 		files[VIEW] = PEOPLE;
 		fsStore.setFileTree(TREE);
@@ -699,7 +704,8 @@ views:
 	it('shows Loading, not an empty list, until the property index is ready, then lists the view', async () => {
 		collectionStore.reset();
 		await mountList();
-		expect(target.querySelector('[data-note-list-loading]')?.textContent?.trim()).toBe('Loading...');
+		expect(stateTitle('data-note-list-loading')).toBe('Loading notes');
+		expect(target.querySelector('[data-note-list-loading] .animate-spin')).not.toBeNull();
 		expect(target.querySelector('[data-note-list-empty]')).toBeNull();
 		expectNoToolbar();
 		collectionStore.setPropertyIndex(buildIndex());
@@ -715,7 +721,7 @@ views:
 			typeDefinitionsStore.reset();
 			collectionStore.setPropertyIndex(buildIndex());
 			await mountList();
-			expect(target.querySelector('[data-note-list-loading]')?.textContent?.trim()).toBe('Loading...');
+			expect(stateTitle('data-note-list-loading')).toBe('Loading notes');
 			expect(target.querySelector('[data-note-list-empty]')).toBeNull();
 			expect(target.querySelector('[data-note-list-count]')?.textContent).toBe('');
 			expectNoToolbar();
@@ -743,7 +749,7 @@ views:
 			typeDefinitionsStore.setEntries([...ENTRIES]);
 			await settle();
 			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
-			expect(target.querySelector('[data-note-list-empty]')?.textContent?.trim()).toBe('No notes here');
+			expect(stateTitle('data-note-list-empty')).toBe('No notes match 1 filter');
 		});
 
 		it('leaves Loading in a vault with no notes', async () => {
@@ -798,7 +804,7 @@ views:
 				}),
 		);
 		await mountList();
-		expect(target.querySelector('[data-note-list-loading]')?.textContent?.trim()).toBe('Loading...');
+		expect(stateTitle('data-note-list-loading')).toBe('Loading notes');
 		expect(target.querySelector('[data-note-list-empty]')).toBeNull();
 		expectNoToolbar();
 		finishRead();
@@ -822,6 +828,9 @@ views:
 		await mountList();
 		expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Open work');
 		expect(target.querySelector('[data-note-list-error-message]')?.textContent).toBe(parsed.error);
+		const alert = target.querySelector('[data-note-list-error] [role="alert"]');
+		expect(alert?.contains(target.querySelector('[data-note-list-error-message]'))).toBe(true);
+		expect(alert?.querySelector('[data-note-list-error-hint]')?.textContent).toBe('Fix the .view file and the list reloads.');
 		expect(target.querySelector('[data-note-list-open-view]')).not.toBeNull();
 		expect(target.querySelector('[data-note-list-empty]')).toBeNull();
 		expectNoToolbar();
@@ -857,7 +866,9 @@ views:
 	it('says a .view that is not in the file tree no longer exists, with no Open view and no toolbar', async () => {
 		fsStore.setFileTree([TREE[1]]);
 		await mountList();
-		expect(target.querySelector('[data-note-list-missing]')?.textContent?.trim()).toBe('This view no longer exists');
+		expect(stateTitle('data-note-list-missing')).toBe('This view no longer exists');
+		expect(target.querySelector('[data-note-list-missing] [data-empty-state-hint]')?.textContent).toBe('Its .view file was moved or deleted.');
+		expect(target.querySelector('[data-note-list-missing] [data-empty-state-action]')).toBeNull();
 		expect(target.querySelector('[data-note-list-open-view]')).toBeNull();
 		expect(target.querySelector('[data-note-list-empty]')).toBeNull();
 		expectNoToolbar();
@@ -869,18 +880,45 @@ views:
 		// A delete outside the app: the watcher refreshes the tree, the parse cache keeps the old parse.
 		fsStore.setFileTree([TREE[1]]);
 		await settle();
-		expect(target.querySelector('[data-note-list-missing]')?.textContent?.trim()).toBe('This view no longer exists');
+		expect(stateTitle('data-note-list-missing')).toBe('This view no longer exists');
 		expect(rowTitles()).toEqual([]);
 		expectNoToolbar();
 	});
 
-	it('shows "No notes here" and the toolbar only for a view that ran and matched nothing', async () => {
+	it('says how many filters match nothing, with the toolbar, only for a view that ran and matched nothing', async () => {
 		files[VIEW] = `filters: "_type == 'Recipe'"\nviews:\n  - type: table\n    name: Projects\n`;
 		await mountList();
-		expect(target.querySelector('[data-note-list-empty]')?.textContent?.trim()).toBe('No notes here');
+		expect(stateTitle('data-note-list-empty')).toBe('No notes match 1 filter');
 		expect(target.querySelector('[data-note-list-error-message]')).toBeNull();
 		expect(toolbarButtons().sort).not.toBeNull();
 		expect(toolbarButtons().filter).not.toBeNull();
+	});
+
+	it('says "No notes in this view", with no action, for a view with no filters that matches nothing', async () => {
+		files[VIEW] = 'views:\n  - type: table\n    name: All\n';
+		typeDefinitionsStore.setEntries([]);
+		collectionStore.setPropertyIndex(new Map());
+		await mountList();
+		expect(stateTitle('data-note-list-empty')).toBe('No notes in this view');
+		expect(target.querySelector('[data-note-list-empty] [data-empty-state-action]')).toBeNull();
+	});
+
+	it('says how many filters hide every note, and Edit filters opens the Filter panel and writes nothing', async () => {
+		files[VIEW] = `filters: "_type == 'Recipe'"\nviews:\n  - type: table\n    name: Projects\n    filters: "status == 'open'"\n`;
+		await mountList();
+		expect(stateTitle('data-note-list-empty')).toBe('No notes match 2 filters');
+		const editFilters = target.querySelector<HTMLButtonElement>('[data-note-list-empty] [data-empty-state-action]')!;
+		expect(editFilters.textContent?.trim()).toBe('Edit filters');
+		expect(document.querySelectorAll('input[placeholder="Value..."]')).toHaveLength(0);
+
+		editFilters.click();
+		await settle();
+		// bits-ui registers the outside-click layer a tick after opening.
+		await new Promise((resolve) => setTimeout(resolve, 50));
+		await settle();
+		expect([...document.querySelectorAll<HTMLInputElement>('input[placeholder="Value..."]')].map((i) => i.value)).toEqual(['Recipe', 'open']);
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(files[VIEW]).toBe(`filters: "_type == 'Recipe'"\nviews:\n  - type: table\n    name: Projects\n    filters: "status == 'open'"\n`);
 	});
 
 	describe('+ New here', () => {

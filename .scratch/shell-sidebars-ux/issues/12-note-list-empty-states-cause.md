@@ -23,18 +23,18 @@ Not in this ticket: right-sidebar panels explaining non-note tabs (replaced by h
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, `src/tests/lib/features/rail-shell/list-empty.logic.test.ts` (no mocks), one case each pinning the literal title and action, hints as literals containing `⌘D` or `⌘E`: Favorites, Inbox, Archive; a view with 0, 1 and 3 filters (singular at 1); "Only archived" giving `show-active`; "Hide archived" with 4 hidden giving `show-archived`; each null case (bare Types, folder, neighbourhood, unknown); `searching` beats every lens case; `fullTextLoading` with no local match gives the searching line.
-- [ ] `src/tests/lib/components/EmptyState.test.ts`: title; hint and action only when given, action click calls it; `compact` is one `p.text-meta` with no icon; `spinner` renders `animate-spin` and the title; `data-*` and `class` reach the root.
-- [ ] Failing test first, `RailNoteList.search.test.ts`: on `TODAY_LENS` with one dated note, a no-match query shows `[data-note-list-no-matches]` with `No notes match "zzzz"` and no `[data-note-list-group-empty]` (red today); Clear search empties the input and restores rows on a flat list; with the full-text `invoke` pending (pattern `RailNoteList.toolbar.test.ts:430-445`) `[data-note-list-searching]` shows and no-match does not, then no-match shows once it resolves empty. The neighbourhood case at `:326` changes on purpose only when every group is 0.
-- [ ] `RailNoteList.test.ts`: Favorites, Inbox and Archive empties show title and hint inside `[data-note-list-empty]`; "Only archived" shows Show active and clicking it lists the active notes; a type whose only note is archived shows "All 1 ... notes are archived" and Show archived lists it; a bare Types lens shows "No types yet".
-- [ ] `RailNoteList.view.test.ts` (real stores, `invoke` mocked): two seeded filters and zero results show "No notes match 2 filters"; Edit filters opens the Filter panel, it is still open after a tick, and nothing was written; Loading shows the spinner and "Loading notes" with no `[data-note-list-empty]`; Missing keeps `[data-note-list-missing]` and shows the hint; Error keeps `role="alert"`, the message and `[data-note-list-open-view]` and shows the hint.
-- [ ] The text pins that change on purpose (`RailNoteList.test.ts:381,417,516,872,935`, `RailNoteList.view.test.ts:589,611,702,718,746,801,860,872,877,880`, `RailNoteList.search.test.ts:357,365`, `RailNoteList.toolbar.test.ts:317`) query the title element; none is loosened to `toContain`.
-- [ ] `layer-rules`, `feature-cycle`, `lib-specifier-convention`, `chrome-type-scale`, `chrome-state-styles` and `palette-classes` tests pass with the new files.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/features/rail-shell/list-empty.logic.test.ts` (no mocks), one case each pinning the literal title and action, hints as literals containing `⌘D` or `⌘E`: Favorites, Inbox, Archive; a view with 0, 1 and 3 filters (singular at 1); "Only archived" giving `show-active`; "Hide archived" with 4 hidden giving `show-archived`; each null case (bare Types, folder, neighbourhood, unknown); `searching` beats every lens case; `fullTextLoading` with no local match gives the searching line.
+- [x] `src/tests/lib/components/EmptyState.test.ts`: title; hint and action only when given, action click calls it; `compact` is one `p.text-meta` with no icon; `spinner` renders `animate-spin` and the title; `data-*` and `class` reach the root.
+- [x] Failing test first, `RailNoteList.search.test.ts`: on `TODAY_LENS` with one dated note, a no-match query shows `[data-note-list-no-matches]` with `No notes match "zzzz"` and no `[data-note-list-group-empty]` (red today); Clear search empties the input and restores rows on a flat list; with the full-text `invoke` pending (pattern `RailNoteList.toolbar.test.ts:430-445`) `[data-note-list-searching]` shows and no-match does not, then no-match shows once it resolves empty. The neighbourhood case at `:326` changes on purpose only when every group is 0.
+- [x] `RailNoteList.test.ts`: Favorites, Inbox and Archive empties show title and hint inside `[data-note-list-empty]`; "Only archived" shows Show active and clicking it lists the active notes; a type whose only note is archived shows "All 1 ... notes are archived" and Show archived lists it; a bare Types lens shows "No types yet".
+- [x] `RailNoteList.view.test.ts` (real stores, `invoke` mocked): two seeded filters and zero results show "No notes match 2 filters"; Edit filters opens the Filter panel, it is still open after a tick, and nothing was written; Loading shows the spinner and "Loading notes" with no `[data-note-list-empty]`; Missing keeps `[data-note-list-missing]` and shows the hint; Error keeps `role="alert"`, the message and `[data-note-list-open-view]` and shows the hint.
+- [x] The text pins that change on purpose (`RailNoteList.test.ts:381,417,516,872,935`, `RailNoteList.view.test.ts:589,611,702,718,746,801,860,872,877,880`, `RailNoteList.search.test.ts:357,365`, `RailNoteList.toolbar.test.ts:317`) query the title element; none is loosened to `toContain`.
+- [x] `layer-rules`, `feature-cycle`, `lib-specifier-convention`, `chrome-type-scale`, `chrome-state-styles` and `palette-classes` tests pass with the new files.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -65,3 +65,4 @@ Checked at `ab143a411`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided by the owner: granularity of 34 consolidated tickets (this is old ticket 12 unchanged). Defaults (not individually answered): 12.1 a filtered-out view offers Edit filters, not Clear filters; 12.2 include the archived-filter causes; 12.3 `EmptyState` in `src/lib/components/` with an ADR-0003 and CLAUDE.md line; 12.4 the hint copy as written above; 12.5 Today's empty group keeps the compact "Nothing here" when not searching.
+- 2026-11-18, deliver (issue/12-note-list-empty-states-cause): `EmptyState` component and `explainEmptyList` logic; the rail note list names why it is empty (search, view filters, archived filter, per-lens copy) with an action. Review fixes: help doc says "Loading notes"; Clear search refocuses the search input. Tests: pnpm check 0 errors; full suite at 1eaabc7fb 649/649 files, 17170 passed, 54 skipped. Reviews: round 1 APPROVED, round 2 APPROVED (no findings).
