@@ -35,9 +35,13 @@ const groupRowTexts = (g: Element) => Array.from(g.querySelectorAll('[data-task-
 /** The open menu: jsdom never ends the exit animation, so a closed one stays with data-state="closed". */
 const openMenuEl = () => document.querySelector<HTMLElement>('[role="menu"][data-state="open"]');
 
+/** A button's text with whitespace runs collapsed: its accessible name when it has no `aria-label`. */
+const buttonText = (b: Element) => (b.textContent ?? '').replace(/\s+/g, ' ').trim();
+
+/** The Display trigger, whose text ends with the current grouping ("Display · Note"). */
 function displayTrigger(): HTMLButtonElement {
-	const button = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
-		(b) => b.textContent?.trim() === 'Display',
+	const button = Array.from(document.querySelectorAll<HTMLButtonElement>('.pane-toolbar button')).find((b) =>
+		buttonText(b).startsWith('Display'),
 	);
 	if (!button) throw new Error('Display trigger not found');
 	return button;
@@ -135,6 +139,29 @@ describe('TasksView: grouping', () => {
 		vaultStore.close();
 		await settle();
 		document.body.innerHTML = '';
+	});
+
+	it('the Display trigger names the current grouping, and its name starts with Display', async () => {
+		statefulTasks();
+		tasksStore.setGroupBy('note');
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(4));
+		const trigger = displayTrigger();
+		expect(trigger.hasAttribute('aria-label')).toBe(false);
+		expect(buttonText(trigger)).toBe('Display · Note');
+
+		tasksStore.setGroupBy('due');
+		await settle();
+		expect(buttonText(trigger)).toBe('Display · Due date');
+
+		tasksStore.setGroupBy({ property: 'area' });
+		await settle();
+		expect(buttonText(trigger)).toBe('Display · area');
+		expect(trigger.querySelector('[data-task-display-value]')?.classList.contains('truncate')).toBe(true);
+
+		tasksStore.setGroupBy('heading');
+		await settle();
+		expect(buttonText(trigger)).toBe('Display · Heading');
 	});
 
 	it('Display > Due date renders the buckets in order with exact counts, each row under its header, and no icon in a header', async () => {
@@ -304,7 +331,8 @@ describe('TasksView: grouping', () => {
 			const [, next] = groupEls();
 			expect(groupRowTexts(next)).toEqual(['parent', 'child']);
 			const [parent, child] = Array.from(next.querySelectorAll<HTMLElement>('[data-task-row]'));
-			expect(parent.classList.contains('opacity-60')).toBe(true);
+			expect(parent.hasAttribute('data-task-context')).toBe(true);
+			expect(child.hasAttribute('data-task-context')).toBe(false);
 			expect(child.style.paddingLeft).toBe('1.5rem');
 			expect(child.querySelector('[data-task-breadcrumb]')).toBeNull();
 		});

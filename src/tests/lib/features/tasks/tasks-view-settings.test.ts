@@ -342,7 +342,7 @@ describe('Tasks view state saved in settings.json', () => {
 			const named = (selector: string, name: string) =>
 				Array.from(document.querySelectorAll<HTMLElement>(selector)).find((el) => (el.getAttribute('aria-label') ?? el.textContent?.trim()) === name)!;
 
-			named('button', 'Edit').click();
+			named('button', 'Edit sources').click();
 			flushSync();
 			named('[role="switch"]', 'Templates folder').click();
 			flushSync();

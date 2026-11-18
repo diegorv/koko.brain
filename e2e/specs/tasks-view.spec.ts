@@ -276,7 +276,7 @@ test.describe('Tasks view', () => {
 		await expect(page.getByText('Listed by work')).toHaveCount(0);
 		await expect(page.getByText('Never listed')).toHaveCount(0);
 
-		await page.getByRole('button', { name: 'Edit', exact: true }).click();
+		await page.getByRole('button', { name: 'Edit sources', exact: true }).click();
 		await page.getByRole('button', { name: 'Add card', exact: true }).click();
 		await page.getByRole('button', { name: 'Add clause', exact: true }).last().click();
 		await page.getByRole('menuitem', { name: 'Heading', exact: true }).click();

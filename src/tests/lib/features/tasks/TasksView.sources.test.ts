@@ -51,6 +51,13 @@ function only(role: 'button' | 'switch' | 'textbox' | 'menuitem', name: string):
 	return found[0];
 }
 
+/** The rule sentence's "Edit sources" button. An empty state can show a second button with that name. */
+function editSources(): HTMLElement {
+	const button = document.querySelector<HTMLElement>('[data-task-sources-edit]');
+	if (!button || nameOf(button) !== 'Edit sources') throw new Error('no Edit sources button after the rule sentence');
+	return button;
+}
+
 /** Types `value` into `input` as one input event. */
 function type(input: HTMLElement, value: string): void {
 	(input as HTMLInputElement).value = value;
@@ -112,7 +119,7 @@ describe('TasksView: the Sources panel', () => {
 		mockTaskFetch(vault());
 		({ component } = await mountTasksView());
 		await until(() => expect(paragraph('No task sits under a heading containing #to-list')).toBeDefined());
-		const edit = only('button', 'Edit');
+		const edit = editSources();
 		expect(edit.getAttribute('aria-expanded')).toBe('false');
 
 		edit.click();
@@ -145,7 +152,7 @@ describe('TasksView: the Sources panel', () => {
 	it('sets negate with Not and match with Contains, and Remove clause drops a clause', async () => {
 		mockTaskFetch(vault());
 		({ component } = await mountTasksView());
-		only('button', 'Edit').click();
+		editSources().click();
 		flushSync();
 		only('button', 'Add card').click();
 		flushSync();
@@ -171,7 +178,7 @@ describe('TasksView: the Sources panel', () => {
 		mockTaskFetch([one('/vault/Projects/P.md', 'project task'), one('/vault/Home/H.md', 'home task')]);
 		tasksStore.setSources([]);
 		({ component } = await mountTasksView());
-		only('button', 'Edit').click();
+		editSources().click();
 		flushSync();
 
 		type(only('textbox', 'Excluded folder'), 'Projects');
@@ -216,7 +223,7 @@ describe('TasksView: the Sources panel', () => {
 		]);
 		({ component } = await mountTasksView());
 		await until(() => expect(rowTexts()).toEqual(['home task', 'project task']));
-		only('button', 'Edit').click();
+		editSources().click();
 		flushSync();
 
 		const removeLast = named('button', 'Remove card').at(-1)!;
@@ -242,12 +249,48 @@ describe('TasksView: the Sources panel', () => {
 		expect(document.activeElement).toBe(only('button', 'Add card'));
 	});
 
+	it('puts one hidden "or" between two cards, and none around one card or none', async () => {
+		mockTaskFetch(vault());
+		tasksStore.setSources([{ clauses: [{ kind: 'folder', path: 'Projects' }] }, { clauses: [{ kind: 'folder', path: 'Home' }] }]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rowTexts()).toEqual(['home task', 'project task']));
+		editSources().click();
+		flushSync();
+		const cards = () => Array.from(document.querySelectorAll<HTMLElement>('[data-task-source-card]'));
+		const ors = () => Array.from(document.querySelectorAll<HTMLElement>('[data-task-sources-or]'));
+
+		expect(cards()).toHaveLength(2);
+		expect(ors()).toHaveLength(1);
+		const [or] = ors();
+		expect(or.textContent?.trim()).toBe('or');
+		expect(or.getAttribute('aria-hidden')).toBe('true');
+		expect(or.previousElementSibling).toBe(cards()[0]);
+		expect(or.nextElementSibling).toBe(cards()[1]);
+
+		named('button', 'Remove card').at(-1)!.click();
+		flushSync();
+		expect(cards()).toHaveLength(1);
+		expect(ors()).toHaveLength(0);
+
+		only('button', 'Add card').click();
+		flushSync();
+		expect(cards()).toHaveLength(2);
+		expect(ors()).toHaveLength(1);
+
+		while (named('button', 'Remove card').length > 0) {
+			named('button', 'Remove card')[0].click();
+			flushSync();
+		}
+		expect(cards()).toHaveLength(0);
+		expect(ors()).toHaveLength(0);
+	});
+
 	it('Remove clause and an exclude entry remove button keep focus in the panel', async () => {
 		mockTaskFetch(vault());
 		tasksStore.setSources([{ clauses: [{ kind: 'folder', path: 'Projects' }, { kind: 'type', type: '' }] }]);
 		({ component } = await mountTasksView());
 		await until(() => expect(rowTexts()).toEqual(['project task']));
-		only('button', 'Edit').click();
+		editSources().click();
 		flushSync();
 
 		const removeType = named('button', 'Remove clause')[1];
@@ -284,11 +327,16 @@ describe('TasksView: the Sources panel', () => {
 		tasksStore.setSources([{ clauses: [{ kind: 'folder', path: 'Nowhere' }] }]);
 		({ component } = await mountTasksView());
 		await until(() => expect(paragraph('No note matches the sources')).toBeDefined());
-		const edit = only('button', 'Edit');
+		// The sentence's button and the empty state's share the name "Edit sources".
+		expect(named('button', 'Edit sources')).toHaveLength(2);
+		const edit = editSources();
 		expect(edit.getAttribute('aria-expanded')).toBe('false');
 		expect(document.getElementById(edit.getAttribute('aria-controls')!)).toBeNull();
 
-		only('button', 'Edit sources').click();
+		const empty = paragraph('No note matches the sources')!.parentElement!;
+		Array.from(empty.querySelectorAll('button'))
+			.find((b) => nameOf(b) === 'Edit sources')!
+			.click();
 		flushSync();
 
 		expect(edit.getAttribute('aria-expanded')).toBe('true');
@@ -301,7 +349,7 @@ describe('TasksView: the Sources panel', () => {
 		tasksStore.setSources([{ clauses: [{ kind: 'folder', path: '_system' }] }]);
 		({ component } = await mountTasksView());
 		await until(() => expect(paragraph('Every matching note is excluded')).toBeDefined());
-		const edit = only('button', 'Edit');
+		const edit = editSources();
 
 		only('button', 'Edit excludes').click();
 		flushSync();
@@ -346,7 +394,7 @@ describe('TasksView: the Sources panel', () => {
 		expect(document.body.textContent).toContain('Indexing tasks...');
 		expect(tasksStore.query.sources).not.toEqual([]);
 		expect(named('button', 'Clear')).toHaveLength(0);
-		expect(named('button', 'Edit')).toHaveLength(0);
+		expect(named('button', 'Edit sources')).toHaveLength(0);
 	});
 
 	it('keeps focus in a panel input when the first rows arrive and when the list changes', async () => {
@@ -354,7 +402,7 @@ describe('TasksView: the Sources panel', () => {
 		tasksStore.setSources([{ clauses: [{ kind: 'folder', path: '' }, { kind: 'type', type: 'None' }] }]);
 		({ component } = await mountTasksView());
 		await until(() => expect(paragraph('No note matches the sources')).toBeDefined());
-		only('button', 'Edit').click();
+		editSources().click();
 		flushSync();
 		const typeInput = only('textbox', 'Type');
 		typeInput.focus();
@@ -376,7 +424,7 @@ describe('TasksView: the Sources panel', () => {
 		mockTaskFetch(vault(), { entries: [tagged, typed] });
 		tasksStore.setSources([]);
 		({ component } = await mountTasksView());
-		only('button', 'Edit').click();
+		editSources().click();
 		flushSync();
 
 		only('button', 'Add card').click();
@@ -398,7 +446,7 @@ describe('TasksView: the Sources panel', () => {
 		mockTaskFetch(vault(), { entries: [project('Active', 'active'), project('Done', 'done')] });
 		tasksStore.setSources([]);
 		({ component } = await mountTasksView());
-		only('button', 'Edit').click();
+		editSources().click();
 		flushSync();
 
 		only('button', 'Add card').click();
@@ -429,7 +477,7 @@ describe('TasksView: the Sources panel', () => {
 		mockTaskFetch(vault(), { entries: [old, organized] });
 		tasksStore.setSources([]);
 		({ component } = await mountTasksView());
-		only('button', 'Edit').click();
+		editSources().click();
 		flushSync();
 
 		only('button', 'Add card').click();
@@ -469,7 +517,7 @@ describe('TasksView: the Sources panel', () => {
 			mockTaskFetch(vault());
 			tasksStore.setSources([]);
 			({ component } = await mountTasksView());
-			only('button', 'Edit').click();
+			editSources().click();
 			flushSync();
 			only('button', 'Add card').click();
 			flushSync();
@@ -494,7 +542,7 @@ describe('TasksView: the Sources panel', () => {
 			});
 			tasksStore.setSources([]);
 			({ component } = await mountTasksView());
-			only('button', 'Edit').click();
+			editSources().click();
 			flushSync();
 			only('button', 'Add card').click();
 			flushSync();
@@ -517,7 +565,7 @@ describe('TasksView: the Sources panel', () => {
 			mockTaskFetch(vault());
 			tasksStore.setSources([]);
 			({ component } = await mountTasksView());
-			only('button', 'Edit').click();
+			editSources().click();
 			flushSync();
 			only('button', 'Add card').click();
 			flushSync();
