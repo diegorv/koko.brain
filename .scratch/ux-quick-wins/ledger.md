@@ -58,7 +58,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 21 | [Settings number fields write only valid values and clamp on commit](issues/21-settings-number-fields-write-only-valid.md) | none | todo | | |
 | 22 | [Settings switches: dependents disable while their parent is off, and a switch that failed to start turns back off](issues/22-settings-switches-dependents-disable-while-parent.md) | none | todo | | |
 | 23 | [File History says what it compares and when something failed](issues/23-file-history-compares-something-failed.md) | 20 | todo | | |
-| 24 | [Calendar events say what you can do; the new-event form opens without an error](issues/24-calendar-events-say-you-can-do.md) | none | todo | | |
+| 24 | [Calendar events say what you can do; the new-event form opens without an error](issues/24-calendar-events-say-you-can-do.md) | none | in-progress | | |
 | 25 | [Calendar time grid shows what is now and what is hidden](issues/25-calendar-time-grid-shows-now-hidden.md) | 24 | todo | | |
 | 26 | [Calendar month grid reads at a glance](issues/26-calendar-month-grid-reads-at-glance.md) | 24, 25 | todo | | |
 | 27 | [The Tasks toolbar and list say what they do](issues/27-tasks-toolbar-list-say-they-do.md) | none | todo | | |
@@ -102,3 +102,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 15:15 — 29 — deliver — merged after review 1 APPROVED with findings, fix round (held Backspace stays in naming step, NFC-folded existing-note check; ../ vault escape moved to follow-up Issue 48), re-review 2 APPROVED (claude); full vitest suite passed (17482 tests) — e73578399
 - 2026-11-18 15:16 — 30 — start — launched by /relay-lite:run — 2c78821ba
 - 2026-11-18 15:27 — 30 — deliver — merged after review 1 CHANGES_REQUESTED, fix round (double-Enter test exercises the busy guard), re-review 2 APPROVED (claude); full vitest suite passed (17491 tests) — b544a38d9
+- 2026-11-18 15:28 — 24 — start — launched by /relay-lite:run — 9a3957add
