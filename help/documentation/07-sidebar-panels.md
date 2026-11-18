@@ -11,7 +11,7 @@ The right sidebar provides contextual information about the note you are current
 ## Opening and Closing the Sidebar
 
 - Press **Cmd+B** to toggle the entire right sidebar on or off.
-- Each individual panel can be shown or hidden in **Settings > Layout**, or from the palette (`Cmd+P`): **Toggle Properties Panel**, **Toggle Backlinks Panel**, **Toggle Outgoing Links Panel** and **Toggle Table of Contents**. Turning a panel on from the palette also shows the sidebar if it was hidden, except on tabs where the sidebar never shows (canvas, kanban, views and virtual tabs).
+- Each individual panel can be shown or hidden in **Settings > Layout**, or from the palette (`Cmd+P`): **Toggle Properties Panel**, **Toggle Backlinks Panel**, **Toggle Outgoing Links Panel** and **Toggle Table of Contents**. Turning a panel on from the palette also shows the sidebar if it was hidden, except on tabs where the sidebar never shows (canvas, kanban, views and virtual tabs), and closes the Claude panel so the panel you turned on is what shows.
 - The sidebar updates automatically as you switch between notes, always reflecting the note you are currently editing.
 
 ---

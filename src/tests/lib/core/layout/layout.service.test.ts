@@ -311,6 +311,29 @@ describe('toggleRightPanel / setRightPanelVisible', () => {
 		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: '', savedContent: '' });
 	}
 
+	it('turning a panel on closes the Claude panel, so the panel is what shows', () => {
+		settingsStore.updateClaudeCode({ enabled: true });
+		settingsStore.updateLayout({ rightSidebarVisible: true, claudeVisible: true, backlinksVisible: false });
+		openNoteTab();
+
+		toggleRightPanel('backlinks');
+
+		expect(settingsStore.layout.backlinksVisible).toBe(true);
+		expect(settingsStore.layout.claudeVisible).toBe(false);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+	});
+
+	it('turning a panel off leaves the Claude panel as it was', () => {
+		settingsStore.updateClaudeCode({ enabled: true });
+		settingsStore.updateLayout({ rightSidebarVisible: true, claudeVisible: true, backlinksVisible: true });
+		openNoteTab();
+
+		setRightPanelVisible('backlinks', false);
+
+		expect(settingsStore.layout.backlinksVisible).toBe(false);
+		expect(settingsStore.layout.claudeVisible).toBe(true);
+	});
+
 	it('toggleRightPanel flips only that panel flag, and twice returns it', () => {
 		settingsStore.updateLayout({ rightSidebarVisible: true });
 		openNoteTab();
