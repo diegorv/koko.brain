@@ -16,15 +16,15 @@ Not in this ticket: an inline-error branch for a rejected `onConfirm` (no caller
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh only when a selector or E2E surface changes (none expected).
 
-- [ ] Failing test first, new `src/tests/lib/features/type-definitions/TypeNameDialog.test.ts` (real component, `onConfirm` a plain function returning a held promise): after Enter the dialog is still open, the confirm button is disabled and shows the busy label, and Cancel, the X and Escape do not close it; once the promise resolves the dialog closes.
-- [ ] While busy, a `validate` that starts returning an error (simulating the store gaining the new name) renders no error line and keeps the last `Saved as` line.
-- [ ] Enter twice while busy calls `onConfirm` once.
-- [ ] `src/tests/lib/features/rail-shell/TypesNavigator.test.ts`: the new-type flow still creates a type and closes the dialog; the rename flow shows "Updating notes..." while `renameType` is held, then closes. Real stores, only the Tauri boundary mocked.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, new `src/tests/lib/features/type-definitions/TypeNameDialog.test.ts` (real component, `onConfirm` a plain function returning a held promise): after Enter the dialog is still open, the confirm button is disabled and shows the busy label, and Cancel, the X and Escape do not close it; once the promise resolves the dialog closes.
+- [x] While busy, a `validate` that starts returning an error (simulating the store gaining the new name) renders no error line and keeps the last `Saved as` line.
+- [x] Enter twice while busy calls `onConfirm` once.
+- [x] `src/tests/lib/features/rail-shell/TypesNavigator.test.ts`: the new-type flow still creates a type and closes the dialog; the rename flow shows "Updating notes..." while `renameType` is held, then closes. Real stores, only the Tauri boundary mocked.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -50,3 +50,4 @@ Shell-sidebars-ux 15 and 34 name `TypesNavigator.svelte`; this ticket adds one a
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping.
+- 2026-11-18, deliver (branch issue/30-type-name-dialog-stays-open-while): TypeNameDialog stays open and busy while onConfirm runs (disabled confirm, busy label, no close, stale validation hidden, double-Enter guarded); rename flow in TypesNavigator shows "Updating notes...". Review round 1 CHANGES_REQUESTED (double-Enter test fixed in 2a464e694), round 2 APPROVED. Full suite: 657 files, 17491 passed, 56 skipped, exit 0.
