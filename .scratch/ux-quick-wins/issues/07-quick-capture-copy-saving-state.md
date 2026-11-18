@@ -18,14 +18,14 @@ Not in this ticket: "Draft restored" and Discard, the 600 ms "Saved" hold, Esc d
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes (none expected: the composer has no E2E spec).
 
-- [ ] Failing test first, `src/tests/routes/composer-page.test.ts`: the default hint is `Esc hides (draft kept) · ⌘↩ saves` and neither error hint contains "cancels". The pins at `:107-108` (`ERROR_TEXT`, `UNKNOWN_TEXT`), `:271` and `:429` are updated on purpose to the new strings.
-- [ ] With `mockSubmit('silent')` (no result arrives), after Cmd+Enter the hint reads `Saving...`; after `resultHandler()` reports `ok: true` it no longer reads "Saving..." during the flash; after a failed or unconfirmed result it reads the matching error hint, and a retry shows "Saving..." again.
-- [ ] Mount or summon with a stored draft behaves as today: no "Draft restored" text, no Discard button (a guard against scope creep into ticket 45), and `SAVE_FLASH_MS` is still 180 (the saved-flash tests at `:321-351` stay unchanged and green).
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, `src/tests/routes/composer-page.test.ts`: the default hint is `Esc hides (draft kept) · ⌘↩ saves` and neither error hint contains "cancels". The pins at `:107-108` (`ERROR_TEXT`, `UNKNOWN_TEXT`), `:271` and `:429` are updated on purpose to the new strings.
+- [x] With `mockSubmit('silent')` (no result arrives), after Cmd+Enter the hint reads `Saving...`; after `resultHandler()` reports `ok: true` it no longer reads "Saving..." during the flash; after a failed or unconfirmed result it reads the matching error hint, and a retry shows "Saving..." again.
+- [x] Mount or summon with a stored draft behaves as today: no "Draft restored" text, no Discard button (a guard against scope creep into ticket 45), and `SAVE_FLASH_MS` is still 180 (the saved-flash tests at `:321-351` stay unchanged and green).
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Original proposal
 
@@ -50,3 +50,4 @@ Ticket 45 edits the same file and test (draft restore, Discard, the hold) and is
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping, and the split of old ticket 05 into this copy-and-state ticket and the risky draft ticket 45. Defaults (not individually answered): none.
+- 2026-11-18, delivered from issue/07-quick-capture-copy-saving-state: the composer hint says `Esc hides (draft kept) · ⌘↩ saves`, error hints drop "cancels", and the hint reads `Saving...` while a save waits. Review round 1 APPROVED (fix applied: late-reject test pins Saving... and the default hint after summon), round 2 APPROVED with no findings. Tests: pnpm check 0 errors; composer-page.test.ts 37/37; full suite at 94d01414c exit 0, 17462 passed, 56 skipped, 1 todo, 0 failed.

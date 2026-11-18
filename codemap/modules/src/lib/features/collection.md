@@ -43,7 +43,7 @@ file src/lib/features/collection/CollectionLinearCalendarView.svelte component L
 file src/lib/features/collection/CollectionTableView.svelte component L108 module src/lib/features/collection in1 t1
 file src/lib/features/collection/CollectionView.svelte component L736 module src/lib/features/collection in1 t4
 file src/lib/features/collection/calendar.logic.ts logic L179 module src/lib/features/collection in3 t2
-file src/lib/features/collection/collection-block-widget.ts other L507 module src/lib/features/collection in2 t6
+file src/lib/features/collection/collection-block-widget.ts other L544 module src/lib/features/collection in2 t6
 file src/lib/features/collection/collection.logic.ts logic L541 module src/lib/features/collection in13 t32
 file src/lib/features/collection/collection.service.ts service L220 module src/lib/features/collection in4 t22
 file src/lib/features/collection/collection.store.svelte.ts store L83 module src/lib/features/collection in13 t45
@@ -72,8 +72,8 @@ file src/lib/features/collection/view-row-set.port.ts other L65 module src/lib/f
 file src/lib/features/collection/yaml-parser.ts other L430 module src/lib/features/collection in11 t18
 ## public
 sym src/lib/features/collection/CollectionView.svelte:1 component CollectionView props:path,yamlContent,onYamlChange,rewriteView L736
-sym src/lib/features/collection/collection-block-widget.ts:68 fn clearCollectionCache(): void L3 | Drops all cached renders.
-sym src/lib/features/collection/collection-block-widget.ts:418 const collectionBlockRenderer: FencedBlockRenderer L7 | Renders `` ```collection `` blocks; the app installs it in the editor's `fencedBlockRenderers`.
+sym src/lib/features/collection/collection-block-widget.ts:70 fn clearCollectionCache(): void L3 | Drops all cached renders.
+sym src/lib/features/collection/collection-block-widget.ts:432 const collectionBlockRenderer: FencedBlockRenderer L7 | Renders `` ```collection `` blocks; the app installs it in the editor's `fencedBlockRenderers`.
 sym src/lib/features/collection/collection.logic.ts:23 fn buildNoteRecord(filePath: string, content: string, mtime = 0, ctime = 0, size = 0): PropertyIndexRecord L22 | Builds a PropertyIndexRecord from a file path and its content.
 sym src/lib/features/collection/collection.logic.ts:133 fn executeQuery(definition: CollectionDefinition, view: CollectionViewDef, index: Map<string, PropertyIndexRecord>, vaultPath: string … L91 | Executes a query against the property index using a collection definition and view.
 sym src/lib/features/collection/collection.logic.ts:271 fn filterCitesArchived(filter: FilterItem | undefined): boolean L15 | Whether a filter cites the archived flag, which hands the archived rows of a `.view` to the filter instead of the default exclusion.

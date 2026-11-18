@@ -41,7 +41,7 @@ test src/tests/lib/features/type-definitions/view-parse-cache.test.ts mocks src/
 sym src/lib/features/collection/yaml-parser.ts:5 type ParseResult L3 | Result of parsing a `.view` or ` ```collection ` block YAML string
 sym src/lib/features/collection/yaml-parser.ts:13 fn parseCollectionYaml(yamlString: string): ParseResult L111 | Parses a YAML string into a CollectionDefinition.
 by src/lib/features/collection/yaml-parser.ts:parseCollectionYaml <- src/lib/features/collection/CollectionView.svelte:126 in parseResult=$derived call +2
-by src/lib/features/collection/yaml-parser.ts:parseCollectionYaml <- src/lib/features/collection/collection-block-widget.ts:93 in CollectionBlockWidget.toDOM call
+by src/lib/features/collection/yaml-parser.ts:parseCollectionYaml <- src/lib/features/collection/collection-block-widget.ts:95 in CollectionBlockWidget.toDOM call
 by src/lib/features/collection/yaml-parser.ts:parseCollectionYaml <- src/lib/features/collection/key-edit.logic.ts:79 in applyEditorKeyEdit call +2
 by src/lib/features/collection/yaml-parser.ts:parseCollectionYaml <- src/lib/features/type-definitions/type-note-list.logic.ts:197 in applyToolbarEdit call
 by src/lib/features/collection/yaml-parser.ts:parseCollectionYaml <- src/lib/features/type-definitions/view-parse-cache.ts:47 in refreshViewDefinition call +1

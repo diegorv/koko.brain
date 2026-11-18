@@ -41,14 +41,14 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Canvas file and link cards: a plain click selects, an open button opens, previews skip frontmatter](issues/04-canvas-file-link-cards-plain-click.md) | none | todo | | |
 | 05 | [Kanban filter clears, resets per board, and a tag click filters](issues/05-kanban-filter-clears-resets-per-board.md) | 02 | todo | | |
 | 06 | [Canvas surfaces and overlays draw from theme tokens](issues/06-canvas-surfaces-overlays-draw-theme-tokens.md) | 04 | todo | | |
-| 07 | [Quick Capture says what it does and shows Saving (copy and state only)](issues/07-quick-capture-copy-saving-state.md) | none | todo | | |
+| 07 | [Quick Capture says what it does and shows Saving (copy and state only)](issues/07-quick-capture-copy-saving-state.md) | none | in-progress | | |
 | 08 | [Live-preview widgets show failure and progress](issues/08-livepreview-widgets-show-failure-progress.md) | 03 | done | issue/08-livepreview-widgets-show-failure-progress (e118671bf) | 2026-11-18 |
 | 09 | [Collection table: readable names, visible sort order, sticky header](issues/09-collection-table-readable-names-visible-sort.md) | none | done | issue/09-collection-table-readable-names-visible-sort (8611869b7) | 2026-11-18 |
 | 10 | [Kanban cards: no empty date row, clamped preview, growing editor](issues/10-kanban-cards-no-empty-date-row.md) | 05 | todo | | |
 | 11 | [Kanban lanes: visible add row, empty and filtered counts, collapsed rail](issues/11-kanban-lanes-visible-add-row-empty.md) | 05, 10 | todo | | |
 | 12 | [Kanban list, table and archive: named checks, clean cells, restore feedback](issues/12-kanban-list-table-archive-named-checks.md) | 05, 11 | todo | | |
 | 13 | [Callouts, headings and the meta-bind number field read cleanly](issues/13-callouts-headings-metabind-number-field-read.md) | 08 | done | issue/13-callouts-headings-metabind-number-field-read (51497add3) | 2026-11-18 |
-| 14 | [Inline collection block: readable table, built-in names, other-views hint](issues/14-inline-collection-block-readable-table-builtin.md) | 09, 13 | in-progress | | |
+| 14 | [Inline collection block: readable table, built-in names, other-views hint](issues/14-inline-collection-block-readable-table-builtin.md) | 09, 13 | done | issue/14-inline-collection-block-readable-table-builtin (7bf8332b1) | 2026-11-18 |
 | 15 | [Filter and Sort panels: visible conjunction and named remove buttons](issues/15-filter-sort-conjunction-names.md) | none | todo | | |
 | 16 | [Canvas handles show on selected nodes; image cards get 8 handles and real loading and error states](issues/16-canvas-handles-show-selected-nodes-image.md) | 06 | todo | | |
 | 17 | [The canvas context menu and pickers work from the keyboard and show Mac shortcut glyphs](issues/17-canvas-context-menu-pickers-work-keyboard.md) | 06 | todo | | |
@@ -95,3 +95,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 14:23 — 09 — start — launched by /relay-lite:run — 66030ac65
 - 2026-11-18 14:38 — 09 — deliver — merged after review 1 APPROVED, fix round (sortState computed once per header), re-review 2 APPROVED (claude); full vitest suite passed (17440 tests); manual sticky-header check with 60+ rows still open — 8611869b7
 - 2026-11-18 14:38 — 14 — start — launched by /relay-lite:run — 1476dbf87
+- 2026-11-18 14:53 — 14 — deliver — merged after review 1 APPROVED with findings, fix round (DATE_TEXT matches only a whole date or datetime; selector pin loosening rejected), re-review 2 APPROVED (claude); full vitest suite passed (17456 tests) — 7bf8332b1
+- 2026-11-18 14:53 — 07 — start — launched by /relay-lite:run — 72c8352db

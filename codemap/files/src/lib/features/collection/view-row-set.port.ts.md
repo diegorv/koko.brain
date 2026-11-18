@@ -20,5 +20,5 @@ sym src/lib/features/collection/view-row-set.port.ts:55 fn registerViewRowSetPor
 by src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort <- src/lib/app/boot.ts:61 in registerAppPorts call
 sym src/lib/features/collection/view-row-set.port.ts:63 fn getViewRowSetPort(): ViewRowSetPort | null L3 | The installed port, or null when none is registered (the editor then runs the plain query).
 by src/lib/features/collection/view-row-set.port.ts:getViewRowSetPort <- src/lib/features/collection/CollectionView.svelte:256 in queryResult=$derived call +1
-by src/lib/features/collection/view-row-set.port.ts:getViewRowSetPort <- src/lib/features/collection/collection-block-widget.ts:120 in CollectionBlockWidget.toDOM call
+by src/lib/features/collection/view-row-set.port.ts:getViewRowSetPort <- src/lib/features/collection/collection-block-widget.ts:122 in CollectionBlockWidget.toDOM call
 by src/lib/features/collection/view-row-set.port.ts:getViewRowSetPort <- src/lib/plugins/mods/mod-query.service.ts:50 in createModQuery call

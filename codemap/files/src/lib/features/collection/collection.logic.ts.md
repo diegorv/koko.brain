@@ -18,7 +18,7 @@ imp src/lib/features/auto-organize/auto-organize.service.ts:9 -> src/lib/feature
 imp src/lib/features/collection/CollectionTableView.svelte:3 -> src/lib/features/collection/collection.logic.ts formatColumnCell,getPropertyValue
 imp src/lib/features/collection/CollectionView.svelte:4 -> src/lib/features/collection/collection.logic.ts executeQuery
 imp src/lib/features/collection/calendar.logic.ts:3 -> src/lib/features/collection/collection.logic.ts getPropertyValue
-imp src/lib/features/collection/collection-block-widget.ts:4 -> src/lib/features/collection/collection.logic.ts executeQuery,formatCellValue,type:QueryRowSet
+imp src/lib/features/collection/collection-block-widget.ts:4 -> src/lib/features/collection/collection.logic.ts executeQuery,formatColumnCell,type:QueryRowSet
 imp src/lib/features/collection/collection.service.ts:11 -> src/lib/features/collection/collection.logic.ts buildNoteRecord
 imp src/lib/features/collection/linear-calendar.logic.ts:4 -> src/lib/features/collection/collection.logic.ts getPropertyValue
 imp src/lib/features/collection/toolbar/PropertiesPanel.svelte:4 -> src/lib/features/collection/collection.logic.ts columnLabel
@@ -70,7 +70,7 @@ sym src/lib/features/collection/collection.logic.ts:117 type QueryRowSet L5 | Pi
 by src/lib/features/collection/collection.logic.ts:QueryRowSet <- src/lib/features/collection/collection-block-widget.ts:4 in (module) import
 sym src/lib/features/collection/collection.logic.ts:133 fn executeQuery(definition: CollectionDefinition, view: CollectionViewDef, index: Map<string, PropertyIndexRecord>, vaultPath: string … L91 | Executes a query against the property index using a collection definition and view.
 by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/collection/CollectionView.svelte:269 in queryResult=$derived call
-by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/collection/collection-block-widget.ts:124 in CollectionBlockWidget.toDOM call
+by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/collection/collection-block-widget.ts:126 in CollectionBlockWidget.toDOM call
 by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/rail-shell/lens.logic.ts:811 in queryViewLens call
 by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/plugins/mods/mod-query.service.ts:45 in createModQuery call +1
 sym src/lib/features/collection/collection.logic.ts:271 fn filterCitesArchived(filter: FilterItem | undefined): boolean L15 | Whether a filter cites the archived flag, which hands the archived rows of a `.view` to the filter instead of the default exclusion.
@@ -78,12 +78,12 @@ by src/lib/features/collection/collection.logic.ts:filterCitesArchived <- src/li
 sym src/lib/features/collection/collection.logic.ts:327 fn evaluateFilter(filter: FilterItem, ctx: EvalContext, onLeafError?: (err: unknown) => void): boolean L26 | Evaluates a filter item (string expression or recursive filter object) against a note record.
 by src/lib/features/collection/collection.logic.ts:evaluateFilter <- src/lib/features/auto-organize/auto-organize.logic.ts:78 in ruleMatches call
 sym src/lib/features/collection/collection.logic.ts:392 fn formatCellValue(value: unknown): string L23 | Formats a cell value for display in the table.
-by src/lib/features/collection/collection.logic.ts:formatCellValue <- src/lib/features/collection/collection-block-widget.ts:460 in buildCollectionTable call
 sym src/lib/features/collection/collection.logic.ts:435 fn columnLabel(key: string, propertyConfigs?: Record<string, PropertyConfig>): string L3 | The label shown for a column: its configured `displayName`, else the built-in `file.*` label, else the raw key.
 by src/lib/features/collection/collection.logic.ts:columnLabel <- src/lib/features/collection/toolbar/PropertiesPanel.svelte:57 in getDisplayName call
 by src/lib/features/collection/collection.logic.ts:columnLabel <- src/lib/features/collection/toolbar/SortPanel.svelte:49 in getDisplayName call
 sym src/lib/features/collection/collection.logic.ts:443 fn formatColumnCell(key: string, value: unknown): string L7 | Formats a table cell's text.
 by src/lib/features/collection/collection.logic.ts:formatColumnCell <- src/lib/features/collection/CollectionTableView.svelte:87 in (markup) markup
+by src/lib/features/collection/collection.logic.ts:formatColumnCell <- src/lib/features/collection/collection-block-widget.ts:489 in buildCollectionTable call +2
 sym src/lib/features/collection/collection.logic.ts:452 fn getPropertyValue(record: PropertyIndexRecord, column: string): unknown L19 | Retrieves a property value from a PropertyIndexRecord by column name
 by src/lib/features/collection/collection.logic.ts:getPropertyValue <- src/lib/features/collection/CollectionTableView.svelte:70 in (markup) markup
 by src/lib/features/collection/collection.logic.ts:getPropertyValue <- src/lib/features/collection/calendar.logic.ts:69 in extractDateFromRecord call

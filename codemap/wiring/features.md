@@ -4,7 +4,7 @@ reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort sink
 reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort read-by src/lib/features/collection/view-row-set.port.ts:63 getViewRowSetPort
 reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort fired-by src/lib/features/collection/CollectionView.svelte:256 in queryResult=$derived
 reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort fired-by src/lib/features/collection/CollectionView.svelte:280 in sortEmptyText=$derived
-reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort fired-by src/lib/features/collection/collection-block-widget.ts:120 in CollectionBlockWidget.toDOM
+reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort fired-by src/lib/features/collection/collection-block-widget.ts:122 in CollectionBlockWidget.toDOM
 reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort fired-by src/lib/plugins/mods/mod-query.service.ts:50 in createModQuery
 reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort registered-at src/lib/app/boot.ts:61 in registerAppPorts args={ blockRows: (records, view, definition) => blockRowSet(records, view, definiti… -> src/lib/app/boot.ts:registerAppPorts
 reg src/lib/features/collection/view-row-set.port.ts:registerViewRowSetPort invoked-at src/routes/(app)/+layout.svelte:29 in (script)

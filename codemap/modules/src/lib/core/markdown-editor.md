@@ -134,7 +134,7 @@ file src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/table-field.ts other L69 module src/lib/core/markdown-editor in1 t4
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/video-plugin.ts other L56 module src/lib/core/markdown-editor in1 t2
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.ts other L98 module src/lib/core/markdown-editor in1 t2
-file src/lib/core/markdown-editor/extensions/live-preview/styles.ts other L1054 module src/lib/core/markdown-editor in16 t6
+file src/lib/core/markdown-editor/extensions/live-preview/styles.ts other L1077 module src/lib/core/markdown-editor in16 t6
 file src/lib/core/markdown-editor/extensions/live-preview/widgets.ts other L1145 module src/lib/core/markdown-editor in8 t15
 file src/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.ts other L190 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/extensions/live-preview/widgets/math-widget.ts other L77 module src/lib/core/markdown-editor in3 t1
