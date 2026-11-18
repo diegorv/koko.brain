@@ -28,7 +28,7 @@ test src/tests/lib/core/settings/SettingItem.test.ts harness src/lib/core/settin
 ## symbols
 sym src/lib/core/settings/sections/SettingItem.svelte:1 component SettingItem props:label,description,layout=,children L41
 by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/app/LabsSection.svelte:39 in (markup) mount
-by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/EditorSection.svelte:42 in (markup) mount +4
+by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/EditorSection.svelte:70 in (markup) mount +4
 by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/FileHistorySection.svelte:16 in (markup) mount +2
 by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/FilesSection.svelte:11 in (markup) mount +2
 by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/settings/sections/HeadingTypographyEditor.svelte:60 in (markup) mount +3
@@ -38,14 +38,14 @@ by src/lib/core/settings/sections/SettingItem.svelte:default <- src/lib/core/set
 more by 10 not shown: src/lib/core/settings(4) src/lib/features/auto-organize(1) src/lib/features/event-calendar(1) src/lib/features/rail-shell(1) src/lib/features/search(1) src/lib/features/todoist-sync(1) src/lib/plugins/queryjs(1): q importers src/lib/core/settings/sections/SettingItem.svelte:default
 ## mounted-at
 mount src/lib/app/LabsSection.svelte:39 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/EditorSection.svelte:42 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/EditorSection.svelte:88 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/EditorSection.svelte:108 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/EditorSection.svelte:129 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/EditorSection.svelte:152 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/EditorSection.svelte:70 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/EditorSection.svelte:116 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/EditorSection.svelte:131 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/EditorSection.svelte:147 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/EditorSection.svelte:165 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/FileHistorySection.svelte:16 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/FileHistorySection.svelte:28 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/core/settings/sections/FileHistorySection.svelte:45 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/core/settings/sections/FileHistorySection.svelte:52 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/FilesSection.svelte:11 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/FilesSection.svelte:23 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/FilesSection.svelte:35 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte

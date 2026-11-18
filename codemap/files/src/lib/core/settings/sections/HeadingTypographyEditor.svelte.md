@@ -17,7 +17,7 @@ out2 src/lib/core/settings/sections/HeadingTypographyEditor.svelte 15 files in 3
 test src/tests/lib/core/settings/HeadingTypographyEditor.test.ts imports src/lib/core/settings/sections/HeadingTypographyEditor.svelte
 ## symbols
 sym src/lib/core/settings/sections/HeadingTypographyEditor.svelte:1 component HeadingTypographyEditor L118
-by src/lib/core/settings/sections/HeadingTypographyEditor.svelte:default <- src/lib/core/settings/sections/EditorSection.svelte:173 in (markup) mount
+by src/lib/core/settings/sections/HeadingTypographyEditor.svelte:default <- src/lib/core/settings/sections/EditorSection.svelte:181 in (markup) mount
 ## locals
 local src/lib/core/settings/sections/HeadingTypographyEditor.svelte:28 fn weightLabel(value: HeadingFontWeight): string L3
 local src/lib/core/settings/sections/HeadingTypographyEditor.svelte:32 fn inputValue(e: Event): string L3
@@ -31,7 +31,7 @@ mount src/lib/core/settings/sections/HeadingTypographyEditor.svelte:86 SettingIt
 mount src/lib/core/settings/sections/HeadingTypographyEditor.svelte:103 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/core/settings/sections/HeadingTypographyEditor.svelte:104 Input -> src/lib/components/ui/input/input.svelte
 ## mounted-at
-mount src/lib/core/settings/sections/EditorSection.svelte:173 HeadingTypographyEditor -> src/lib/core/settings/sections/HeadingTypographyEditor.svelte
+mount src/lib/core/settings/sections/EditorSection.svelte:181 HeadingTypographyEditor -> src/lib/core/settings/sections/HeadingTypographyEditor.svelte
 ## calls
 call src/lib/core/settings/sections/HeadingTypographyEditor.svelte:38 in updateLevel -> src/lib/core/settings/settings.store.svelte.ts:settingsStore.updateEditor mcall
 call src/lib/core/settings/sections/HeadingTypographyEditor.svelte:68 in (markup) -> src/lib/core/settings/sections/HeadingTypographyEditor.svelte:inputValue markup +5
