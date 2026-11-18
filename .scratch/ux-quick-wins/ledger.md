@@ -80,7 +80,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 43 | [New canvas text cards open ready to type and cascade; Enter or F2 edits a selected card](issues/43-new-canvas-text-cards-open-ready.md) | 06, 16 | todo | | |
 | 44 | [Sort order can be changed from the keyboard](issues/44-sort-keyboard-reorder.md) | 15 | todo | | |
 | 45 | [Quick Capture keeps the draft until it is written, with Discard and a short hold](issues/45-quick-capture-draft-discard.md) | 07 | todo | | |
-| 46 | [Frontmatter reads as metadata in source mode](issues/46-frontmatter-reads-as-metadata-source-mode.md) | none | todo | | |
+| 46 | [Frontmatter reads as metadata in source mode](issues/46-frontmatter-reads-as-metadata-source-mode.md) | none | in-progress | | |
 | 47 | [Calendars count undated notes; view tabs show their type](issues/47-calendars-count-undated-notes-view-tabs.md) | 09, 14 | todo | | |
 
 ## Log
@@ -138,3 +138,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 19:45 — 39 — deliver — blocked: Issue contradicts itself, items 4-5 wait on shell-sidebars-ux 15 and 19 but the criteria need them now; items 1-3 (39a) built in the worktree, owner to split 39a/39b or wait — 5741efb62
 - 2026-11-18 19:46 — 42 — start — launched by /relay-lite:run — 8485a955e
 - 2026-11-18 19:59 — 42 — deliver — merged after review 1 APPROVED with 3 findings, fix round (chip title wording; card-menu key deferred to Issue 50; board-only chip kept), re-review 2 APPROVED (claude); full vitest suite passed (17703 tests) — 8258ffac3
+- 2026-11-18 19:59 — 46 — start — launched by /relay-lite:run — f855f7ed6
