@@ -17,7 +17,7 @@ imp src/lib/plugins/kanban/kanban.service.ts:12 -> src/lib/utils/debug.ts error
 imp src/lib/app/boot.ts:17 -> src/lib/plugins/kanban/kanban.service.ts clearLinkedContentCache
 imp src/lib/app/commands.ts:25 -> src/lib/plugins/kanban/kanban.service.ts createKanbanFile
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:65 -> src/lib/plugins/kanban/kanban.service.ts registerKanbanFolderCreator,resetKanban
-imp src/lib/plugins/kanban/KanbanCard.svelte:12 -> src/lib/plugins/kanban/kanban.service.ts loadLinkedFileContent
+imp src/lib/plugins/kanban/KanbanCard.svelte:13 -> src/lib/plugins/kanban/kanban.service.ts loadLinkedFileContent
 ## reach
 in2 src/lib/plugins/kanban/kanban.service.ts 3 files in 3 modules: src/lib/app(1) src/lib/plugins/kanban(1) src/routes(1)
 out2 src/lib/plugins/kanban/kanban.service.ts 18 files in 9 modules: src/lib/core/filesystem(4) src/lib/utils(4) src/lib/contracts(3) src/lib/core/settings(2) src/lib/core/editor(1) +4 modules
@@ -39,7 +39,7 @@ by src/lib/plugins/kanban/kanban.service.ts:resetKanban <- src/lib/app/lifecycle
 sym src/lib/plugins/kanban/kanban.service.ts:49 fn clearLinkedContentCache(): void L3 | Clears the linked content cache so card previews re-read from disk.
 by src/lib/plugins/kanban/kanban.service.ts:clearLinkedContentCache <- src/lib/app/boot.ts:41 in registerAppPorts ref
 sym src/lib/plugins/kanban/kanban.service.ts:58 fn loadLinkedFileContent(cardText: string): Promise<string> L33 | Loads the markdown content (without frontmatter) from the first wikilinked file in a card.
-by src/lib/plugins/kanban/kanban.service.ts:loadLinkedFileContent <- src/lib/plugins/kanban/KanbanCard.svelte:182 in $effect@177 call
+by src/lib/plugins/kanban/kanban.service.ts:loadLinkedFileContent <- src/lib/plugins/kanban/KanbanCard.svelte:189 in $effect@184 call
 ## calls
 call src/lib/plugins/kanban/kanban.service.ts:19 in createKanbanFile -> src/lib/core/filesystem/fs.service.ts:createFile call
 call src/lib/plugins/kanban/kanban.service.ts:19 in createKanbanFile -> src/lib/plugins/kanban/kanban.logic.ts:createEmptyKanbanBoard call

@@ -442,10 +442,10 @@ describe('createExtensions', () => {
 	});
 
 	describe('legacy source-mode decorations', () => {
-		const DOC = '> [!note] Title\n> body\n\nSee [[Target]] here.';
+		const DOC = '---\n_type: Meeting\n---\n> [!note] Title\n> body\n\nSee [[Target]] here.';
 
-		function mount(opts: CreateExtensionsOptions) {
-			const view = mountMarkdownView(DOC, { extensions: createExtensions(opts) });
+		function mount(opts: CreateExtensionsOptions, doc = DOC) {
+			const view = mountMarkdownView(doc, { extensions: createExtensions(opts) });
 			return {
 				view,
 				dispose: () => {
@@ -460,23 +460,24 @@ describe('createExtensions', () => {
 			return {
 				wikilinkTarget: view.contentDOM.querySelectorAll('.cm-wikilink-target').length,
 				callout: view.contentDOM.querySelectorAll('.cm-callout').length,
+				frontmatter: view.contentDOM.querySelectorAll('.cm-source-frontmatter').length,
 				gutter: view.dom.querySelectorAll('.cm-lineNumbers').length,
 			};
 		}
 
-		it('source mode installs the legacy wikilink and callout decorations', () => {
+		it('source mode installs the legacy wikilink, callout and frontmatter decorations', () => {
 			const { view, dispose } = mount(makeOptions({ isLivePreview: false }));
 			try {
-				expect(legacyClasses(view)).toEqual({ wikilinkTarget: 1, callout: 1, gutter: 1 });
+				expect(legacyClasses(view)).toEqual({ wikilinkTarget: 1, callout: 1, frontmatter: 3, gutter: 1 });
 			} finally {
 				dispose();
 			}
 		});
 
-		it('live preview does not install the legacy wikilink and callout decorations', () => {
+		it('live preview does not install the legacy wikilink, callout and frontmatter decorations', () => {
 			const { view, dispose } = mount(makeOptions({ isLivePreview: true }));
 			try {
-				expect(legacyClasses(view)).toEqual({ wikilinkTarget: 0, callout: 0, gutter: 0 });
+				expect(legacyClasses(view)).toEqual({ wikilinkTarget: 0, callout: 0, frontmatter: 0, gutter: 0 });
 			} finally {
 				dispose();
 			}
@@ -487,10 +488,35 @@ describe('createExtensions', () => {
 			const { view, dispose } = mount(makeOptions({ isLivePreview: true, sourceModeCompartment }));
 			try {
 				view.dispatch({ effects: sourceModeCompartment.reconfigure(sourceModeExtensions()) });
-				expect(legacyClasses(view)).toEqual({ wikilinkTarget: 1, callout: 1, gutter: 1 });
+				expect(legacyClasses(view)).toEqual({ wikilinkTarget: 1, callout: 1, frontmatter: 3, gutter: 1 });
 
 				view.dispatch({ effects: sourceModeCompartment.reconfigure([]) });
-				expect(legacyClasses(view)).toEqual({ wikilinkTarget: 0, callout: 0, gutter: 0 });
+				expect(legacyClasses(view)).toEqual({ wikilinkTarget: 0, callout: 0, frontmatter: 0, gutter: 0 });
+			} finally {
+				dispose();
+			}
+		});
+
+		/** Whether each rendered line, in order, carries the source frontmatter class. */
+		function frontmatterLines(view: EditorView): boolean[] {
+			return [...view.contentDOM.querySelectorAll('.cm-line')].map((line) =>
+				line.classList.contains('cm-source-frontmatter'),
+			);
+		}
+
+		it('source mode marks the frontmatter lines, fences included, and not the body', () => {
+			const { view, dispose } = mount(makeOptions({ isLivePreview: false }), '---\n_type: Meeting\n---\n# Title');
+			try {
+				expect(frontmatterLines(view)).toEqual([true, true, true, false]);
+			} finally {
+				dispose();
+			}
+		});
+
+		it('live preview marks no line as source frontmatter', () => {
+			const { view, dispose } = mount(makeOptions({ isLivePreview: true }), '---\n_type: Meeting\n---\n# Title');
+			try {
+				expect(view.contentDOM.querySelectorAll('.cm-source-frontmatter')).toHaveLength(0);
 			} finally {
 				dispose();
 			}
