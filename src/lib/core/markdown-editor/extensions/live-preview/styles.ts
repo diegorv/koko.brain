@@ -174,6 +174,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		lineHeight: 'var(--heading-h1-line-height, 1.4)',
 		letterSpacing: 'var(--heading-h1-letter-spacing, -0.02em)',
 		color: 'var(--syntax-heading1)',
+		paddingTop: 'var(--heading-h1-space-above, 0.6em)',
 	},
 	'.cm-lp-h2': {
 		fontSize: 'var(--heading-h2-font-size, 1.618em)',
@@ -181,6 +182,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		lineHeight: 'var(--heading-h2-line-height, 1.4)',
 		letterSpacing: 'var(--heading-h2-letter-spacing, -0.015em)',
 		color: 'var(--syntax-heading2)',
+		paddingTop: 'var(--heading-h2-space-above, 0.5em)',
 	},
 	'.cm-lp-h3': {
 		fontSize: 'var(--heading-h3-font-size, 1.272em)',
@@ -188,6 +190,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		lineHeight: 'var(--heading-h3-line-height, 1.4)',
 		letterSpacing: 'var(--heading-h3-letter-spacing, -0.01em)',
 		color: 'var(--syntax-heading3)',
+		paddingTop: 'var(--heading-h3-space-above, 0.4em)',
 	},
 	'.cm-lp-h4': {
 		fontSize: 'var(--heading-h4-font-size, 1.125em)',
@@ -480,6 +483,20 @@ export const livePreviewStyles = EditorView.baseTheme({
 		paddingLeft: '8px',
 		background: 'color-mix(in srgb, var(--callout-note) 7%, transparent)',
 	},
+	/*
+	 * Cancels the quote italics on callout bodies. `:where()` keeps it at the
+	 * specificity of a bare `span`, so the single-class italic rules of the
+	 * error spans (meta-bind, math, embed) still win inside a callout.
+	 * The italic restore keys on `cm-lp-italic`, which exists only while the
+	 * `markdownStyle` decorator is on (inline-extensions.ts); with it off,
+	 * emphasis inside a callout renders upright.
+	 */
+	':where(.cm-lp-callout) span': {
+		fontStyle: 'normal',
+	},
+	'.cm-lp-callout .cm-lp-italic, .cm-lp-callout .cm-lp-italic span': {
+		fontStyle: 'italic',
+	},
 	'.cm-lp-callout-title': {
 		fontWeight: '600',
 	},
@@ -506,10 +523,10 @@ export const livePreviewStyles = EditorView.baseTheme({
 		border: 'none',
 		padding: '0 4px',
 		font: 'inherit',
-		color: 'inherit',
+		color: 'var(--cm-lp-callout-accent, inherit)',
 		cursor: 'pointer',
 		fontWeight: '500',
-		textTransform: 'lowercase',
+		textTransform: 'capitalize',
 		opacity: '0.85',
 		borderRadius: 'var(--radius-xs)',
 		transition: 'background-color 0.15s ease, opacity 0.15s ease',
@@ -799,6 +816,12 @@ export const livePreviewStyles = EditorView.baseTheme({
 		lineHeight: '1.4',
 		outline: 'none',
 		fontFamily: 'inherit',
+	},
+	/* WebKit without `field-sizing` (before Safari 26.2) keeps the default width. */
+	'.cm-lp-meta-bind-input[type="number"]': {
+		fieldSizing: 'content',
+		minWidth: '4ch',
+		maxWidth: '16ch',
 	},
 	'.cm-lp-meta-bind-input:focus': {
 		borderColor: 'var(--primary)',
