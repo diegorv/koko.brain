@@ -1095,12 +1095,27 @@ describe('RailNoteList', () => {
 		});
 
 		it("lists the folder's direct files of every kind with the rule \"in <folder>/\"", async () => {
+			const now = new Date(2026, 9, 31, 9, 15).getTime();
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(now);
+			try {
+				typeDefinitionsStore.setEntries([entryV2(ALPHA, { isA: 'Project', modifiedAt: now / 1000 - 2 * 3600 }), entryV2(BETA)]);
+				await mountList({ kind: 'folder', target: WORK });
+				expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Work');
+				expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('in Work/');
+				expect(rowTitles()).toEqual(['alpha', 'Board', 'Tasks', 'Open', 'Spec', 'Shot']);
+				expect(rowTitles()).not.toContain('Deep');
+				// The list is titled with the folder, so a note row shows its modified time only.
+				expect(row('alpha').querySelector('[data-note-row-subtitle]')?.textContent).toBe('2h ago');
+				expect(row('Board').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Canvas');
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('gives a note row with no modified time no second line', async () => {
 			await mountList({ kind: 'folder', target: WORK });
-			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Work');
-			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('in Work/');
-			expect(rowTitles()).toEqual(['alpha', 'Board', 'Tasks', 'Open', 'Spec', 'Shot']);
-			expect(rowTitles()).not.toContain('Deep');
-			expect(row('alpha').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Work');
+			expect(row('alpha').querySelector('[data-note-row-subtitle]')).toBeNull();
 			expect(row('Board').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Canvas');
 		});
 

@@ -14,19 +14,19 @@ Not in this ticket: a relative modified time on canvas, kanban, view, PDF and im
 
 **Blocked by:** 13
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` for `e2e/specs/file-explorer.spec.ts` and `e2e/specs/focus-ring.spec.ts`.
 
-- [ ] Failing test first, `src/tests/lib/features/rail-shell/lens.logic.test.ts` `describe('resolveFolderLens through resolveLens')` under `pinClock()`: the `Plan` row of `folder(WORK)` reads `'2h ago'` (today `'2h ago · Work'` at `:1978`), the tree-order test reads `'4d ago'`, `'10m ago'` (`:2004-2007`), and a nested folder (`Work/projects`) also drops the folder. These are expected updates, not weakened tests.
-- [ ] Kind labels unchanged: `:1979` `'Canvas'` and the Kanban, View, PDF, Image, File cases; an unindexed `.md` node still reads `'Note'`. Other lenses unchanged: the `noteSubtitle` tests (`:742-771`), Today, Favorites and type cases (`:235`, `:275`, `:417`, `:429`), neighbourhood `:1062`.
-- [ ] `RailNoteList.test.ts:1035`: `ALPHA`'s entry gets a `modifiedAt` under a pinned clock and the row reads the time only; `Board` still reads `'Canvas'` (`:1036`); a folder-lens markdown row with `modifiedAt: 0` renders no `[data-note-row-subtitle]`.
-- [ ] Failing test first, `lens.logic.test.ts`: the system-folder predicate is true for `_system`, `_system/templates` and `_templates` (when `templates.folder` is `_templates`), false for `_notes` and `Work/_people`; blank settings make it false for everything; `systemFoldersLast` keeps relative order within each half.
-- [ ] Failing test first, `FilesNavigator.test.ts` (real `settingsStore`, `fsStore`, `vaultStore`; no store mocks): tree `_notes, _system, Areas, Daily` renders `[root, _notes, Areas, Daily, _system]`; the `_system` name span has `text-file-explorer-muted-fg`, `_notes` does not; a custom root order (`fsStore.setFolderOrder({ '.': [...] })` or a top-level folder in `setContentOrder`) keeps the incoming order with `_system` still muted; an expanded `_system/templates` is muted; a `titleColor` rule wins over the muted class; picking `_system` shows the primary colour.
-- [ ] Counts: a folder with two notes, a canvas, a dotfile and a subfolder shows `3`; an empty folder shows nothing; the number equals `resolveLens(folder(path)).notes.length` for the same tree; it updates after `fsStore.setFileTree` adds a file.
-- [ ] E2E `file-explorer.spec.ts:57-75` expects `[root, Daily, Projects, _system, _templates]` (comment and title updated) and passes together with `focus-ring.spec.ts` (`:74-80,97,108` take the first folder row).
-- [ ] `FilesNavigator.test.ts:92-98` and `lens.logic.test.ts:2036-2046` (the `navigatorFolders` tests) stay green.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/features/rail-shell/lens.logic.test.ts` `describe('resolveFolderLens through resolveLens')` under `pinClock()`: the `Plan` row of `folder(WORK)` reads `'2h ago'` (today `'2h ago · Work'` at `:1978`), the tree-order test reads `'4d ago'`, `'10m ago'` (`:2004-2007`), and a nested folder (`Work/projects`) also drops the folder. These are expected updates, not weakened tests.
+- [x] Kind labels unchanged: `:1979` `'Canvas'` and the Kanban, View, PDF, Image, File cases; an unindexed `.md` node still reads `'Note'`. Other lenses unchanged: the `noteSubtitle` tests (`:742-771`), Today, Favorites and type cases (`:235`, `:275`, `:417`, `:429`), neighbourhood `:1062`.
+- [x] `RailNoteList.test.ts:1035`: `ALPHA`'s entry gets a `modifiedAt` under a pinned clock and the row reads the time only; `Board` still reads `'Canvas'` (`:1036`); a folder-lens markdown row with `modifiedAt: 0` renders no `[data-note-row-subtitle]`.
+- [x] Failing test first, `lens.logic.test.ts`: the system-folder predicate is true for `_system`, `_system/templates` and `_templates` (when `templates.folder` is `_templates`), false for `_notes` and `Work/_people`; blank settings make it false for everything; `systemFoldersLast` keeps relative order within each half.
+- [x] Failing test first, `FilesNavigator.test.ts` (real `settingsStore`, `fsStore`, `vaultStore`; no store mocks): tree `_notes, _system, Areas, Daily` renders `[root, _notes, Areas, Daily, _system]`; the `_system` name span has `text-file-explorer-muted-fg`, `_notes` does not; a custom root order (`fsStore.setFolderOrder({ '.': [...] })` or a top-level folder in `setContentOrder`) keeps the incoming order with `_system` still muted; an expanded `_system/templates` is muted; a `titleColor` rule wins over the muted class; picking `_system` shows the primary colour.
+- [x] Counts: a folder with two notes, a canvas, a dotfile and a subfolder shows `3`; an empty folder shows nothing; the number equals `resolveLens(folder(path)).notes.length` for the same tree; it updates after `fsStore.setFileTree` adds a file.
+- [x] E2E `file-explorer.spec.ts:57-75` expects `[root, Daily, Projects, _system, _templates]` (comment and title updated) and passes together with `focus-ring.spec.ts` (`:74-80,97,108` take the first folder row).
+- [x] `FilesNavigator.test.ts:92-98` and `lens.logic.test.ts:2036-2046` (the `navigatorFolders` tests) stay green.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -61,3 +61,4 @@ Checked at `ab143a411`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided by the owner: old 34.1 to 34.3 = yes (the system folders are the configured System and templates folders, only the root level is reordered and a custom order turns it off, counts are the direct file count). Defaults (not individually answered): 14.1 (old 04.1) non-markdown folder-lens rows keep the kind word (`Canvas`, `Kanban`, `PDF`).
+- 2026-11-18, deliver (branch issue/14-folder-rows-system-folders-counts): folder-lens rows show only the time (kind word kept for non-markdown), the Files tree puts the configured System and templates folders last at the root and mutes them, folders show their direct file count. Fix round after review 1: the count moved inside the folder button with `aria-hidden`, test asserts `ml-auto`. Reviews: round 1 APPROVED (review.md), round 2 APPROVED (review-2.md). Tests: `pnpm check` exit 0; full suite at 533c0eec7 exit 0, 649 files, 17204 passed, 54 skipped, 1 todo.

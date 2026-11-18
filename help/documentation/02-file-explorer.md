@@ -6,8 +6,8 @@ Kokobrain's left side is the rail (see [Getting Started > The Rail](01-getting-s
 
 Click **Files** in the rail. Two columns open between the rail and the editor:
 
-- **The navigator** lists the vault root, then its folders. It shows folders only, never files; hidden folders (names starting with `.`, such as `.kokobrain`) are left out. Click a folder's arrow to expand or collapse it. Kokobrain remembers which folders you expanded.
-- **The note list** shows the picked folder's own files, of every kind: notes, canvases, views, PDFs and images. Files in subfolders are not listed; pick the subfolder to see them. Archived notes stay listed, and so do the files of the system folder (Settings > Files & Folders > System folder), which the rail's other lists leave out. The header names the folder, and the line under it reads `in <folder>/` (or `in the vault root`).
+- **The navigator** lists the vault root, then its folders. It shows folders only, never files; hidden folders (names starting with `.`, such as `.kokobrain`) are left out. Click a folder's arrow to expand or collapse it. Kokobrain remembers which folders you expanded. A number at the right of a folder is how many files it holds directly (its subfolders' files and hidden files not counted), the same number its note list shows; an empty folder shows none. The system folder and the templates folder (Settings > Files & Folders > System folder and Templates folder) are listed after your other top-level folders, with their names greyed out, and so are their subfolders. Other folders whose names start with `_`, such as `_notes`, are your folders and look like any other. A setting left blank leaves that folder alone.
+- **The note list** shows the picked folder's own files, of every kind: notes, canvases, views, PDFs and images. Files in subfolders are not listed; pick the subfolder to see them. Archived notes stay listed, and so do the files of the system folder (Settings > Files & Folders > System folder), which the rail's other lists leave out. The header names the folder, and the line under it reads `in <folder>/` (or `in the vault root`). A note's second line shows when it was last changed (`2h ago`); other files show their kind (`Canvas`, `Kanban`, `PDF`).
 
 Click a row to open the file in the editor. Kokobrain remembers the folder you picked, and opens on it after a restart. If that folder no longer exists, the rail opens on **Today** instead.
 
@@ -84,7 +84,9 @@ The vault root's menu has only the **New** items (New folder included).
 
 ## Sorting
 
-The navigator's folders and the note list of a folder use the same order: by name (A-Z), ignoring case. Numbers inside names sort by their value, so `Note 2` comes before `Note 10`. A Sort picked in a note list's header (see [Getting Started > The Rail](01-getting-started.md#the-rail)) orders that list only; the navigator keeps this order.
+The navigator's folders and the note list of a folder use the same order: by name (A-Z), ignoring case. Numbers inside names sort by their value, so `Note 2` comes before `Note 10`. One exception at the vault root: the system and templates folders come after the other folders. A Sort picked in a note list's header (see [Getting Started > The Rail](01-getting-started.md#the-rail)) orders that list only; the navigator keeps this order.
+
+A custom order for the vault root's folders (`_order` on a top-level folder, or the root's entry in `folder-order.json`, both described below) replaces this rule: the folders keep your order, and the system folders stay greyed out wherever you put them.
 
 You can override the default order per note with the `_order` frontmatter field (described below).
 

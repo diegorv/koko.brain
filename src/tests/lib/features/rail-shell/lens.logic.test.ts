@@ -38,6 +38,9 @@ import {
 	FOLDER_LENS_KIND,
 	fileKind,
 	navigatorFolders,
+	folderFiles,
+	systemFolderPredicate,
+	systemFoldersLast,
 	pickedFolderLens,
 	staleFolderPickFix,
 	parseExpandedFolders,
@@ -769,6 +772,11 @@ describe('noteSubtitle', () => {
 
 	it('is empty for a note with no modified time at the vault root', () => {
 		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { modifiedAt: 0, frontmatter: { date: '2026-10-27' } }), VAULT)).toBe('');
+	});
+
+	it('shows the modified time only with withFolder false, empty without one', () => {
+		expect(noteSubtitle(entryV2(`${VAULT}/Work/a.md`, { modifiedAt: secondsAgo(5 * 60) }), VAULT, { withFolder: false })).toBe('5m ago');
+		expect(noteSubtitle(entryV2(`${VAULT}/Work/a.md`, { modifiedAt: 0 }), VAULT, { withFolder: false })).toBe('');
 	});
 
 	it('leaves out the folder when the vault path is unknown', () => {
@@ -1975,8 +1983,33 @@ describe('Folder lens', () => {
 		it('fills a markdown row from its entry and other files from the tree', () => {
 			const [plan, board] = resolveLens(folder(WORK), folderCtx())!.notes;
 			expect(plan).toMatchObject({ title: 'Plan', isA: 'Project', favorite: true, frontmatter: { status: 'active' } });
-			expect(plan.subtitle).toBe('2h ago · Work');
+			// The folder is the lens itself, so a markdown row shows its modified time only.
+			expect(plan.subtitle).toBe('2h ago');
 			expect(board).toMatchObject({ title: 'Board', isA: null, favorite: false, frontmatter: {}, modifiedAt: 3, subtitle: 'Canvas', italic: false });
+		});
+
+		it('keeps the kind word on every row that is not an indexed note', () => {
+			const unindexed = `${WORK}/Draft.md`;
+			const notes = resolveLens(folder(WORK), folderCtx([dir(WORK, [...tree[1].children!, file(unindexed)])]))!.notes;
+			expect(Object.fromEntries(notes.map((n) => [n.title, n.subtitle]))).toEqual({
+				Plan: '2h ago',
+				Board: 'Canvas',
+				Tasks: 'Kanban',
+				Open: 'View',
+				Spec: 'PDF',
+				Shot: 'Image',
+				notes: 'File',
+				Draft: 'Note',
+			});
+		});
+
+		it('leaves the folder out of a nested folder lens too', () => {
+			const alpha = `${PROJECTS}/Alpha.md`;
+			const notes = resolveLens(
+				folder(PROJECTS),
+				ctx([entryV2(alpha, { modifiedAt: secondsAgo(5 * 60) })], '_system', undefined, tree),
+			)!.notes;
+			expect(notes.map((n) => n.subtitle)).toEqual(['5m ago']);
 		});
 
 		it('gives a non-markdown row the tree node creation time in seconds, or 0 without one', () => {
@@ -2002,8 +2035,8 @@ describe('Folder lens', () => {
 				),
 			)!.notes;
 			expect(notes.map((n) => [n.title, n.subtitle])).toEqual([
-				['Older', '4d ago · Work'],
-				['Newer', '10m ago · Work'],
+				['Older', '4d ago'],
+				['Newer', '10m ago'],
 			]);
 		});
 
@@ -2042,6 +2075,59 @@ describe('Folder lens', () => {
 		it('gives nothing for no nodes', () => {
 			expect(navigatorFolders([])).toEqual([]);
 			expect(navigatorFolders(undefined)).toEqual([]);
+		});
+	});
+
+	describe('folderFiles', () => {
+		it("keeps a folder's direct, non-hidden files of every kind, the folder lens rows", () => {
+			const work = tree[1].children!;
+			expect(folderFiles(work).map((n) => n.name)).toEqual(['Plan.md', 'Board.canvas', 'Tasks.kanban', 'Open.view', 'Spec.pdf', 'Shot.png', 'notes.txt']);
+			expect(folderFiles(work).length).toBe(resolveLens(folder(WORK), folderCtx())!.notes.length);
+		});
+
+		it('gives nothing for no nodes or a folder of folders', () => {
+			expect(folderFiles([])).toEqual([]);
+			expect(folderFiles(undefined)).toEqual([]);
+			expect(folderFiles([dir(PROJECTS, [])])).toEqual([]);
+		});
+	});
+
+	describe('systemFolderPredicate', () => {
+		it('matches the configured folders and everything under them, not other underscore folders', () => {
+			const isSystem = systemFolderPredicate(VAULT, ['_system', '_templates']);
+			expect(isSystem(`${VAULT}/_system`)).toBe(true);
+			expect(isSystem(`${VAULT}/_system/templates`)).toBe(true);
+			expect(isSystem(`${VAULT}/_templates`)).toBe(true);
+			expect(isSystem(`${VAULT}/_notes`)).toBe(false);
+			expect(isSystem(`${VAULT}/Work/_people`)).toBe(false);
+			expect(isSystem(`${VAULT}/_systemic`)).toBe(false);
+			expect(isSystem(VAULT)).toBe(false);
+		});
+
+		it('takes nested settings and stray slashes, with a trailing slash on the vault path', () => {
+			const isSystem = systemFolderPredicate(`${VAULT}/`, ['/_system/templates/']);
+			expect(isSystem(`${VAULT}/_system/templates/daily`)).toBe(true);
+			expect(isSystem(`${VAULT}/_system`)).toBe(false);
+		});
+
+		it('matches nothing for blank settings', () => {
+			const isSystem = systemFolderPredicate(VAULT, ['', '  ']);
+			for (const path of [VAULT, `${VAULT}/_system`, `${VAULT}/_templates`, WORK]) expect(isSystem(path), path).toBe(false);
+		});
+	});
+
+	describe('systemFoldersLast', () => {
+		it('moves the system folders after the others, keeping the order within each half', () => {
+			const names = ['_notes', '_system', 'Areas', '_templates', 'Daily'];
+			const folders = names.map((name) => dir(`${VAULT}/${name}`, []));
+			const isSystem = systemFolderPredicate(VAULT, ['_system', '_templates']);
+			expect(systemFoldersLast(folders, isSystem).map((n) => n.name)).toEqual(['_notes', 'Areas', 'Daily', '_system', '_templates']);
+		});
+
+		it('keeps the order when no folder is a system folder, and gives nothing for none', () => {
+			const folders = [dir(`${VAULT}/B`, []), dir(`${VAULT}/A`, [])];
+			expect(systemFoldersLast(folders, () => false)).toEqual(folders);
+			expect(systemFoldersLast([], () => true)).toEqual([]);
 		});
 	});
 

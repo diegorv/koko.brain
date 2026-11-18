@@ -55,7 +55,16 @@
 	import { findFolderNote } from '#lib/core/filesystem/folder-notes.logic.js';
 	import ViewDialog from '#lib/features/type-definitions/ViewDialog.svelte';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
-	import { FILES_LENS, FOLDER_LENS_KIND, navigatorFolders, VIEW_LENS_KIND, viewLabels } from './lens.logic';
+	import {
+		FILES_LENS,
+		FOLDER_LENS_KIND,
+		folderFiles,
+		navigatorFolders,
+		systemFolderPredicate,
+		systemFoldersLast,
+		VIEW_LENS_KIND,
+		viewLabels,
+	} from './lens.logic';
 	import { railRegistryStore } from './rail-registry.store.svelte';
 	import type { Lens, RailFolderCreator } from './rail-shell.types';
 
@@ -77,7 +86,19 @@
 	let expandedSet = $derived(new Set(expanded));
 	let vaultRoot = $derived(vaultStore.path?.replace(/\/+$/, '') ?? '');
 	let rootPicked = $derived(!picked.target || picked.target === vaultRoot);
-	let topFolders = $derived(navigatorFolders(fsStore.fileTree));
+	/** Whether a folder is the configured system or templates folder, or under one: its name is muted */
+	let isSystem = $derived(systemFolderPredicate(vaultRoot, [settingsStore.templates.systemFolder, settingsStore.templates.folder]));
+	/**
+	 * The vault root's folders, system ones last. A custom root order (a saved
+	 * `folder-order.json` entry for the root, or a top-level folder's `_order`)
+	 * is kept as the tree hands it over. Only the navigator reorders: the tree
+	 * itself stays in scan order for every other reader.
+	 */
+	let topFolders = $derived.by(() => {
+		const folders = navigatorFolders(fsStore.fileTree);
+		const customOrder = !!fsStore.folderOrder['.'] || folders.some((f) => fsStore.contentOrder.has(f.path));
+		return customOrder ? folders : systemFoldersLast(folders, isSystem);
+	});
 
 	/** The folder the header "+" creates in: the picked folder, or the vault root */
 	let pickedDir = $derived(picked.target || vaultRoot);
@@ -480,6 +501,9 @@
 	{@const open = expandedSet.has(node.path)}
 	{@const active = !rootPicked && picked.target === node.path}
 	{@const resolved = resolveIconForPath(node.path)}
+	{@const titleColor = !active && resolved?.titleColor ? resolved.titleColor : undefined}
+	{@const muted = !active && !titleColor && isSystem(node.path)}
+	{@const fileCount = folderFiles(node.children).length}
 	<!-- The div never takes focus, so its buttons light the row; scoped to button so the rename input does not. -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
@@ -539,7 +563,11 @@
 				{:else}
 					<Folder class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" style={iconColorStyle(resolved?.color)} />
 				{/if}
-				<span class="truncate" style:color={!active && resolved?.titleColor ? resolved.titleColor : undefined}>{node.name}</span>
+				<span class="truncate {muted ? 'text-file-explorer-muted-fg' : ''}" style:color={titleColor}>{node.name}</span>
+				{#if fileCount > 0}
+					<!-- Inside the button so clicking the number picks the folder; aria-hidden keeps the accessible name the folder name. -->
+					<span class="ml-auto shrink-0 text-meta tabular-nums text-file-explorer-muted-fg" aria-hidden="true" data-files-navigator-count>{fileCount}</span>
+				{/if}
 			</button>
 		{/if}
 	</div>
