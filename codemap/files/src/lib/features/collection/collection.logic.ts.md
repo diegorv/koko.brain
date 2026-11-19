@@ -71,10 +71,10 @@ by src/lib/features/collection/collection.logic.ts:QueryRowSet <- src/lib/featur
 sym src/lib/features/collection/collection.logic.ts:133 fn executeQuery(definition: CollectionDefinition, view: CollectionViewDef, index: Map<string, PropertyIndexRecord>, vaultPath: string … L91 | Executes a query against the property index using a collection definition and view.
 by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/collection/CollectionView.svelte:272 in queryResult=$derived call
 by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/collection/collection-block-widget.ts:130 in CollectionBlockWidget.toDOM call
-by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/rail-shell/lens.logic.ts:811 in queryViewLens call
+by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/features/rail-shell/lens.logic.ts:812 in queryViewLens call
 by src/lib/features/collection/collection.logic.ts:executeQuery <- src/lib/plugins/mods/mod-query.service.ts:45 in createModQuery call +1
 sym src/lib/features/collection/collection.logic.ts:271 fn filterCitesArchived(filter: FilterItem | undefined): boolean L15 | Whether a filter cites the archived flag, which hands the archived rows of a `.view` to the filter instead of the default exclusion.
-by src/lib/features/collection/collection.logic.ts:filterCitesArchived <- src/lib/features/rail-shell/lens.logic.ts:773 in queryCitesArchived call +1
+by src/lib/features/collection/collection.logic.ts:filterCitesArchived <- src/lib/features/rail-shell/lens.logic.ts:774 in queryCitesArchived call +1
 sym src/lib/features/collection/collection.logic.ts:327 fn evaluateFilter(filter: FilterItem, ctx: EvalContext, onLeafError?: (err: unknown) => void): boolean L26 | Evaluates a filter item (string expression or recursive filter object) against a note record.
 by src/lib/features/collection/collection.logic.ts:evaluateFilter <- src/lib/features/auto-organize/auto-organize.logic.ts:78 in ruleMatches call
 sym src/lib/features/collection/collection.logic.ts:392 fn formatCellValue(value: unknown): string L23 | Formats a cell value for display in the table.

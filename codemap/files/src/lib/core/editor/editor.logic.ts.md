@@ -1,12 +1,13 @@
 # file card src/lib/core/editor/editor.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/editor/editor.logic.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, calls
-file src/lib/core/editor/editor.logic.ts logic L192 module src/lib/core/editor in22 t22
+file src/lib/core/editor/editor.logic.ts logic L192 module src/lib/core/editor in23 t22
 ## imports
 imp src/lib/core/editor/editor.logic.ts:1 -> src/lib/utils/path.ts basename,relativePath
 imp src/lib/core/editor/editor.logic.ts:3 -> src/lib/core/editor/editor.types.ts type:EditorTab
 ## imported-by
 imp src/lib/app/EditorView.svelte:27 -> src/lib/core/editor/editor.logic.ts isMarkdownNoteTab,isVirtualTab
+imp src/lib/app/commands.ts:55 -> src/lib/core/editor/editor.logic.ts isVirtualTab
 imp src/lib/core/editor/editor.service.ts:5 -> src/lib/core/editor/editor.logic.ts findTabIndex,getFileName,isTabDirty,isTabPinned,isVirtualTab
 imp src/lib/core/editor/editor.store.svelte.ts:3 -> src/lib/core/editor/editor.logic.ts reorderTabsAfterPinChange,getPinnedBoundary,moveTab
 imp src/lib/core/editor/open-note-at.service.ts:3 -> src/lib/core/editor/editor.logic.ts lineStartToOffset
@@ -72,13 +73,14 @@ by src/lib/core/editor/editor.logic.ts:EVENT_CALENDAR_VIRTUAL_PATH <- src/lib/co
 by src/lib/core/editor/editor.logic.ts:EVENT_CALENDAR_VIRTUAL_PATH <- src/lib/features/event-calendar/event-calendar.service.ts:141 in openEventCalendarTab ref +3
 sym src/lib/core/editor/editor.logic.ts:18 fn isVirtualTab(tab: Pick<EditorTab, 'path'>): boolean L3 | Returns true if the tab represents a virtual (non-file) view
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/app/EditorView.svelte:44 in isVirtual=$derived call
+by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/app/commands.ts:384 in getBuiltInCommands call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/editor/editor.service.ts:238 in writeTab call +4
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/filesystem/path-change.service.ts:67 in saveDirtyTabsUnder call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/markdown-editor/EditorTabs.svelte:224 in (markup) markup +1
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/status-bar/SaveStatus.svelte:9 in status=$derived call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/features/search/SemanticIndexStatus.svelte:31 in $effect@29 call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/plugins/word-count/WordCount.svelte:13 in isMarkdown=$derived call
-by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/routes/(app)/+layout.svelte:118 in $effect@110 call +1
+more by 1 not shown: src/routes(1): q importers src/lib/core/editor/editor.logic.ts:isVirtualTab
 sym src/lib/core/editor/editor.logic.ts:28 fn isMarkdownNoteTab(tab: Pick<EditorTab, 'path' | 'fileType'>): boolean L5 | Returns true for a tab showing a markdown note file: not virtual, rendered as markdown (no special `fileType`), and named `*.md`, which leaves out other text f…
 by src/lib/core/editor/editor.logic.ts:isMarkdownNoteTab <- src/lib/app/EditorView.svelte:45 in isMarkdownNote=$derived call
 by src/lib/core/editor/editor.logic.ts:isMarkdownNoteTab <- src/lib/core/markdown-editor/EditorTabs.svelte:232 in (markup) markup

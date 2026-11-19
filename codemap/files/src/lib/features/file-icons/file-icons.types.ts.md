@@ -13,7 +13,7 @@ imp src/lib/features/file-icons/file-icons.service.ts:5 -> src/lib/features/file
 imp src/lib/features/file-icons/file-icons.store.svelte.ts:1 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId,type:RecentIcon
 imp src/lib/features/file-icons/frontmatter-icon.service.ts:15 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId
 imp src/lib/features/file-icons/icon-resolver.ts:3 -> src/lib/features/file-icons/file-icons.types.ts type:NormalizedIcon
-imp src/lib/features/note-list/NoteRowMenu.svelte:22 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId
+imp src/lib/features/note-list/NoteRowMenu.svelte:27 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId
 imp src/lib/features/rail-shell/FilesNavigator.svelte:54 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId
 imp src/lib/features/rail-shell/TypesNavigator.svelte:34 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId
 ## reach

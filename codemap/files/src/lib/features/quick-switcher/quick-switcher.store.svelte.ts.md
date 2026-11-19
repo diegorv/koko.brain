@@ -21,7 +21,7 @@ test src/tests/lib/features/quick-switcher/quick-switcher.service.test.ts import
 ## symbols
 sym src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:24 store quickSwitcherStore L33
 by src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:quickSwitcherStore <- src/lib/app/boot.ts:52 in registerAppPorts mcall
-by src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:quickSwitcherStore <- src/lib/app/commands.ts:201 in getBuiltInCommands mcall
+by src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:quickSwitcherStore <- src/lib/app/commands.ts:203 in getBuiltInCommands mcall
 by src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:quickSwitcherStore <- src/lib/app/global-keybindings.ts:72 in GLOBAL_KEYBINDINGS mcall
 by src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:quickSwitcherStore <- src/lib/features/quick-switcher/QuickSwitcher.svelte:48 in filteredFiles=$derived member +7
 by src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:quickSwitcherStore <- src/lib/features/quick-switcher/quick-switcher.service.ts:5 in resetQuickSwitcher mcall
@@ -31,7 +31,7 @@ mem src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:25 get quickS
 mem src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:26 get quickSwitcherStore.recentPaths r:src/lib/features/quick-switcher/QuickSwitcher.svelte:48,src/lib/features/quick-switcher/QuickSwitcher.svelte:56 w-via:addRecentPath,removeRecentPath,reset
 mem src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:28 do quickSwitcherStore.open w:-
 mem src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:29 do quickSwitcherStore.close w:src/lib/features/quick-switcher/QuickSwitcher.svelte:76,src/lib/features/quick-switcher/QuickSwitcher.svelte:83,src/lib/features/quick-switcher/QuickSwitcher.svelte:111
-mem src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:30 do quickSwitcherStore.toggle w:src/lib/app/commands.ts:201,src/lib/app/global-keybindings.ts:72
+mem src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:30 do quickSwitcherStore.toggle w:src/lib/app/commands.ts:203,src/lib/app/global-keybindings.ts:72
 mem src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:32 do quickSwitcherStore.addRecentPath w:src/lib/features/quick-switcher/QuickSwitcher.svelte:82,src/lib/features/quick-switcher/QuickSwitcher.svelte:108
 mem src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:39 do quickSwitcherStore.removeRecentPath w:src/lib/app/boot.ts:52 | Removes a path from the recent list (e.g. after file deletion)
 mem src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:47 do quickSwitcherStore.reset w:src/lib/features/quick-switcher/quick-switcher.service.ts:5

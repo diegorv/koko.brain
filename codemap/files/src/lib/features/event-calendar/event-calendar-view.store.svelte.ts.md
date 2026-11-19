@@ -26,7 +26,7 @@ imp src/lib/features/event-calendar/EventWeekStrip.svelte:4 -> src/lib/features/
 imp src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:4 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
 imp src/lib/features/event-calendar/event-calendar-gesture-guard.ts:1 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
 imp src/lib/features/event-calendar/event-calendar.service.ts:42 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
-imp src/lib/features/rail-shell/RailNoteList.svelte:62 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
+imp src/lib/features/rail-shell/RailNoteList.svelte:63 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
 imp src/lib/plugins/calendar/CalendarNavigator.svelte:11 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
 imp src/lib/plugins/calendar/calendar-rail.service.ts:4 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
 imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:11 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
@@ -57,7 +57,7 @@ test src/tests/lib/plugins/calendar/calendar-rail.service.test.ts imports src/li
 test src/tests/lib/plugins/one-on-one/MyPeopleSection.test.ts imports src/lib/features/event-calendar/event-calendar-view.store.svelte.ts
 ## symbols
 sym src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:50 store eventCalendarViewStore L182 | Reactive state of the Calendar tab: view, date, popover, dialogs and clock.
-by src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:eventCalendarViewStore <- src/lib/app/commands.ts:252 in getBuiltInCommands mcall
+by src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:eventCalendarViewStore <- src/lib/app/commands.ts:254 in getBuiltInCommands mcall
 by src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:eventCalendarViewStore <- src/lib/features/event-calendar/EventAllDayLane.svelte:31 in selectedPath=$derived member +4
 by src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:eventCalendarViewStore <- src/lib/features/event-calendar/EventBlock.svelte:41 in selected=$derived member +2
 by src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:eventCalendarViewStore <- src/lib/features/event-calendar/EventCalendarHeader.svelte:20 in label=$derived member +9
@@ -93,7 +93,7 @@ more w 8 not shown: src/lib/features/event-calendar(8): q store src/lib/features
 mem src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:111 do eventCalendarViewStore.setDate w:8 | Moves to a day, closes the popover and drops the focus request.
 more w 8 not shown: src/lib/features/event-calendar(8): q store src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:eventCalendarViewStore.setDate
 mem src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:118 do eventCalendarViewStore.step w:src/lib/features/event-calendar/EventCalendarHeader.svelte:53,src/lib/features/event-calendar/EventCalendarHeader.svelte:70,src/lib/features/event-calendar/EventCalendarView.svelte:71 | Moves one view unit back (`-1`) or forward (`1`), closes the popover and drops the focus request.
-mem src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:125 do eventCalendarViewStore.goToToday w:src/lib/app/commands.ts:252,src/lib/features/event-calendar/EventCalendarHeader.svelte:43,src/lib/features/event-calendar/EventCalendarView.svelte:65 | Moves to today (read from the system clock), closes the popover and drops the focus request.
+mem src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:125 do eventCalendarViewStore.goToToday w:src/lib/app/commands.ts:254,src/lib/features/event-calendar/EventCalendarHeader.svelte:43,src/lib/features/event-calendar/EventCalendarView.svelte:65 | Moves to today (read from the system clock), closes the popover and drops the focus request.
 mem src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:132 do eventCalendarViewStore.openPopover w:src/lib/features/event-calendar/EventAllDayLane.svelte:86,src/lib/features/event-calendar/EventBlock.svelte:59,src/lib/features/event-calendar/EventMonthGrid.svelte:141,src/lib/features/event-calendar/EventTimeGrid.svelte:195 | Opens the popover for an event anchored at `rect` (copied).
 mem src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:137 do eventCalendarViewStore.closePopover w:12 | Closes the popover.
 more w 12 not shown: src/lib/features/event-calendar(12): q store src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:eventCalendarViewStore.closePopover

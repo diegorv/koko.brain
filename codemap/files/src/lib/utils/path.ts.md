@@ -5,7 +5,7 @@ file src/lib/utils/path.ts other L123 module src/lib/utils in29 t1
 imp src/lib/app/deep-link-actions.ts:15 -> src/lib/utils/path.ts vaultRelativeKey
 imp src/lib/app/editor-host.ts:27 -> src/lib/utils/path.ts resolveFilePath
 imp src/lib/core/editor/editor.logic.ts:1 -> src/lib/utils/path.ts basename,relativePath
-imp src/lib/core/filesystem/delete-note.service.ts:5 -> src/lib/utils/path.ts basename
+imp src/lib/core/filesystem/delete-note.service.ts:6 -> src/lib/utils/path.ts basename
 imp src/lib/core/filesystem/file-entries.logic.ts:3 -> src/lib/utils/path.ts relativePath
 imp src/lib/core/filesystem/fs.logic.ts:4 -> src/lib/utils/path.ts basename,relativePath
 imp src/lib/core/filesystem/link-updater.logic.ts:1 -> src/lib/utils/path.ts stem,vaultRelativeKey
@@ -46,7 +46,7 @@ by src/lib/utils/path.ts:resolveFilePath <- src/lib/features/deep-link/deep-link
 by src/lib/utils/path.ts:resolveFilePath <- src/lib/plugins/templates/templates.service.ts:63 in createFileFromTemplate call
 sym src/lib/utils/path.ts:64 fn basename(path: string): string L3 | Extracts the last segment of a path, extension included.
 by src/lib/utils/path.ts:basename <- src/lib/core/editor/editor.logic.ts:36 in getFileName call
-by src/lib/utils/path.ts:basename <- src/lib/core/filesystem/delete-note.service.ts:13 in deleteNoteWithConfirm call
+by src/lib/utils/path.ts:basename <- src/lib/core/filesystem/delete-note.service.ts:17 in deleteNoteWithConfirm call
 by src/lib/utils/path.ts:basename <- src/lib/core/filesystem/fs.logic.ts:55 in getFileName call
 by src/lib/utils/path.ts:basename <- src/lib/core/frontmatter/frontmatter-write.service.ts:69 in toastFrontmatterWriteError call
 by src/lib/utils/path.ts:basename <- src/lib/core/vault/vault.logic.ts:17 in extractVaultName call

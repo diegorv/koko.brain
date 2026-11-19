@@ -73,7 +73,7 @@ sym src/lib/features/type-definitions/type-definitions.logic.ts:250 fn buildType
 by src/lib/features/type-definitions/type-definitions.logic.ts:buildTypeNoteDir <- src/lib/features/event-calendar/EventCalendarSection.svelte:55 in eventFolder=$derived call
 by src/lib/features/type-definitions/type-definitions.logic.ts:buildTypeNoteDir <- src/lib/features/type-definitions/type-definitions.service.ts:59 in resolveTypedNoteTarget call
 sym src/lib/features/type-definitions/type-definitions.logic.ts:265 fn getTypeMetadataFallback(name: string, map: Map<string, TypeMetadata>): TypeMetadata L11 | Returns metadata for a type name, falling back to builtins then defaults.
-by src/lib/features/type-definitions/type-definitions.logic.ts:getTypeMetadataFallback <- src/lib/features/rail-shell/lens.logic.ts:367 in resolveTypeLens call
+by src/lib/features/type-definitions/type-definitions.logic.ts:getTypeMetadataFallback <- src/lib/features/rail-shell/lens.logic.ts:368 in resolveTypeLens call
 by src/lib/features/type-definitions/type-definitions.logic.ts:getTypeMetadataFallback <- src/lib/features/type-definitions/type-sidebar.logic.ts:207 in buildTypeSections call
 ## locals
 local src/lib/features/type-definitions/type-definitions.logic.ts:66 fn fmString(fm: Record<string, FrontmatterValue>, key: string): string | null L4

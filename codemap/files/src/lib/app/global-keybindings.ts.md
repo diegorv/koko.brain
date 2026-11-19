@@ -1,6 +1,6 @@
 # file card src/lib/app/global-keybindings.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/app/global-keybindings.ts ' codemap/files
-file src/lib/app/global-keybindings.ts other L229 module src/lib/app in2 t1
+file src/lib/app/global-keybindings.ts other L229 module src/lib/app in2 t2
 ## imports
 imp src/lib/app/global-keybindings.ts:1 -> src/lib/utils/keybindings.ts registerKeybinding,type:KeyBinding,type:KeyCombo
 imp src/lib/app/global-keybindings.ts:2 -> src/lib/core/editor/editor.service.ts saveCurrentFile,closeActiveTab,switchToNextTab,switchToPreviousTab,toggleSourceMode
@@ -21,16 +21,17 @@ imp src/lib/app/global-keybindings.ts:27 -> src/lib/core/zoom/zoom.service.ts zo
 imp src/lib/app/global-keybindings.ts:28 -> src/lib/features/properties/lifecycle.service.ts toggleActiveNoteFavorite,toggleActiveNoteOrganized
 imp src/lib/app/global-keybindings.ts:29 -> src/lib/utils/debug.ts error
 ## imported-by
-imp src/lib/app/commands.ts:54 -> src/lib/app/global-keybindings.ts shortcutFor
+imp src/lib/app/commands.ts:56 -> src/lib/app/global-keybindings.ts shortcutFor
 imp src/routes/(app)/+layout.svelte:10 -> src/lib/app/global-keybindings.ts registerGlobalKeybindings
 ## reach
 in2 src/lib/app/global-keybindings.ts 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/app/global-keybindings.ts 61 files in 24 modules: src/lib/features/event-calendar(9) src/lib/features/tasks(8) src/lib/core/filesystem(4) src/lib/core/editor(3) src/lib/core/frontmatter(3) +19 modules
 ## tests
 test src/tests/lib/app/global-keybindings.test.ts imports src/lib/app/global-keybindings.ts mirror
+test src/tests/lib/features/note-action-bar/NoteActionBar.test.ts imports src/lib/app/global-keybindings.ts
 ## symbols
 sym src/lib/app/global-keybindings.ts:211 fn shortcutFor(command: string): KeyCombo L6 | Returns the key combo bound to a palette command, for its shortcut label.
-by src/lib/app/global-keybindings.ts:shortcutFor <- src/lib/app/commands.ts:127 in getBuiltInCommands call +18
+by src/lib/app/global-keybindings.ts:shortcutFor <- src/lib/app/commands.ts:129 in getBuiltInCommands call +18
 sym src/lib/app/global-keybindings.ts:222 fn registerGlobalKeybindings(): () => void L8 | Registers all app-wide keyboard shortcuts.
 by src/lib/app/global-keybindings.ts:registerGlobalKeybindings <- src/routes/(app)/+layout.svelte:47 in $effect@46 call
 ## locals

@@ -1,7 +1,7 @@
 # file card src/lib/core/editor/editor.service.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/editor/editor.service.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls, effects
-file src/lib/core/editor/editor.service.ts service L527 module src/lib/core/editor in55 t97
+file src/lib/core/editor/editor.service.ts service L527 module src/lib/core/editor in55 t101
 ## imports
 imp src/lib/core/editor/editor.service.ts:1 -> pkg:@tauri-apps/plugin-fs readTextFile,writeTextFile
 imp src/lib/core/editor/editor.service.ts:2 -> pkg:@tauri-apps/plugin-dialog ask
@@ -45,10 +45,10 @@ imp src/lib/features/event-calendar/EventDialog.svelte:8 -> src/lib/core/editor/
 imp src/lib/features/event-calendar/EventPopover.svelte:8 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/event-calendar/event-calendar.service.ts:18 -> src/lib/core/editor/editor.service.ts openFileInEditor,saveFileByPath
 imp src/lib/features/file-history/file-history.service.ts:9 -> src/lib/core/editor/editor.service.ts saveCurrentFile
-imp src/lib/features/note-action-bar/NoteActionBar.svelte:26 -> src/lib/core/editor/editor.service.ts toggleSourceMode
+imp src/lib/features/note-action-bar/NoteActionBar.svelte:28 -> src/lib/core/editor/editor.service.ts toggleSourceMode
 imp src/lib/features/note-action-bar/note-action-bar.service.ts:3 -> src/lib/core/editor/editor.service.ts openFileInEditor
-imp src/lib/features/note-list/NoteRow.svelte:5 -> src/lib/core/editor/editor.service.ts openFileInEditor
-imp src/lib/features/note-list/NoteRowMenu.svelte:14 -> src/lib/core/editor/editor.service.ts openFileInEditor
+imp src/lib/features/note-list/NoteRow.svelte:6 -> src/lib/core/editor/editor.service.ts openFileInEditor
+imp src/lib/features/note-list/NoteRowMenu.svelte:17 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:10 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/properties/PropertiesView.svelte:10 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/properties/properties.service.ts:2 -> src/lib/core/editor/editor.service.ts syncExternalContentToEditor
@@ -76,6 +76,7 @@ test src/tests/lib/features/collection/CollectionView.view-writes.test.ts import
 test src/tests/lib/features/deep-link/deep-link-dirty-buffer.test.ts imports src/lib/core/editor/editor.service.ts
 test src/tests/lib/features/file-icons/file-icons.service.test.ts imports src/lib/core/editor/editor.service.ts
 test src/tests/lib/features/note-action-bar/NoteActionBar.test.ts imports src/lib/core/editor/editor.service.ts
+test src/tests/lib/features/note-list/NoteRowMenu.lifecycle.test.ts imports src/lib/core/editor/editor.service.ts
 test src/tests/lib/features/properties/frontmatter-number-spelling.test.ts imports src/lib/core/editor/editor.service.ts
 test src/tests/lib/features/properties/lifecycle.service.test.ts imports src/lib/core/editor/editor.service.ts
 test src/tests/lib/features/properties/panel-meta-bind-lossy-rewrite.test.ts imports src/lib/core/editor/editor.service.ts
@@ -99,8 +100,7 @@ test src/tests/lib/app/editor-host.test.ts mocks src/lib/core/editor/editor.serv
 test src/tests/lib/app/global-keybindings.test.ts mocks src/lib/core/editor/editor.service.ts
 test src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts mocks src/lib/core/editor/editor.service.ts
 test src/tests/lib/app/rail-navigation.test.ts mocks src/lib/core/editor/editor.service.ts
-test src/tests/lib/app/tauri-listeners.service.test.ts mocks src/lib/core/editor/editor.service.ts
-more tests 57 not shown: src/tests/lib/features/rail-shell(11) src/tests/lib/features/event-calendar(9) src/tests/lib/features/collection(4) src/tests/lib/features/properties(4) src/tests/lib/features/note-list(3) src/tests/lib/plugins/calendar(3) src/tests/lib/plugins/queryjs(3) src/tests/lib/core/filesystem(2) +13 modules: q tests src/lib/core/editor/editor.service.ts
+more tests 61 not shown: src/tests/lib/features/rail-shell(12) src/tests/lib/features/event-calendar(9) src/tests/lib/features/properties(5) src/tests/lib/features/collection(4) src/tests/lib/features/note-list(4) src/tests/lib/plugins/calendar(3) src/tests/lib/plugins/queryjs(3) src/tests/lib/core/filesystem(2) +14 modules: q tests src/lib/core/editor/editor.service.ts
 ## symbols
 sym src/lib/core/editor/editor.service.ts:28 fn registerTabCloseListener(name: string, closed: (path: string) => void): () => void L8 | Registers `closed` to run with the path of each tab `closeTab` or `closeTabsForDeletedPath` removes.
 by src/lib/core/editor/editor.service.ts:registerTabCloseListener <- src/lib/plugins/queryjs/queryjs-ports.ts:16 in registerQueryjsBlockPorts call
@@ -118,7 +118,7 @@ by src/lib/core/editor/editor.service.ts:syncExternalContentToEditor <- src/lib/
 by src/lib/core/editor/editor.service.ts:syncExternalContentToEditor <- src/lib/features/todoist-sync/sync-now.service.ts:900 in writeProjectId call
 more by 3 not shown: src/lib/plugins/mods(2) src/lib/features/type-definitions(1): q importers src/lib/core/editor/editor.service.ts:syncExternalContentToEditor
 sym src/lib/core/editor/editor.service.ts:148 fn openFileInEditor(filePath: string) L51 | Opens a file in the editor.
-by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/app/commands.ts:159 in getBuiltInCommands call +2
+by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/app/commands.ts:161 in getBuiltInCommands call +2
 by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/app/editor-host.ts:144 in appEditorHost.openLink call
 by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/app/rail-navigation.ts:41 in selectRailItem call +1
 by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/core/editor/open-note-at.service.ts:39 in openNoteAt call
@@ -128,7 +128,7 @@ by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/features/ba
 by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/features/canvas/CanvasInner.svelte:580 in handleDrop call
 more by 27 not shown: src/lib/features/event-calendar(5) src/lib/features/rail-shell(4) src/lib/features/collection(2) src/lib/features/note-list(2) src/lib/plugins/mods(2) src/lib/features/canvas(1) src/lib/features/deep-link(1) src/lib/features/note-action-bar(1) +9 modules: q importers src/lib/core/editor/editor.service.ts:openFileInEditor
 sym src/lib/core/editor/editor.service.ts:201 fn saveCurrentFile() L5 | Writes the active tab's content to disk if it has unsaved changes
-by src/lib/core/editor/editor.service.ts:saveCurrentFile <- src/lib/app/commands.ts:128 in getBuiltInCommands call
+by src/lib/core/editor/editor.service.ts:saveCurrentFile <- src/lib/app/commands.ts:130 in getBuiltInCommands call
 by src/lib/core/editor/editor.service.ts:saveCurrentFile <- src/lib/app/global-keybindings.ts:78 in GLOBAL_KEYBINDINGS call
 by src/lib/core/editor/editor.service.ts:saveCurrentFile <- src/lib/features/file-history/file-history.service.ts:99 in restoreSnapshot call
 sym src/lib/core/editor/editor.service.ts:220 fn saveFileByPath(path: string): Promise<boolean> L9 | Writes a specific tab's content to disk if it has unsaved changes.
@@ -156,21 +156,21 @@ by src/lib/core/editor/editor.service.ts:switchTab <- src/lib/core/markdown-edit
 sym src/lib/core/editor/editor.service.ts:362 fn closeTab(index: number) L33 | Closes a tab by index.
 by src/lib/core/editor/editor.service.ts:closeTab <- src/lib/core/markdown-editor/EditorTabs.svelte:236 in (markup) markup +1
 sym src/lib/core/editor/editor.service.ts:397 fn closeActiveTab() L5 | Convenience: closes whichever tab is currently focused
-by src/lib/core/editor/editor.service.ts:closeActiveTab <- src/lib/app/commands.ts:135 in getBuiltInCommands call
+by src/lib/core/editor/editor.service.ts:closeActiveTab <- src/lib/app/commands.ts:137 in getBuiltInCommands call
 by src/lib/core/editor/editor.service.ts:closeActiveTab <- src/lib/app/global-keybindings.ts:84 in GLOBAL_KEYBINDINGS call
 sym src/lib/core/editor/editor.service.ts:404 fn switchToNextTab() L5 | Cycles to the next tab (wraps around)
-by src/lib/core/editor/editor.service.ts:switchToNextTab <- src/lib/app/commands.ts:142 in getBuiltInCommands call
+by src/lib/core/editor/editor.service.ts:switchToNextTab <- src/lib/app/commands.ts:144 in getBuiltInCommands call
 by src/lib/core/editor/editor.service.ts:switchToNextTab <- src/lib/app/global-keybindings.ts:98 in GLOBAL_KEYBINDINGS call
 sym src/lib/core/editor/editor.service.ts:411 fn switchToPreviousTab() L5 | Cycles to the previous tab (wraps around)
-by src/lib/core/editor/editor.service.ts:switchToPreviousTab <- src/lib/app/commands.ts:149 in getBuiltInCommands call
+by src/lib/core/editor/editor.service.ts:switchToPreviousTab <- src/lib/app/commands.ts:151 in getBuiltInCommands call
 by src/lib/core/editor/editor.service.ts:switchToPreviousTab <- src/lib/app/global-keybindings.ts:91 in GLOBAL_KEYBINDINGS call
 sym src/lib/core/editor/editor.service.ts:418 fn togglePinTab(index: number) L3 | Toggles the pinned state of the tab at the given index
 by src/lib/core/editor/editor.service.ts:togglePinTab <- src/lib/core/markdown-editor/EditorTabs.svelte:246 in (markup) markup
 sym src/lib/core/editor/editor.service.ts:423 fn togglePinActiveTab() L5 | Toggles the pinned state of the currently active tab
-by src/lib/core/editor/editor.service.ts:togglePinActiveTab <- src/lib/app/commands.ts:374 in getBuiltInCommands call
+by src/lib/core/editor/editor.service.ts:togglePinActiveTab <- src/lib/app/commands.ts:392 in getBuiltInCommands call
 sym src/lib/core/editor/editor.service.ts:437 fn toggleSourceMode() L3 | Toggles between live preview and source mode.
 by src/lib/core/editor/editor.service.ts:toggleSourceMode <- src/lib/app/global-keybindings.ts:187 in GLOBAL_KEYBINDINGS call
-by src/lib/core/editor/editor.service.ts:toggleSourceMode <- src/lib/features/note-action-bar/NoteActionBar.svelte:178 in (markup) markup
+by src/lib/core/editor/editor.service.ts:toggleSourceMode <- src/lib/features/note-action-bar/NoteActionBar.svelte:198 in (markup) markup
 sym src/lib/core/editor/editor.service.ts:442 fn pinTabByPath(filePath: string) L6 | Pins a tab identified by file path (used for auto-pin features like daily notes)
 by src/lib/core/editor/editor.service.ts:pinTabByPath <- src/lib/plugins/periodic-notes/periodic-notes.service.ts:115 in autoOpenDailyNote call +1
 sym src/lib/core/editor/editor.service.ts:450 fn unpinTabByPath(filePath: string) L6 | Unpins a tab identified by file path (used when rotating auto-pinned daily notes)

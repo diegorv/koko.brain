@@ -48,8 +48,8 @@ by src/lib/features/collection/yaml-parser.ts:parseCollectionYaml <- src/lib/fea
 sym src/lib/features/collection/yaml-parser.ts:131 fn viewIndexByName(views: unknown, name: unknown): number L4 | Index of the first entry of `views` (raw YAML or parsed) whose `name` equals `name` exactly; -1 when none does.
 by src/lib/features/collection/yaml-parser.ts:viewIndexByName <- src/lib/features/type-definitions/type-sidebar.logic.ts:453 in railViewNameNote call
 sym src/lib/features/collection/yaml-parser.ts:142 fn railViewIndex(definition: Pick<CollectionDefinition, 'views' | 'railView'>): number L3 | Index of the view the rail runs (its note list, navigator count, Sort and Filter toolbar, and Edit view): the first view whose `name` equals `railView` exactly…
-by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/rail-shell/RailNoteList.svelte:281 in loadView call
-by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/rail-shell/lens.logic.ts:807 in queryViewLens call
+by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/rail-shell/RailNoteList.svelte:283 in loadView call
+by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/rail-shell/lens.logic.ts:808 in queryViewLens call
 by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/type-definitions/ViewDialog.svelte:96 in load call
 by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/type-definitions/type-note-list.logic.ts:169 in toolbarKeyBase call +1
 sym src/lib/features/collection/yaml-parser.ts:147 interface CollectionYamlUpdates L22 | Fields that can be updated in a `.view` YAML file

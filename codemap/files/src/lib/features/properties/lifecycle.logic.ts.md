@@ -8,7 +8,7 @@ imp src/lib/features/note-action-bar/note-action-bar.logic.ts:3 -> src/lib/featu
 imp src/lib/features/properties/bookmark-migration.service.ts:8 -> src/lib/features/properties/lifecycle.logic.ts toggleFavorite
 imp src/lib/features/properties/lifecycle.service.ts:11 -> src/lib/features/properties/lifecycle.logic.ts getLifecycleState,isFavorite,isOrganized,setBooleanFlag,toggleArchived,toggleFavorite,toggleOrganized
 ## reach
-in2 src/lib/features/properties/lifecycle.logic.ts 7 files in 4 modules: src/lib/app(3) src/lib/features/note-action-bar(2) src/lib/features/note-list(1) src/lib/features/rail-shell(1)
+in2 src/lib/features/properties/lifecycle.logic.ts 8 files in 4 modules: src/lib/app(3) src/lib/features/note-action-bar(2) src/lib/features/rail-shell(2) src/lib/features/note-list(1)
 out2 src/lib/features/properties/lifecycle.logic.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/features/properties/lifecycle.logic.test.ts imports src/lib/features/properties/lifecycle.logic.ts mirror
@@ -18,19 +18,19 @@ test src/tests/lib/features/properties/bookmark-migration.service.test.ts import
 sym src/lib/features/properties/lifecycle.logic.ts:4 type LifecycleState L1 | Lifecycle state derived from frontmatter flags.
 sym src/lib/features/properties/lifecycle.logic.ts:7 fn getLifecycleState(properties: Property[]): LifecycleState L5 | Returns the lifecycle state of a note from its properties.
 by src/lib/features/properties/lifecycle.logic.ts:getLifecycleState <- src/lib/features/note-action-bar/note-action-bar.logic.ts:38 in getActionBarState call
-by src/lib/features/properties/lifecycle.logic.ts:getLifecycleState <- src/lib/features/properties/lifecycle.service.ts:92 in toggleActiveNoteArchived call
+by src/lib/features/properties/lifecycle.logic.ts:getLifecycleState <- src/lib/features/properties/lifecycle.service.ts:121 in toggleActiveNoteArchived call
 sym src/lib/features/properties/lifecycle.logic.ts:14 fn isFavorite(properties: Property[]): boolean L4 | Returns whether the note is a favorite.
 by src/lib/features/properties/lifecycle.logic.ts:isFavorite <- src/lib/features/note-action-bar/note-action-bar.logic.ts:36 in getActionBarState call
-by src/lib/features/properties/lifecycle.logic.ts:isFavorite <- src/lib/features/properties/lifecycle.service.ts:79 in toggleActiveNoteFavorite call
+by src/lib/features/properties/lifecycle.logic.ts:isFavorite <- src/lib/features/properties/lifecycle.service.ts:108 in toggleActiveNoteFavorite call
 sym src/lib/features/properties/lifecycle.logic.ts:24 fn isOrganized(properties: Property[]): boolean L3 | Returns whether the note is organized, whatever its archive state.
 by src/lib/features/properties/lifecycle.logic.ts:isOrganized <- src/lib/features/note-action-bar/note-action-bar.logic.ts:37 in getActionBarState call
-by src/lib/features/properties/lifecycle.logic.ts:isOrganized <- src/lib/features/properties/lifecycle.service.ts:84 in toggleActiveNoteOrganized call
+by src/lib/features/properties/lifecycle.logic.ts:isOrganized <- src/lib/features/properties/lifecycle.service.ts:113 in toggleActiveNoteOrganized call
 sym src/lib/features/properties/lifecycle.logic.ts:32 fn setBooleanFlag(properties: Property[], key: string, value: boolean): Property[] L11 | Sets a boolean flag in properties, creating it if absent.
-by src/lib/features/properties/lifecycle.logic.ts:setBooleanFlag <- src/lib/features/properties/lifecycle.service.ts:70 in setTypeRailPin call
+by src/lib/features/properties/lifecycle.logic.ts:setBooleanFlag <- src/lib/features/properties/lifecycle.service.ts:99 in setTypeRailPin call
 sym src/lib/features/properties/lifecycle.logic.ts:49 fn toggleOrganized(properties: Property[], organized: boolean): Property[] L3 | Sets the organized flag.
-by src/lib/features/properties/lifecycle.logic.ts:toggleOrganized <- src/lib/features/properties/lifecycle.service.ts:84 in toggleActiveNoteOrganized call
+by src/lib/features/properties/lifecycle.logic.ts:toggleOrganized <- src/lib/features/properties/lifecycle.service.ts:77 in setOrganizedForPath call +1
 sym src/lib/features/properties/lifecycle.logic.ts:57 fn toggleArchived(properties: Property[], archived: boolean): Property[] L3 | Toggles the archived state.
-by src/lib/features/properties/lifecycle.logic.ts:toggleArchived <- src/lib/features/properties/lifecycle.service.ts:92 in toggleActiveNoteArchived call
+by src/lib/features/properties/lifecycle.logic.ts:toggleArchived <- src/lib/features/properties/lifecycle.service.ts:85 in setArchivedForPath call +1
 sym src/lib/features/properties/lifecycle.logic.ts:62 fn toggleFavorite(properties: Property[], favorite: boolean): Property[] L3 | Toggles the favorite flag.
 by src/lib/features/properties/lifecycle.logic.ts:toggleFavorite <- src/lib/features/properties/bookmark-migration.service.ts:80 in migrateBookmarksToFavorites call
 by src/lib/features/properties/lifecycle.logic.ts:toggleFavorite <- src/lib/features/properties/lifecycle.service.ts:52 in toggleFavoriteForPath call +1

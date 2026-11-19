@@ -1,12 +1,12 @@
 # module card src/lib/features/properties
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/features/properties ' codemap/modules
-module src/lib/features/properties features files 13 in-modules 5 out-modules 13 pub 14/34 ipc 1/0 card ~2.3k
+module src/lib/features/properties features files 14 in-modules 5 out-modules 13 pub 18/40 ipc 1/0 card ~2.7k
 ## neighbors
 dep src/lib/app -> src/lib/features/properties 8
-dep src/lib/features/note-action-bar -> src/lib/features/properties 2
-dep src/lib/features/note-list -> src/lib/features/properties 1
+dep src/lib/features/note-action-bar -> src/lib/features/properties 3
+dep src/lib/features/note-list -> src/lib/features/properties 2
 dep src/lib/features/quick-switcher -> src/lib/features/properties 1
-dep src/lib/features/rail-shell -> src/lib/features/properties 1
+dep src/lib/features/rail-shell -> src/lib/features/properties 2
 dep src/lib/features/properties -> src/lib/components 4
 dep src/lib/features/properties -> src/lib/contracts 1
 dep src/lib/features/properties -> src/lib/core/editor 7
@@ -23,8 +23,9 @@ dep src/lib/features/properties -> src/lib/utils 7
 in2 src/lib/features/properties 1 modules: src/routes(4)
 out2 src/lib/features/properties 1 modules: src/lib/core/markdown-editor(1)
 ## entry files
-entry src/lib/features/properties/lifecycle.service.ts ext-in5 src/lib/app/commands.ts src/lib/app/global-keybindings.ts src/lib/features/note-action-bar/NoteActionBar.svelte src/lib/features/note-list/NoteRowMenu.svelte src/lib/features/rail-shell/TypesNavigator.svelte
+entry src/lib/features/properties/lifecycle.service.ts ext-in6 src/lib/app/commands.ts src/lib/app/global-keybindings.ts src/lib/features/note-action-bar/NoteActionBar.svelte src/lib/features/note-list/NoteRowMenu.svelte src/lib/features/rail-shell/RailNoteList.svelte more importers 1 not shown: src/lib/features/rail-shell(1): q importers src/lib/features/properties/lifecycle.service.ts
 entry src/lib/features/properties/lifecycle-filter.store.svelte.ts ext-in2 src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/features/quick-switcher/QuickSwitcher.svelte
+entry src/lib/features/properties/note-actions.logic.ts ext-in2 src/lib/features/note-action-bar/NoteActionBar.svelte src/lib/features/note-list/NoteRowMenu.svelte
 entry src/lib/features/properties/NoteInfo.svelte ext-in1 src/lib/app/AppShell.svelte
 entry src/lib/features/properties/PropertiesView.svelte ext-in1 src/lib/app/AppShell.svelte
 entry src/lib/features/properties/bookmark-migration.service.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
@@ -41,7 +42,8 @@ file src/lib/features/properties/lifecycle-filter.logic.ts logic L10 module src/
 file src/lib/features/properties/lifecycle-filter.service.ts service L11 module src/lib/features/properties in1 t1
 file src/lib/features/properties/lifecycle-filter.store.svelte.ts store L28 module src/lib/features/properties in3 t5
 file src/lib/features/properties/lifecycle.logic.ts logic L64 module src/lib/features/properties in3 t3
-file src/lib/features/properties/lifecycle.service.ts service L93 module src/lib/features/properties in5 t15
+file src/lib/features/properties/lifecycle.service.ts service L122 module src/lib/features/properties in6 t16
+file src/lib/features/properties/note-actions.logic.ts logic L40 module src/lib/features/properties in2 t1
 file src/lib/features/properties/note-info.logic.ts logic L35 module src/lib/features/properties in1 t1
 file src/lib/features/properties/properties.service.ts service L208 module src/lib/features/properties in2 t8
 file src/lib/features/properties/properties.store.svelte.ts store L34 module src/lib/features/properties in2 t5
@@ -55,10 +57,14 @@ sym src/lib/features/properties/lifecycle.logic.ts:7 fn getLifecycleState(proper
 sym src/lib/features/properties/lifecycle.logic.ts:14 fn isFavorite(properties: Property[]): boolean L4 | Returns whether the note is a favorite.
 sym src/lib/features/properties/lifecycle.logic.ts:24 fn isOrganized(properties: Property[]): boolean L3 | Returns whether the note is organized, whatever its archive state.
 sym src/lib/features/properties/lifecycle.service.ts:48 fn toggleFavoriteForPath(filePath: string, favorite: boolean): Promise<void> L10 | Toggles _favorite on a note by path through `updateNoteFrontmatter`, so an open tab keeps its unsaved edits.
-sym src/lib/features/properties/lifecycle.service.ts:66 fn setTypeRailPin(definitionPath: string, pinned: boolean): Promise<void> L10 | Pins the type whose definition note is at `definitionPath` to the rail (`_rail: true`) or unpins it (the key removed), through `updateNoteFrontmatter`, so the …
-sym src/lib/features/properties/lifecycle.service.ts:78 fn toggleActiveNoteFavorite(): Promise<void> L3 | Flips `_favorite` on the active note.
-sym src/lib/features/properties/lifecycle.service.ts:83 fn toggleActiveNoteOrganized(): Promise<void> L3 | Flips `_organized` on the active note; `_archived` is left as-is.
-sym src/lib/features/properties/lifecycle.service.ts:91 fn toggleActiveNoteArchived(): Promise<void> L3 | Archives the active note, or restores it when archived.
+sym src/lib/features/properties/lifecycle.service.ts:76 fn setOrganizedForPath(filePath: string, organized: boolean): Promise<void> L3 | Sets `_organized` on a note by path; `_archived` is left as-is.
+sym src/lib/features/properties/lifecycle.service.ts:84 fn setArchivedForPath(filePath: string, archived: boolean): Promise<void> L3 | Sets `_archived` on a note by path; `_organized` is left as-is.
+sym src/lib/features/properties/lifecycle.service.ts:95 fn setTypeRailPin(definitionPath: string, pinned: boolean): Promise<void> L10 | Pins the type whose definition note is at `definitionPath` to the rail (`_rail: true`) or unpins it (the key removed), through `updateNoteFrontmatter`, so the …
+sym src/lib/features/properties/lifecycle.service.ts:107 fn toggleActiveNoteFavorite(): Promise<void> L3 | Flips `_favorite` on the active note.
+sym src/lib/features/properties/lifecycle.service.ts:112 fn toggleActiveNoteOrganized(): Promise<void> L3 | Flips `_organized` on the active note; `_archived` is left as-is.
+sym src/lib/features/properties/lifecycle.service.ts:120 fn toggleActiveNoteArchived(): Promise<void> L3 | Archives the active note, or restores it when archived.
+sym src/lib/features/properties/note-actions.logic.ts:2 type NoteActionId L1 | A note action shared by the note-list row menu and the note's More menu.
+sym src/lib/features/properties/note-actions.logic.ts:32 fn noteActions(kind: string, state: NoteActionsState): NoteAction[] L9 | The note-actions group, in menu order: Archive or Restore, Mark organized or Mark not organized, History, then Move to Trash last.
 sym src/lib/features/properties/properties.service.ts:205 fn resetProperties(): void L4 | Resets the properties store to its initial state.
 ## stores
 store src/lib/features/properties/lifecycle-filter.store.svelte.ts:9 lifecycleFilterStore esc:0

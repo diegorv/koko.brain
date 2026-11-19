@@ -31,7 +31,7 @@ fx src/lib/features/canvas/TextNode.svelte:24 timer.requestAnimationFrame in $ef
 fx src/lib/features/canvas/TextNode.svelte:31 timer.requestAnimationFrame in startEditing
 fx src/lib/features/collection/CollectionView.svelte:481 timer.requestAnimationFrame in startTabRename
 fx src/lib/features/collection/toolbar/PropertiesPanel.svelte:69 timer.requestAnimationFrame in handleAddFormula
-fx src/lib/features/note-list/NoteRowMenu.svelte:120 timer.requestAnimationFrame in $effect@109
+fx src/lib/features/note-list/NoteRowMenu.svelte:127 timer.requestAnimationFrame in $effect@116
 fx src/lib/features/rail-shell/FilesNavigator.svelte:195 timer.requestAnimationFrame in focusRenameInput
 fx src/lib/plugins/kanban/KanbanCard.svelte:114 timer.requestAnimationFrame in handleWikilinkSelect
 fx src/lib/plugins/kanban/KanbanLane.svelte:142 timer.requestAnimationFrame in handleAddWikilinkSelect

@@ -6,8 +6,8 @@ module src/lib/app app files 15 in-modules 1 out-modules 46 pub 12/27 ipc 11/0 c
 dep src/routes -> src/lib/app 7
 dep src/lib/app -> src/lib/components 5
 dep src/lib/app -> src/lib/contracts 7
-dep src/lib/app -> src/lib/core/editor 18
-dep src/lib/app -> src/lib/core/filesystem 22
+dep src/lib/app -> src/lib/core/editor 19
+dep src/lib/app -> src/lib/core/filesystem 23
 dep src/lib/app -> src/lib/core/frontmatter 2
 dep src/lib/app -> src/lib/core/layout 4
 dep src/lib/app -> src/lib/core/markdown-editor 10
@@ -67,10 +67,10 @@ file src/lib/app/EditorView.svelte component L159 module src/lib/app in1 t3
 file src/lib/app/LabsSection.svelte component L62 module src/lib/app in1 t1
 file src/lib/app/SettingsPanel.svelte component L162 module src/lib/app in1 t1
 file src/lib/app/boot.ts other L97 module src/lib/app in1 t15
-file src/lib/app/commands.ts other L460 module src/lib/app in1 t5
+file src/lib/app/commands.ts other L478 module src/lib/app in1 t5
 file src/lib/app/deep-link-actions.ts other L240 module src/lib/app in1 t2
 file src/lib/app/editor-host.ts other L216 module src/lib/app in1 t8
-file src/lib/app/global-keybindings.ts other L229 module src/lib/app in2 t1
+file src/lib/app/global-keybindings.ts other L229 module src/lib/app in2 t2
 file src/lib/app/lifecycle/app-lifecycle.service.ts service L686 module src/lib/app in1 t3
 file src/lib/app/lifecycle/index-updater.service.ts service L44 module src/lib/app in1 t1
 file src/lib/app/lifecycle/watcher-handler.service.ts service L126 module src/lib/app in1 t3

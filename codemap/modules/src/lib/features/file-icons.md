@@ -33,10 +33,10 @@ entry src/lib/features/file-icons/file-icons.icon-data.ts ext-in4 src/lib/featur
 ## files
 file src/lib/features/file-icons/IconPicker.svelte component L323 module src/lib/features/file-icons in5 t2
 file src/lib/features/file-icons/IconRenderer.svelte component L38 module src/lib/features/file-icons in12 t1
-file src/lib/features/file-icons/file-icons.icon-data.ts other L320 module src/lib/features/file-icons in7 t31
+file src/lib/features/file-icons/file-icons.icon-data.ts other L320 module src/lib/features/file-icons in7 t34
 file src/lib/features/file-icons/file-icons.logic.ts logic L245 module src/lib/features/file-icons in15 t2
 file src/lib/features/file-icons/file-icons.service.ts service L310 module src/lib/features/file-icons in7 t18
-file src/lib/features/file-icons/file-icons.store.svelte.ts store L59 module src/lib/features/file-icons in9 t27
+file src/lib/features/file-icons/file-icons.store.svelte.ts store L59 module src/lib/features/file-icons in9 t28
 file src/lib/features/file-icons/file-icons.types.ts types L44 module src/lib/features/file-icons in14 t0
 file src/lib/features/file-icons/frontmatter-icon.service.ts service L90 module src/lib/features/file-icons in1 t2
 file src/lib/features/file-icons/icon-resolver.ts other L98 module src/lib/features/file-icons in11 t2

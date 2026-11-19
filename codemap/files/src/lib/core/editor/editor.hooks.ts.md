@@ -1,7 +1,7 @@
 # file card src/lib/core/editor/editor.hooks.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/editor/editor.hooks.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, calls, effects
-file src/lib/core/editor/editor.hooks.ts other L137 module src/lib/core/editor in23 t49
+file src/lib/core/editor/editor.hooks.ts other L137 module src/lib/core/editor in23 t50
 ## imports
 imp src/lib/core/editor/editor.hooks.ts:1 -> src/lib/core/filesystem/note-change.service.ts applyNoteChange,notifyContentInvalidated
 imp src/lib/core/editor/editor.hooks.ts:2 -> src/lib/utils/index-dedupe.ts clearAllIndexed
@@ -51,6 +51,7 @@ test src/tests/lib/features/event-calendar/EventDialog.test.ts imports src/lib/c
 test src/tests/lib/features/file-icons/file-icons.service.test.ts imports src/lib/core/editor/editor.hooks.ts
 test src/tests/lib/features/file-icons/frontmatter-icon.service.test.ts imports src/lib/core/editor/editor.hooks.ts
 test src/tests/lib/features/note-action-bar/NoteActionBar.test.ts imports src/lib/core/editor/editor.hooks.ts
+test src/tests/lib/features/note-list/NoteRowMenu.lifecycle.test.ts imports src/lib/core/editor/editor.hooks.ts
 test src/tests/lib/features/properties/bookmark-migration.service.test.ts imports src/lib/core/editor/editor.hooks.ts
 test src/tests/lib/features/properties/lifecycle.service.test.ts imports src/lib/core/editor/editor.hooks.ts
 test src/tests/lib/features/quick-switcher/QuickSwitcher.test.ts imports src/lib/core/editor/editor.hooks.ts
@@ -73,8 +74,7 @@ test src/tests/lib/plugins/mods/mod-vault-paths.test.ts imports src/lib/core/edi
 test src/tests/lib/plugins/mods/mod-vault.service.test.ts imports src/lib/core/editor/editor.hooks.ts
 test src/tests/lib/app/deep-link-capture-frontmatter.test.ts mocks src/lib/core/editor/editor.hooks.ts
 test src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts mocks src/lib/core/editor/editor.hooks.ts
-test src/tests/lib/app/lifecycle/watcher-handler.service.test.ts mocks src/lib/core/editor/editor.hooks.ts
-more tests 9 not shown: src/tests/lib/core/note-creator(2) src/tests/lib/features/deep-link(2) src/tests/lib/plugins/one-on-one(2) src/tests/lib/features/auto-organize(1) src/tests/lib/features/file-history(1) src/tests/lib/features/search(1): q tests src/lib/core/editor/editor.hooks.ts
+more tests 10 not shown: src/tests/lib/core/note-creator(2) src/tests/lib/features/deep-link(2) src/tests/lib/plugins/one-on-one(2) src/tests/lib/app/lifecycle(1) src/tests/lib/features/auto-organize(1) src/tests/lib/features/file-history(1) src/tests/lib/features/search(1): q tests src/lib/core/editor/editor.hooks.ts
 ## symbols
 sym src/lib/core/editor/editor.hooks.ts:10 type AfterSaveObserver L1 | Called after a file is successfully saved to disk.
 sym src/lib/core/editor/editor.hooks.ts:37 fn markRecentSave(path: string): void L8 | Marks a file path as recently saved/created by the editor.
@@ -106,7 +106,7 @@ sym src/lib/core/editor/editor.hooks.ts:98 type NoteCreatedObserver L1 | Called 
 sym src/lib/core/editor/editor.hooks.ts:104 fn addNoteCreatedObserver(observer: NoteCreatedObserver): () => void L7 | Adds a note-created observer.
 by src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver <- src/lib/plugins/mods/mods-host.service.ts:681 in createModContext call
 sym src/lib/core/editor/editor.hooks.ts:119 fn notifyNoteCreated(filePath: string): void L9 | Notifies the note-created observers.
-by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/app/commands.ts:160 in getBuiltInCommands call
+by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/app/commands.ts:162 in getBuiltInCommands call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/core/note-creator/note-creator.service.ts:130 in openOrCreateNote call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/quick-switcher/QuickSwitcher.svelte:110 in createAndOpenNote call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/rail-shell/FilesNavigator.svelte:170 in handleNewFile call

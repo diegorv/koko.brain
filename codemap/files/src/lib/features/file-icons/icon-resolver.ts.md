@@ -8,7 +8,7 @@ imp src/lib/features/file-icons/icon-resolver.ts:3 -> src/lib/features/file-icon
 ## imported-by
 imp src/lib/app/EditorView.svelte:24 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 imp src/lib/app/boot.ts:11 -> src/lib/features/file-icons/icon-resolver.ts registerTypeIconLookup
-imp src/lib/features/note-list/NoteRow.svelte:10 -> src/lib/features/file-icons/icon-resolver.ts type:ResolvedIcon
+imp src/lib/features/note-list/NoteRow.svelte:11 -> src/lib/features/file-icons/icon-resolver.ts type:ResolvedIcon
 imp src/lib/features/properties/PropertiesView.svelte:25 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath,resolveIconForType
 imp src/lib/features/properties/RelationshipSearch.svelte:10 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:13 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
@@ -28,7 +28,7 @@ sym src/lib/features/file-icons/icon-resolver.ts:12 interface TypeIconLookup L6 
 sym src/lib/features/file-icons/icon-resolver.ts:26 fn registerTypeIconLookup(lookup: TypeIconLookup): () => void L6 | Installs the lookup the resolver uses for type icons.
 by src/lib/features/file-icons/icon-resolver.ts:registerTypeIconLookup <- src/lib/app/boot.ts:55 in registerAppPorts call
 sym src/lib/features/file-icons/icon-resolver.ts:38 interface ResolvedIcon L8 | Result of icon resolution: the one answer to how an item looks, read by every place that shows one.
-by src/lib/features/file-icons/icon-resolver.ts:ResolvedIcon <- src/lib/features/note-list/NoteRow.svelte:10 in (script) import
+by src/lib/features/file-icons/icon-resolver.ts:ResolvedIcon <- src/lib/features/note-list/NoteRow.svelte:11 in (script) import
 sym src/lib/features/file-icons/icon-resolver.ts:64 fn resolveIconForPath(path: string): ResolvedIcon | undefined L14 | Resolves the display icon and colors for a file path: 1.
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/app/EditorView.svelte:57 in (markup) markup +1
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/properties/PropertiesView.svelte:258 in (markup) markup
@@ -36,7 +36,7 @@ by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/fe
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/quick-switcher/QuickSwitcher.svelte:129 in (markup) markup
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/FilesNavigator.svelte:503 in (markup) markup
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/Rail.svelte:180 in pinRow call +1
-by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/RailNoteList.svelte:662 in resolveNoteIcon call +1
+by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/RailNoteList.svelte:664 in resolveNoteIcon call +1
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/TypesNavigator.svelte:279 in (markup) markup +1
 more by 1 not shown: src/lib/features/tasks(1): q importers src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath
 sym src/lib/features/file-icons/icon-resolver.ts:84 fn resolveIconForType(typeName: string): ResolvedIcon | undefined L7 | Resolves the display icon for a type name by looking up the type definition note's frontmatter icon.

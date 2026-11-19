@@ -8,7 +8,7 @@ imp src/lib/features/rail-shell/neighbourhood.service.ts:3 -> src/lib/features/r
 imp src/lib/features/rail-shell/neighbourhood.service.ts:4 -> src/lib/features/rail-shell/neighbourhood.store.svelte.ts neighbourhoodStore
 ## imported-by
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:61 -> src/lib/features/rail-shell/neighbourhood.service.ts registerNeighbourhoodPathChangeConsumer
-imp src/lib/features/note-action-bar/NoteActionBar.svelte:35 -> src/lib/features/rail-shell/neighbourhood.service.ts openNeighbourhood
+imp src/lib/features/note-action-bar/NoteActionBar.svelte:39 -> src/lib/features/rail-shell/neighbourhood.service.ts openNeighbourhood
 ## reach
 in2 src/lib/features/rail-shell/neighbourhood.service.ts 2 files in 2 modules: src/lib/app(1) src/routes(1)
 out2 src/lib/features/rail-shell/neighbourhood.service.ts 32 files in 10 modules: src/lib/core/filesystem(7) src/lib/features/collection(5) src/lib/core/editor(4) src/lib/core/settings(4) src/lib/features/type-definitions(4) +5 modules
@@ -17,7 +17,7 @@ test src/tests/lib/features/rail-shell/neighbourhood.service.test.ts imports src
 test src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts mocks src/lib/features/rail-shell/neighbourhood.service.ts
 ## symbols
 sym src/lib/features/rail-shell/neighbourhood.service.ts:10 fn openNeighbourhood(path: string): void L4 | Fills the note list with the neighbourhood of the note at `path`, showing the panels Cmd+1 may have hidden.
-by src/lib/features/rail-shell/neighbourhood.service.ts:openNeighbourhood <- src/lib/features/note-action-bar/NoteActionBar.svelte:90 in foldable=$derived call
+by src/lib/features/rail-shell/neighbourhood.service.ts:openNeighbourhood <- src/lib/features/note-action-bar/NoteActionBar.svelte:95 in foldable=$derived call
 sym src/lib/features/rail-shell/neighbourhood.service.ts:22 fn registerNeighbourhoodPathChangeConsumer(): () => void L15 | Registers the Neighbourhood lens as a path-change consumer, so the open neighbourhood follows its note (or a folder above it) when renamed or moved.
 by src/lib/features/rail-shell/neighbourhood.service.ts:registerNeighbourhoodPathChangeConsumer <- src/lib/app/lifecycle/app-lifecycle.service.ts:269 in initializeVault call
 ## calls

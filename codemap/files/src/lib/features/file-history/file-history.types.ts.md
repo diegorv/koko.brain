@@ -12,7 +12,7 @@ imp src/lib/features/file-history/file-history.logic.ts:2 -> src/lib/features/fi
 imp src/lib/features/file-history/file-history.service.ts:11 -> src/lib/features/file-history/file-history.types.ts type:SnapshotInfo
 imp src/lib/features/file-history/file-history.store.svelte.ts:1 -> src/lib/features/file-history/file-history.types.ts type:SnapshotInfo,type:DiffLine
 ## reach
-in2 src/lib/features/file-history/file-history.types.ts 5 files in 2 modules: src/lib/app(4) src/lib/features/properties(1)
+in2 src/lib/features/file-history/file-history.types.ts 7 files in 4 modules: src/lib/app(4) src/lib/features/note-action-bar(1) src/lib/features/note-list(1) src/lib/features/properties(1)
 out2 src/lib/features/file-history/file-history.types.ts 52 files in 1 modules: src/lib/contracts(52)
 ## tests
 test src/tests/lib/features/file-history/FileHistoryDialog.test.ts imports-type src/lib/features/file-history/file-history.types.ts

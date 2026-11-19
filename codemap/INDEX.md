@@ -1,5 +1,5 @@
 # Kokobrain code map
-> Generated from the code by scripts/codemap.mjs; no hand-written text. inputs=sha256:f2e18807fa48 · check freshness: node scripts/codemap.mjs --stale · written by CI on main only; never edit or stage codemap/.
+> Generated from the code by scripts/codemap.mjs; no hand-written text. inputs=sha256:5e20a9d9bebc · check freshness: node scripts/codemap.mjs --stale · written by CI on main only; never edit or stage codemap/.
 
 Use this map to find code, then Read the code at the given path:line. Facts are static; read "Blind spots" before trusting an empty answer. On a branch, cards of files you changed lag the code; q commands read the working tree and are always current.
 Search code with Grep path src or src-tauri; search the map with path codemap. IDs contain regex characters: grep with -F and end the ID with a space.
@@ -56,17 +56,17 @@ Line tags: file imp in2 out2 test sym by local store mem call mount fx reg ipc-c
 
 ## Hubs (production importers, test importers)
 hub app src/lib/app/rail-navigation.ts in3 t1
-hub app src/lib/app/global-keybindings.ts in2 t1
+hub app src/lib/app/global-keybindings.ts in2 t2
 hub app src/lib/app/boot.ts in1 t15
 hub routes src/routes/composer/+page.svelte in0 t1
 hub routes src/routes/(app)/+layout.svelte in0 t0
 hub routes src/routes/(app)/+page.svelte in0 t0
-hub core src/lib/core/vault/vault.store.svelte.ts in87 t157
-hub core src/lib/core/settings/settings.store.svelte.ts in85 t135
-hub core src/lib/core/editor/editor.service.ts in55 t97
+hub core src/lib/core/vault/vault.store.svelte.ts in88 t162
+hub core src/lib/core/settings/settings.store.svelte.ts in85 t137
+hub core src/lib/core/editor/editor.service.ts in55 t101
 hub features src/lib/features/collection/collection.types.ts in37 t0
 hub features src/lib/features/event-calendar/event-calendar-view.store.svelte.ts in22 t21
-hub features src/lib/features/type-definitions/type-definitions.store.svelte.ts in21 t39
+hub features src/lib/features/type-definitions/type-definitions.store.svelte.ts in21 t40
 hub plugins src/lib/plugins/periodic-notes/periodic-notes.service.ts in8 t9
 hub plugins src/lib/plugins/mods/mods.logic.ts in8 t3
 hub plugins src/lib/plugins/kanban/kanban.logic.ts in7 t7
@@ -83,7 +83,7 @@ hub rust src-tauri/src/utils/fs.rs in8 t2
 hub rust src-tauri/src/db/mod.rs in6 t8
 
 ## Counts
-files 1682 (cards 657) · modules 60 · symbols 3244 · locals 1467 · calls 7097 · ipc 72 · events 9 · dto 51 · stores 44 · registries 27 · effect sites 570
+files 1688 (cards 658) · modules 60 · symbols 3250 · locals 1469 · calls 7119 · ipc 72 · events 9 · dto 51 · stores 44 · registries 27 · effect sites 569
 
 ## Optional
 - Layer rules, layer edge totals, baseline debt: codemap/modules.md

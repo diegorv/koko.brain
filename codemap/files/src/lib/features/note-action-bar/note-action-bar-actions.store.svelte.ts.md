@@ -4,7 +4,7 @@ file src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts st
 ## imports
 imp src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:8 -> src/lib/features/note-action-bar/note-action-bar.logic.ts type:NoteHubAction
 ## imported-by
-imp src/lib/features/note-action-bar/NoteActionBar.svelte:38 -> src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts noteActionBarActionsStore
+imp src/lib/features/note-action-bar/NoteActionBar.svelte:43 -> src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts noteActionBarActionsStore
 imp src/lib/plugins/one-on-one/one-on-one.service.ts:9 -> src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts noteActionBarActionsStore
 ## reach
 in2 src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts 7 files in 3 modules: src/lib/app(4) src/lib/plugins/one-on-one(2) src/lib/plugins/mods(1)
@@ -16,10 +16,10 @@ test src/tests/lib/features/note-action-bar/NoteActionBar.test.ts imports src/li
 test src/tests/lib/plugins/one-on-one/one-on-one.create.test.ts imports src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts
 ## symbols
 sym src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:13 store noteActionBarActionsStore L22
-by src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:noteActionBarActionsStore <- src/lib/features/note-action-bar/NoteActionBar.svelte:67 in hubButton=$derived member
+by src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:noteActionBarActionsStore <- src/lib/features/note-action-bar/NoteActionBar.svelte:72 in hubButton=$derived member
 by src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:noteActionBarActionsStore <- src/lib/plugins/one-on-one/one-on-one.service.ts:108 in registerOneOnOneActionBarAction mcall
 ## store
 store src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:13 noteActionBarActionsStore esc:0
-mem src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:15 get noteActionBarActionsStore.actions r:src/lib/features/note-action-bar/NoteActionBar.svelte:67 w-via:register,reset | The registered actions, in registration order.
+mem src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:15 get noteActionBarActionsStore.actions r:src/lib/features/note-action-bar/NoteActionBar.svelte:72 w-via:register,reset | The registered actions, in registration order.
 mem src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:23 do noteActionBarActionsStore.register w:src/lib/plugins/one-on-one/one-on-one.service.ts:108 | Registers `action`.
 mem src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:31 do noteActionBarActionsStore.reset w:- | Drops every registration.

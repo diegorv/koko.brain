@@ -12,7 +12,7 @@ imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:11 -> src/lib
 imp src/lib/features/file-icons/IconPicker.svelte:5 -> src/lib/features/file-icons/file-icons.logic.ts filterIcons
 imp src/lib/features/file-icons/IconRenderer.svelte:4 -> src/lib/features/file-icons/file-icons.logic.ts iconColorCss
 imp src/lib/features/file-icons/file-icons.service.ts:7 -> src/lib/features/file-icons/file-icons.logic.ts addRecentIcon,extractIconFromFrontmatter,extractIconColorsFromFrontmatter,extractIconFromParsedFrontmatter,extractIconColorsFromParsedFrontmatter,extractViewIcon,mergeIconRef
-imp src/lib/features/note-list/NoteRow.svelte:9 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
+imp src/lib/features/note-list/NoteRow.svelte:10 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
 imp src/lib/features/properties/PropertiesView.svelte:26 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
 imp src/lib/features/properties/RelationshipSearch.svelte:11 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:15 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
@@ -54,7 +54,7 @@ by src/lib/features/file-icons/file-icons.logic.ts:iconColorCss <- src/lib/featu
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorCss <- src/lib/features/rail-shell/Rail.svelte:180 in pinRow call
 sym src/lib/features/file-icons/file-icons.logic.ts:231 fn iconColorStyle(color: string | undefined): string | undefined L4 | The inline `style` that colors an item's default icon, a Lucide component drawn in `currentColor`, with the item's `_color` when it has no icon of its own: the…
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/app/EditorView.svelte:61 in (markup) markup
-by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/note-list/NoteRow.svelte:56 in (markup) markup +1
+by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/note-list/NoteRow.svelte:59 in (markup) markup +1
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/properties/PropertiesView.svelte:268 in (markup) markup
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/properties/RelationshipSearch.svelte:76 in (markup) markup
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/quick-switcher/QuickSwitcher.svelte:139 in (markup) markup

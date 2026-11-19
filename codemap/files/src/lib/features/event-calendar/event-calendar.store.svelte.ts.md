@@ -32,7 +32,7 @@ test src/tests/lib/features/event-calendar/event-calendar.model.test.ts imports 
 test src/tests/lib/features/event-calendar/event-calendar.service.test.ts imports src/lib/features/event-calendar/event-calendar.store.svelte.ts
 ## symbols
 sym src/lib/features/event-calendar/event-calendar.store.svelte.ts:74 store eventCalendarStore L174 | Reactive data store of the Calendar tab.
-by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/app/commands.ts:258 in getBuiltInCommands member +1
+by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/app/commands.ts:260 in getBuiltInCommands member +1
 by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventCalendarNeedsAttention.svelte:10 in attention=$derived member +3
 by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventCalendarView.svelte:139 in $effect@121 member +8
 by src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore <- src/lib/features/event-calendar/EventDialog.svelte:47 in event=$derived mcall
@@ -60,8 +60,8 @@ mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:98 get eventC
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:100 get eventCalendarStore.snapshotVersion r:src/lib/features/event-calendar/EventCalendarView.svelte:160,src/lib/features/event-calendar/EventCalendarView.svelte:171,src/lib/features/event-calendar/event-calendar.service.ts:214 w-via:setSnapshot,reset | `vaultIndexVersion` the latest snapshot was read at.
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:102 get eventCalendarStore.history r:15 w-via:remapPath,setHistory,reset | Undo / redo history.
 more r 15 not shown: src/lib/features/event-calendar(15): q store src/lib/features/event-calendar/event-calendar.store.svelte.ts:eventCalendarStore.history
-mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:104 get eventCalendarStore.canUndo r:src/lib/app/commands.ts:258 w-via:remapPath,setHistory,reset | Whether there is an op to undo.
-mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:106 get eventCalendarStore.canRedo r:src/lib/app/commands.ts:268 w-via:remapPath,setHistory,reset | Whether there is an op to redo.
+mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:104 get eventCalendarStore.canUndo r:src/lib/app/commands.ts:260 w-via:remapPath,setHistory,reset | Whether there is an op to undo.
+mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:106 get eventCalendarStore.canRedo r:src/lib/app/commands.ts:270 w-via:remapPath,setHistory,reset | Whether there is an op to redo.
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:108 get eventCalendarStore.tasks r:src/lib/features/event-calendar/EventMonthGrid.svelte:32,src/lib/features/event-calendar/EventTimeGrid.svelte:269 w-via:setTasks,reset | Dated tasks the calendar overlays, sorted by due date.
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:115 do eventCalendarStore.setSnapshot w:src/lib/features/event-calendar/event-calendar.service.ts:89 | Replaces the snapshot and drops the pending writes it has caught up with.
 mem src/lib/features/event-calendar/event-calendar.store.svelte.ts:125 do eventCalendarStore.setLoading w:src/lib/features/event-calendar/event-calendar.service.ts:79,src/lib/features/event-calendar/event-calendar.service.ts:84,src/lib/features/event-calendar/event-calendar.service.ts:92,src/lib/features/event-calendar/event-calendar.service.ts:97,src/lib/features/event-calendar/event-calendar.service.ts:99 | Sets whether a load is in progress.

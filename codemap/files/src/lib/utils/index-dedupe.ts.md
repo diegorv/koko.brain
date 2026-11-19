@@ -1,6 +1,6 @@
 # file card src/lib/utils/index-dedupe.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/utils/index-dedupe.ts ' codemap/files
-file src/lib/utils/index-dedupe.ts other L39 module src/lib/utils in3 t33
+file src/lib/utils/index-dedupe.ts other L39 module src/lib/utils in3 t35
 ## imported-by
 imp src/lib/app/lifecycle/index-updater.service.ts:3 -> src/lib/utils/index-dedupe.ts isAlreadyIndexed
 imp src/lib/core/editor/editor.hooks.ts:2 -> src/lib/utils/index-dedupe.ts clearAllIndexed
@@ -29,10 +29,12 @@ test src/tests/lib/features/event-calendar/EventDialog.test.ts imports src/lib/u
 test src/tests/lib/features/file-icons/file-icons.service.test.ts imports src/lib/utils/index-dedupe.ts
 test src/tests/lib/features/file-icons/frontmatter-icon.service.test.ts imports src/lib/utils/index-dedupe.ts
 test src/tests/lib/features/note-action-bar/NoteActionBar.test.ts imports src/lib/utils/index-dedupe.ts
+test src/tests/lib/features/note-list/NoteRowMenu.lifecycle.test.ts imports src/lib/utils/index-dedupe.ts
 test src/tests/lib/features/properties/bookmark-migration.service.test.ts imports src/lib/utils/index-dedupe.ts
 test src/tests/lib/features/properties/lifecycle.service.favorite-path.test.ts imports src/lib/utils/index-dedupe.ts
 test src/tests/lib/features/properties/lifecycle.service.rail-pin.test.ts imports src/lib/utils/index-dedupe.ts
 test src/tests/lib/features/properties/lifecycle.service.test.ts imports src/lib/utils/index-dedupe.ts
+test src/tests/lib/features/rail-shell/RailNoteList.inbox-check.test.ts imports src/lib/utils/index-dedupe.ts
 test src/tests/lib/features/rail-shell/list-prefs.service.test.ts imports src/lib/utils/index-dedupe.ts
 test src/tests/lib/features/type-definitions/edit-view.service.test.ts imports src/lib/utils/index-dedupe.ts
 test src/tests/lib/features/type-definitions/rewrite-view-file.service.test.ts imports src/lib/utils/index-dedupe.ts

@@ -18,10 +18,10 @@ test src/tests/lib/features/command-palette/CommandPalette.test.ts mocks src/lib
 ## symbols
 sym src/lib/features/copy-block-link/copy-block-link.service.ts:17 fn copyBlockLink(view: EditorView, embed: boolean): Promise<void> L53 | Copies a wikilink (or embed) pointing to the block at the current cursor position.
 sym src/lib/features/copy-block-link/copy-block-link.service.ts:72 fn copyBlockLinkToClipboard(view: EditorView): Promise<void> L3 | Copies a wikilink to the block at the current cursor position
-by src/lib/features/copy-block-link/copy-block-link.service.ts:copyBlockLinkToClipboard <- src/lib/app/commands.ts:410 in getBuiltInCommands call
+by src/lib/features/copy-block-link/copy-block-link.service.ts:copyBlockLinkToClipboard <- src/lib/app/commands.ts:428 in getBuiltInCommands call
 by src/lib/features/copy-block-link/copy-block-link.service.ts:copyBlockLinkToClipboard <- src/lib/app/editor-host.ts:214 in appBlockLinks ref
 sym src/lib/features/copy-block-link/copy-block-link.service.ts:77 fn copyBlockEmbedToClipboard(view: EditorView): Promise<void> L3 | Copies an embed wikilink to the block at the current cursor position
-by src/lib/features/copy-block-link/copy-block-link.service.ts:copyBlockEmbedToClipboard <- src/lib/app/commands.ts:420 in getBuiltInCommands call
+by src/lib/features/copy-block-link/copy-block-link.service.ts:copyBlockEmbedToClipboard <- src/lib/app/commands.ts:438 in getBuiltInCommands call
 by src/lib/features/copy-block-link/copy-block-link.service.ts:copyBlockEmbedToClipboard <- src/lib/app/editor-host.ts:215 in appBlockLinks ref
 ## calls
 call src/lib/features/copy-block-link/copy-block-link.service.ts:29 in copyBlockLink -> src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:detectBlockElement call
