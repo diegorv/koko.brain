@@ -146,4 +146,18 @@ test.describe('Auto Organize', () => {
 		);
 		expect(clipped).toEqual([]);
 	});
+
+	test('the mode triggers show their verb labels whole', async ({ vaultPage: page }) => {
+		const panel = await openAutoOrganizeSettings(page);
+		const triggers = panel.getByRole('combobox', { name: 'Property mode' });
+		await expect(triggers).toHaveText(['Set if missing', 'Always overwrite', 'Add to list', 'Remove']);
+
+		const clipped = await triggers.evaluateAll((els) =>
+			els
+				.map((el) => el.querySelector<HTMLElement>('[data-slot="select-value"]')!)
+				.filter((value) => value.scrollWidth > value.clientWidth)
+				.map((value) => value.textContent),
+		);
+		expect(clipped).toEqual([]);
+	});
 });

@@ -48,11 +48,12 @@
 		onremove: () => void;
 	} = $props();
 
-	const MODE_LABELS: Record<RuleProperty['mode'], string> = {
-		'if-missing': 'if missing',
-		always: 'always',
-		remove: 'remove',
-		add: 'add to list',
+	/** Each stored mode's menu label and the line under it saying what the mode does. */
+	const MODES: Record<RuleProperty['mode'], { label: string; description: string }> = {
+		'if-missing': { label: 'Set if missing', description: 'Writes only when the note has no value' },
+		always: { label: 'Always overwrite', description: "Replaces the note's value on every save" },
+		remove: { label: 'Remove', description: 'Deletes the property' },
+		add: { label: 'Add to list', description: 'Adds items to a list' },
 	};
 	const TYPE_LABELS = { text: 'Text', boolean: 'Yes/no' } as const;
 	const SOURCE_LABELS = { value: 'Value', expr: 'Expression' } as const;
@@ -62,13 +63,24 @@
 	let editor = $derived(ruleValueEditor(property.key, property.value, property.mode));
 	/** The text / yes-no chooser is only for keys that accept either. */
 	let showTypeChooser = $derived(!isExpr && (editor === 'text' || editor === 'boolean') && !isBooleanOnlyKey(property.key));
+	/** The modes the menu offers: a created note has nothing to remove, and a lifecycle key holds no list. */
+	let modeChoices = $derived(
+		(Object.keys(MODES) as RuleProperty['mode'][]).filter(
+			(mode) => (mode !== 'remove' || allowRemove) && (mode !== 'add' || !isBooleanOnlyKey(property.key)),
+		),
+	);
 	let pickerOpen = $state(false);
+	/** Per instance, so each row's fields point to their own messages. */
+	const uid = $props.id();
+	const exprErrorId = `${uid}-expr-error`;
+	const keyErrorId = `${uid}-key-error`;
+	let keyRefused = $derived(isRefusedKey(property.key));
 	/** Why the last expression or mode the user picked was not saved; cleared by the next save. */
 	let exprError = $state<string | null>(null);
 	/**
 	 * The expression the field shows after a refusal, which `property.expr` does not hold.
 	 * A key or mode change saves it in place of the stored one, so following the error's
-	 * advice ("works only with if missing") keeps what the user typed.
+	 * advice ("works only with Set if missing") keeps what the user typed.
 	 */
 	let refusedExpr = $state<string | null>(null);
 	/** The expression a key or mode change carries over. */
@@ -223,6 +235,8 @@
 	<Input
 		class="w-36 shrink-0"
 		aria-label="Property key"
+		aria-invalid={keyRefused ? 'true' : undefined}
+		aria-describedby={keyRefused ? keyErrorId : undefined}
 		list={listId}
 		value={property.key}
 		placeholder="Property"
@@ -265,6 +279,8 @@
 		{#if isExpr}
 			<Input
 				aria-label="Property expression"
+				aria-invalid={exprError ? 'true' : undefined}
+				aria-describedby={exprError ? exprErrorId : undefined}
 				class="font-mono"
 				value={draftExpr}
 				placeholder="Expression, e.g. file.basename"
@@ -325,18 +341,19 @@
 		value={property.mode}
 		onValueChange={(v) => setMode(v as RuleProperty['mode'])}
 	>
-		<Select.Trigger class="w-28 shrink-0" aria-label="Property mode">
-			<span data-slot="select-value">{MODE_LABELS[property.mode]}</span>
+		<Select.Trigger class="w-40 shrink-0" aria-label="Property mode">
+			<span data-slot="select-value">{MODES[property.mode].label}</span>
 		</Select.Trigger>
 		<Select.Content>
-			<Select.Item value="if-missing" label={MODE_LABELS['if-missing']} />
-			<Select.Item value="always" label={MODE_LABELS.always} />
-			{#if allowRemove}
-				<Select.Item value="remove" label={MODE_LABELS.remove} />
-			{/if}
-			{#if !isBooleanOnlyKey(property.key)}
-				<Select.Item value="add" label={MODE_LABELS.add} />
-			{/if}
+			{#each modeChoices as mode (mode)}
+				<!-- A div, not a span: the item styles its last span child as a one-line flex row. -->
+				<Select.Item value={mode} label={MODES[mode].label}>
+					<div class="flex flex-col">
+						<span data-option-label>{MODES[mode].label}</span>
+						<span class="text-meta text-muted-foreground" data-option-description>{MODES[mode].description}</span>
+					</div>
+				</Select.Item>
+			{/each}
 		</Select.Content>
 	</Select.Root>
 
@@ -352,13 +369,14 @@
 </div>
 
 {#if exprError}
-	<p class="text-meta text-destructive" data-expr-error>{exprError}</p>
+	<p class="text-meta text-destructive" id={exprErrorId} data-expr-error>Not saved: {exprError}</p>
 {:else if preview}
 	<p class="text-meta text-muted-foreground" data-expr-preview title={preview.reason}>{preview.text}</p>
 {/if}
 
-{#if isRefusedKey(property.key)}
-	<p class="text-meta text-destructive" data-refused-key>
+<!-- The key is saved: a run skips it, so this says why rather than "Not saved". -->
+{#if keyRefused}
+	<p class="text-meta text-destructive" id={keyErrorId} data-refused-key>
 		A rule never sets or removes {property.key.trim()}: Todoist routes tasks by it.
 	</p>
 {/if}

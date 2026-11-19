@@ -87,6 +87,8 @@
 	let filterDraft = $derived<FilterItem>(filterGroupsToFilter(groups) ?? '');
 	/** A visual row with no value, which `filterProblem` would also refuse */
 	let blankValue = $derived(groups.some((g) => g.rows.some(hasBlankValue)));
+	/** True when the builder shows a filter other than the stored one, which a blank value keeps unsaved */
+	let filterUnsaved = $derived(JSON.stringify(filterDraft) !== JSON.stringify(rule.expression));
 	let availableProperties = $derived(getAllKnownProperties(collectionStore.propertyIndex));
 	/** Set by an `input` event inside the builder, so the change it reports is saved on `change`, not per keystroke */
 	let typing = false;
@@ -248,12 +250,31 @@
 	let templateInvalid = $derived(
 		templateRefused || (rule.createNote?.template !== undefined && !isValidTemplatePath(rule.createNote.template)),
 	);
+	/** Under the path field: a refusal was not saved; a stored invalid path (hand-edited JSON) is saved and skipped */
+	let pathError = $derived(
+		pathRefused
+			? 'Not saved: the path must end in .md and must not start with /.'
+			: 'A run ignores this path: it must end in .md and must not start with /.',
+	);
+	let templateError = $derived(
+		templateRefused
+			? 'Not saved: the template must be inside the vault (no .. and not starting with /).'
+			: 'A run ignores this template: it must be inside the vault (no .. and not starting with /).',
+	);
+
+	/** Per instance, never `rule.id`, so each field points to its own message. */
+	const uid = $props.id();
+	const pathErrorId = `${uid}-create-error`;
+	const templateErrorId = `${uid}-create-template-error`;
+	const renameErrorId = `${uid}-rename-error`;
 
 	/** Saves the create-note path; a blank path removes the consequence. An invalid path is not saved. */
 	function commitCreatePath(raw: string) {
 		const path = raw.trim();
-		pathRefused = path !== '' && !isValidCreatePath(path);
-		if (pathRefused || path === (rule.createNote?.path ?? '')) return;
+		const stored = path === (rule.createNote?.path ?? '');
+		// The stored path, even an invalid one, is saved already: not a refusal.
+		pathRefused = !stored && path !== '' && !isValidCreatePath(path);
+		if (pathRefused || stored) return;
 		onupdate(rule.id, { createNote: path ? { ...rule.createNote, path } : undefined });
 	}
 
@@ -263,8 +284,9 @@
 
 	function commitCreateTemplate(raw: string) {
 		const template = raw.trim();
-		templateRefused = !isValidTemplatePath(template);
-		if (templateRefused || template === (rule.createNote?.template ?? '')) return;
+		const stored = template === (rule.createNote?.template ?? '');
+		templateRefused = !stored && !isValidTemplatePath(template);
+		if (templateRefused || stored) return;
 		updateCreateNote({ template: template || undefined });
 	}
 
@@ -295,8 +317,16 @@
 	});
 	/** Why the last typed rename was not saved; cleared by the next save */
 	let renameRefusal = $state<string | null>(null);
+	/** Why a run ignores the stored rename (hand-edited JSON), or null */
+	let storedRenameProblem = $derived(rule.rename !== undefined ? renameProblem(rule.rename) : null);
 	/** The refusal, else why a run ignores the stored rename */
-	let renameError = $derived(renameRefusal ?? (rule.rename !== undefined ? renameProblem(rule.rename) : null));
+	let renameError = $derived(
+		renameRefusal !== null
+			? `Not saved: ${renameRefusal}`
+			: storedRenameProblem !== null
+				? `A run ignores this rename: ${storedRenameProblem}`
+				: null,
+	);
 	/** The rename field's text: the unsaved draft, else the stored rename */
 	let renameText = $derived(renameDraft ?? rule.rename?.name ?? rule.rename?.expr ?? '');
 
@@ -359,9 +389,6 @@
 		onupdate(rule.id, { icon: undefined });
 		iconPickerOpen = false;
 	}
-
-	/** The icon button's title and name */
-	let iconLabel = $derived(rule.icon ? `Icon: ${rule.icon.iconPack}:${rule.icon.iconName}` : 'Set file icon');
 
 	/** Resolve the icon for rendering (sync lookup from cache) */
 	function getResolvedIcon() {
@@ -455,7 +482,10 @@
 			Add expression
 		</Button>
 		{#if blankValue}
-			<p class="ml-[6.5rem] text-meta text-destructive" data-rule-filter-error>{BLANK_VALUE_ERROR}</p>
+			<!-- The prefix lives here: the loader logs BLANK_VALUE_ERROR for a stored filter, which was saved. -->
+			<p class="ml-[6.5rem] text-meta text-destructive" data-rule-filter-error>
+				{filterUnsaved ? 'Not saved' : 'A run ignores this filter'}: {BLANK_VALUE_ERROR}
+			</p>
 		{:else if matchCount !== null && countedFilter === filterDraft}
 			<div class="ml-[6.5rem] flex flex-wrap gap-x-3 text-meta text-muted-foreground">
 				<p data-match-count>Matches {matchCount} {matchCount === 1 ? 'note' : 'notes'} now</p>
@@ -489,6 +519,8 @@
 				<Input
 					class="flex-1"
 					aria-label="Rename to"
+					aria-invalid={renameError !== null ? 'true' : undefined}
+					aria-describedby={renameError !== null ? renameErrorId : undefined}
 					value={rule.rename?.name ?? rule.rename?.expr ?? ''}
 					placeholder={renameSource === 'expr' ? 'Empty: do not rename, e.g. title' : 'Empty: do not rename, e.g. {year}-{month} Meeting'}
 					oninput={(e) => (renameDraft = (e.currentTarget as HTMLInputElement).value)}
@@ -496,7 +528,7 @@
 				/>
 			</div>
 			{#if renameError !== null}
-				<p class="text-meta text-destructive" data-rename-error>{renameError}</p>
+				<p class="text-meta text-destructive" id={renameErrorId} data-rename-error>{renameError}</p>
 			{/if}
 			{#each renameWarnings as warning (warning)}
 				<p class="text-meta text-destructive" data-template-warning>{warning}</p>
@@ -516,27 +548,35 @@
 					placeholder="Empty: do not move"
 					oninput={(e) => onupdate(rule.id, { destination: (e.currentTarget as HTMLInputElement).value })}
 				/>
-				<Button
-					variant="outline"
-					size="icon"
-					class="size-7 shrink-0"
-					title={iconLabel}
-					aria-label={iconLabel}
-					onclick={() => iconPickerOpen = true}
-				>
-					{@const resolvedIcon = getResolvedIcon()}
-					{#if resolvedIcon}
-						<IconRenderer icon={resolvedIcon} class="size-3.5" color={rule.icon?.color} />
-					{:else}
-						<ImageIcon class="size-3.5 text-muted-foreground" />
-					{/if}
-				</Button>
+				<!-- Only on rules that already set `icon`; new rules set the `_icon` property instead. -->
+				{#if rule.icon}
+					<Button
+						variant="outline"
+						size="sm"
+						class="shrink-0"
+						title={`Legacy icon on move: ${rule.icon.iconPack}:${rule.icon.iconName}`}
+						onclick={() => iconPickerOpen = true}
+					>
+						{@const resolvedIcon = getResolvedIcon()}
+						{#if resolvedIcon}
+							<IconRenderer icon={resolvedIcon} class="size-3.5" color={rule.icon.color} />
+						{:else}
+							<ImageIcon class="size-3.5 text-muted-foreground" />
+						{/if}
+						Legacy icon on move
+					</Button>
+				{/if}
 			</div>
 			{#each destinationWarnings as warning (warning)}
 				<p class="text-meta text-destructive" data-template-warning>{warning}</p>
 			{:else}
 				<p class="text-meta text-muted-foreground" data-template-variables>{VARIABLES_LINE}</p>
 			{/each}
+			{#if rule.icon}
+				<p class="text-meta text-muted-foreground" data-legacy-icon-hint>
+					The legacy icon applies only from the moving rule. For new rules set the <code>_icon</code> property instead.
+				</p>
+			{/if}
 		</div>
 	</div>
 
@@ -563,14 +603,14 @@
 		<div class="flex min-w-0 flex-1 flex-col gap-2" bind:this={createBox}>
 			<Input
 				aria-label="Create note path"
+				aria-invalid={pathInvalid ? 'true' : undefined}
+				aria-describedby={pathInvalid ? pathErrorId : undefined}
 				value={rule.createNote?.path ?? ''}
 				placeholder={'Empty: do not create, e.g. {folder}/{basename} follow-up.md'}
 				onchange={(e) => commitCreatePath((e.currentTarget as HTMLInputElement).value)}
 			/>
 			{#if pathInvalid}
-				<p class="text-meta text-destructive" data-create-error>
-					The path must end in .md and must not start with /. It is not saved.
-				</p>
+				<p class="text-meta text-destructive" id={pathErrorId} data-create-error>{pathError}</p>
 			{/if}
 			{#each createPathWarnings as warning (warning)}
 				<p class="text-meta text-destructive" data-template-warning>{warning}</p>
@@ -578,14 +618,14 @@
 			{#if rule.createNote}
 				<Input
 					aria-label="Create note template"
+					aria-invalid={templateInvalid ? 'true' : undefined}
+					aria-describedby={templateInvalid ? templateErrorId : undefined}
 					value={rule.createNote.template ?? ''}
 					placeholder="Template note, e.g. _system/templates/Follow-up.md (empty: no template)"
 					onchange={(e) => commitCreateTemplate((e.currentTarget as HTMLInputElement).value)}
 				/>
 				{#if templateInvalid}
-					<p class="text-meta text-destructive" data-create-template-error>
-						The template must be inside the vault: no .. and not starting with /. It is not saved.
-					</p>
+					<p class="text-meta text-destructive" id={templateErrorId} data-create-template-error>{templateError}</p>
 				{/if}
 				{#each createProperties as property, i (createPropertyKeys[i])}
 					<AutoOrganizeRuleProperty

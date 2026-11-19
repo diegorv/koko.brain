@@ -508,7 +508,7 @@ function collectInputs(node: ASTNode, fileFields: Set<string>, found: Set<string
 function volatileProblem(expr: string, mode: RuleProperty['mode']): string | null {
 	if (mode !== 'always' && mode !== 'add') return null;
 	const [input] = volatileInputs(expr);
-	return input === undefined ? null : `${input} changes on every save, so it works only with "if missing"`;
+	return input === undefined ? null : `${input} changes on every save, so it works only with "Set if missing"`;
 }
 
 /**
