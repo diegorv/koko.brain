@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isDarkColor, contrastRatio, colorDistance, ensureContrast, flatten, labelColors, mixColors } from '#lib/utils/color.js';
+import { isDarkColor, contrastRatio, colorDistance, ensureContrast, ensureContrastOn, flatten, labelColors, mixColors, shiftLightness, tint } from '#lib/utils/color.js';
 
 describe('isDarkColor', () => {
 	it('detects dark hex backgrounds', () => {
@@ -170,6 +170,60 @@ describe('contrast with translucent colors', () => {
 		const out = ensureContrast('#e5b41f80', '#ffffff', 3);
 		expect(contrastRatio(out, '#ffffff')!).toBeGreaterThanOrEqual(3);
 		expect(out).toMatch(/80$/);
+	});
+});
+
+describe('tint', () => {
+	it('composites a color at a share over a base, as bg-x/25 resolves', () => {
+		expect(tint('#000000', 0.5, '#ffffff')).toBe('#808080');
+		expect(tint('#000000', 0x80 / 255, '#ffffff')).toBe(flatten('#00000080', '#ffffff'));
+		expect(tint('#123456', 1, '#ffffff')).toBe('#123456');
+		expect(tint('#123456', 0, '#ffffff')).toBe('#ffffff');
+	});
+
+	it('multiplies a translucent color by the share', () => {
+		expect(tint('#00000080', 0.5, '#ffffff')).toBe(tint('#000000', 0.25, '#ffffff'));
+	});
+
+	it('returns null when either color is unparseable', () => {
+		expect(tint('hsl(200 50% 50%)', 0.25, '#ffffff')).toBeNull();
+		expect(tint('#000000', 0.25, '')).toBeNull();
+	});
+});
+
+describe('shiftLightness', () => {
+	it('steps OKLab lightness and keeps the hue, like oklch(from x calc(l - d) c h)', () => {
+		const out = shiftLightness('#262938', -0.06)!;
+		expect(out).toMatch(/^#[0-9a-f]{6}$/);
+		expect(contrastRatio('#262938', out)!).toBeGreaterThan(1.1);
+		expect(colorDistance('#262938', out)!).toBeCloseTo(6, 0);
+		expect(shiftLightness('#262938', 0)).toBe('#262938');
+	});
+
+	it('clamps to the gamut', () => {
+		expect(shiftLightness('#000000', -0.5)).toBe('#000000');
+	});
+
+	it('returns null for an unparseable color', () => {
+		expect(shiftLightness('hsl(200 50% 50%)', -0.06)).toBeNull();
+	});
+});
+
+describe('ensureContrastOn', () => {
+	it('lifts until the color reaches the minimum on every background', () => {
+		const out = ensureContrastOn('#eab308', ['#ffffff', '#dcdbe0'], 3);
+		expect(contrastRatio(out, '#ffffff')!).toBeGreaterThanOrEqual(3);
+		expect(contrastRatio(out, '#dcdbe0')!).toBeGreaterThanOrEqual(3);
+		expect(contrastRatio(ensureContrast('#eab308', '#ffffff', 3), '#dcdbe0')!).toBeLessThan(3);
+	});
+
+	it('returns the color itself when it already passes everywhere', () => {
+		expect(ensureContrastOn('#000000', ['#ffffff', '#eeeeee'], 3)).toBe('#000000');
+		expect(ensureContrastOn('#eab308', [], 3)).toBe('#eab308');
+	});
+
+	it('leaves colors it cannot parse untouched', () => {
+		expect(ensureContrastOn('hsl(200 50% 50%)', ['#ffffff'], 3)).toBe('hsl(200 50% 50%)');
 	});
 });
 

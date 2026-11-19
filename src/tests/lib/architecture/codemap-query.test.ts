@@ -1000,7 +1000,7 @@ describe('q on the real repo (test 53)', () => {
 			'src/lib/core/editor/editor.service.ts:9',
 			'src/lib/app/lifecycle/app-lifecycle.service.ts:7',
 			'src/lib/features/tags/tags.service.ts:3',
-			'src/lib/features/rail-shell/TypesNavigator.svelte:25',
+			'src/lib/features/rail-shell/TypesNavigator.svelte:27',
 		])
 			expect(impLines.some((l) => l.startsWith(`imp ${site} -> src/lib/utils/debounce.ts `)), site).toBe(true);
 		const path = cli('path', 'src/lib/features/tags/tags.service.ts', 'src/lib/contracts/ipc.ts');

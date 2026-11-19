@@ -17,12 +17,17 @@ import {
 	railBadgeColors,
 	railFormWidth,
 	railHeaderPad,
+	railIconColor,
 	railItemColor,
 	railItems,
 } from '#lib/features/rail-shell/rail-items.logic.js';
 import { GRAPH_VIRTUAL_PATH, TAGS_VIRTUAL_PATH, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import type { RailNavigator, RailPin } from '#lib/features/rail-shell/rail-shell.types.js';
-import { contrastRatio } from '#lib/utils/color.js';
+import { BUILTIN_THEMES, themeColorsToCssVars } from '#lib/core/settings/theme.logic.js';
+import { themeSurface } from '#lib/core/settings/theme-surfaces.logic.js';
+import type { Theme } from '#lib/core/settings/theme.types.js';
+import { contrastRatio, isDarkColor, tint } from '#lib/utils/color.js';
+import { HARD_PALETTE_THEMES } from '../../../fixtures/hard-palette-themes.fixture';
 
 const CALENDAR: RailNavigator = {
 	id: 'calendar',
@@ -223,6 +228,41 @@ describe('railItemColor', () => {
 	it('gives any other key, such as another registered navigator, the fallback', () => {
 		expect(railItemColor('some-navigator')).toBe('#0ea5e9');
 		expect(railItemColor('toString')).toBe('#0ea5e9');
+	});
+});
+
+describe('railIconColor', () => {
+	const KEYS = ['search', 'inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'archive', 'tab:tasks', 'tab:graph', 'tab:tags', 'some-navigator'];
+	const HUES = [...new Set([...KEYS.map(railItemColor), RAIL_PIN_COLOR, RAIL_ACTION_COLOR])];
+	const THEMES = [...BUILTIN_THEMES, ...HARD_PALETTE_THEMES];
+	const railBg = (theme: Theme) =>
+		themeSurface({ vars: themeColorsToCssVars(theme.colors), isDark: isDarkColor(theme.colors.ui.editorBg) !== false }, 'rail-bg')!;
+	/** The active row: the icon's own 18% tint over the rail (`Rail.svelte`). */
+	const activeTint = (color: string, rail: string) => tint(color, 0.18, rail)!;
+
+	it.each(THEMES.map((theme) => [theme.name, theme] as const))('keeps every rail hue at 3:1 on the %s rail and on its active tint', (_name, theme) => {
+		const rail = railBg(theme);
+		for (const hue of HUES) {
+			const color = railIconColor(hue, rail);
+			expect(contrastRatio(color, rail)!, `${hue} on ${rail}`).toBeGreaterThanOrEqual(3);
+			expect(contrastRatio(color, activeTint(color, rail))!, `${hue} on its tint`).toBeGreaterThanOrEqual(3);
+		}
+	});
+
+	it('changes a raw hue that fails, such as Favorites yellow on the Lavender Haze rail', () => {
+		const rail = railBg(BUILTIN_THEMES.find((t) => t.name === 'Lavender Haze')!);
+		expect(contrastRatio(railItemColor('favorites'), rail)!).toBeLessThan(3);
+		expect(railIconColor(railItemColor('favorites'), rail)).not.toBe('#eab308');
+	});
+
+	it('keeps a hue that already passes on its surface and on its tint', () => {
+		expect(railIconColor('#000000', '#ffffff')).toBe('#000000');
+	});
+
+	it('returns the hue unchanged when the surface or the hue cannot be parsed', () => {
+		expect(railIconColor('#eab308', 'not a color')).toBe('#eab308');
+		expect(railIconColor('#eab308', '')).toBe('#eab308');
+		expect(railIconColor('var(--primary)', '#ffffff')).toBe('var(--primary)');
 	});
 });
 

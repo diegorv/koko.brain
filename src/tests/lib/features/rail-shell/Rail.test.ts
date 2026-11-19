@@ -11,7 +11,7 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn()
 import { mount, unmount, flushSync } from 'svelte';
 import CalendarDays from '@lucide/svelte/icons/calendar-days';
 import Rail from '#lib/features/rail-shell/Rail.svelte';
-import { RAIL_WIDTH, railBadgeColors, railItemColor } from '#lib/features/rail-shell/rail-items.logic.js';
+import { RAIL_WIDTH, railBadgeColors, railIconColor, railItemColor } from '#lib/features/rail-shell/rail-items.logic.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { ARCHIVE_LENS, FAVORITES_LENS, FILES_LENS, INBOX_LENS, SEARCH_LENS, TODAY_LENS, TYPES_LENS, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -20,6 +20,10 @@ import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+import { KOKOBRAIN_DEFAULT_THEME, LAVENDER_HAZE_THEME } from '#lib/core/settings/theme.logic.js';
+import { applyTheme } from '#lib/core/settings/theme.service.js';
+import { themeSurface } from '#lib/core/settings/theme-surfaces.logic.js';
+import { contrastRatio } from '#lib/utils/color.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
@@ -420,6 +424,32 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 		expect(color('tab:tasks')).toBe('#22c55e');
 		expect(color('other')).toBe('#0ea5e9');
 		expect(target.querySelector<HTMLElement>('[data-rail-item="inbox"] svg')!.parentElement!.style.color).toBe('var(--rail-c)');
+	});
+
+	it('lifts each item color to 3:1 on a light theme rail, and follows a theme change', () => {
+		applyTheme(LAVENDER_HAZE_THEME);
+		mountRail();
+		const color = (key: string) => target.querySelector<HTMLElement>(`[data-rail-item="${key}"]`)!.style.getPropertyValue('--rail-c');
+		const rail = themeSurface(appliedThemeStore, 'rail-bg')!;
+		expect(color('favorites')).not.toBe('#eab308');
+		expect(color('favorites')).toBe(railIconColor('#eab308', rail));
+		for (const key of ['search', 'inbox', 'today', 'favorites', 'types', 'files', 'archive', 'tab:tasks', 'tab:graph', 'tab:tags']) {
+			expect(contrastRatio(color(key), rail)!, key).toBeGreaterThanOrEqual(3);
+		}
+
+		applyTheme(KOKOBRAIN_DEFAULT_THEME);
+		flushSync();
+		expect(color('favorites')).toBe(railIconColor('#eab308', themeSurface(appliedThemeStore, 'rail-bg')!));
+	});
+
+	it('marks only the active item with a bar in its own color, besides the tint', () => {
+		mountRail('favorites');
+		const bars = [...target.querySelectorAll<HTMLElement>('[data-rail-active-bar]')];
+		expect(bars).toHaveLength(1);
+		expect(bars[0].closest('[data-rail-item]')!.getAttribute('data-rail-item')).toBe('favorites');
+		expect(bars[0].closest('[data-rail-item]')!.getAttribute('aria-current')).toBe('page');
+		expect(bars[0].style.backgroundColor).toBe('var(--rail-c)');
+		expect(bars[0].getAttribute('aria-hidden')).toBe('true');
 	});
 
 	it('gives an item row the focus ring', () => {
@@ -841,7 +871,9 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 			mountRail();
 			const reading = pin(`view:${READING}`).querySelector('svg')!;
 			expect(reading.innerHTML).toContain('M1 1');
-			expect(reading.getAttribute('style')).toContain('color');
+			// The colour reaches the icon through the row's `--rail-c`, which the rail lifts per theme.
+			expect(pin(`view:${READING}`).style.getPropertyValue('--rail-c')).toBe('var(--type-red)');
+			expect(reading.parentElement!.style.color).toBe('var(--rail-c)');
 			expect(pin(`view:${BOARD}`).querySelector('svg')!.getAttribute('class')).toContain('lucide-table');
 			expect(pin('type:Project').querySelector('svg')!.getAttribute('class')).toContain('lucide-file-text');
 		});
@@ -923,6 +955,20 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 			setEntries([]);
 			flushSync();
 			expect(sectionTitles()).toEqual(['Workspace', 'Browse', 'Tabs']);
+		});
+
+		it('lifts the pin color on a light theme rail, a type palette name included, and paints the icon with it', () => {
+			applyTheme(LAVENDER_HAZE_THEME);
+			fileIconsStore.setFrontmatterIcons(new Map([[READING, { iconPack: 'lucide', iconName: 'rocket', color: 'yellow' }]]));
+			vi.mocked(getIconSync).mockImplementation((p, n) => (p === 'lucide' && n === 'rocket' ? ROCKET : undefined));
+			setEntries(PINNED);
+			mountRail();
+			const rail = themeSurface(appliedThemeStore, 'rail-bg')!;
+			const reading = pin(`view:${READING}`).style.getPropertyValue('--rail-c');
+			expect(reading).toBe(railIconColor(LAVENDER_HAZE_THEME.colors.ui.typeYellow, rail));
+			expect(contrastRatio(reading, rail)!).toBeGreaterThanOrEqual(3);
+			expect(pin('type:Project').style.getPropertyValue('--rail-c')).toBe(railIconColor('#0ea5e9', rail));
+			expect(pin(`view:${READING}`).querySelector('svg')!.getAttribute('style')).toBeNull();
 		});
 
 		it('uses the resolved icon color for the row, else the pin fallback', () => {
@@ -1095,6 +1141,16 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 				appliedThemeStore.setDark(false);
 				flushSync();
 				expect(tasks().style.getPropertyValue('--rail-c')).toBe('#d946ef');
+			});
+
+			it('lifts the default color on a light theme rail, and keeps a declared one', () => {
+				applyTheme(LAVENDER_HAZE_THEME);
+				railRegistryStore.registerAction({ key: 'mod:tasks:main', label: 'Tasks', icon: 'lucide:no-such-icon', run: vi.fn() });
+				railRegistryStore.registerAction({ key: 'mod:tasks:other', label: 'Declared', icon: 'lucide:no-such-icon', color: { light: '#fde047', dark: '#fde047' }, run: vi.fn() });
+				mountRail();
+				const rail = themeSurface(appliedThemeStore, 'rail-bg')!;
+				expect(tasks().style.getPropertyValue('--rail-c')).toBe(railIconColor('#d946ef', rail));
+				expect(target.querySelector<HTMLElement>('[data-rail-actions] [aria-label="Declared"]')!.style.getPropertyValue('--rail-c')).toBe('#fde047');
 			});
 
 			it('only the icon uses it: never current, no tint, and the title keeps the text color', () => {

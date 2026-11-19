@@ -18,6 +18,7 @@
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+	import { resolveThemeColor, themeSurface } from '#lib/core/settings/theme-surfaces.logic.js';
 	import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
 	import { iconColorCss, parseIconValuePermissive } from '#lib/features/file-icons/file-icons.logic.js';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
@@ -35,11 +36,13 @@
 		parseRailStyle,
 		parseRailWidth,
 		GRAPH_TAB_RAIL_ITEM,
+		RAIL_ACTIVE_TINT,
 		RAIL_PIN_COLOR,
 		RAIL_WIDTH,
 		railActionColor,
 		railBadgeColors,
 		railFormWidth,
+		railIconColor,
 		railItemColor,
 		railItems,
 		TAGS_TAB_RAIL_ITEM,
@@ -150,7 +153,10 @@
 	interface Row {
 		key: string;
 		label: string;
+		/** The icon color, `--rail-c`: the source hue lifted on this theme's rail */
 		color: string;
+		/** The source hue, before the lift; the count badge derives its own fill from it */
+		hue: string;
 		active: boolean;
 		/** The count the pill shows; 0 shows none */
 		count: number;
@@ -160,11 +166,21 @@
 		select: () => void;
 	}
 
+	let railBg = $derived(themeSurface(appliedThemeStore, 'rail-bg'));
+
+	/** A source hue (a `var(--type-*)` resolved) as drawn on the applied theme's rail; as is before a theme is applied. */
+	function onRail(hue: string): string {
+		const value = resolveThemeColor(appliedThemeStore, hue);
+		return railBg && value ? railIconColor(value, railBg) : hue;
+	}
+
 	function itemRow(item: RailItem): Row {
+		const hue = railItemColor(item.key);
 		return {
 			key: item.key,
 			label: item.label,
-			color: railItemColor(item.key),
+			color: onRail(hue),
+			hue,
 			// A Tabs item is never picked, so it follows the active tab instead.
 			active: item.tabPath ? editorStore.activeTabPath === item.tabPath : item.key === activeItem,
 			count: item.key === 'inbox' && showsInboxBadge ? inboxCount : 0,
@@ -174,10 +190,12 @@
 	}
 
 	function pinRow(pin: RailPin): Row {
+		const hue = iconColorCss(resolveIconForPath(pin.path)?.color) ?? RAIL_PIN_COLOR;
 		return {
 			key: pin.key,
 			label: pin.label,
-			color: iconColorCss(resolveIconForPath(pin.path)?.color) ?? RAIL_PIN_COLOR,
+			color: onRail(hue),
+			hue,
 			// A click on a view that opens in the editor does not pick it, so its pin also follows the active tab, like its Views row.
 			active: pin.key === activeItem || (pin.opensInEditor && editorStore.activeTabPath === pin.path),
 			count: 0,
@@ -188,10 +206,13 @@
 
 	/** Runs on click; never picked, so it has no highlight and is not saved as the rail item. */
 	function actionRow(action: RailAction): Row {
+		const hue = railActionColor(action.color, appliedThemeStore.isDark);
 		return {
 			key: action.key,
 			label: action.label,
-			color: railActionColor(action.color, appliedThemeStore.isDark),
+			// A declared color is the mod's own choice per mode and stays as declared.
+			color: action.color ? hue : onRail(hue),
+			hue,
 			active: false,
 			count: 0,
 			action,
@@ -368,7 +389,8 @@
 	{:else if Icon}
 		<Icon class={sizeClass} />
 	{:else if resolved?.icon}
-		<IconRenderer icon={resolved.icon} class={sizeClass} color={resolved.color} />
+		<!-- No color of its own: it inherits the lifted `--rail-c` from the wrapper. -->
+		<IconRenderer icon={resolved.icon} class={sizeClass} />
 	{:else if row.pin?.kind === 'view'}
 		<Table class={sizeClass} />
 	{:else}
@@ -381,7 +403,7 @@
 	<button
 		class="relative shrink-0 cursor-default {classes.row} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {row.active ? 'text-file-explorer-fg' : 'text-file-explorer-fg/85 hover:bg-file-explorer-fg/10 hover:text-file-explorer-fg'}"
 		style:--rail-c={row.color}
-		style:background-color={row.active ? 'color-mix(in oklch, var(--rail-c) 18%, transparent)' : undefined}
+		style:background-color={row.active ? `color-mix(in oklch, var(--rail-c) ${RAIL_ACTIVE_TINT * 100}%, transparent)` : undefined}
 		title={row.label}
 		aria-label={row.label}
 		aria-current={row.active ? 'page' : undefined}
@@ -389,12 +411,16 @@
 		data-rail-item={row.key}
 		onclick={row.select}
 	>
+		{#if row.active}
+			<!-- The tint alone measures 1.06 to 1.45:1 on the rail; the bar is the 3:1 cue, the only one when collapsed. -->
+			<span class="absolute inset-y-1 left-0 w-0.5 rounded-full" style:background-color="var(--rail-c)" aria-hidden="true" data-rail-active-bar></span>
+		{/if}
 		<span class="shrink-0" style:color="var(--rail-c)">{@render icon(row, classes.icon)}</span>
 		{#if classes.title}
 			<span class="{classes.title} text-rail {row.active ? 'font-medium' : ''}" data-rail-title>{row.label}</span>
 		{/if}
 		{#if row.count > 0}
-			{@const badge = railBadgeColors(row.color)}
+			{@const badge = railBadgeColors(row.hue)}
 			<span class="{classes.badge} text-label tabular-nums" style:background-color={badge.fill} style:color={badge.text} data-rail-badge>{row.count}</span>
 		{/if}
 		{#if busy}

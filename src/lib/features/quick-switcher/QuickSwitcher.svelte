@@ -9,10 +9,12 @@
 	import { createFile } from '#lib/core/filesystem/fs.service.js';
 	import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+	import { themeSurface } from '#lib/core/settings/theme-surfaces.logic.js';
 	import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
-	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
+	import { iconColorStyle, readableIconColor } from '#lib/features/file-icons/file-icons.logic.js';
 	import { fileKind } from '#lib/features/rail-shell/lens.logic.js';
 	import { KIND_ICONS } from '#lib/features/rail-shell/kind-icons.js';
 	import { fuzzyMatchPositions } from '#lib/utils/fuzzy-match.js';
@@ -28,6 +30,8 @@
 	import FilePlus from '@lucide/svelte/icons/file-plus';
 
 	let searchQuery = $state('');
+	/** What a row's colored icon sits on: the dialog, and the selected row (`aria-selected:bg-accent`). */
+	let rowBgs = $derived([themeSurface(appliedThemeStore, 'popover'), themeSurface(appliedThemeStore, 'accent')]);
 
 	let allFiles = $derived(flattenFileTree(fsStore.fileTree));
 	let createPath = $derived(parseCreatePath(searchQuery));
@@ -127,6 +131,7 @@
 
 {#snippet fileRow(file: FileEntry)}
 	{@const resolved = resolveIconForPath(file.path)}
+	{@const iconColor = readableIconColor(appliedThemeStore, resolved?.color, rowBgs)}
 	{@const KindIcon = KIND_ICONS[fileKind(file.name)]}
 	{@const folder = vaultStore.path ? entryFolder(vaultStore.path, file.path) : ''}
 	<Command.Item
@@ -134,9 +139,9 @@
 		onSelect={() => selectFile(file.path)}
 	>
 		{#if resolved?.icon}
-			<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
+			<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={iconColor} />
 		{:else}
-			<KindIcon class="size-4 shrink-0 text-muted-foreground" style={iconColorStyle(resolved?.color)} />
+			<KindIcon class="size-4 shrink-0 text-muted-foreground" style={iconColorStyle(iconColor)} />
 		{/if}
 		<span class="min-w-0 flex-1 truncate" data-quick-switcher-name>
 			{#each matchSegments(file.nameWithoutExt, fuzzyMatchPositions(searchQuery, file.nameWithoutExt)) as segment, i (i)}

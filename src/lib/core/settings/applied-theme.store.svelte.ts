@@ -3,6 +3,9 @@ import { untrack } from 'svelte';
 /** Whether the theme last applied to the document is dark. Starts dark because the default theme is. */
 let isDark = $state(true);
 
+/** CSS variables of the theme last applied to the document (`--editor-bg` etc.); empty until one is. Raw: only replaced whole. */
+let vars = $state.raw<Record<string, string>>({});
+
 /** Count of theme applications, so code that paints colors itself can repaint on any switch (dark to dark included). */
 let revision = $state(0);
 
@@ -15,11 +18,17 @@ export const appliedThemeStore = {
 	/** True when the applied theme is dark (its editor background is dark or unreadable). */
 	get isDark() { return isDark; },
 
+	/** The applied theme's CSS variables, for code that measures its colors (`theme-surfaces.logic.ts`). */
+	get vars() { return vars; },
+
 	/** Grows by one on every theme application; read it to re-run when the theme's colors change. */
 	get revision() { return revision; },
 
 	/** Records the mode of the theme just applied. */
 	setDark(value: boolean) { isDark = value; },
+
+	/** Records the CSS variables of the theme just applied. */
+	setVars(value: Record<string, string>) { vars = value; },
 
 	/**
 	 * Records that a theme was just applied. Reads `revision` untracked, so an
@@ -30,6 +39,7 @@ export const appliedThemeStore = {
 	/** @internal test-only */
 	_reset() {
 		isDark = true;
+		vars = {};
 		revision = 0;
 	},
 };

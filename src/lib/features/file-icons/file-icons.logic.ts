@@ -3,6 +3,7 @@ import type { IconPackId, NormalizedIcon, RecentIcon } from './file-icons.types'
 import type { FrontmatterValue } from '#lib/types/vault-v2.types.js';
 import { extractRawFrontmatter } from '#lib/core/frontmatter/properties.logic.js';
 import { TYPE_PALETTE_NAMES } from '#lib/core/settings/theme-builder.logic.js';
+import { readableOn, type AppliedThemeColors } from '#lib/core/settings/theme-surfaces.logic.js';
 
 /** Maximum number of recently used icons to keep */
 const MAX_RECENT_ICONS = 20;
@@ -231,6 +232,16 @@ export function iconColorCss(color: string | undefined): string | undefined {
 export function iconColorStyle(color: string | undefined): string | undefined {
 	const css = iconColorCss(color);
 	return css ? `color: ${css}` : undefined;
+}
+
+/**
+ * An item's icon color (`iconColorCss`: a palette name becomes its theme token) as
+ * drawn on `surfaces` of the applied theme: lifted to 3:1 when it falls short, so
+ * a preset tuned for dark backgrounds stays visible on a light one. The stored
+ * value does not change.
+ */
+export function readableIconColor(theme: AppliedThemeColors, color: string | undefined, surfaces: (string | null)[]): string | undefined {
+	return readableOn(theme, iconColorCss(color), surfaces, 3);
 }
 
 /** Filters icons by a search query matching name or keywords */

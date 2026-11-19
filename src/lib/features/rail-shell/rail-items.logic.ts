@@ -1,5 +1,5 @@
 import { clamp } from '#lib/utils/clamp.js';
-import { labelColors } from '#lib/utils/color.js';
+import { ensureContrastOn, labelColors, tint } from '#lib/utils/color.js';
 import { GRAPH_VIRTUAL_PATH, TAGS_VIRTUAL_PATH, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { FILES_RAIL_ITEM, SEARCH_RAIL_ITEM, TODAY_RAIL_ITEM, TYPES_RAIL_ITEM } from './lens.logic';
 import type { RailAction, RailNavigator, RailPin } from './rail-shell.types';
@@ -140,7 +140,7 @@ export function parseRailInboxBadge(saved: unknown): boolean {
 	return saved !== false;
 }
 
-/** The icon color of each built-in rail item, the same on every theme. */
+/** The source hue of each built-in rail item; `railIconColor` darkens or lightens it per theme. */
 const RAIL_ITEM_COLORS = new Map([
 	['search', '#64748b'],
 	['inbox', '#3b82f6'],
@@ -168,6 +168,28 @@ export const RAIL_ACTION_COLOR = '#d946ef';
 export function railActionColor(color: RailAction['color'], isDark: boolean): string {
 	if (!color) return RAIL_ACTION_COLOR;
 	return isDark ? color.dark : color.light;
+}
+
+/** Share of its icon color the active rail row is tinted with (`Rail.svelte`). */
+export const RAIL_ACTIVE_TINT = 0.18;
+
+/**
+ * A rail hue as drawn on `surface` (the applied theme's `rail-bg`): kept when it
+ * reaches 3:1 there and on the active row's own tint, else moved toward black or
+ * white in OKLab until it does (ADR-0033, Palette). The tint follows the moved
+ * color, so the check repeats a few times. A hue or surface that does not parse
+ * is returned as is.
+ */
+export function railIconColor(hue: string, surface: string): string {
+	let color = hue;
+	for (let pass = 0; pass < 5; pass++) {
+		const active = tint(color, RAIL_ACTIVE_TINT, surface);
+		if (!active) return color;
+		const next = ensureContrastOn(color, [surface, active], 3);
+		if (next === color) break;
+		color = next;
+	}
+	return color;
 }
 
 /** The labeled rail's width in px: where it starts, and how far it drags. */

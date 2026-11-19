@@ -9,6 +9,12 @@ setupLocalStorage();
 import TagItem from '#lib/features/tags/TagItem.svelte';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import type { TagTreeNode } from '#lib/features/tags/tags.types.js';
+import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+import { LAVENDER_HAZE_THEME } from '#lib/core/settings/theme.logic.js';
+import { applyTheme } from '#lib/core/settings/theme.service.js';
+import { themeSurface } from '#lib/core/settings/theme-surfaces.logic.js';
+import { contrastRatio } from '#lib/utils/color.js';
+import { TAG_COLOR_PRESETS } from '#lib/utils/tag-colors.js';
 
 function node(fullPath: string, count: number, children: TagTreeNode[] = []): TagTreeNode {
 	const segment = fullPath.split('/').at(-1)!;
@@ -111,6 +117,24 @@ describe('TagItem rows', () => {
 		expect(labels[1]).toContain('work/project');
 		expect(labels[2]).toContain('home');
 		for (const dot of dotTriggers()) expect(dot.getAttribute('title')).toBe(dot.getAttribute('aria-label'));
+	});
+
+	it('lifts a preset dot to 3:1 in the Tags view of a light theme, keeping the saved color', () => {
+		try {
+			applyTheme(LAVENDER_HAZE_THEME);
+			settingsStore.updateTagColors({ colors: { home: TAG_COLOR_PRESETS.yellow } });
+			mountRows(leaf);
+			const editor = themeSurface(appliedThemeStore, 'editor-bg')!;
+			const dot = target.querySelector<HTMLElement>('[data-tag-color-dot]')!.style.backgroundColor;
+			expect(contrastRatio(TAG_COLOR_PRESETS.yellow, editor)!).toBeLessThan(3);
+			expect(contrastRatio(dot, editor)!).toBeGreaterThanOrEqual(3);
+			expect(contrastRatio(dot, themeSurface(appliedThemeStore, 'accent')!)!).toBeGreaterThanOrEqual(3);
+			expect(settingsStore.tagColors.colors.home).toBe(TAG_COLOR_PRESETS.yellow);
+		} finally {
+			appliedThemeStore._reset();
+			document.documentElement.removeAttribute('style');
+			document.documentElement.classList.remove('dark');
+		}
 	});
 
 	it('renders no chevron and no dot label beyond its own for a lone leaf', () => {

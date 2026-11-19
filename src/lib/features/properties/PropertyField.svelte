@@ -10,6 +10,8 @@
 	import { Input } from '#lib/components/ui/input/index.js';
 	import type { Property, PropertyType } from '#lib/core/frontmatter/properties.types.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+	import { readableOn, themeSurface } from '#lib/core/settings/theme-surfaces.logic.js';
 	import { getTagColor } from '#lib/utils/tag-colors.js';
 
 	interface Props {
@@ -168,7 +170,8 @@
 	{#if property.type === 'list' && (listItems.length > 0 || isAddingListItem)}
 		<div class="flex flex-wrap gap-1.5 rounded-md bg-right-sidebar-accent p-2">
 			{#each listItems as item, i (i)}
-				{@const tagColor = property.key === 'tags' ? getTagColor(item, settingsStore.tagColors.colors) : undefined}
+				<!-- The tag presets are tuned for dark themes: lifted to 3:1 on the chip, the saved color unchanged. -->
+				{@const tagColor = property.key === 'tags' ? readableOn(appliedThemeStore, getTagColor(item, settingsStore.tagColors.colors), [themeSurface(appliedThemeStore, 'input-bg')], 3) : undefined}
 				<div class="flex max-w-full min-w-0 items-center gap-1.5 rounded-md bg-input-bg py-1 pl-2 pr-1 text-row" data-property-list-item>
 					<Tag class="size-3 shrink-0 text-right-sidebar-muted-fg" style="color: {tagColor ?? ''}" />
 					<span class="truncate text-right-sidebar-fg/80">{item}</span>

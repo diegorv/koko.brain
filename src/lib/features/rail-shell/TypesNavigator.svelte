@@ -22,11 +22,13 @@
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+	import { readableOn, rowSurfaces } from '#lib/core/settings/theme-surfaces.logic.js';
 	import { debounce } from '#lib/utils/debounce.js';
 	import { error as logError } from '#lib/utils/debug.js';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
-	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
+	import { iconColorStyle, readableIconColor } from '#lib/features/file-icons/file-icons.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
@@ -75,6 +77,10 @@
 		}, []),
 	);
 	let typeRows = $derived(rows.filter((r) => r.lens.kind !== VIEW_LENS_KIND));
+	/** What a row's colored icon and title sit on: the column, a hovered row and the picked row. */
+	let rowBgs = $derived(rowSurfaces(appliedThemeStore, 'nav-bg', 'file-explorer-primary'));
+	/** A title color as drawn on an unpicked row (the column or a hovered row), lifted to 4.5:1. */
+	const titleColorOf = (color: string | undefined) => readableOn(appliedThemeStore, color, rowBgs.slice(0, 2), 4.5);
 
 	/** The type row the context menu acts on; null (Untyped, empty space) opens no menu. */
 	let menuRow = $state<TypeNavigatorRow | null>(null);
@@ -287,11 +293,11 @@
 							data-types-navigator-row={row.typeName ?? row.lens.kind}
 						>
 							{#if resolved?.icon}
-								<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
+								<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={readableIconColor(appliedThemeStore, resolved.color, rowBgs)} />
 							{:else}
-								<FileText class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" style={iconColorStyle(resolved?.color)} />
+								<FileText class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" style={iconColorStyle(readableIconColor(appliedThemeStore, resolved?.color, rowBgs))} />
 							{/if}
-							<span class="truncate" style:color={!active && resolved?.titleColor ? resolved.titleColor : undefined}>{row.label}</span>
+							<span class="truncate" style:color={!active ? titleColorOf(resolved?.titleColor) : undefined}>{row.label}</span>
 							<span class="ml-auto flex shrink-0 items-center gap-1 pr-1">
 								{#if row.keyNotes.length > 0}
 									{@render viewMark(row.keyNotes.join('\n'), false)}
@@ -417,11 +423,11 @@
 		data-types-navigator-view={path}
 	>
 		{#if resolved?.icon}
-			<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
+			<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={readableIconColor(appliedThemeStore, resolved.color, rowBgs)} />
 		{:else}
-			<Table class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" style={iconColorStyle(resolved?.color)} />
+			<Table class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" style={iconColorStyle(readableIconColor(appliedThemeStore, resolved?.color, rowBgs))} />
 		{/if}
-		<span class="truncate" style:color={!active && resolved?.titleColor ? resolved.titleColor : undefined}>{row.label}</span>
+		<span class="truncate" style:color={!active ? titleColorOf(resolved?.titleColor) : undefined}>{row.label}</span>
 		<span class="ml-auto flex shrink-0 items-center gap-1 pr-1">
 			{#if markText && !error}
 				{@render viewMark(markText, false)}

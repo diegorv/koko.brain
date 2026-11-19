@@ -25,6 +25,11 @@ import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte
 import { preloadPacks } from '#lib/features/file-icons/file-icons.icon-data.js';
 import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 import QuickSwitcher from '#lib/features/quick-switcher/QuickSwitcher.svelte';
+import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+import { LAVENDER_HAZE_THEME } from '#lib/core/settings/theme.logic.js';
+import { applyTheme } from '#lib/core/settings/theme.service.js';
+import { themeSurface } from '#lib/core/settings/theme-surfaces.logic.js';
+import { contrastRatio } from '#lib/utils/color.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
 
 // bits-ui's Command scrolls its first item into view; jsdom does not implement it.
@@ -495,6 +500,21 @@ describe('QuickSwitcher - rows', () => {
 		const emoji = [...row('Welcome').querySelectorAll('span')].find((s) => s.childElementCount === 0 && s.textContent === '🚀');
 		expect(emoji).toBeDefined();
 		expect(row('Welcome').querySelector('svg.lucide-file-text')).toBeNull();
+	});
+
+	it('keeps a type-colored icon at 3:1 on the dialog and on the selected row of a light theme', () => {
+		try {
+			applyTheme(LAVENDER_HAZE_THEME);
+			fileIconsStore.updateFrontmatterIcon('/vault/Welcome.md', { color: 'yellow' });
+			open();
+			const color = row('Welcome').querySelector<SVGElement>('svg.lucide-file-text')!.style.color;
+			expect(contrastRatio(color, themeSurface(appliedThemeStore, 'popover')!)!).toBeGreaterThanOrEqual(3);
+			expect(contrastRatio(color, themeSurface(appliedThemeStore, 'accent')!)!).toBeGreaterThanOrEqual(3);
+		} finally {
+			appliedThemeStore._reset();
+			document.documentElement.removeAttribute('style');
+			document.documentElement.classList.remove('dark');
+		}
 	});
 
 	it('shows only the folder of a nested note, and none for a root note', () => {

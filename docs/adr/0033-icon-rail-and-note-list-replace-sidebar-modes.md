@@ -180,15 +180,22 @@ become navigators that set the lens instead of modes that replace the sidebar.**
 > 2026-11-04 pinned items amendment: the `nav` scrolls in every form with no scrollbar, Archive
 > included, and every child is `shrink-0`. The top strip is sticky, and the edge and the resize handle
 > sit in a frame around the `nav`, so they do not scroll.
-> **Palette.** Icon colors are fixed and the same on every theme (`RAIL_ITEM_COLORS` in `rail-items.logic.ts`):
-> Search `#64748b`, Inbox `#3b82f6`, Today `#f97316`, Favorites `#eab308`, Types `#8b5cf6`, Calendar
-> `#f43f5e`, Files `#14b8a6`, Archive `#78716c`, any other navigator `#0ea5e9`, a pin its resolved icon
-> color else `#0ea5e9` (`RAIL_PIN_COLOR`), a mod button `#d946ef` (`RAIL_ACTION_COLOR`) unless it declares
-> one. An active item is an 18 % `color-mix(in oklch, ...)` tint of its color with `aria-current="page"`.
-> Its title uses the full `text-file-explorer-fg`, never the item color: the palette does not change with
-> the theme, so only the theme's own text token stays readable on every theme. An item color on its own
-> tint measured 1.53 to 3.42 on Lavender Haze; the full text color measured 9.83 to 12.33 across both
-> themes.
+> **Palette** (amended 2026-11-19, color audit Issue 02). Each item keeps a source hue
+> (`RAIL_ITEM_COLORS` in `rail-items.logic.ts`): Search `#64748b`, Inbox `#3b82f6`, Today `#f97316`,
+> Favorites `#eab308`, Types `#8b5cf6`, Calendar `#f43f5e`, Files `#14b8a6`, Archive `#78716c`, any
+> other navigator `#0ea5e9`, a pin its resolved icon color else `#0ea5e9` (`RAIL_PIN_COLOR`), a mod
+> button `#d946ef` (`RAIL_ACTION_COLOR`). The hue is not drawn as is: `railIconColor` darkens or
+> lightens it in OKLab, keeping its hue, until it reaches 3:1 on the applied theme's `rail-bg` and on
+> the active row's tint, so each theme gets its own shade (fixed hues measured 1.31 to 2.9:1 on light
+> rails, Favorites on Sepia the worst). `Rail.svelte` reads `rail-bg` through `themeSurface` in
+> `theme-surfaces.logic.ts` from the variables `appliedThemeStore` records. A mod button that declares
+> `color: {light, dark}` keeps its declared value, and the count badge derives its fill from the
+> source hue (`railBadgeColors`). An active item is an 18 % `color-mix(in oklch, ...)` tint of its
+> color (`RAIL_ACTIVE_TINT`) plus a 2 px bar in that color at its left edge (`data-rail-active-bar`),
+> with `aria-current="page"`: the tint alone measured 1.06 to 1.45:1 on the rail, and in the collapsed
+> form it was the only cue. Its title uses the full `text-file-explorer-fg`, never the item color:
+> an item color on its own tint measured 1.53 to 3.42 on Lavender Haze; the full text color measured
+> 9.83 to 12.33 across both themes.
 > **Divider token.** Dividers use `bg-file-explorer-fg/25`, not `bg-file-explorer-border`, which measured
 > 1.07 contrast on the default dark theme. The right edge stays on `bg-file-explorer-border`.
 > **Pane sizes.** The defaults in `settings.store.svelte.ts` are now navigator 13 %, note list 18 %,
