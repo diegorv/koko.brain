@@ -1425,8 +1425,75 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			await settle();
 
 			expect(autoOrganizeStore.rules[0].createNote?.path).toBe('{folder}/{yaer}/x.md');
-			expect(warnings()).toEqual(['{yaer} is not a variable, so a folder named {yaer} would be created']);
+			expect(warnings()).toEqual(['{yaer} is not a variable, so the path would contain {yaer}']);
 			expect(document.querySelectorAll('[data-template-variables]')).toHaveLength(1);
+		});
+
+		it('names the path, not a folder, for an unknown variable in the create note file name', async () => {
+			await renderStored({ ...BLANK, destination: 'Archive' });
+
+			commit(input('Create note path'), 'Meetings/{yaer}.md');
+			await settle();
+
+			expect(autoOrganizeStore.rules[0].createNote?.path).toBe('Meetings/{yaer}.md');
+			expect(warnings()).toEqual(['{yaer} is not a variable, so the path would contain {yaer}']);
+			expect(warnings().join(' ')).not.toMatch(/folder/);
+		});
+
+		it('warns about the typed create note path when it is refused, not the saved one', async () => {
+			await renderStored({ ...BLANK, destination: 'Archive', createNote: { path: 'a.md' } });
+			expect(warnings()).toEqual([]);
+
+			commit(input('Create note path'), '{yaer}/x.txt');
+			await settle();
+
+			expect(autoOrganizeStore.rules[0].createNote?.path).toBe('a.md');
+			expect(input('Create note path').value).toBe('{yaer}/x.txt');
+			expect(warnings()).toEqual(['{yaer} is not a variable, so the path would contain {yaer}']);
+
+			commit(input('Create note path'), '{mnth}/x.md');
+			await settle();
+
+			expect(autoOrganizeStore.rules[0].createNote?.path).toBe('{mnth}/x.md');
+			expect(warnings()).toEqual(['{mnth} is not a variable, so the path would contain {mnth}']);
+		});
+
+		it('warns about the create note path while it is typed, before the field is left', async () => {
+			await renderStored({ ...BLANK, destination: 'Archive', createNote: { path: 'a.md' } });
+
+			type(input('Create note path'), '{yaer}/x.md');
+			await settle();
+
+			expect(autoOrganizeStore.rules[0].createNote?.path).toBe('a.md');
+			expect(warnings()).toEqual(['{yaer} is not a variable, so the path would contain {yaer}']);
+		});
+
+		it('drops a refused create note path draft when the stored path changes from outside the field', async () => {
+			const rule = { ...BLANK, destination: 'Archive', createNote: { path: 'a.md' } };
+			await renderStored(rule);
+			commit(input('Create note path'), '{yaer}/x.txt');
+			await settle();
+			expect(warnings()).toEqual(['{yaer} is not a variable, so the path would contain {yaer}']);
+
+			autoOrganizeStore.setConfig({ rules: [{ ...rule, createNote: { path: 'b.md' } }], excludedFolders: [] });
+			await settle();
+
+			expect(input('Create note path').value).toBe('b.md');
+			expect(warnings()).toEqual([]);
+			expect(input('Create note path').getAttribute('aria-describedby')).toBeNull();
+		});
+
+		it('keeps a refused create note path draft when another field of the rule changes', async () => {
+			const rule = { ...BLANK, destination: 'Archive', createNote: { path: 'a.md' } };
+			await renderStored(rule);
+			commit(input('Create note path'), '{yaer}/x.txt');
+			await settle();
+
+			autoOrganizeStore.setConfig({ rules: [{ ...rule, destination: 'Done' }], excludedFolders: [] });
+			await settle();
+
+			expect(input('Create note path').value).toBe('{yaer}/x.txt');
+			expect(warnings()).toEqual(['{yaer} is not a variable, so the path would contain {yaer}']);
 		});
 
 		it('warns about an unknown variable in a rename name, and not in a rename expression', async () => {
