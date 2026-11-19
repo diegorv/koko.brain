@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { parseCardSegments, type CardSegment } from './kanban.logic';
-	import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
+	import { COLOR_PRESET_BG, COLOR_PRESET_CHIP_TEXT } from '#lib/utils/color-presets.js';
 
 	interface Props {
 		text: string;
@@ -31,7 +31,7 @@
 		{#if onTagClick}
 			<button
 				class="inline cursor-pointer rounded-sm px-1 py-0.5 text-xs hover:ring-1 hover:ring-foreground/20"
-				style="background: {COLOR_PRESET_BG[tagColors[seg.value] ?? 'gray']}; color: {COLOR_PRESET_TEXT[tagColors[seg.value] ?? 'gray']}"
+				style="background: {COLOR_PRESET_BG[tagColors[seg.value] ?? 'gray']}; color: {COLOR_PRESET_CHIP_TEXT[tagColors[seg.value] ?? 'gray']}"
 				type="button"
 				onclick={() => onTagClick(seg.value)}
 			>
@@ -40,7 +40,7 @@
 		{:else}
 			<span
 				class="rounded-sm px-1 py-0.5 text-xs"
-				style="background: {COLOR_PRESET_BG[tagColors[seg.value] ?? 'gray']}; color: {COLOR_PRESET_TEXT[tagColors[seg.value] ?? 'gray']}"
+				style="background: {COLOR_PRESET_BG[tagColors[seg.value] ?? 'gray']}; color: {COLOR_PRESET_CHIP_TEXT[tagColors[seg.value] ?? 'gray']}"
 			>
 				#{seg.value}
 			</span>

@@ -14,14 +14,14 @@ Not in this ticket: the note list chips, archived rows and search snippet (Issue
 
 **Blocked by:** 12
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes.
 
-- [ ] Failing test first, `src/tests/lib/utils/color-presets.test.ts` (real `contrastRatio`, `flatten`, `mixColors` from `utils/color.ts`): for every tag preset on both built-in themes, chip text against the flattened real stack is at least 4.5:1. The stack is the tag tint at 15% over (a) `--background` (an uncoloured card) and (b) each card preset at 15% over `muted` at 30% over `editorBg` (a coloured card on its lane). It fails today (yellow on Lavender Haze 1.57) and would also fail at a 60% share (4.00), which proves the stack is the real one.
-- [ ] `railBadgeTextColor('#3b82f6')` is `#000000`, a dark navy gives `#ffffff`, an unparseable value gives `var(--primary-foreground)`. `Rail.test.ts:451-457` moves on purpose: the pill has no `text-white` and its colour is black.
-- [ ] A linear-calendar render test (new `src/tests/lib/features/collection/CollectionLinearCalendarView.svelte.test.ts`): a bar's `style` has `color: #000000` for a light `COLOR_PALETTE` hue and `var(--primary-foreground)` for the `var(--primary)` fallback.
-- [ ] `KanbanView.test.ts`: a `#tag` chip's `style` contains `color-mix` and `--editor-fg`; the colour swatches still use the full preset.
+- [x] Failing test first, `src/tests/lib/utils/color-presets.test.ts` (real `contrastRatio`, `flatten`, `mixColors` from `utils/color.ts`): for every tag preset on both built-in themes, chip text against the flattened real stack is at least 4.5:1. The stack is the tag tint at 15% over (a) `--background` (an uncoloured card) and (b) each card preset at 15% over `muted` at 30% over `editorBg` (a coloured card on its lane). It fails today (yellow on Lavender Haze 1.57) and would also fail at a 60% share (4.00), which proves the stack is the real one.
+- [x] `railBadgeTextColor('#3b82f6')` is `#000000`, a dark navy gives `#ffffff`, an unparseable value gives `var(--primary-foreground)`. `Rail.test.ts:451-457` moves on purpose: the pill has no `text-white` and its colour is black.
+- [x] A linear-calendar render test (new `src/tests/lib/features/collection/CollectionLinearCalendarView.svelte.test.ts`): a bar's `style` has `color: #000000` for a light `COLOR_PALETTE` hue and `var(--primary-foreground)` for the `var(--primary)` fallback.
+- [x] `KanbanView.test.ts`: a `#tag` chip's `style` contains `color-mix` and `--editor-fg`; the colour swatches still use the full preset.
 - [ ] Frontend gate: pnpm check and pnpm vitest run pass. jsdom was not checked for `color-mix` in inline styles: the tests read the `style` attribute. The by-eye check on both themes is recorded in the commit.
 
 ## Original proposal
@@ -54,3 +54,4 @@ Ticket 40 runs after this one and shares `src/tests/lib/core/settings/theme-buil
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping, and the merge of old tickets 26 and 40 into this one. Defaults (not individually answered): none in the old tickets; the 70% chip share is the verdict's measured value, not a question.
 - 2026-11-18, split by the owner after the first run blocked: this Issue keeps items 1 to 3 (the old 39a, already built in `issue/39-readable-chips-faded-text`). Items 4 and 5 (note list chips, archived rows, search snippet) and their theme-builder and NoteRow/SearchResult criteria moved to Issue 52, which waits on shell-sidebars-ux 15 and 19.
+- 2026-11-18, deliver (issue/39-readable-chips-faded-text): readable text on kanban tag chips, linear-calendar bars and the rail badge (contrast-picked text colour, chip tint mix). Round 1 findings 2 and 3 fixed in edbe81cb8. Tests: pnpm check exit 0; full suite at edbe81cb8 exit 0, 663 files, 17840 passed, 0 failed. Reviews: round 1 APPROVED, round 2 APPROVED. The by-eye check on KokoBrain Default and Lavender Haze was NOT done (headless run); gate criterion left unticked for the owner.

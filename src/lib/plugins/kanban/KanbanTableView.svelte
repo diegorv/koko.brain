@@ -3,7 +3,7 @@
 	import type { KanbanBoard } from './kanban.types';
 	import { stripCardMetadata, extractCardDate, extractCardColor, extractCardTags, cardProximity, PROXIMITY_CLASSES } from './kanban.logic';
 	import { formatNow } from '#lib/utils/date.js';
-	import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
+	import { COLOR_PRESET_BG, COLOR_PRESET_CHIP_TEXT } from '#lib/utils/color-presets.js';
 	import KanbanCardText from './KanbanCardText.svelte';
 
 	interface Props {
@@ -63,7 +63,7 @@
 								{#each tags as tag}
 									<span
 										class="rounded-sm px-1 py-0.5 text-xs"
-										style="background: {COLOR_PRESET_BG[tagColors[tag] ?? 'gray']}; color: {COLOR_PRESET_TEXT[tagColors[tag] ?? 'gray']}"
+										style="background: {COLOR_PRESET_BG[tagColors[tag] ?? 'gray']}; color: {COLOR_PRESET_CHIP_TEXT[tagColors[tag] ?? 'gray']}"
 									>
 										#{tag}
 									</span>
