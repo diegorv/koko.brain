@@ -22,6 +22,8 @@ import {
 	resetHooks,
 	markRecentSave,
 	areAllRecentSaves,
+	setExternalVersionKeeper,
+	getExternalVersionKeeper,
 } from '#lib/core/editor/editor.hooks.js';
 import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
@@ -222,6 +224,48 @@ describe('addAfterSaveObserver', () => {
 
 		notifyAfterSave('/vault/note.md', 'content');
 		expect(observer).toHaveBeenCalledTimes(1); // Not called again
+	});
+});
+
+describe('external-version keeper', () => {
+	beforeEach(() => {
+		resetHooks();
+	});
+
+	it('is null until one is set', () => {
+		expect(getExternalVersionKeeper()).toBeNull();
+	});
+
+	it('returns the keeper that was set, and a later set replaces it', () => {
+		const first = vi.fn(async () => {});
+		const second = vi.fn(async () => {});
+
+		setExternalVersionKeeper(first);
+		expect(getExternalVersionKeeper()).toBe(first);
+
+		setExternalVersionKeeper(second);
+		expect(getExternalVersionKeeper()).toBe(second);
+	});
+
+	it('unregister clears the slot only while it still holds that keeper', () => {
+		const first = vi.fn(async () => {});
+		const second = vi.fn(async () => {});
+		const unregisterFirst = setExternalVersionKeeper(first);
+		const unregisterSecond = setExternalVersionKeeper(second);
+
+		unregisterFirst();
+		expect(getExternalVersionKeeper()).toBe(second);
+
+		unregisterSecond();
+		expect(getExternalVersionKeeper()).toBeNull();
+	});
+
+	it('resetHooks clears the keeper', () => {
+		setExternalVersionKeeper(vi.fn(async () => {}));
+
+		resetHooks();
+
+		expect(getExternalVersionKeeper()).toBeNull();
 	});
 });
 

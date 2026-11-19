@@ -1,4 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { setupLocalStorage } from '../../../fixtures/localStorage.fixture';
+
+setupLocalStorage();
+
+// Rejects like the real invoke outside a Tauri window; tests that expect an
+// IPC call set their own implementation.
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(async (cmd: string) => {
+		throw new Error(`no Tauri IPC in tests: ${cmd}`);
+	}),
+}));
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
@@ -10,7 +21,7 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
 }));
 
 vi.mock('svelte-sonner', () => ({
-	toast: { error: vi.fn(), success: vi.fn() },
+	toast: { error: vi.fn(), success: vi.fn(), warning: vi.fn() },
 }));
 
 vi.mock('#lib/utils/debug.js', () => ({
@@ -44,11 +55,14 @@ vi.mock('#lib/utils/debounce.js', () => ({
 	}),
 }));
 
+import { invoke } from '@tauri-apps/api/core';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { registerFileHistoryHook } from '#lib/features/file-history/file-history.service.js';
 import { TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { addAfterSaveObserver, resetHooks } from '#lib/core/editor/editor.hooks.js';
 import {
@@ -1434,6 +1448,34 @@ describe('reloadExternallyChangedTabs', () => {
 		editorStore.reset();
 		fsStore.reset();
 		resetHooks();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		// Drops queued one-shot reads a test left unconsumed.
+		vi.mocked(readTextFile).mockReset();
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+			if (cmd === 'save_snapshot') return true;
+			throw new Error(`no Tauri IPC in tests: ${cmd}`);
+		});
+	});
+
+	it('keeps the external version of a dirty tab in File History and keeps the typing', async () => {
+		registerFileHistoryHook();
+		addTab('/vault/note.md', 'base plus mine', { savedContent: 'base' });
+		vi.mocked(readTextFile).mockResolvedValueOnce('base plus external');
+
+		await reloadExternallyChangedTabs(['/vault/note.md']);
+
+		expect(invoke).toHaveBeenCalledWith('save_snapshot', {
+			filePath: 'note.md',
+			content: 'base plus external',
+		});
+		expect(editorStore.tabs[0].content).toBe('base plus mine');
+		expect(editorStore.tabs[0].savedContent).toBe('base');
+		expect(toast.warning).toHaveBeenCalledTimes(1);
+		const message = vi.mocked(toast.warning).mock.calls[0][0] as string;
+		expect(message).toContain('note.md');
+		expect(message).toContain('changed outside the app');
+		expect(message).toContain('File History');
 	});
 
 	it('silently reloads a clean tab when file changed externally', async () => {
@@ -1491,14 +1533,208 @@ describe('reloadExternallyChangedTabs', () => {
 	});
 
 	it('skips dirty tabs — editor always wins over external changes', async () => {
+		registerFileHistoryHook();
 		addTab('/vault/note.md', 'user edits', { savedContent: 'original' });
+		vi.mocked(readTextFile).mockResolvedValueOnce('external edit');
 
 		await reloadExternallyChangedTabs(['/vault/note.md']);
 
-		// Should not even read from disk — editor content is preserved
-		expect(readTextFile).not.toHaveBeenCalled();
+		// The editor content is preserved; the disk version went to File History
 		expect(editorStore.tabs[0].content).toBe('user edits');
 		expect(editorStore.tabs[0].savedContent).toBe('original');
+		expect(invoke).toHaveBeenCalledWith('save_snapshot', {
+			filePath: 'note.md',
+			content: 'external edit',
+		});
+	});
+
+	it('takes no snapshot of a dirty tab whose disk content equals savedContent', async () => {
+		registerFileHistoryHook();
+		addTab('/vault/note.md', 'base plus mine', { savedContent: 'base' });
+		vi.mocked(readTextFile).mockResolvedValueOnce('base');
+
+		await reloadExternallyChangedTabs(['/vault/note.md']);
+
+		expect(invoke).not.toHaveBeenCalled();
+		expect(toast.warning).not.toHaveBeenCalled();
+		expect(editorStore.tabs[0].content).toBe('base plus mine');
+	});
+
+	it('takes no snapshot of a dirty tab whose disk content equals its typing', async () => {
+		registerFileHistoryHook();
+		addTab('/vault/note.md', 'base plus mine', { savedContent: 'base' });
+		vi.mocked(readTextFile).mockResolvedValueOnce('base plus mine');
+
+		await reloadExternallyChangedTabs(['/vault/note.md']);
+
+		expect(invoke).not.toHaveBeenCalled();
+		expect(toast.warning).not.toHaveBeenCalled();
+	});
+
+	it('takes no snapshot when it reloads a clean tab', async () => {
+		registerFileHistoryHook();
+		addTab('/vault/note.md', 'base');
+		vi.mocked(readTextFile).mockResolvedValueOnce('base plus external');
+
+		await reloadExternallyChangedTabs(['/vault/note.md']);
+
+		expect(editorStore.tabs[0].content).toBe('base plus external');
+		expect(invoke).not.toHaveBeenCalled();
+		expect(toast.warning).not.toHaveBeenCalled();
+	});
+
+	it('reads a dirty tab only after its save in flight settles', async () => {
+		registerFileHistoryHook();
+		addTab('/vault/note.md', 'saving', { savedContent: 'base' });
+		let finishWrite!: () => void;
+		vi.mocked(writeTextFile).mockImplementationOnce(
+			() => new Promise<void>((resolve) => { finishWrite = resolve; }),
+		);
+		const save = saveFileByPath('/vault/note.md');
+		// Typing that lands while the save is in flight keeps the tab dirty
+		editorStore.updateTabContentOnly('/vault/note.md', 'saving plus more');
+		vi.mocked(readTextFile).mockResolvedValueOnce('saving');
+
+		const reload = reloadExternallyChangedTabs(['/vault/note.md']);
+		await Promise.resolve();
+		expect(readTextFile).not.toHaveBeenCalled();
+		finishWrite();
+		await save;
+		await reload;
+
+		// The disk holds the app's own save, so it is not taken for an
+		// external change
+		expect(readTextFile).toHaveBeenCalledTimes(1);
+		expect(editorStore.tabs[0].savedContent).toBe('saving');
+		expect(toast.warning).not.toHaveBeenCalled();
+		expect(editorStore.tabs[0].content).toBe('saving plus more');
+	});
+
+	/** Queues a read that resolves only when the returned function is called. */
+	function deferRead(): (content: string) => void {
+		let finishRead!: (content: string) => void;
+		vi.mocked(readTextFile).mockImplementationOnce(
+			() => new Promise<string>((resolve) => { finishRead = resolve; }),
+		);
+		return (content) => finishRead(content);
+	}
+
+	it('never reloads from a read that an auto-save overtook (tab clean after it)', async () => {
+		registerFileHistoryHook();
+		addTab('/vault/note.md', 'v2', { savedContent: 'v1' });
+		const finishRead = deferRead();
+
+		const reload = reloadExternallyChangedTabs(['/vault/note.md']);
+		await vi.waitFor(() => expect(readTextFile).toHaveBeenCalledTimes(1));
+		// The auto-save of 'v2' lands while the read of the older bytes is pending
+		await saveFileByPath('/vault/note.md');
+		finishRead('v1');
+		await reload;
+
+		expect(editorStore.tabs[0].content).toBe('v2');
+		expect(editorStore.tabs[0].savedContent).toBe('v2');
+		// The auto-save's own snapshot of 'v2' is the only one
+		expect(invoke).not.toHaveBeenCalledWith('save_snapshot', { filePath: 'note.md', content: 'v1' });
+		expect(toast.warning).not.toHaveBeenCalled();
+	});
+
+	it('takes no snapshot of the app\'s own earlier save from a read an auto-save overtook (tab dirty after it)', async () => {
+		registerFileHistoryHook();
+		addTab('/vault/note.md', 'v2', { savedContent: 'v1' });
+		const finishRead = deferRead();
+
+		const reload = reloadExternallyChangedTabs(['/vault/note.md']);
+		await vi.waitFor(() => expect(readTextFile).toHaveBeenCalledTimes(1));
+		await saveFileByPath('/vault/note.md');
+		editorStore.updateTabContentOnly('/vault/note.md', 'v3');
+		finishRead('v1');
+		await reload;
+
+		expect(editorStore.tabs[0].content).toBe('v3');
+		expect(editorStore.tabs[0].savedContent).toBe('v2');
+		// The auto-save's own snapshot of 'v2' is the only one
+		expect(invoke).not.toHaveBeenCalledWith('save_snapshot', { filePath: 'note.md', content: 'v1' });
+		expect(toast.warning).not.toHaveBeenCalled();
+	});
+
+	it('keeps an external version read while an auto-save overtook the read, and does not load it', async () => {
+		registerFileHistoryHook();
+		addTab('/vault/note.md', 'base plus mine', { savedContent: 'base' });
+		const finishRead = deferRead();
+
+		const reload = reloadExternallyChangedTabs(['/vault/note.md']);
+		await vi.waitFor(() => expect(readTextFile).toHaveBeenCalledTimes(1));
+		await saveFileByPath('/vault/note.md');
+		finishRead('base plus external');
+		await reload;
+
+		expect(editorStore.tabs[0].content).toBe('base plus mine');
+		expect(editorStore.tabs[0].savedContent).toBe('base plus mine');
+		expect(invoke).toHaveBeenCalledWith('save_snapshot', {
+			filePath: 'note.md',
+			content: 'base plus external',
+		});
+		expect(toast.warning).toHaveBeenCalledTimes(1);
+	});
+
+	it('gives the warning toast one id per note, so a repeated batch replaces it', async () => {
+		registerFileHistoryHook();
+		addTab('/vault/note.md', 'base plus mine', { savedContent: 'base' });
+		vi.mocked(readTextFile)
+			.mockResolvedValueOnce('base plus external')
+			.mockResolvedValueOnce('base plus external');
+
+		await reloadExternallyChangedTabs(['/vault/note.md']);
+		await reloadExternallyChangedTabs(['/vault/note.md']);
+
+		expect(toast.warning).toHaveBeenCalledTimes(2);
+		for (const call of vi.mocked(toast.warning).mock.calls) {
+			expect(call[1]).toEqual({ id: 'external-change:/vault/note.md' });
+		}
+	});
+
+	it('shows the error toast, not the kept-in-File-History one, when no vault is open', async () => {
+		registerFileHistoryHook();
+		vaultStore._reset();
+		addTab('/vault/note.md', 'base plus mine', { savedContent: 'base' });
+		vi.mocked(readTextFile).mockResolvedValueOnce('base plus external');
+
+		await reloadExternallyChangedTabs(['/vault/note.md']);
+
+		expect(invoke).not.toHaveBeenCalled();
+		expect(toast.warning).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect(editorStore.tabs[0].content).toBe('base plus mine');
+	});
+
+	it('keeps the typing and shows an error toast when the snapshot fails', async () => {
+		registerFileHistoryHook();
+		vi.mocked(invoke).mockRejectedValue(new Error('DB error'));
+		addTab('/vault/note.md', 'base plus mine', { savedContent: 'base' });
+		vi.mocked(readTextFile).mockResolvedValueOnce('base plus external');
+
+		await reloadExternallyChangedTabs(['/vault/note.md']);
+
+		expect(editorStore.tabs[0].content).toBe('base plus mine');
+		expect(toast.warning).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		const message = vi.mocked(toast.error).mock.calls[0][0] as string;
+		expect(message).toContain('note.md');
+		expect(message).toContain('could not be kept');
+		expect(vi.mocked(toast.error).mock.calls[0][1]).toEqual({ id: 'external-change:/vault/note.md' });
+		expect(logError).toHaveBeenCalled();
+	});
+
+	it('takes no snapshot and shows no toast with File History off (no keeper)', async () => {
+		addTab('/vault/note.md', 'base plus mine', { savedContent: 'base' });
+		vi.mocked(readTextFile).mockResolvedValueOnce('base plus external');
+
+		await reloadExternallyChangedTabs(['/vault/note.md']);
+
+		expect(editorStore.tabs[0].content).toBe('base plus mine');
+		expect(invoke).not.toHaveBeenCalled();
+		expect(toast.warning).not.toHaveBeenCalled();
+		expect(toast.error).not.toHaveBeenCalled();
 	});
 
 	it('handles read errors gracefully (file may be deleted)', async () => {

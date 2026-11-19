@@ -10,7 +10,7 @@
 
 **Owner decision (2026-11-06):** (a): before writing, keep the external version as a File History snapshot or conflict copy, then save the typing and show a toast. The test 'skips dirty tabs, editor always wins' changes with it.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -54,14 +54,15 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 - Moved to Issue 153 on 2026-11-06: The calendar path (frontmatter-write.service.ts tab branch, which saves through saveFileByPath) gets the same protection, tested in src/tests/lib/core/frontmatter/frontmatter-write.service.test.ts: a calendar write to an open tab whose file changed on disk keeps the external version before writing.
 - Moved to Issue 153 on 2026-11-06: The disk baseline is refreshed after each successful write and after each reload, so a normal second autosave of the same tab does not report a conflict.
 - Moved to Issue 153 on 2026-11-06: The existing test 'skips dirty tabs, editor always wins' (editor.service.test.ts, reloadExternallyChangedTabs describe) changes to the new contract, approved by the owner on 2026-11-06, and the commit message says so.
-- [ ] Failing test first, in src/tests/lib/core/editor/editor.service.test.ts (reloadExternallyChangedTabs describe, real editorStore, only Tauri mocked): a dirty tab with savedContent 'base' and content 'base plus mine' whose file now reads 'base plus external'; reloadExternallyChangedTabs([path]) invokes save_snapshot with 'base plus external' and the tab keeps 'base plus mine'. It fails today (no snapshot).
-- [ ] A toast names the note and says the version changed outside the app was kept in File History.
-- [ ] A clean tab still reloads from disk as today, and no snapshot is taken when the disk content equals savedContent.
-- [ ] The existing 'skips dirty tabs, editor always wins' test keeps its assertion (the tab still wins) and gains the snapshot check.
-- [ ] Gate, frontend only: pnpm check + pnpm vitest run.
+- [x] Failing test first, in src/tests/lib/core/editor/editor.service.test.ts (reloadExternallyChangedTabs describe, real editorStore, only Tauri mocked): a dirty tab with savedContent 'base' and content 'base plus mine' whose file now reads 'base plus external'; reloadExternallyChangedTabs([path]) invokes save_snapshot with 'base plus external' and the tab keeps 'base plus mine'. It fails today (no snapshot).
+- [x] A toast names the note and says the version changed outside the app was kept in File History.
+- [x] A clean tab still reloads from disk as today, and no snapshot is taken when the disk content equals savedContent.
+- [x] The existing 'skips dirty tabs, editor always wins' test keeps its assertion (the tab still wins) and gains the snapshot check.
+- [x] Gate, frontend only: pnpm check + pnpm vitest run.
 
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/08-external-change-overwritten.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
 - 2026-11-06: narrowed by the owner after the challenge review; the writeTab part moved to Issue 153.
+- 2026-11-19: delivered from branch issue/017-external-change-open-note-never-overwritten-next. File History registers as the external-version keeper; `reloadExternallyChangedTabs` snapshots the external version of a dirty open tab into File History (warning toast with one id per note, error toast when the snapshot fails or no vault is open) and never loads or snapshots a read that an auto-save overtook. Review round 1: CHANGES_REQUESTED (1 blocker, 1 minor, 2 nits; fixed except a no-change nit); round 2: APPROVED (1 nit, no change required). Tests: pnpm check exit 0; full vitest suite 672 files, 18012 passed, 56 skipped, 1 todo, exit 0.

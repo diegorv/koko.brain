@@ -5,7 +5,7 @@ import { getRelativePath, getSnapshotBackupDir, getSnapshotBackupPath } from './
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
+import { addAfterSaveObserver, setExternalVersionKeeper } from '#lib/core/editor/editor.hooks.js';
 import { saveCurrentFile } from '#lib/core/editor/editor.service.js';
 import { debug, error } from '#lib/utils/debug.js';
 import type { SnapshotInfo } from './file-history.types';
@@ -183,15 +183,26 @@ export function closeFileHistory(): void {
 }
 
 /**
- * Registers the file history after-save hook.
- * Automatically saves a snapshot every time a file is saved.
- * Returns an unsubscribe function.
+ * Registers the file history after-save hook, which saves a snapshot every
+ * time a file is saved, and the external-version keeper, which snapshots the
+ * on-disk content of a dirty open note that changed outside the app.
+ * Returns one function that unsubscribes both.
  */
 export function registerFileHistoryHook(): () => void {
 	debug('HISTORY', 'Registering after-save hook for automatic snapshots');
-	return addAfterSaveObserver((filePath, content) => {
+	const unsubscribeAfterSave = addAfterSaveObserver((filePath, content) => {
 		saveSnapshotForFile(filePath, content).catch((err) => {
 			error('HISTORY', 'Failed to save snapshot:', err);
 		});
 	});
+	// saveSnapshotForFile resolves without saving when no vault is open; the
+	// keeper must reject then, so the editor does not report a kept version.
+	const unsubscribeKeeper = setExternalVersionKeeper(async (filePath, content) => {
+		if (!vaultStore.path) throw new Error('No vault open, snapshot not saved');
+		await saveSnapshotForFile(filePath, content);
+	});
+	return () => {
+		unsubscribeAfterSave();
+		unsubscribeKeeper();
+	};
 }

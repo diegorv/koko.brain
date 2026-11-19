@@ -4,7 +4,7 @@ import { toast } from 'svelte-sonner';
 import { editorStore } from './editor.store.svelte';
 import { findTabIndex, getFileName, isTabDirty, isTabPinned, isVirtualTab } from './editor.logic';
 import { isViewFile, isCanvasFile, isKanbanFile, isBinaryFile } from '#lib/core/filesystem/fs.logic.js';
-import { notifyAfterSave } from './editor.hooks';
+import { getExternalVersionKeeper, notifyAfterSave } from './editor.hooks';
 import type { EditorTab } from './editor.types';
 import { debounce } from '#lib/utils/debounce.js';
 import { clearAllTabViewStates, deleteTabViewState } from '#lib/core/markdown-editor/tab-view-state.js';
@@ -479,37 +479,86 @@ export function closeTabsForDeletedPath(deletedPath: string): EditorTab[] {
  * Reloads content from disk for open tabs whose files were externally modified.
  * Called by the file watcher when changes are detected on disk.
  * Only reloads when the tab is clean (no unsaved editor changes).
- * If the user has unsaved edits, the editor always wins — the disk
- * version is ignored and the editor content will be saved on next auto-save.
+ * If the user has unsaved edits, the editor wins: the tab keeps its typing,
+ * which the next auto-save writes over the disk version, so that version is
+ * first handed to the external-version keeper (File History) and a toast
+ * names the note.
  */
 export async function reloadExternallyChangedTabs(changedPaths: string[]): Promise<void> {
-	// Collect eligible file paths (open, non-virtual, clean tabs)
+	// Collect eligible file paths (open, non-virtual tabs)
 	const eligible: string[] = [];
 	for (const filePath of changedPaths) {
 		const tab = editorStore.tabs.find((t) => t.path === filePath);
-		if (!tab || isVirtualTab(tab) || isTabDirty(tab)) continue;
+		if (!tab || isVirtualTab(tab)) continue;
 		eligible.push(filePath);
 	}
 
-	// Read all files in parallel
+	// Read all files in parallel. A dirty tab's save in flight settles first,
+	// so its own bytes on disk are never taken for an external change.
+	// `readSavedContent` is the tab's savedContent when its read is issued: a
+	// save that lands during the read changes it, and the read may then hold
+	// bytes older than that save.
 	const results = await Promise.allSettled(
-		eligible.map(async (filePath) => ({ filePath, diskContent: await readTextFile(filePath) })),
+		eligible.map(async (filePath) => {
+			const tab = editorStore.tabs.find((t) => t.path === filePath);
+			if (tab && isTabDirty(tab)) await waitForTabSave(filePath);
+			const readSavedContent = editorStore.tabs.find((t) => t.path === filePath)?.savedContent;
+			return { filePath, readSavedContent, diskContent: await readTextFile(filePath) };
+		}),
 	);
 
 	// Apply updates synchronously after all reads complete
+	const keeps: Promise<void>[] = [];
 	for (const result of results) {
 		if (result.status === 'rejected') {
 			debug('EDITOR', 'Failed to read externally changed file (may be deleted)');
 			continue;
 		}
-		const { filePath, diskContent } = result.value;
+		const { filePath, readSavedContent, diskContent } = result.value;
 		// Re-check tab state — it may have changed during parallel reads
 		const tab = editorStore.tabs.find((t) => t.path === filePath);
 		if (!tab || diskContent === tab.savedContent) continue;
+		if (tab.savedContent !== readSavedContent) {
+			// A save overtook the read, so the read is never loaded. Disk equal to
+			// the app's own earlier save or to the typing is not an external change.
+			if (diskContent !== readSavedContent && diskContent !== tab.content) {
+				keeps.push(keepExternalVersion(filePath, tab.name, diskContent));
+			}
+			continue;
+		}
+		if (isTabDirty(tab)) {
+			// Disk equal to the typing loses nothing when the auto-save writes it.
+			if (diskContent !== tab.content) keeps.push(keepExternalVersion(filePath, tab.name, diskContent));
+			continue;
+		}
 		// Disk-synced: content + savedContent both reflect the new disk state,
 		// so the tab is clean and there is nothing to auto-save.
 		syncExternalContentToEditor(filePath, diskContent, true, 'none');
 		debug('EDITOR', 'Reloaded externally changed file:', filePath);
+	}
+	await Promise.all(keeps);
+}
+
+/**
+ * Hands the on-disk version of a dirty tab's note to the external-version
+ * keeper and tells the user where it went. With no keeper registered (File
+ * History off) nothing is kept and no toast shows. Never rejects.
+ */
+async function keepExternalVersion(filePath: string, name: string, diskContent: string): Promise<void> {
+	const keeper = getExternalVersionKeeper();
+	if (!keeper) {
+		debug('EDITOR', 'No external-version keeper, external change not kept:', filePath);
+		return;
+	}
+	// One id per note: macOS spreads one write's events over several watcher
+	// batches, and a repeat replaces the earlier toast instead of stacking.
+	const toastId = `external-change:${filePath}`;
+	try {
+		await keeper(filePath, diskContent);
+		toast.warning(`"${name}" changed outside the app. That version was kept in File History, and your edits stay.`, { id: toastId });
+	} catch (err) {
+		error('EDITOR', 'Failed to keep the externally changed version:', err);
+		toast.error(`"${name}" changed outside the app, and that version could not be kept in File History. Your edits will replace it on the next save.`, { id: toastId });
 	}
 }
 
