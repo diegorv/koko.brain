@@ -3,7 +3,7 @@ cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t
 file src/lib/plugins/kanban/KanbanListView.svelte component L61 module src/lib/plugins/kanban in1 t0
 ## imports
 imp src/lib/plugins/kanban/KanbanListView.svelte:3 -> src/lib/plugins/kanban/kanban.types.ts type:KanbanBoard,type:KanbanItem
-imp src/lib/plugins/kanban/KanbanListView.svelte:4 -> src/lib/plugins/kanban/kanban.logic.ts stripCardMetadata,extractCardDate,extractCardColor,cardProximity,PROXIMITY_CLASSES
+imp src/lib/plugins/kanban/KanbanListView.svelte:4 -> src/lib/plugins/kanban/kanban.logic.ts stripCardMetadata,extractCardDate,extractCardColor,cardProximity,PROXIMITY_CLASSES,secondaryTextClass
 imp src/lib/plugins/kanban/KanbanListView.svelte:5 -> src/lib/utils/date.ts formatNow
 imp src/lib/plugins/kanban/KanbanListView.svelte:6 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG
 imp src/lib/plugins/kanban/KanbanListView.svelte:7 -> src/lib/plugins/kanban/KanbanCardText.svelte default
@@ -25,3 +25,4 @@ call src/lib/plugins/kanban/KanbanListView.svelte:28 in (markup) -> src/lib/plug
 call src/lib/plugins/kanban/KanbanListView.svelte:29 in (markup) -> src/lib/plugins/kanban/kanban.logic.ts:stripCardMetadata markup
 call src/lib/plugins/kanban/KanbanListView.svelte:30 in (markup) -> src/lib/plugins/kanban/kanban.logic.ts:cardProximity markup
 call src/lib/plugins/kanban/KanbanListView.svelte:30 in (markup) -> src/lib/utils/date.ts:formatNow markup
+call src/lib/plugins/kanban/KanbanListView.svelte:45 in (markup) -> src/lib/plugins/kanban/kanban.logic.ts:secondaryTextClass markup

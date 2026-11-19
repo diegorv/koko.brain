@@ -29,7 +29,8 @@ import type { EventNote } from '#lib/features/event-calendar/event-calendar.type
 
 const P = (name: string) => `/vault/Events/${name}.md`;
 const WEEK = weekDays('2026-11-10', 1);
-const RING = 'ring-primary/70';
+/** The selected event's ring at full strength: at 70% it falls under 3:1 on light editors. */
+const RING = 'ring-primary';
 
 function event(overrides: Partial<EventNote> & Pick<EventNote, 'path' | 'title' | 'date'>): EventNote {
 	return {
@@ -243,8 +244,8 @@ describe('EventPopover: clicking another event while open', () => {
 
 		expect(eventCalendarViewStore.popover?.path).toBe(P('Review'));
 		expect(popover()?.querySelector('[data-popover-title]')?.textContent?.trim()).toBe('Review');
-		expect(block(P('Review')).className).toContain(RING);
-		expect(block(P('Standup')).className).not.toContain(RING);
+		expect(block(P('Review')).classList).toContain(RING);
+		expect(block(P('Standup')).classList).not.toContain(RING);
 	});
 
 	it('retargets the open popover to a lane chip on a quick click', async () => {
@@ -257,8 +258,8 @@ describe('EventPopover: clicking another event while open', () => {
 		await settle();
 
 		expect(popover()?.querySelector('[data-popover-title]')?.textContent?.trim()).toBe('Time off');
-		expect(laneChip(P('Off')).className).toContain(RING);
-		expect(block(P('Standup')).className).not.toContain(RING);
+		expect(laneChip(P('Off')).classList).toContain(RING);
+		expect(block(P('Standup')).classList).not.toContain(RING);
 	});
 });
 
@@ -269,9 +270,9 @@ describe('EventPopover: selected-event ring', () => {
 		block(P('Standup')).click();
 		await settle();
 
-		expect(block(P('Standup')).className).toContain(RING);
-		expect(block(P('Review')).className).not.toContain(RING);
-		expect(laneChip(P('Off')).className).not.toContain(RING);
+		expect(block(P('Standup')).classList).toContain(RING);
+		expect(block(P('Review')).classList).not.toContain(RING);
+		expect(laneChip(P('Off')).classList).not.toContain(RING);
 	});
 
 	it('rings only the clicked lane chip', async () => {
@@ -280,8 +281,8 @@ describe('EventPopover: selected-event ring', () => {
 		laneChip(P('Off')).click();
 		await settle();
 
-		expect(laneChip(P('Off')).className).toContain(RING);
-		expect(block(P('Standup')).className).not.toContain(RING);
+		expect(laneChip(P('Off')).classList).toContain(RING);
+		expect(block(P('Standup')).classList).not.toContain(RING);
 	});
 });
 
@@ -298,7 +299,7 @@ describe('EventPopover: closing', () => {
 		expect(eventCalendarViewStore.popover).toBeNull();
 		expect(popover()).toBeNull();
 		expect(document.activeElement).toBe(block(P('Standup')));
-		expect(block(P('Standup')).className).not.toContain(RING);
+		expect(block(P('Standup')).classList).not.toContain(RING);
 	});
 
 	it('focuses the root when the clicked event is gone on close, and stays closed when it returns', async () => {

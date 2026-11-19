@@ -116,7 +116,7 @@
 			</div>
 			{#if run.progress}
 				<div
-					class="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+					class="h-1.5 w-full overflow-hidden rounded-full ring-1 ring-input ring-inset"
 					role="progressbar"
 					aria-label="{run.title}, {run.progress.done} of {run.progress.total}"
 					aria-valuemin={0}

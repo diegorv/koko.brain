@@ -15,6 +15,7 @@ imp src/lib/features/file-history/file-history.store.svelte.ts:1 -> src/lib/feat
 in2 src/lib/features/file-history/file-history.types.ts 7 files in 4 modules: src/lib/app(4) src/lib/features/note-action-bar(1) src/lib/features/note-list(1) src/lib/features/properties(1)
 out2 src/lib/features/file-history/file-history.types.ts 52 files in 1 modules: src/lib/contracts(52)
 ## tests
+test src/tests/lib/features/file-history/DiffViewer.test.ts imports-type src/lib/features/file-history/file-history.types.ts
 test src/tests/lib/features/file-history/FileHistoryDialog.test.ts imports-type src/lib/features/file-history/file-history.types.ts
 test src/tests/lib/features/file-history/file-history.logic.test.ts imports-type src/lib/features/file-history/file-history.types.ts
 test src/tests/lib/features/file-history/file-history.service.test.ts imports-type src/lib/features/file-history/file-history.types.ts

@@ -55,8 +55,11 @@ export function buildEditorTheme(
 			'.cm-activeLine': {
 				backgroundColor: 'var(--syntax-active-line)',
 			},
+			// Native selection (no drawSelection): text keeps its own color unless set here, and links,
+			// wikilinks and code fall under 4.5:1 on the tint on most themes.
 			'.cm-content ::selection': {
 				backgroundColor: 'var(--syntax-selection)',
+				color: 'var(--editor-fg)',
 			},
 			'.cm-gutters': {
 				backgroundColor: 'var(--editor-bg)',

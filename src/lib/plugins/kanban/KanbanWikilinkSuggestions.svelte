@@ -82,7 +82,7 @@
 	<div class="absolute left-0 right-0 z-50 {placement === 'above' ? 'bottom-full mb-1' : 'mt-1'} max-h-48 overflow-y-auto rounded-md border bg-popover shadow-md">
 		{#each files as file, i}
 			<button
-				class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors {i === selectedIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'}"
+				class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors {i === selectedIndex ? 'bg-accent text-accent-foreground shadow-[inset_2px_0_0_var(--primary)]' : 'hover:bg-muted'}"
 				onmousedown={(e) => { e.preventDefault(); selectItem(i); }}
 				type="button"
 			>

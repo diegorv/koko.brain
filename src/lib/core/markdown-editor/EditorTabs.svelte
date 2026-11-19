@@ -273,7 +273,7 @@
 		</div>
 		<DropdownMenu>
 			<DropdownMenuTrigger
-				class="relative mb-0.5 mx-0.5 inline-flex h-7 w-6.5 shrink-0 items-center justify-center rounded-md text-tab-text-inactive hover:bg-muted/60 hover:text-foreground data-[state=open]:bg-muted/60 data-[state=open]:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 cursor-default"
+				class="relative mb-0.5 mx-0.5 inline-flex h-7 w-6.5 shrink-0 items-center justify-center rounded-md text-tab-text-inactive hover:bg-muted/60 hover:text-foreground data-[state=open]:bg-muted/60 data-[state=open]:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring cursor-default"
 				aria-label="List all tabs"
 				title="List all tabs"
 			>

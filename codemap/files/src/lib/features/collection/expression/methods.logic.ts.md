@@ -12,7 +12,7 @@ test src/tests/lib/features/collection/expression/methods.test.ts imports src/li
 sym src/lib/features/collection/expression/methods.logic.ts:62 const methodRegistry: Record<string, Record<string, MethodFn>> L166 | Registry of methods organized by runtime type.
 sym src/lib/features/collection/expression/methods.logic.ts:230 const fieldRegistry: Record<string, Record<string, FieldFn>> L17 | Registry of fields (property-like access without parentheses) organized by runtime type
 sym src/lib/features/collection/expression/methods.logic.ts:255 fn dispatchMethod(value: unknown, method: string, args: unknown[]): unknown L16 | Dispatches a method call to the appropriate handler based on the runtime type of the value.
-by src/lib/features/collection/expression/methods.logic.ts:dispatchMethod <- src/lib/features/collection/expression/evaluator.ts:498 in evaluateMethodCall call +1
+by src/lib/features/collection/expression/methods.logic.ts:dispatchMethod <- src/lib/features/collection/expression/evaluator.ts:499 in evaluateMethodCall call +1
 sym src/lib/features/collection/expression/methods.logic.ts:276 fn dispatchField(value: unknown, field: string): unknown | undefined L10 | Dispatches a field access to the appropriate handler based on the runtime type of the value.
 by src/lib/features/collection/expression/methods.logic.ts:dispatchField <- src/lib/features/collection/expression/evaluator.ts:178 in resolveMember call
 ## locals

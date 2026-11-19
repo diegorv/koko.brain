@@ -745,7 +745,7 @@
 	<button
 		type="button"
 		data-task-group-toggle
-		class="flex shrink-0 cursor-pointer items-center rounded-sm text-muted-foreground hover:bg-accent outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 {extraClass}"
+		class="flex shrink-0 cursor-pointer items-center rounded-sm text-muted-foreground hover:bg-accent outline-none focus-visible:ring-[3px] focus-visible:ring-ring {extraClass}"
 		aria-label={collapsed ? `Expand ${group.label}` : `Collapse ${group.label}`}
 		aria-expanded={!collapsed}
 		onclick={() => tasksStore.toggleGroupCollapsed(key)}
@@ -765,7 +765,7 @@
 			{#each actions as item (item.label)}
 				<button
 					type="button"
-					class="cursor-pointer rounded-sm px-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+					class="cursor-pointer rounded-sm px-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 					aria-label={`${item.label} ${item.target}`}
 					onclick={item.run}
 				>
@@ -842,7 +842,7 @@
 		role="listitem"
 		tabindex={rowTabindex}
 		oncontextmenu={() => handleRowContextMenu(row)}
-		class="flex items-start gap-x-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {row.dimmed ? 'shadow-[inset_2px_0_0_color-mix(in_oklab,var(--muted-foreground)_55%,transparent)]' : ''} {row.breadcrumb ? 'flex-wrap' : ''}"
+		class="flex items-start gap-x-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset {row.dimmed ? 'shadow-[inset_2px_0_0_color-mix(in_oklab,var(--muted-foreground)_55%,transparent)]' : ''} {row.breadcrumb ? 'flex-wrap' : ''}"
 		style={flat ? undefined : `padding-left: ${row.indent * 1.25 + 0.25}rem`}
 	>
 		{#if row.breadcrumb}
@@ -852,7 +852,7 @@
 			data-task-toggle
 			data-task-status={row.status}
 			tabindex={rowTabindex}
-			class="shrink-0 cursor-pointer p-1 -mx-1 -mb-1 -mt-0.5 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+			class="shrink-0 cursor-pointer p-1 -mx-1 -mb-1 -mt-0.5 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 			aria-label="{toggleTarget(row.status) === 'done' ? 'Mark task as done' : 'Mark task as not done'}: {displayText} ({glyph.word})"
 			title={glyph.word}
 			onclick={() => handleToggle(row.filePath, row)}
@@ -920,7 +920,7 @@
 						data-task-actions
 						tabindex={rowTabindex}
 						aria-label="Task actions"
-						class="shrink-0 cursor-pointer rounded-sm p-0.5 -my-0.5 text-muted-foreground hover:bg-accent hover:text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+						class="shrink-0 cursor-pointer rounded-sm p-0.5 -my-0.5 text-muted-foreground hover:bg-accent hover:text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 					>
 						<Ellipsis class="size-4" />
 					</button>
@@ -952,7 +952,7 @@
 			oninput={(e) => handleSearchInput(e.currentTarget.value)}
 			placeholder="Search tasks"
 			aria-label="Search tasks"
-			class="h-6 w-40 min-w-0 shrink px-2 text-xs rounded-md bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+			class="h-6 w-40 min-w-0 shrink px-2 text-xs rounded-md bg-background border border-input text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
 		/>
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger>
@@ -1187,7 +1187,7 @@
 													{#if hidden > 0}
 														<button
 															type="button"
-															class="mt-1 rounded-md px-1 text-xs text-primary hover:underline cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+															class="mt-1 rounded-md px-1 text-xs text-primary hover:underline cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 															onclick={() => revealGroup(key, group)}
 														>
 															Show {hidden} more

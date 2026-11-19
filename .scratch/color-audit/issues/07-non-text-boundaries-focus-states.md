@@ -18,14 +18,14 @@ Not in this ticket: graph view controls (Issue 11), canvas (Issue 09).
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes.
 
-- [ ] Failing test first, `theme-builder.logic.test.ts` over `BUILTIN_THEMES` and the hard palettes fixture: `input` on `inputBg`, `switchUncheckedBg` on `settingItemBg`, `taskBorder` on `editorBg`, `ring` on `background` and `popover` at 3:1. Fails today.
-- [ ] A source scan: no `ring-ring/` alpha in `src/lib` outside an allow-list with reasons.
-- [ ] Component tests for the switch off state and the Settings active section cue.
-- [ ] Snapshot updated on purpose; frontend gate passes.
+- [x] Failing test first, `theme-builder.logic.test.ts` over `BUILTIN_THEMES` and the hard palettes fixture: `input` on `inputBg`, `switchUncheckedBg` on `settingItemBg`, `taskBorder` on `editorBg`, `ring` on `background` and `popover` at 3:1. Fails today.
+- [x] A source scan: no `ring-ring/` alpha in `src/lib` outside an allow-list with reasons.
+- [x] Component tests for the switch off state and the Settings active section cue.
+- [x] Snapshot updated on purpose; frontend gate passes.
 
 ## Sequence with
 
@@ -63,3 +63,4 @@ Not in this ticket: graph view controls (Issue 11), canvas (Issue 09).
 ## Comments
 
 - 2026-11-19, triage: ready-for-agent. Decided by the owner: builder lifts tokens for every theme (WCAG + APCA), user themes are corrected by the builder and the editor warns, rail icons keep their hue and are darkened per theme (ADR-0033 amendment), Issues run through relay one at a time, the themes repo is fixed with version bumps.
+- 2026-11-19, deliver (branch issue/07-non-text-boundaries-focus-states): theme builder lifts control edges, switch off track, task/hr/blockquote borders and the focus ring to 3:1; every focus ring at full strength (source scan guards it); 3:1 cues for settings active section, note list toggles, filter pills, calendar selected/today, swatches and progress tracks; editor selection text color. Fix round: `input` also paired on `fileExplorerBg` and `editorBg`, legacy round-trip asserts ring and blockquote. Tests: pnpm check 0 errors; full suite at d3d509d57 exit 0 (684 files, 18263 passed, 56 skipped). Review round 1 APPROVED (3 findings: 1 fixed, 2 noted/partly fixed), round 2 APPROVED (no findings).

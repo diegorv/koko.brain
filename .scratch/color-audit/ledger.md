@@ -38,16 +38,17 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [Faded text and icons use full-strength tokens](issues/01-faded-text-icons-full-strength-tokens.md) | none | done | issue/01-faded-text-icons-full-strength-tokens (4d99ae1d1) | 2026-11-19 |
 | 02 | [Rail, tag and icon palettes stay visible on every theme](issues/02-rail-tag-icon-palettes-follow-theme.md) | none | done | issue/02-rail-tag-icon-palettes-follow-theme (c648cd459) | 2026-11-19 |
 | 03 | [Accent and status text on its own tint: rows, search, menus](issues/03-accent-text-own-tint-rows-search-menus.md) | none | done | issue/03-accent-text-own-tint-rows-search-menus (df9a93639) | 2026-11-19 |
-| 04 | [Accent and status text on its own tint: kanban, collection functions, file history](issues/04-accent-text-own-tint-kanban-collection-diff.md) | 03 | in-progress | | |
+| 04 | [Accent and status text on its own tint: kanban, collection functions, file history](issues/04-accent-text-own-tint-kanban-collection-diff.md) | 03 | done | issue/04-accent-text-own-tint-kanban-collection-diff (d2d8f050a) | 2026-11-19 |
 | 05 | [Theme builder keeps text readable on every surface it derives, by WCAG and APCA](issues/05-theme-builder-text-every-surface-apca.md) | none | todo | | |
 | 06 | [Editor text on tinted surfaces: callouts, blockquote, highlight, code, collection](issues/06-theme-builder-editor-tinted-surfaces.md) | 05, 07 | todo | | |
-| 07 | [Borders, inputs, switches, checkboxes and focus rings reach 3:1](issues/07-non-text-boundaries-focus-states.md) | none | todo | | |
+| 07 | [Borders, inputs, switches, checkboxes and focus rings reach 3:1](issues/07-non-text-boundaries-focus-states.md) | none | in-progress | | |
 | 08 | [Live-preview and QueryJS dimmed text stays readable](issues/08-live-preview-queryjs-dimmed-text.md) | 06 | todo | | |
 | 09 | [Canvas text, edges, groups and presets read on light themes](issues/09-canvas-readable-on-light-themes.md) | none | todo | | |
 | 10 | [QueryJS charts, heatmaps and mermaid follow the theme](issues/10-queryjs-charts-mermaid-follow-theme.md) | 08 | todo | | |
 | 11 | [Graph view labels, edges and controls read on every theme](issues/11-graph-view-follows-theme.md) | 07 | todo | | |
 | 12 | [User, edited and imported themes are corrected and the editor warns](issues/12-user-themes-readability-checks.md) | 07 | todo | | |
 | 13 | [Themes repo: Zettlr hover and selected surfaces, and a contrast CI](issues/13-themes-repo-zettlr-palettes-contrast-ci.md) | 07 | todo | | |
+| 14 | [Kanban date badges read on coloured cards](issues/14-kanban-date-badges-coloured-cards.md) | 04 | todo | | |
 
 ## Log
 
@@ -60,3 +61,6 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 16:46 — 02 — deliver — merged; review APPROVED, fix round, round 2 APPROVED; first full suite failed on a codemap-query line pin, fixed, second full suite 675 files passed — c648cd459
 - 2026-11-19 17:02 — 03 — deliver — merged; review APPROVED (1 minor: NoteRow conflict with 02 resolved in deliver, checked by main session; 3 nits deferred); full suite 678 files passed — df9a93639
 - 2026-11-19 17:02 — 04 — start — launched by /relay-lite:run — 2e864a02f
+- 2026-11-19 17:30 — 04 — deliver — merged; review APPROVED, fix round (color() keeps more preset), round 2 APPROVED with one deferred minor (date badges on coloured cards 4.05-4.50 on Zettlr Bielefeld Light, follow-up 14); full suite 679 files passed — d2d8f050a
+- 2026-11-19 17:30 — ledger updated (added 14; title of 14; link of 14; blocked by of 14)
+- 2026-11-19 17:30 — 07 — start — launched by /relay-lite:run (owner order: after 04) — 5c9402dd7

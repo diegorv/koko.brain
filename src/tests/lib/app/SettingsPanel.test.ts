@@ -5,6 +5,9 @@ import { mount, unmount, flushSync } from 'svelte';
 import SettingsPanel, { sectionComponents } from '#lib/app/SettingsPanel.svelte';
 import { SETTINGS_SECTION_GROUPS } from '#lib/core/settings/settings.logic.js';
 import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
+import { BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
+import { contrastRatio, flatten } from '#lib/utils/color.js';
+import { HARD_PALETTE_THEMES } from '../../fixtures/hard-palette-themes.fixture';
 
 // The content ScrollArea observes its size; jsdom has no ResizeObserver.
 globalThis.ResizeObserver ??= class {
@@ -128,6 +131,34 @@ describe('SettingsPanel chrome', () => {
 			expect(item.classList).toContain('hover:bg-settings-hover-bg/60');
 			expect(item.classList).not.toContain('font-medium');
 		}
+	});
+
+	it('marks the active section with a primary bar, which follows section changes', () => {
+		const bars = () => [...target.querySelectorAll<HTMLElement>('nav [data-settings-active-bar]')];
+		expect(bars()).toHaveLength(1);
+		const owner = bars()[0].closest('button')!;
+		expect(owner.getAttribute('aria-current')).toBe('page');
+		expect(bars()[0].classList).toContain('bg-primary');
+		expect(bars()[0].getAttribute('aria-hidden')).toBe('true');
+
+		settingsPanelStore.setSection('editor');
+		flushSync();
+
+		expect(bars()).toHaveLength(1);
+		expect(bars()[0].closest('button')!.textContent?.trim()).toBe('Editor');
+	});
+
+	it('draws that bar at 3:1 on the sidebar and on the active row fill of every theme', () => {
+		const failures: string[] = [];
+		for (const { name, colors } of [...BUILTIN_THEMES, ...HARD_PALETTE_THEMES]) {
+			const { primary, settingsSidebarBg, settingsHoverBg } = colors.ui;
+			const row = flatten(settingsHoverBg, settingsSidebarBg) ?? settingsHoverBg;
+			for (const [surface, bg] of [['sidebar', settingsSidebarBg], ['active row', row]]) {
+				const ratio = contrastRatio(primary, bg)!;
+				if (ratio < 3 - 0.005) failures.push(`${name} on ${surface} ${ratio.toFixed(2)}`);
+			}
+		}
+		expect(failures).toEqual([]);
 	});
 
 	it('puts a shadcn close button outside the nav that closes the panel', () => {

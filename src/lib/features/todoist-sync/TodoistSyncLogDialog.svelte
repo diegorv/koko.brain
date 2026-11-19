@@ -36,7 +36,8 @@
 				{#each FILTERS as f (f.value)}
 					<Button
 						size="sm"
-						variant={filter === f.value ? 'secondary' : 'ghost'}
+						variant={filter === f.value ? 'outline' : 'ghost'}
+						class={filter === f.value ? '' : 'border border-transparent'}
 						aria-pressed={filter === f.value}
 						data-sync-log-filter={f.value}
 						onclick={() => (filter = f.value)}>{f.label}</Button

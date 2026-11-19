@@ -288,7 +288,7 @@
 					{/if}
 				</span>
 				<div
-					class="h-1.5 w-full overflow-hidden rounded-full bg-muted {totalBytes > 0 ? '' : 'animate-pulse'}"
+					class="h-1.5 w-full overflow-hidden rounded-full ring-1 ring-input ring-inset {totalBytes > 0 ? '' : 'animate-pulse'}"
 					role="progressbar"
 					aria-label="Download of update v{pendingUpdate?.version}"
 					aria-valuemin={0}

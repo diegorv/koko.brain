@@ -308,7 +308,7 @@
 				<div class="flex gap-1.5 p-2">
 					{#each COLOR_NAMES as color}
 						<button
-							class="size-5 rounded-full ring-offset-1 transition-opacity hover:opacity-80 {cardColor === color ? 'ring-2 ring-foreground' : ''}"
+							class="size-5 rounded-full border border-input ring-offset-1 transition-opacity hover:opacity-80 {cardColor === color ? 'ring-2 ring-foreground' : ''}"
 							style="background: {COLOR_PRESET_TEXT[color]}"
 							onclick={() => handleColorChange(color)}
 							title={color}
@@ -339,7 +339,7 @@
 						<div class="flex gap-1.5 px-2 pb-2">
 							{#each COLOR_NAMES as color}
 								<button
-									class="size-5 rounded-full ring-offset-1 transition-opacity hover:opacity-80 {tagColors[tag] === color ? 'ring-2 ring-foreground' : ''}"
+									class="size-5 rounded-full border border-input ring-offset-1 transition-opacity hover:opacity-80 {tagColors[tag] === color ? 'ring-2 ring-foreground' : ''}"
 									style="background: {COLOR_PRESET_TEXT[color]}"
 									onclick={() => onSetTagColor(tag, color)}
 									title={color}

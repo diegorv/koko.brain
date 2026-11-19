@@ -1356,9 +1356,13 @@ describe('loadSettings', () => {
 			expect(first.activeTheme).toBe('Sepia');
 			expect(first.installed?.map((p) => p.id)).toEqual(['sepia']);
 			expect(first.themes.map((t) => t.name)).toEqual([DEFAULT_THEME_NAME, 'Sepia', 'Lavender Haze']);
-			// `--success` postdates the saved fixture and is derived on load; the retired frontmatter colors are dropped.
+			// `--success` postdates the saved fixture and is derived on load, and the builder lifts the control edges
+			// to 3:1 on load (theme-package.logic.test.ts checks their contrast); the retired frontmatter colors are dropped.
 			const { '--lp-frontmatter-bg': _bg, '--lp-frontmatter-border': _border, ...savedVars } = themeColorsToCssVars(sepia.colors);
-			expect(themeColorsToCssVars(first.themes[1].colors)).toEqual({ ...savedVars, '--success': expect.stringMatching(/^#[0-9a-f]{6}$/i) });
+			const hex = expect.stringMatching(/^#[0-9a-f]{6}$/i);
+			expect(themeColorsToCssVars(first.themes[1].colors)).toEqual({
+				...savedVars, '--success': hex, '--input': hex, '--switch-unchecked-bg': hex, '--lp-hr-border': hex, '--lp-task-border': hex,
+			});
 
 			await saveAndReload();
 

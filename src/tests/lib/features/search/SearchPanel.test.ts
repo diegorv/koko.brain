@@ -619,6 +619,12 @@ describe('SearchPanel', () => {
 	});
 
 	describe('accessible names and state', () => {
+		it('draws the search field edge with the 3:1 input token, not the explorer divider border', () => {
+			mountPanel();
+			expect(input().classList).toContain('border-input');
+			expect(input().classList).not.toContain('border-file-explorer-border');
+		});
+
 		it('labels the input, the mode group and the fuzzy toggle', () => {
 			mountPanel();
 			expect(input().getAttribute('aria-label')).toBe('Search vault');

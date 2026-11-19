@@ -1,7 +1,7 @@
 # file card src/lib/features/collection/expression/evaluator.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/collection/expression/evaluator.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls
-file src/lib/features/collection/expression/evaluator.ts other L725 module src/lib/features/collection in3 t4
+file src/lib/features/collection/expression/evaluator.ts other L726 module src/lib/features/collection in3 t4
 ## imports
 imp src/lib/features/collection/expression/evaluator.ts:1 -> src/lib/features/collection/expression/expression.types.ts type:ASTNode,type:DisplayLink,type:DisplayImage,type:DisplayIcon,type:DisplayHTML
 imp src/lib/features/collection/expression/evaluator.ts:2 -> src/lib/features/collection/expression/parser.ts parse
@@ -9,7 +9,7 @@ imp src/lib/features/collection/expression/evaluator.ts:3 -> src/lib/features/co
 imp src/lib/features/collection/expression/evaluator.ts:4 -> src/lib/features/collection/expression/methods.logic.ts dispatchMethod,dispatchField
 imp src/lib/features/collection/expression/evaluator.ts:5 -> src/lib/features/collection/expression/duration.logic.ts parseDuration
 imp src/lib/features/collection/expression/evaluator.ts:6 -> src/lib/features/collection/expression/date-value.logic.ts parseLocalDateOnly
-imp src/lib/features/collection/expression/evaluator.ts:7 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_TEXT
+imp src/lib/features/collection/expression/evaluator.ts:7 -> src/lib/utils/color-presets.ts COLOR_PRESET_BAR,COLOR_PRESET_BG,COLOR_PRESET_CHIP_TEXT,COLOR_PRESET_PLAIN_TEXT
 imp src/lib/features/collection/expression/evaluator.ts:8 -> src/lib/utils/clamp.ts clamp
 ## imported-by
 imp src/lib/features/auto-organize/auto-organize.logic.ts:13 -> src/lib/features/collection/expression/evaluator.ts evaluateExpression,validateExpression,type:EvalContext
@@ -49,20 +49,20 @@ local src/lib/features/collection/expression/evaluator.ts:219 fn evaluateFormula
 local src/lib/features/collection/expression/evaluator.ts:231 fn evaluateBinary(op: string, left: ASTNode, right: ASTNode, ctx: EvalContext, depth: number): unknown L60
 local src/lib/features/collection/expression/evaluator.ts:320 fn findUnknownFunction(node: ASTNode): string | undefined L19
 local src/lib/features/collection/expression/evaluator.ts:340 fn firstUnknown(nodes: ASTNode[]): string | undefined L7
-local src/lib/features/collection/expression/evaluator.ts:349 fn evaluateCall(callee: string, args: ASTNode[], ctx: EvalContext, depth: number): unknown L124
-local src/lib/features/collection/expression/evaluator.ts:478 fn evaluateMethodCall(callee: string, args: ASTNode[], ctx: EvalContext, depth: number): unknown L22
-local src/lib/features/collection/expression/evaluator.ts:507 fn evaluateMethodCallNode(receiver: ASTNode, method: string, args: ASTNode[], ctx: EvalContext, depth: number): unknown L10
-local src/lib/features/collection/expression/evaluator.ts:522 fn evaluateListHigherOrder(list: unknown[], method: string, exprNode: ASTNode, ctx: EvalContext, depth: number): unknown L41
-local src/lib/features/collection/expression/evaluator.ts:565 fn evaluateFileMethod(method: string, args: ASTNode[], ctx: EvalContext, depth: number): unknown L34
-local src/lib/features/collection/expression/evaluator.ts:614 fn resolvePropertyPath(path: string, ctx: EvalContext, depth: number): unknown L18
-local src/lib/features/collection/expression/evaluator.ts:634 fn toNumber(val: unknown): number L6
-local src/lib/features/collection/expression/evaluator.ts:642 fn toTruthy(val: unknown): boolean L5
-local src/lib/features/collection/expression/evaluator.ts:649 fn isSameLocalDay(a: Date, b: Date): boolean L3
-local src/lib/features/collection/expression/evaluator.ts:662 fn isDayPrecision(val: unknown): boolean L3
-local src/lib/features/collection/expression/evaluator.ts:667 fn localDayStart(date: Date): Date L3
-local src/lib/features/collection/expression/evaluator.ts:685 fn dateOperandTime(val: unknown, byDay: boolean): number L11
-local src/lib/features/collection/expression/evaluator.ts:698 fn looseEqual(a: unknown, b: unknown): boolean L18
-local src/lib/features/collection/expression/evaluator.ts:718 fn compareValues(a: unknown, b: unknown): number L8
+local src/lib/features/collection/expression/evaluator.ts:349 fn evaluateCall(callee: string, args: ASTNode[], ctx: EvalContext, depth: number): unknown L125
+local src/lib/features/collection/expression/evaluator.ts:479 fn evaluateMethodCall(callee: string, args: ASTNode[], ctx: EvalContext, depth: number): unknown L22
+local src/lib/features/collection/expression/evaluator.ts:508 fn evaluateMethodCallNode(receiver: ASTNode, method: string, args: ASTNode[], ctx: EvalContext, depth: number): unknown L10
+local src/lib/features/collection/expression/evaluator.ts:523 fn evaluateListHigherOrder(list: unknown[], method: string, exprNode: ASTNode, ctx: EvalContext, depth: number): unknown L41
+local src/lib/features/collection/expression/evaluator.ts:566 fn evaluateFileMethod(method: string, args: ASTNode[], ctx: EvalContext, depth: number): unknown L34
+local src/lib/features/collection/expression/evaluator.ts:615 fn resolvePropertyPath(path: string, ctx: EvalContext, depth: number): unknown L18
+local src/lib/features/collection/expression/evaluator.ts:635 fn toNumber(val: unknown): number L6
+local src/lib/features/collection/expression/evaluator.ts:643 fn toTruthy(val: unknown): boolean L5
+local src/lib/features/collection/expression/evaluator.ts:650 fn isSameLocalDay(a: Date, b: Date): boolean L3
+local src/lib/features/collection/expression/evaluator.ts:663 fn isDayPrecision(val: unknown): boolean L3
+local src/lib/features/collection/expression/evaluator.ts:668 fn localDayStart(date: Date): Date L3
+local src/lib/features/collection/expression/evaluator.ts:686 fn dateOperandTime(val: unknown, byDay: boolean): number L11
+local src/lib/features/collection/expression/evaluator.ts:699 fn looseEqual(a: unknown, b: unknown): boolean L18
+local src/lib/features/collection/expression/evaluator.ts:719 fn compareValues(a: unknown, b: unknown): number L8
 ## calls
 call src/lib/features/collection/expression/evaluator.ts:50 in evaluate -> src/lib/features/collection/expression/evaluator.ts:resolveIdentifier call
 call src/lib/features/collection/expression/evaluator.ts:53 in evaluate -> src/lib/features/collection/expression/evaluator.ts:resolveMember call
@@ -106,28 +106,28 @@ call src/lib/features/collection/expression/evaluator.ts:373 in evaluateCall -> 
 call src/lib/features/collection/expression/evaluator.ts:423 in evaluateCall -> src/lib/features/collection/expression/duration.logic.ts:parseDuration call
 call src/lib/features/collection/expression/evaluator.ts:445 in evaluateCall -> src/lib/features/collection/expression/evaluator.ts:escapeForHtml call +2
 call src/lib/features/collection/expression/evaluator.ts:456 in evaluateCall -> src/lib/utils/clamp.ts:clamp call
-call src/lib/features/collection/expression/evaluator.ts:485 in evaluateMethodCall -> src/lib/features/collection/expression/evaluator.ts:evaluateFileMethod call
-call src/lib/features/collection/expression/evaluator.ts:489 in evaluateMethodCall -> src/lib/features/collection/expression/evaluator.ts:resolvePropertyPath call
-call src/lib/features/collection/expression/evaluator.ts:493 in evaluateMethodCall -> src/lib/features/collection/expression/evaluator.ts:evaluateListHigherOrder call
-call src/lib/features/collection/expression/evaluator.ts:497 in evaluateMethodCall -> src/lib/features/collection/expression/evaluator.ts:evaluate call
-call src/lib/features/collection/expression/evaluator.ts:498 in evaluateMethodCall -> src/lib/features/collection/expression/methods.logic.ts:dispatchMethod call
-call src/lib/features/collection/expression/evaluator.ts:508 in evaluateMethodCallNode -> src/lib/features/collection/expression/evaluator.ts:evaluate call +1
-call src/lib/features/collection/expression/evaluator.ts:511 in evaluateMethodCallNode -> src/lib/features/collection/expression/evaluator.ts:evaluateListHigherOrder call
-call src/lib/features/collection/expression/evaluator.ts:515 in evaluateMethodCallNode -> src/lib/features/collection/expression/methods.logic.ts:dispatchMethod call
-call src/lib/features/collection/expression/evaluator.ts:538 in evaluateListHigherOrder -> src/lib/features/collection/expression/evaluator.ts:evaluate call +1
-call src/lib/features/collection/expression/evaluator.ts:539 in evaluateListHigherOrder -> src/lib/features/collection/expression/evaluator.ts:toTruthy call
-call src/lib/features/collection/expression/evaluator.ts:571 in evaluateFileMethod -> src/lib/features/collection/expression/evaluator.ts:evaluate call +3
-call src/lib/features/collection/expression/evaluator.ts:616 in resolvePropertyPath -> src/lib/features/collection/expression/evaluator.ts:resolveFileProperty call
-call src/lib/features/collection/expression/evaluator.ts:619 in resolvePropertyPath -> src/lib/features/collection/expression/evaluator.ts:evaluateFormula call +1
-call src/lib/features/collection/expression/evaluator.ts:622 in resolvePropertyPath -> src/lib/features/collection/expression/evaluator.ts:canonicalPropertyName call +2
-call src/lib/features/collection/expression/evaluator.ts:690 in dateOperandTime -> src/lib/features/collection/expression/date-value.logic.ts:parseLocalDateOnly call
-call src/lib/features/collection/expression/evaluator.ts:692 in dateOperandTime -> src/lib/features/collection/expression/evaluator.ts:localDayStart call
-call src/lib/features/collection/expression/evaluator.ts:694 in dateOperandTime -> src/lib/features/collection/expression/evaluator.ts:toNumber call
-call src/lib/features/collection/expression/evaluator.ts:699 in looseEqual -> src/lib/features/collection/expression/evaluator.ts:dateOperandTime call +1
-call src/lib/features/collection/expression/evaluator.ts:699 in looseEqual -> src/lib/features/collection/expression/evaluator.ts:isDayPrecision call +1
-call src/lib/features/collection/expression/evaluator.ts:704 in looseEqual -> src/lib/features/collection/expression/date-value.logic.ts:parseLocalDateOnly call +1
-call src/lib/features/collection/expression/evaluator.ts:705 in looseEqual -> src/lib/features/collection/expression/evaluator.ts:isSameLocalDay call +1
-call src/lib/features/collection/expression/evaluator.ts:711 in looseEqual -> src/lib/features/collection/expression/evaluator.ts:toNumber call +1
-call src/lib/features/collection/expression/evaluator.ts:720 in compareValues -> src/lib/features/collection/expression/evaluator.ts:isDayPrecision call +1
-call src/lib/features/collection/expression/evaluator.ts:721 in compareValues -> src/lib/features/collection/expression/evaluator.ts:dateOperandTime call +1
-call src/lib/features/collection/expression/evaluator.ts:724 in compareValues -> src/lib/features/collection/expression/evaluator.ts:toNumber call +1
+call src/lib/features/collection/expression/evaluator.ts:486 in evaluateMethodCall -> src/lib/features/collection/expression/evaluator.ts:evaluateFileMethod call
+call src/lib/features/collection/expression/evaluator.ts:490 in evaluateMethodCall -> src/lib/features/collection/expression/evaluator.ts:resolvePropertyPath call
+call src/lib/features/collection/expression/evaluator.ts:494 in evaluateMethodCall -> src/lib/features/collection/expression/evaluator.ts:evaluateListHigherOrder call
+call src/lib/features/collection/expression/evaluator.ts:498 in evaluateMethodCall -> src/lib/features/collection/expression/evaluator.ts:evaluate call
+call src/lib/features/collection/expression/evaluator.ts:499 in evaluateMethodCall -> src/lib/features/collection/expression/methods.logic.ts:dispatchMethod call
+call src/lib/features/collection/expression/evaluator.ts:509 in evaluateMethodCallNode -> src/lib/features/collection/expression/evaluator.ts:evaluate call +1
+call src/lib/features/collection/expression/evaluator.ts:512 in evaluateMethodCallNode -> src/lib/features/collection/expression/evaluator.ts:evaluateListHigherOrder call
+call src/lib/features/collection/expression/evaluator.ts:516 in evaluateMethodCallNode -> src/lib/features/collection/expression/methods.logic.ts:dispatchMethod call
+call src/lib/features/collection/expression/evaluator.ts:539 in evaluateListHigherOrder -> src/lib/features/collection/expression/evaluator.ts:evaluate call +1
+call src/lib/features/collection/expression/evaluator.ts:540 in evaluateListHigherOrder -> src/lib/features/collection/expression/evaluator.ts:toTruthy call
+call src/lib/features/collection/expression/evaluator.ts:572 in evaluateFileMethod -> src/lib/features/collection/expression/evaluator.ts:evaluate call +3
+call src/lib/features/collection/expression/evaluator.ts:617 in resolvePropertyPath -> src/lib/features/collection/expression/evaluator.ts:resolveFileProperty call
+call src/lib/features/collection/expression/evaluator.ts:620 in resolvePropertyPath -> src/lib/features/collection/expression/evaluator.ts:evaluateFormula call +1
+call src/lib/features/collection/expression/evaluator.ts:623 in resolvePropertyPath -> src/lib/features/collection/expression/evaluator.ts:canonicalPropertyName call +2
+call src/lib/features/collection/expression/evaluator.ts:691 in dateOperandTime -> src/lib/features/collection/expression/date-value.logic.ts:parseLocalDateOnly call
+call src/lib/features/collection/expression/evaluator.ts:693 in dateOperandTime -> src/lib/features/collection/expression/evaluator.ts:localDayStart call
+call src/lib/features/collection/expression/evaluator.ts:695 in dateOperandTime -> src/lib/features/collection/expression/evaluator.ts:toNumber call
+call src/lib/features/collection/expression/evaluator.ts:700 in looseEqual -> src/lib/features/collection/expression/evaluator.ts:dateOperandTime call +1
+call src/lib/features/collection/expression/evaluator.ts:700 in looseEqual -> src/lib/features/collection/expression/evaluator.ts:isDayPrecision call +1
+call src/lib/features/collection/expression/evaluator.ts:705 in looseEqual -> src/lib/features/collection/expression/date-value.logic.ts:parseLocalDateOnly call +1
+call src/lib/features/collection/expression/evaluator.ts:706 in looseEqual -> src/lib/features/collection/expression/evaluator.ts:isSameLocalDay call +1
+call src/lib/features/collection/expression/evaluator.ts:712 in looseEqual -> src/lib/features/collection/expression/evaluator.ts:toNumber call +1
+call src/lib/features/collection/expression/evaluator.ts:721 in compareValues -> src/lib/features/collection/expression/evaluator.ts:isDayPrecision call +1
+call src/lib/features/collection/expression/evaluator.ts:722 in compareValues -> src/lib/features/collection/expression/evaluator.ts:dateOperandTime call +1
+call src/lib/features/collection/expression/evaluator.ts:725 in compareValues -> src/lib/features/collection/expression/evaluator.ts:toNumber call +1

@@ -112,7 +112,7 @@
 								{selected
 								? 'bg-primary font-semibold text-primary-foreground'
 								: today
-									? 'text-primary hover:bg-muted'
+									? 'font-semibold text-primary ring-1 ring-inset ring-primary hover:bg-muted'
 									: cell.inMonth
 										? 'hover:bg-muted'
 										: 'text-muted-foreground hover:bg-muted'}"
@@ -131,7 +131,7 @@
 							type="button"
 							class="flex h-[22px] w-full shrink-0 items-center overflow-hidden rounded-md px-1.5 text-left text-xs font-medium outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring
 								{item.event.pending ? 'border border-dashed border-current' : ''}
-								{selectedPath === item.event.path ? 'ring-2 ring-primary/70' : ''}"
+								{selectedPath === item.event.path ? 'ring-2 ring-primary' : ''}"
 							style={eventColorStyle(item.event.color, item.event.archived)}
 							data-event-path={item.event.path}
 							data-pending={item.event.pending || undefined}

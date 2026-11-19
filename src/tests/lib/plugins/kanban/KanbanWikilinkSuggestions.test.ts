@@ -52,6 +52,16 @@ describe('KanbanWikilinkSuggestions', () => {
 		expect(listClass('above')).not.toContain('mt-1');
 	});
 
+	it('marks the selected row with a primary bar, not only the accent fill', () => {
+		fsStore.setFileTree([file('/vault/Projects.md'), file('/vault/Prose.md')]);
+		suggested('[[Pro');
+		const rows = [...document.querySelectorAll('button')];
+		expect(rows).toHaveLength(2);
+		expect(rows[0].classList).toContain('bg-accent');
+		expect(rows[0].classList).toContain('shadow-[inset_2px_0_0_var(--primary)]');
+		expect(rows[1].classList).not.toContain('shadow-[inset_2px_0_0_var(--primary)]');
+	});
+
 	it('suggests nothing outside a wikilink or with an empty tree', () => {
 		fsStore.setFileTree([file('/vault/Projects.md')]);
 		expect(suggested('see Pro')).toEqual([]);

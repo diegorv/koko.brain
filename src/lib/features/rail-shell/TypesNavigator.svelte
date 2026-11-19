@@ -227,7 +227,7 @@
 		<span class="truncate text-title text-tab-text-active" data-types-navigator-title>Types</span>
 		<button
 			type="button"
-			class="ml-auto flex shrink-0 cursor-default items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+			class="ml-auto flex shrink-0 cursor-default items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 			title="Create a type"
 			onclick={() => { newTypeDialogOpen = true; }}
 			data-types-navigator-new-type
@@ -257,7 +257,7 @@
 						<span class="section-label text-file-explorer-muted-fg">Views</span>
 						<button
 							type="button"
-							class="ml-auto shrink-0 cursor-default rounded-xs p-0.5 text-file-explorer-muted-fg hover:bg-file-explorer-primary/10 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+							class="ml-auto shrink-0 cursor-default rounded-xs p-0.5 text-file-explorer-muted-fg hover:bg-file-explorer-primary/10 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 							title="New view"
 							onclick={() => { newViewDialogOpen = true; }}
 							data-types-navigator-new-view
@@ -284,7 +284,7 @@
 						{@const active = sameLens(row.lens, picked)}
 						{@const resolved = row.definitionPath ? resolveIconForPath(row.definitionPath) : undefined}
 						<button
-							class="flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-row cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {active
+							class="flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-row cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset {active
 								? 'bg-file-explorer-primary/25 text-file-explorer-primary-tint-fg'
 								: 'hover:bg-file-explorer-primary/10'}"
 							aria-current={active ? 'true' : undefined}
@@ -413,7 +413,7 @@
 	<!-- The tooltip lists the error first, then the ignored-key notes; the entry and the parse can report one value alike. A view not counted yet has no parsed `_rail_view` note. -->
 	{@const markText = [...new Set([...(error ? [error] : []), ...row.keyNotes, ...(count?.railViewNote ? [count.railViewNote] : [])])].join('\n')}
 	<button
-		class="flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-row cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {active
+		class="flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-row cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset {active
 			? 'bg-file-explorer-primary/25 text-file-explorer-primary-tint-fg'
 			: 'hover:bg-file-explorer-primary/10'}"
 		aria-current={active ? 'true' : undefined}

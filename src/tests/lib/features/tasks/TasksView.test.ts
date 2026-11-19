@@ -873,7 +873,7 @@ describe('TasksView: the note header', () => {
 		await until(() => expect(rows()).toHaveLength(1));
 
 		const toggle = document.querySelector<HTMLElement>('[data-task-toggle]')!;
-		for (const token of ['p-1', '-mx-1', '-mb-1', '-mt-0.5', 'rounded-full', 'outline-none', 'focus-visible:ring-[3px]', 'focus-visible:ring-ring/50']) {
+		for (const token of ['p-1', '-mx-1', '-mb-1', '-mt-0.5', 'rounded-full', 'outline-none', 'focus-visible:ring-[3px]', 'focus-visible:ring-ring']) {
 			expect(toggle.classList.contains(token), token).toBe(true);
 		}
 		expect(toggle.classList.contains('mt-0.5')).toBe(false);

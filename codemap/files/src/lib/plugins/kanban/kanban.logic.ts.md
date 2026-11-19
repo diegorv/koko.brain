@@ -1,16 +1,16 @@
 # file card src/lib/plugins/kanban/kanban.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/plugins/kanban/kanban.logic.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls
-file src/lib/plugins/kanban/kanban.logic.ts logic L981 module src/lib/plugins/kanban in7 t7
+file src/lib/plugins/kanban/kanban.logic.ts logic L990 module src/lib/plugins/kanban in7 t7
 ## imports
 imp src/lib/plugins/kanban/kanban.logic.ts:1 -> src/lib/utils/clamp.ts clamp
 imp src/lib/plugins/kanban/kanban.logic.ts:2 -> src/lib/plugins/kanban/kanban.types.ts type:KanbanArchiveLayout,type:KanbanBoard,type:KanbanItem,type:KanbanLane,type:KanbanSettings,type:KanbanSettingsBlock,type:KanbanSortMode,type:KanbanViewMode
 ## imported-by
-imp src/lib/plugins/kanban/KanbanCard.svelte:12 -> src/lib/plugins/kanban/kanban.logic.ts extractCardDate,setCardDate,removeCardDate,cardProximity,PROXIMITY_CLASSES,extractCardWikilinks,extractCardColor,setCardColor,removeCardColor,stripCardMetadata,extractCardTags
+imp src/lib/plugins/kanban/KanbanCard.svelte:12 -> src/lib/plugins/kanban/kanban.logic.ts extractCardDate,setCardDate,removeCardDate,cardProximity,PROXIMITY_CLASSES,secondaryTextClass,extractCardWikilinks,extractCardColor,setCardColor,removeCardColor,stripCardMetadata,extractCardTags
 imp src/lib/plugins/kanban/KanbanCardText.svelte:2 -> src/lib/plugins/kanban/kanban.logic.ts parseCardSegments,type:CardSegment
 imp src/lib/plugins/kanban/KanbanDatePicker.svelte:7 -> src/lib/plugins/kanban/kanban.logic.ts PROXIMITY_CLASSES,type:DateProximity
-imp src/lib/plugins/kanban/KanbanListView.svelte:4 -> src/lib/plugins/kanban/kanban.logic.ts stripCardMetadata,extractCardDate,extractCardColor,cardProximity,PROXIMITY_CLASSES
-imp src/lib/plugins/kanban/KanbanTableView.svelte:4 -> src/lib/plugins/kanban/kanban.logic.ts stripCardMetadata,extractCardDate,extractCardColor,extractCardTags,cardProximity,PROXIMITY_CLASSES
+imp src/lib/plugins/kanban/KanbanListView.svelte:4 -> src/lib/plugins/kanban/kanban.logic.ts stripCardMetadata,extractCardDate,extractCardColor,cardProximity,PROXIMITY_CLASSES,secondaryTextClass
+imp src/lib/plugins/kanban/KanbanTableView.svelte:4 -> src/lib/plugins/kanban/kanban.logic.ts stripCardMetadata,extractCardDate,extractCardColor,extractCardTags,cardProximity,PROXIMITY_CLASSES,secondaryTextClass
 imp src/lib/plugins/kanban/KanbanView.svelte:18 -> src/lib/plugins/kanban/kanban.logic.ts parseKanbanBoard,serializeKanbanBoard,addItem,removeItem,updateItem,toggleItem,moveItem,dropSlotToIndex,addLane,removeLane,renameLane,moveLane,archiveItem,archiveCompletedItems,restoreItem,isLaneCollapsed,toggleLaneCollapsed,DEFAULT_LANE_WIDTH,getLaneMaxItems,isLaneAtLimit,isLaneAutoComplete,setLaneAutoComplete,setLaneMaxItems,setTagColor,removeTagColor,updateBoardSettings,sortItems,setSortMode,filterItems,setViewMode,canReorderItems,uniqueLaneTitle,stripCardMetadata
 imp src/lib/plugins/kanban/kanban.service.ts:4 -> src/lib/plugins/kanban/kanban.logic.ts createEmptyKanbanBoard,serializeKanbanBoard,extractCardWikilinks
 ## reach
@@ -98,46 +98,50 @@ by src/lib/plugins/kanban/kanban.logic.ts:PROXIMITY_CLASSES <- src/lib/plugins/k
 by src/lib/plugins/kanban/kanban.logic.ts:PROXIMITY_CLASSES <- src/lib/plugins/kanban/KanbanDatePicker.svelte:58 in (markup) markup
 by src/lib/plugins/kanban/kanban.logic.ts:PROXIMITY_CLASSES <- src/lib/plugins/kanban/KanbanListView.svelte:49 in (markup) markup
 by src/lib/plugins/kanban/kanban.logic.ts:PROXIMITY_CLASSES <- src/lib/plugins/kanban/KanbanTableView.svelte:75 in (markup) markup
-sym src/lib/plugins/kanban/kanban.logic.ts:764 fn cardProximity(dateStr: string | null, todayStr: string, checked: boolean): DateProximity L4 | Proximity tone for a card: a checked (done) card shows no tone, so a completed overdue card does not keep the overdue border and badge.
+sym src/lib/plugins/kanban/kanban.logic.ts:765 fn secondaryTextClass(cardColor: string | null): string L3 | Class for secondary text (checked text, the note preview, the table's lane and status columns) on a card or row.
+by src/lib/plugins/kanban/kanban.logic.ts:secondaryTextClass <- src/lib/plugins/kanban/KanbanCard.svelte:247 in (markup) markup +1
+by src/lib/plugins/kanban/kanban.logic.ts:secondaryTextClass <- src/lib/plugins/kanban/KanbanListView.svelte:45 in (markup) markup
+by src/lib/plugins/kanban/kanban.logic.ts:secondaryTextClass <- src/lib/plugins/kanban/KanbanTableView.svelte:57 in (markup) markup +2
+sym src/lib/plugins/kanban/kanban.logic.ts:773 fn cardProximity(dateStr: string | null, todayStr: string, checked: boolean): DateProximity L4 | Proximity tone for a card: a checked (done) card shows no tone, so a completed overdue card does not keep the overdue border and badge.
 by src/lib/plugins/kanban/kanban.logic.ts:cardProximity <- src/lib/plugins/kanban/KanbanCard.svelte:159 in dateProximity=$derived call
 by src/lib/plugins/kanban/kanban.logic.ts:cardProximity <- src/lib/plugins/kanban/KanbanListView.svelte:30 in (markup) markup
 by src/lib/plugins/kanban/kanban.logic.ts:cardProximity <- src/lib/plugins/kanban/KanbanTableView.svelte:40 in (markup) markup
-sym src/lib/plugins/kanban/kanban.logic.ts:772 fn extractCardColor(text: string): string | null L4 | Extracts a color name from card text (format: {color:name}).
+sym src/lib/plugins/kanban/kanban.logic.ts:781 fn extractCardColor(text: string): string | null L4 | Extracts a color name from card text (format: {color:name}).
 by src/lib/plugins/kanban/kanban.logic.ts:extractCardColor <- src/lib/plugins/kanban/KanbanCard.svelte:156 in cardColor=$derived call
 by src/lib/plugins/kanban/kanban.logic.ts:extractCardColor <- src/lib/plugins/kanban/KanbanListView.svelte:28 in (markup) markup
 by src/lib/plugins/kanban/kanban.logic.ts:extractCardColor <- src/lib/plugins/kanban/KanbanTableView.svelte:37 in (markup) markup
-sym src/lib/plugins/kanban/kanban.logic.ts:778 fn setCardColor(text: string, color: string): string L6 | Sets or replaces a color in card text.
+sym src/lib/plugins/kanban/kanban.logic.ts:787 fn setCardColor(text: string, color: string): string L6 | Sets or replaces a color in card text.
 by src/lib/plugins/kanban/kanban.logic.ts:setCardColor <- src/lib/plugins/kanban/KanbanCard.svelte:172 in handleColorChange call
-sym src/lib/plugins/kanban/kanban.logic.ts:786 fn removeCardColor(text: string): string L3 | Removes the color from card text
+sym src/lib/plugins/kanban/kanban.logic.ts:795 fn removeCardColor(text: string): string L3 | Removes the color from card text
 by src/lib/plugins/kanban/kanban.logic.ts:removeCardColor <- src/lib/plugins/kanban/KanbanCard.svelte:176 in handleColorRemove call
-sym src/lib/plugins/kanban/kanban.logic.ts:791 fn stripCardMetadata(text: string): string L7 | Strips both date and color metadata tokens from card text for display
+sym src/lib/plugins/kanban/kanban.logic.ts:800 fn stripCardMetadata(text: string): string L7 | Strips both date and color metadata tokens from card text for display
 by src/lib/plugins/kanban/kanban.logic.ts:stripCardMetadata <- src/lib/plugins/kanban/KanbanCard.svelte:157 in displayText=$derived call
 by src/lib/plugins/kanban/kanban.logic.ts:stripCardMetadata <- src/lib/plugins/kanban/KanbanListView.svelte:29 in (markup) markup
 by src/lib/plugins/kanban/kanban.logic.ts:stripCardMetadata <- src/lib/plugins/kanban/KanbanTableView.svelte:38 in (markup) markup
 by src/lib/plugins/kanban/kanban.logic.ts:stripCardMetadata <- src/lib/plugins/kanban/KanbanView.svelte:722 in (markup) markup
-sym src/lib/plugins/kanban/kanban.logic.ts:804 fn extractCardTags(text: string): string[] L7 | Extracts inline #tags from card text
+sym src/lib/plugins/kanban/kanban.logic.ts:813 fn extractCardTags(text: string): string[] L7 | Extracts inline #tags from card text
 by src/lib/plugins/kanban/kanban.logic.ts:extractCardTags <- src/lib/plugins/kanban/KanbanCard.svelte:158 in cardTags=$derived call
 by src/lib/plugins/kanban/kanban.logic.ts:extractCardTags <- src/lib/plugins/kanban/KanbanTableView.svelte:39 in (markup) markup
-sym src/lib/plugins/kanban/kanban.logic.ts:813 fn setTagColor(board: KanbanBoard, tag: string, color: string): KanbanBoard L4 | Sets a tag color in board settings
+sym src/lib/plugins/kanban/kanban.logic.ts:822 fn setTagColor(board: KanbanBoard, tag: string, color: string): KanbanBoard L4 | Sets a tag color in board settings
 by src/lib/plugins/kanban/kanban.logic.ts:setTagColor <- src/lib/plugins/kanban/KanbanView.svelte:175 in handleSetTagColor call
-sym src/lib/plugins/kanban/kanban.logic.ts:819 fn removeTagColor(board: KanbanBoard, tag: string): KanbanBoard L5 | Removes a tag color from board settings
+sym src/lib/plugins/kanban/kanban.logic.ts:828 fn removeTagColor(board: KanbanBoard, tag: string): KanbanBoard L5 | Removes a tag color from board settings
 by src/lib/plugins/kanban/kanban.logic.ts:removeTagColor <- src/lib/plugins/kanban/KanbanView.svelte:179 in handleRemoveTagColor call
-sym src/lib/plugins/kanban/kanban.logic.ts:830 type CardSegment L4 | A segment of card text for rich rendering
+sym src/lib/plugins/kanban/kanban.logic.ts:839 type CardSegment L4 | A segment of card text for rich rendering
 by src/lib/plugins/kanban/kanban.logic.ts:CardSegment <- src/lib/plugins/kanban/KanbanCardText.svelte:2 in (script) import
-sym src/lib/plugins/kanban/kanban.logic.ts:836 fn extractCardWikilinks(text: string): Array<{ target: string; heading?: string; display: string }> L10 | Extracts wikilinks from card text
+sym src/lib/plugins/kanban/kanban.logic.ts:845 fn extractCardWikilinks(text: string): Array<{ target: string; heading?: string; display: string }> L10 | Extracts wikilinks from card text
 by src/lib/plugins/kanban/kanban.logic.ts:extractCardWikilinks <- src/lib/plugins/kanban/KanbanCard.svelte:181 in hasWikilink=$derived call
 by src/lib/plugins/kanban/kanban.logic.ts:extractCardWikilinks <- src/lib/plugins/kanban/kanban.service.ts:63 in loadLinkedFileContent call
-sym src/lib/plugins/kanban/kanban.logic.ts:852 fn parseCardSegments(text: string): CardSegment[] L44 | Parses card text into segments for rich rendering.
+sym src/lib/plugins/kanban/kanban.logic.ts:861 fn parseCardSegments(text: string): CardSegment[] L44 | Parses card text into segments for rich rendering.
 by src/lib/plugins/kanban/kanban.logic.ts:parseCardSegments <- src/lib/plugins/kanban/KanbanCardText.svelte:17 in segments=$derived call
-sym src/lib/plugins/kanban/kanban.logic.ts:903 fn sortItems(items: KanbanItem[], mode: KanbanSortMode): KanbanItem[] L40 | Sorts items according to the given sort mode.
+sym src/lib/plugins/kanban/kanban.logic.ts:912 fn sortItems(items: KanbanItem[], mode: KanbanSortMode): KanbanItem[] L40 | Sorts items according to the given sort mode.
 by src/lib/plugins/kanban/kanban.logic.ts:sortItems <- src/lib/plugins/kanban/KanbanView.svelte:202 in displayLane call
-sym src/lib/plugins/kanban/kanban.logic.ts:945 fn setSortMode(board: KanbanBoard, mode: KanbanSortMode): KanbanBoard L3 | Sets the board sort mode
+sym src/lib/plugins/kanban/kanban.logic.ts:954 fn setSortMode(board: KanbanBoard, mode: KanbanSortMode): KanbanBoard L3 | Sets the board sort mode
 by src/lib/plugins/kanban/kanban.logic.ts:setSortMode <- src/lib/plugins/kanban/KanbanView.svelte:196 in handleSetSortMode call
-sym src/lib/plugins/kanban/kanban.logic.ts:956 fn filterItems(items: KanbanItem[], query: string): KanbanItem[] L5 | Filters items by a text query.
+sym src/lib/plugins/kanban/kanban.logic.ts:965 fn filterItems(items: KanbanItem[], query: string): KanbanItem[] L5 | Filters items by a text query.
 by src/lib/plugins/kanban/kanban.logic.ts:filterItems <- src/lib/plugins/kanban/KanbanView.svelte:201 in displayLane call
-sym src/lib/plugins/kanban/kanban.logic.ts:972 fn canReorderItems(sortMode: KanbanSortMode, filterQuery: string): boolean L3 | Whether manual drag-reordering of cards is valid for the current view.
+sym src/lib/plugins/kanban/kanban.logic.ts:981 fn canReorderItems(sortMode: KanbanSortMode, filterQuery: string): boolean L3 | Whether manual drag-reordering of cards is valid for the current view.
 by src/lib/plugins/kanban/kanban.logic.ts:canReorderItems <- src/lib/plugins/kanban/KanbanView.svelte:193 in canReorder=$derived call
-sym src/lib/plugins/kanban/kanban.logic.ts:979 fn setViewMode(board: KanbanBoard, mode: KanbanViewMode): KanbanBoard L3 | Sets the board view mode
+sym src/lib/plugins/kanban/kanban.logic.ts:988 fn setViewMode(board: KanbanBoard, mode: KanbanViewMode): KanbanBoard L3 | Sets the board view mode
 by src/lib/plugins/kanban/kanban.logic.ts:setViewMode <- src/lib/plugins/kanban/KanbanView.svelte:227 in handleSetViewMode call
 ## locals
 local src/lib/plugins/kanban/kanban.logic.ts:74 fn archiveHeadingIndex(lines: string[], i: number): number L6
@@ -171,5 +175,5 @@ call src/lib/plugins/kanban/kanban.logic.ts:558 in archiveItem -> src/lib/plugin
 call src/lib/plugins/kanban/kanban.logic.ts:578 in archiveCompletedItems -> src/lib/plugins/kanban/kanban.logic.ts:takeFromLane call
 call src/lib/plugins/kanban/kanban.logic.ts:598 in restoreItem -> src/lib/plugins/kanban/kanban.logic.ts:takeItem call
 call src/lib/plugins/kanban/kanban.logic.ts:678 in isLaneAtLimit -> src/lib/plugins/kanban/kanban.logic.ts:getLaneMaxItems call
-call src/lib/plugins/kanban/kanban.logic.ts:766 in cardProximity -> src/lib/plugins/kanban/kanban.logic.ts:getDateProximity call
-call src/lib/plugins/kanban/kanban.logic.ts:916 in sortItems -> src/lib/plugins/kanban/kanban.logic.ts:extractCardDate call +3
+call src/lib/plugins/kanban/kanban.logic.ts:775 in cardProximity -> src/lib/plugins/kanban/kanban.logic.ts:getDateProximity call
+call src/lib/plugins/kanban/kanban.logic.ts:925 in sortItems -> src/lib/plugins/kanban/kanban.logic.ts:extractCardDate call +3

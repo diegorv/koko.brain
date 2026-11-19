@@ -20,7 +20,7 @@ entry src/lib/features/file-history/file-history.service.ts ext-in5 src/lib/app/
 entry src/lib/features/file-history/FileHistoryDialog.svelte ext-in1 src/lib/app/AppOverlays.svelte
 entry src/lib/features/file-history/file-history.logic.ts ext-in1 src/lib/features/properties/note-info.logic.ts
 ## files
-file src/lib/features/file-history/DiffViewer.svelte component L56 module src/lib/features/file-history in1 t0
+file src/lib/features/file-history/DiffViewer.svelte component L57 module src/lib/features/file-history in1 t1
 file src/lib/features/file-history/FileHistoryDialog.svelte component L102 module src/lib/features/file-history in1 t1
 file src/lib/features/file-history/SnapshotList.svelte component L68 module src/lib/features/file-history in1 t0
 file src/lib/features/file-history/file-history.logic.ts logic L178 module src/lib/features/file-history in4 t2

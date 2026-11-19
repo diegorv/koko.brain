@@ -935,7 +935,7 @@
 			/>
 			<button
 				type="button"
-				class="flex shrink-0 cursor-default items-center rounded-md p-1 transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 {searchOpen
+				class="relative flex shrink-0 cursor-default items-center rounded-md p-1 transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring {searchOpen
 					? 'text-tab-text-active'
 					: 'text-tab-text-inactive'}"
 				title="Search notes"
@@ -948,6 +948,9 @@
 				data-note-list-search-toggle
 			>
 				<Search class="size-3.5" />
+				{#if searchOpen}
+					{@render onDot()}
+				{/if}
 			</button>
 			<RailPropertiesPicker available={pickableProperties} selected={selectedProperties} onChange={handlePropertiesChange} />
 			{#if offersArchivedFilter}
@@ -971,13 +974,16 @@
 			</Popover>
 			<Popover bind:open={filterOpen}>
 				<PopoverTrigger
-					class="flex shrink-0 cursor-default items-center rounded-md p-1 transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active {activeFilterCount > 0
+					class="relative flex shrink-0 cursor-default items-center rounded-md p-1 transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active {activeFilterCount > 0
 						? 'text-tab-text-active'
 						: 'text-tab-text-inactive'}"
 					title="Filter"
 					data-note-list-filter
 				>
 					<ListFilter class="size-3.5" />
+					{#if activeFilterCount > 0}
+						{@render onDot()}
+					{/if}
 				</PopoverTrigger>
 				<PopoverPortal>
 					<PopoverContent align="end" class="w-80">
@@ -996,7 +1002,7 @@
 		{#if headerAction}
 			<button
 				type="button"
-				class="flex shrink-0 cursor-default items-center rounded-md p-1 text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+				class="flex shrink-0 cursor-default items-center rounded-md p-1 text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 				title={headerAction.title}
 				aria-label={headerAction.label}
 				onclick={handleHeaderAction}
@@ -1008,7 +1014,7 @@
 		{#if canCreate}
 			<button
 				type="button"
-				class="flex shrink-0 cursor-default items-center rounded-md p-1 text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+				class="flex shrink-0 cursor-default items-center rounded-md p-1 text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 				title="Create a note in this list"
 				aria-label="New here"
 				onclick={handleNewHere}
@@ -1140,6 +1146,11 @@
 		{/if}
 	</NoteRowMenu>
 </div>
+
+<!-- On state of a toolbar toggle: the active and inactive text colors are under 3:1 apart on every theme -->
+{#snippet onDot()}
+	<span data-note-list-on-dot aria-hidden="true" class="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-primary"></span>
+{/snippet}
 
 {#snippet noteRow(note: LensNote, key: string)}
 	<div data-note-list-key={key}>
