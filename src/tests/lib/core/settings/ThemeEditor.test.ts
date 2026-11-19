@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import ThemeEditor from '#lib/core/settings/sections/ThemeEditor.svelte';
 import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
-import { readabilityFailures } from '#lib/core/settings/theme-builder.logic.js';
+import { buildTheme, coreFromColors, readabilityFailures } from '#lib/core/settings/theme-builder.logic.js';
 import { camelCaseToLabel } from '#lib/core/settings/theme-editor.logic.js';
 import type { Theme } from '#lib/core/settings/theme.types.js';
 
@@ -147,6 +147,21 @@ describe('ThemeEditor - readability warnings', () => {
 		expect(input.getAttribute('aria-describedby')).toBe(warning.id);
 		const passing = rows.find((r) => r.querySelector('span')?.textContent === 'Foreground')!;
 		expect(passing.querySelector('input[type="text"]')!.hasAttribute('aria-describedby')).toBe(false);
+	});
+
+	it('names the APCA gate when the token passes WCAG and reads too faint by APCA only', () => {
+		// Every surface near black: Willemstad Dark's #567f83 reads 4.57:1 there, but only Lc -31
+		const black = '#070707';
+		const core = coreFromColors(KOKOBRAIN_DEFAULT_THEME.colors);
+		const built = buildTheme('Mine', { ...core, editorBg: black, sidebarBg: black, panelBg: black, popoverBg: black, hover: black, selected: black }).colors;
+		const colors = { ...built, ui: { ...built.ui, mutedForeground: '#567f83' } };
+		mountWith({ name: 'Mine', colors });
+		const failure = readabilityFailures(colors).get('ui.mutedForeground')!;
+		expect(failure.ratio).toBeGreaterThanOrEqual(failure.min);
+		expect(failure.lc).toBeLessThan(failure.minLc);
+		expect(warningOf('Muted Foreground')).toBe(
+			`Lc ${Math.floor(failure.lc)} on ${camelCaseToLabel(failure.bgKey)}, needs Lc 45. The app shows it lifted.`,
+		);
 	});
 
 	it('shows no warning for a theme that passes every pair', () => {

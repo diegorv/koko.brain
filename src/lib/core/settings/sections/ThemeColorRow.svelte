@@ -20,8 +20,16 @@
 	/** Id of the readability warning, which describes the hex input */
 	const warningId = $props.id();
 
-	/** The ratio floored to two decimals, so a value just under the minimum never reads as reaching it. */
-	const shownRatio = $derived(failure ? (Math.floor(failure.ratio * 100) / 100).toFixed(2) : '');
+	/**
+	 * The failing gate as shown: the WCAG ratio floored to two decimals, so a value
+	 * just under the minimum never reads as reaching it, or, when only APCA fails,
+	 * the APCA Lc floored to a whole number.
+	 */
+	const shownGate = $derived.by(() => {
+		if (!failure) return '';
+		if (failure.ratio >= failure.min) return `Lc ${Math.floor(failure.lc)} on ${camelCaseToLabel(failure.bgKey)}, needs Lc ${failure.minLc}`;
+		return `${(Math.floor(failure.ratio * 100) / 100).toFixed(2)}:1 on ${camelCaseToLabel(failure.bgKey)}, needs ${failure.min}:1`;
+	});
 
 	let textValue = $state('');
 	let isEditing = $state(false);
@@ -95,7 +103,7 @@
 	{#if failure}
 		<p id={warningId} class="mt-1 flex items-center gap-1.5 text-meta text-muted-foreground" data-contrast-warning>
 			<TriangleAlertIcon class="size-3.5 shrink-0 text-destructive" aria-hidden="true" />
-			{shownRatio}:1 on {camelCaseToLabel(failure.bgKey)}, needs {failure.min}:1. The app shows it lifted.
+			{shownGate}. The app shows it lifted.
 		</p>
 	{/if}
 </div>

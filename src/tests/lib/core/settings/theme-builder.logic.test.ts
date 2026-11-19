@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { buildTheme, alpha, coreFromColors, READABILITY_PAIRS, TYPE_PALETTE_TOKENS, readabilityFailures, withReadableContrast, type CorePalette } from '#lib/core/settings/theme-builder.logic.js';
-import { colorDistance, contrastRatio, flatten, mixColors } from '#lib/utils/color.js';
+import { buildTheme, alpha, coreFromColors, minLcOf, READABILITY_PAIRS, TYPE_PALETTE_TOKENS, readabilityFailures, withReadableContrast, type CorePalette } from '#lib/core/settings/theme-builder.logic.js';
+import { apcaContrast, colorDistance, contrastRatio, flatten, mixColors, tint } from '#lib/utils/color.js';
 import { BUILTIN_THEMES, mergeThemeWithDefaults } from '#lib/core/settings/theme.logic.js';
 import { KOKOBRAIN_DEFAULT_THEME, LAVENDER_HAZE_THEME } from '#lib/core/settings/theme.logic.js';
 import type { SyntaxColors, ThemeColors } from '#lib/core/settings/theme.types.js';
-import { HARD_PALETTE_THEMES } from '../../../fixtures/hard-palette-themes.fixture';
+import { HARD_DARK_PALETTE_THEMES, HARD_PALETTE_THEMES } from '../../../fixtures/hard-palette-themes.fixture';
 
 const HEADING_TOKENS = ['heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6'] as const;
 
@@ -226,23 +226,23 @@ describe('readable contrast', () => {
 		expect(contrastRatio(syntax.code, preview.codeBg)!).toBeGreaterThanOrEqual(4.5);
 	});
 
-	it('checks the type palette at 3:1 and warning at 4.5:1 against the sidebar background, and warning at 3:1 on the selected row', () => {
+	it('checks the type palette at 3:1 against the sidebar background, and warning at 4.5:1 on the sidebar and its hover and selected rows', () => {
 		const pairs = READABILITY_PAIRS.filter(([g, k]) => g === 'ui' && ((TYPE_PALETTE_TOKENS as readonly string[]).includes(k) || k === 'warning'));
 		expect(pairs.map(([, k, bg, bgKey, min]) => `${k}@${bg}.${bgKey}:${min}`).sort()).toEqual(
-			[...TYPE_PALETTE_TOKENS.map((k) => `${k}@ui.fileExplorerBg:3`), 'warning@ui.fileExplorerBg:4.5', 'warning@ui.fileExplorerAccent:3'].sort(),
+			[...TYPE_PALETTE_TOKENS.map((k) => `${k}@ui.fileExplorerBg:3`), 'warning@ui.fileExplorerBg:4.5', 'warning@ui.fileExplorerAccent:4.5', 'warning@ui.muted:4.5'].sort(),
 		);
 		const { ui } = buildTheme('T', { ...CORE, sidebarBg: '#ffffff', yellow: '#ffee88', green: '#bbffbb' }).colors;
 		expect(contrastRatio(ui.typeYellow, ui.fileExplorerBg)!).toBeGreaterThanOrEqual(3);
 		expect(contrastRatio(ui.typeGreen, ui.fileExplorerBg)!).toBeGreaterThanOrEqual(3);
 		expect(contrastRatio(ui.warning, ui.fileExplorerBg)!).toBeGreaterThanOrEqual(4.5);
 		const row = buildTheme('T', { ...CORE, sidebarBg: '#f5f5f5', selected: '#c8c8c8', yellow: '#e5b41f' }).colors.ui;
-		expect(contrastRatio(row.warning, row.fileExplorerAccent)!).toBeGreaterThanOrEqual(3);
+		expect(contrastRatio(row.warning, row.fileExplorerAccent)!).toBeGreaterThanOrEqual(4.5);
 	});
 
-	it('derives success from the core green and checks it at 4.5:1 on the sidebar and editor backgrounds', () => {
+	it('derives success from the core green and checks it at 4.5:1 on the sidebar, the editor and the hover fill', () => {
 		const pairs = READABILITY_PAIRS.filter(([g, k]) => g === 'ui' && k === 'success');
 		expect(pairs.map(([, k, bg, bgKey, min]) => `${k}@${bg}.${bgKey}:${min}`).sort()).toEqual(
-			['success@ui.editorBg:4.5', 'success@ui.fileExplorerBg:4.5'],
+			['success@ui.editorBg:4.5', 'success@ui.fileExplorerBg:4.5', 'success@ui.muted:4.5'],
 		);
 		expect(buildTheme('T', { ...CORE, green: '#116622' }).colors.ui.success).toBe('#116622');
 		const { ui } = buildTheme('T', { ...CORE, sidebarBg: '#ffffff', green: '#bbffbb' }).colors;
@@ -280,17 +280,21 @@ describe('readable contrast', () => {
 		expect(contrastRatio(ui.destructiveForeground, ui.destructive)!).toBeGreaterThanOrEqual(4.5);
 	});
 
-	it('holds for every pair in every built-in theme', () => {
+	it('holds for every pair, by WCAG and APCA, in every built-in and hard-palette theme', () => {
 		const failures: string[] = [];
 		const skipped: string[] = [];
-		for (const theme of BUILTIN_THEMES) {
-			for (const [group, key, bgGroup, bgKey, min] of READABILITY_PAIRS) {
+		for (const theme of [...BUILTIN_THEMES, ...HARD_PALETTE_THEMES, ...HARD_DARK_PALETTE_THEMES]) {
+			const ui = theme.colors.ui as unknown as Record<string, string>;
+			for (const [group, key, bgGroup, bgKey, min, base = 'editorBg'] of READABILITY_PAIRS) {
 				const tokens: Record<string, string> = { ...theme.colors[group] };
 				const bgTokens: Record<string, string> = { ...theme.colors[bgGroup] };
-				const bg = flatten(bgTokens[bgKey], theme.colors.ui.editorBg) ?? bgTokens[bgKey];
+				const under = flatten(ui[base], ui.editorBg) ?? ui[base];
+				const bg = flatten(bgTokens[bgKey], under) ?? bgTokens[bgKey];
 				const ratio = contrastRatio(tokens[key], bg);
-				if (ratio === null) skipped.push(`${theme.name} ${group}.${key}`);
-				else if (ratio < min - 0.005) failures.push(`${theme.name} ${group}.${key} ${ratio.toFixed(2)} < ${min}`);
+				const lc = apcaContrast(tokens[key], bg);
+				if (ratio === null || lc === null) skipped.push(`${theme.name} ${group}.${key}`);
+				else if (ratio < min - 0.005) failures.push(`${theme.name} ${group}.${key} on ${bgKey} ${ratio.toFixed(2)} < ${min}`);
+				else if (Math.abs(lc) < minLcOf(min) - 0.05) failures.push(`${theme.name} ${group}.${key} on ${bgKey} Lc ${lc.toFixed(1)}`);
 			}
 		}
 		expect(failures).toEqual([]);
@@ -323,6 +327,7 @@ describe('readabilityFailures', () => {
 		expect([...failures.keys()]).toEqual(['ui.mutedForeground']);
 		expect(failures.get('ui.mutedForeground')).toEqual({
 			bgGroup: 'ui', bgKey: 'settingsHoverBg', ratio: contrastRatio('#bbbbbb', '#dddddd'), min: 4.5,
+			lc: Math.abs(apcaContrast('#bbbbbb', '#dddddd')!), minLc: 45,
 		});
 	});
 
@@ -344,6 +349,7 @@ describe('readabilityFailures', () => {
 		const failure = readabilityFailures(typed).get('ui.primaryForeground')!;
 		expect(failure).toEqual({
 			bgGroup: 'ui', bgKey: 'primary', ratio: contrastRatio('#000000', lifted.ui.primary), min: 4.5,
+			lc: Math.abs(apcaContrast('#000000', lifted.ui.primary)!), minLc: 45,
 		});
 		expect(typed.ui.primary).toBe('#b09ad8');
 	});
@@ -366,11 +372,138 @@ describe('readabilityFailures', () => {
 		expect(contrastRatio(withReadableContrast(typed).ui.primary, '#2a2a2a')!).toBeGreaterThanOrEqual(4.5);
 	});
 
+	it('moves primary and warns when an override label passes on it but fails on its 90% hover fill', () => {
+		const colors = buildTheme('T', CORE).colors;
+		// White rows, so primary passes every pair as text and only the hover fill fails
+		const typed = { ...colors, ui: { ...colors.ui, primary: '#6b6b6b', primaryForeground: '#ffffff', accent: '#ffffff', muted: '#ffffff' } };
+		expect(contrastRatio('#ffffff', '#6b6b6b')!).toBeGreaterThanOrEqual(4.5);
+		expect(contrastRatio('#ffffff', tint('#6b6b6b', 0.9, typed.ui.editorBg)!)!).toBeLessThan(4.5);
+		const { ui } = withReadableContrast(typed);
+		for (const surface of [ui.editorBg, ui.background, ui.card, ui.popover, ui.settingsDialogBg, ui.settingItemBg]) {
+			const hover = tint(ui.primary, 0.9, surface)!;
+			expect(contrastRatio(ui.primaryForeground, hover)!).toBeGreaterThanOrEqual(4.5);
+			expect(Math.abs(apcaContrast(ui.primaryForeground, hover)!)).toBeGreaterThanOrEqual(45);
+		}
+		expect(ui.primaryForeground).toBe('#ffffff');
+		expect(ui.primary).not.toBe('#6b6b6b');
+		const failures = readabilityFailures(typed);
+		expect(failures.has('ui.primaryForeground')).toBe(false);
+		expect(failures.get('ui.primary')!.bgKey).toBe('primaryForeground');
+		expect(failures.get('ui.primary')!.ratio).toBeLessThan(4.5);
+	});
+
 	it('skips a pair whose colors it cannot parse or that a theme lacks', () => {
 		const colors = buildTheme('T', CORE).colors;
 		// An unparseable muted text, and a theme saved before `success` existed
 		const { success: _success, ...ui } = { ...colors.ui, mutedForeground: 'var(--x)' };
 		expect(readabilityFailures({ ...colors, ui: ui as ThemeColors['ui'] }).size).toBe(0);
+	});
+});
+
+describe('text on the hover and selected surfaces of every built-in and hard-palette theme', () => {
+	const THEMES = [...BUILTIN_THEMES, ...HARD_PALETTE_THEMES, ...HARD_DARK_PALETTE_THEMES];
+	/** [group, text token, ui surface, ui token the surface is drawn over]: small text, 4.5:1 and |Lc| 45 */
+	const TEXT_ON: [keyof ThemeColors, string, string, string][] = [
+		// Command palette, quick switcher and menu rows highlight with accent inside a popover
+		['ui', 'foreground', 'accent', 'popover'],
+		['ui', 'mutedForeground', 'accent', 'popover'],
+		['ui', 'primary', 'accent', 'popover'],
+		// Chips and hover rows on bg-muted
+		['ui', 'foreground', 'muted', 'background'],
+		['ui', 'mutedForeground', 'muted', 'background'],
+		['ui', 'primary', 'muted', 'background'],
+		['ui', 'warning', 'muted', 'background'],
+		['ui', 'success', 'muted', 'background'],
+		['ui', 'destructive', 'muted', 'background'],
+		// Sidebar rows: selected, hovered, and the sidebar itself
+		['ui', 'fileExplorerFg', 'fileExplorerAccent', 'fileExplorerBg'],
+		['ui', 'fileExplorerMutedFg', 'fileExplorerAccent', 'fileExplorerBg'],
+		['ui', 'fileExplorerMutedFg', 'muted', 'fileExplorerBg'],
+		['ui', 'fileExplorerMutedFg', 'popover', 'popover'],
+		['ui', 'fileExplorerPrimary', 'fileExplorerBg', 'fileExplorerBg'],
+		['ui', 'fileExplorerPrimary', 'fileExplorerAccent', 'fileExplorerBg'],
+		['ui', 'warning', 'fileExplorerAccent', 'fileExplorerBg'],
+		['ui', 'rightSidebarFg', 'rightSidebarAccent', 'rightSidebarBg'],
+		['ui', 'rightSidebarMutedFg', 'rightSidebarAccent', 'rightSidebarBg'],
+		['ui', 'rightSidebarPrimary', 'rightSidebarBg', 'rightSidebarBg'],
+		['ui', 'rightSidebarPrimary', 'rightSidebarAccent', 'rightSidebarBg'],
+		// Primary and destructive as small text on the plain surfaces
+		['ui', 'primary', 'card', 'card'],
+		['ui', 'primary', 'popover', 'popover'],
+		['ui', 'destructive', 'editorBg', 'editorBg'],
+		['ui', 'destructive', 'background', 'background'],
+		['ui', 'destructive', 'card', 'card'],
+		['ui', 'destructive', 'popover', 'popover'],
+		['ui', 'destructive', 'statusBarBg', 'statusBarBg'],
+	];
+
+	it('reads each text token at 4.5:1 and |Lc| 45 on its surface, flattened over the one it sits on', () => {
+		const failures: string[] = [];
+		for (const { name, colors } of THEMES) {
+			const ui = colors.ui as unknown as Record<string, string>;
+			for (const [group, key, bgKey, baseKey] of TEXT_ON) {
+				const fg = (colors[group] as unknown as Record<string, string>)[key];
+				const base = flatten(ui[baseKey], ui.editorBg) ?? ui[baseKey];
+				const bg = flatten(ui[bgKey], base) ?? ui[bgKey];
+				const ratio = contrastRatio(fg, bg);
+				const lc = apcaContrast(fg, bg);
+				if (ratio === null || lc === null || ratio < 4.5 - 0.005 || Math.abs(lc) < 45 - 0.05) {
+					failures.push(`${name} ${key} on ${bgKey}/${baseKey} ${ratio?.toFixed(2)} Lc ${lc?.toFixed(1)}`);
+				}
+			}
+		}
+		expect(failures).toEqual([]);
+	});
+
+	it('reads the muted family and links on the dark fixture themes at |Lc| 45 or more', () => {
+		const failures: string[] = [];
+		for (const { name, colors } of HARD_DARK_PALETTE_THEMES) {
+			const { ui, syntax, preview, wikilink } = colors;
+			const pairs: [string, string, string][] = [
+				['mutedForeground', ui.mutedForeground, ui.editorBg],
+				['mutedForeground', ui.mutedForeground, ui.card],
+				['mutedForeground', ui.mutedForeground, ui.popover],
+				['fileExplorerMutedFg', ui.fileExplorerMutedFg, ui.fileExplorerBg],
+				['rightSidebarMutedFg', ui.rightSidebarMutedFg, ui.rightSidebarBg],
+				['statusBarFg', ui.statusBarFg, ui.statusBarBg],
+				['tabTextInactive', ui.tabTextInactive, ui.tabBar],
+				['syntax.link', syntax.link, ui.editorBg],
+				['syntax.url', syntax.url, ui.editorBg],
+				['preview.link', preview.link, ui.editorBg],
+				['preview.wikilink', preview.wikilink, ui.editorBg],
+				['preview.footnote', preview.footnote, ui.editorBg],
+				['wikilink.target', wikilink.target, ui.editorBg],
+			];
+			for (const [key, fg, bg] of pairs) {
+				const lc = apcaContrast(fg, bg)!;
+				if (Math.abs(lc) < 45 - 0.05) failures.push(`${name} ${key} Lc ${lc.toFixed(1)}`);
+			}
+		}
+		expect(failures).toEqual([]);
+	});
+
+	it('gives white text on a mid-tone blue primary, and keeps it readable on the 90% hover fill', () => {
+		const { ui } = buildTheme('T', { ...CORE, primary: '#3b82f6', primaryFg: '#000000' }).colors;
+		expect(ui.primaryForeground).toBe('#ffffff');
+		expect(contrastRatio(ui.primaryForeground, ui.primary)!).toBeGreaterThanOrEqual(4.5);
+		for (const surface of [ui.editorBg, ui.popover, ui.card, ui.background]) {
+			const hover = tint(ui.primary, 0.9, surface)!;
+			expect(contrastRatio(ui.primaryForeground, hover)!).toBeGreaterThanOrEqual(4.5);
+			expect(Math.abs(apcaContrast(ui.primaryForeground, hover)!)).toBeGreaterThanOrEqual(45);
+		}
+	});
+
+	it('keeps the primary button label readable at rest and on hover in every theme', () => {
+		const failures: string[] = [];
+		for (const { name, colors } of THEMES) {
+			const { ui } = colors;
+			for (const bg of [ui.primary, ...[ui.editorBg, ui.popover, ui.card, ui.background].map((s) => tint(ui.primary, 0.9, s)!)]) {
+				const ratio = contrastRatio(ui.primaryForeground, bg)!;
+				const lc = apcaContrast(ui.primaryForeground, bg)!;
+				if (ratio < 4.5 - 0.005 || Math.abs(lc) < 45 - 0.05) failures.push(`${name} on ${bg} ${ratio.toFixed(2)} Lc ${lc.toFixed(1)}`);
+			}
+		}
+		expect(failures).toEqual([]);
 	});
 });
 
