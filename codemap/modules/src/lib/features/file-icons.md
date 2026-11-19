@@ -1,6 +1,6 @@
 # module card src/lib/features/file-icons
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/features/file-icons ' codemap/modules
-module src/lib/features/file-icons features files 9 in-modules 9 out-modules 8 pub 22/42 ipc 1/0 card ~3.7k
+module src/lib/features/file-icons features files 9 in-modules 9 out-modules 8 pub 23/43 ipc 1/0 card ~3.8k
 ## neighbors
 dep src/lib/app -> src/lib/features/file-icons 6
 dep src/lib/features/auto-organize -> src/lib/features/file-icons 13
@@ -16,7 +16,7 @@ dep src/lib/features/file-icons -> src/lib/contracts 1
 dep src/lib/features/file-icons -> src/lib/core/editor 1
 dep src/lib/features/file-icons -> src/lib/core/filesystem 2
 dep src/lib/features/file-icons -> src/lib/core/frontmatter 4
-dep src/lib/features/file-icons -> src/lib/core/settings 1
+dep src/lib/features/file-icons -> src/lib/core/settings 2
 dep src/lib/features/file-icons -> src/lib/types 1
 dep src/lib/features/file-icons -> src/lib/utils 2
 in2 src/lib/features/file-icons 4 modules: src/routes(2) src/lib/features/event-calendar(1) src/lib/plugins/calendar(1) src/lib/plugins/queryjs(1)
@@ -34,7 +34,7 @@ entry src/lib/features/file-icons/file-icons.icon-data.ts ext-in4 src/lib/featur
 file src/lib/features/file-icons/IconPicker.svelte component L323 module src/lib/features/file-icons in5 t2
 file src/lib/features/file-icons/IconRenderer.svelte component L38 module src/lib/features/file-icons in12 t1
 file src/lib/features/file-icons/file-icons.icon-data.ts other L320 module src/lib/features/file-icons in7 t35
-file src/lib/features/file-icons/file-icons.logic.ts logic L245 module src/lib/features/file-icons in15 t2
+file src/lib/features/file-icons/file-icons.logic.ts logic L256 module src/lib/features/file-icons in15 t2
 file src/lib/features/file-icons/file-icons.service.ts service L310 module src/lib/features/file-icons in7 t18
 file src/lib/features/file-icons/file-icons.store.svelte.ts store L59 module src/lib/features/file-icons in9 t29
 file src/lib/features/file-icons/file-icons.types.ts types L44 module src/lib/features/file-icons in14 t0
@@ -45,10 +45,11 @@ sym src/lib/features/file-icons/IconPicker.svelte:1 component IconPicker props:o
 sym src/lib/features/file-icons/IconRenderer.svelte:1 component IconRenderer props:icon,class=,color L38
 sym src/lib/features/file-icons/file-icons.icon-data.ts:306 fn getIconSync(pack: IconPackId, name: string): NormalizedIcon | undefined L8 | Looks up a single icon by pack and name (for rendering in file tree).
 sym src/lib/features/file-icons/file-icons.icon-data.ts:316 fn preloadPacks(packIds: IconPackId[]): Promise<void> L5 | Pre-loads specific packs into cache (call at startup for packs referenced in saved icons)
-sym src/lib/features/file-icons/file-icons.logic.ts:41 fn parseIconValuePermissive(raw: string): { iconPack: IconPackId; iconName: string } | null L8 | Parses an icon value that may be either `pack:name` or a bare name.
-sym src/lib/features/file-icons/file-icons.logic.ts:199 fn extractViewIcon(content: string): { iconPack?: IconPackId; iconName?: string; color?: string; titleColor?: string } | null L13 | Extracts the icon and its colors from a `.view` file.
-sym src/lib/features/file-icons/file-icons.logic.ts:219 fn iconColorCss(color: string | undefined): string | undefined L5 | CSS color for an icon's `_color`: a type palette name (`green`, any case) becomes the active theme's token, `var(--type-green)`; any other value (a hex from th…
-sym src/lib/features/file-icons/file-icons.logic.ts:231 fn iconColorStyle(color: string | undefined): string | undefined L4 | The inline `style` that colors an item's default icon, a Lucide component drawn in `currentColor`, with the item's `_color` when it has no icon of its own: the…
+sym src/lib/features/file-icons/file-icons.logic.ts:42 fn parseIconValuePermissive(raw: string): { iconPack: IconPackId; iconName: string } | null L8 | Parses an icon value that may be either `pack:name` or a bare name.
+sym src/lib/features/file-icons/file-icons.logic.ts:200 fn extractViewIcon(content: string): { iconPack?: IconPackId; iconName?: string; color?: string; titleColor?: string } | null L13 | Extracts the icon and its colors from a `.view` file.
+sym src/lib/features/file-icons/file-icons.logic.ts:220 fn iconColorCss(color: string | undefined): string | undefined L5 | CSS color for an icon's `_color`: a type palette name (`green`, any case) becomes the active theme's token, `var(--type-green)`; any other value (a hex from th…
+sym src/lib/features/file-icons/file-icons.logic.ts:232 fn iconColorStyle(color: string | undefined): string | undefined L4 | The inline `style` that colors an item's default icon, a Lucide component drawn in `currentColor`, with the item's `_color` when it has no icon of its own: the…
+sym src/lib/features/file-icons/file-icons.logic.ts:243 fn readableIconColor(theme: AppliedThemeColors, color: string | undefined, surfaces: (string | null)[]): string | undefined L3 | An item's icon color (`iconColorCss`: a palette name becomes its theme token) as drawn on `surfaces` of the applied theme: lifted to 3:1 when it falls short, s…
 sym src/lib/features/file-icons/file-icons.service.ts:47 fn loadRecentIcons(vaultPath: string): Promise<void> L16 | Reads recently used icons from disk.
 sym src/lib/features/file-icons/file-icons.service.ts:77 fn trackRecentIcon(vaultPath: string, iconPack: IconPackId, iconName: string): Promise<void> L5 | Tracks an icon as recently used and persists to disk
 sym src/lib/features/file-icons/file-icons.service.ts:118 fn setIconForPath(vaultPath: string, path: string, iconPack: IconPackId, iconName: string, color?: string, textColor?: string, isDirecto… L28 | Sets a custom icon for a file/folder path. - .md files: writes to frontmatter (_icon, _color, _title_color). - Directories (isDirectory=true): writes to folder…

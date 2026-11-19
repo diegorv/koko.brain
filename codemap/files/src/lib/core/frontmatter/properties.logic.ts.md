@@ -70,7 +70,7 @@ sym src/lib/core/frontmatter/properties.logic.ts:35 fn configurePropertiesDiagno
 by src/lib/core/frontmatter/properties.logic.ts:configurePropertiesDiagnostics <- src/routes/(app)/+layout.svelte:32 in (script) call
 sym src/lib/core/frontmatter/properties.logic.ts:46 fn extractRawFrontmatter(content: string): string | null L4 | Extracts the raw YAML string from frontmatter delimiters.
 by src/lib/core/frontmatter/properties.logic.ts:extractRawFrontmatter <- src/lib/features/auto-organize/auto-organize.logic.ts:865 in propertyWriteSkipReason call
-by src/lib/core/frontmatter/properties.logic.ts:extractRawFrontmatter <- src/lib/features/file-icons/file-icons.logic.ts:84 in parseFrontmatterIconFields call
+by src/lib/core/frontmatter/properties.logic.ts:extractRawFrontmatter <- src/lib/features/file-icons/file-icons.logic.ts:85 in parseFrontmatterIconFields call
 sym src/lib/core/frontmatter/properties.logic.ts:55 fn extractBody(content: string): string L5 | Returns the body content after the frontmatter block.
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/core/frontmatter/frontmatter-write.service.ts:128 in attempt call
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:931 in dispatchMetaBindUpdate call
@@ -155,7 +155,7 @@ by src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing <- src/lib/f
 by src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing <- src/lib/features/event-calendar/EventCalendarSection.svelte:82 in openEventType call
 by src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing <- src/lib/features/note-action-bar/note-action-bar.logic.ts:31 in getActionBarState call
 by src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing <- src/lib/features/properties/PropertiesView.svelte:93 in typeName=$derived call
-by src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing <- src/lib/features/rail-shell/TypesNavigator.svelte:470 in (markup) markup +1
+by src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing <- src/lib/features/rail-shell/TypesNavigator.svelte:476 in (markup) markup +1
 by src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing <- src/lib/features/type-definitions/type-definitions.logic.ts:102 in extractTypeMetadata call +2
 by src/lib/core/frontmatter/properties.logic.ts:normalizeTypeCasing <- src/lib/features/type-definitions/type-definitions.store.svelte.ts:121 in buildTypeDefinitionPaths call
 ## locals

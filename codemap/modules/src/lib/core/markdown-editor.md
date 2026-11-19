@@ -55,7 +55,7 @@ file src/lib/core/markdown-editor/editor-tabs.logic.ts logic L38 module src/lib/
 file src/lib/core/markdown-editor/extensions/callout/callout.logic.ts logic L77 module src/lib/core/markdown-editor in3 t1
 file src/lib/core/markdown-editor/extensions/callout/callout.ts other L55 module src/lib/core/markdown-editor in1 t0
 file src/lib/core/markdown-editor/extensions/callout/index.ts other L1 module src/lib/core/markdown-editor in1 t0
-file src/lib/core/markdown-editor/extensions/composition-aware-bracket-matching.ts other L168 module src/lib/core/markdown-editor in1 t1
+file src/lib/core/markdown-editor/extensions/composition-aware-bracket-matching.ts other L170 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/extensions/date-shortcut/completion.logic.ts logic L46 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/extensions/date-shortcut/completion.ts other L35 module src/lib/core/markdown-editor in1 t0
 file src/lib/core/markdown-editor/extensions/lezer/highlight-extension.ts other L44 module src/lib/core/markdown-editor in1 t2

@@ -1,7 +1,7 @@
 # module card src/lib/utils
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/utils ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 90/112 ipc 3/0 card ~10k
+module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 93/115 ipc 3/0 card ~10.2k
 ## neighbors
 dep src/lib/app -> src/lib/utils 17
 dep src/lib/core/editor -> src/lib/utils 7
@@ -9,7 +9,7 @@ dep src/lib/core/filesystem -> src/lib/utils 13
 dep src/lib/core/frontmatter -> src/lib/utils 2
 dep src/lib/core/markdown-editor -> src/lib/utils 23
 dep src/lib/core/note-creator -> src/lib/utils 3
-dep src/lib/core/settings -> src/lib/utils 17
+dep src/lib/core/settings -> src/lib/utils 18
 dep src/lib/core/trash -> src/lib/utils 1
 dep src/lib/core/vault -> src/lib/utils 4
 dep src/lib/core/zoom -> src/lib/utils 1
@@ -56,7 +56,7 @@ entry src/lib/utils/path.ts ext-in29 src/lib/app/deep-link-actions.ts src/lib/ap
 entry src/lib/utils/date.ts ext-in16 src/lib/core/markdown-editor/extensions/date-shortcut/completion.logic.ts src/lib/core/settings/sections/PeriodicNotesSection.svelte src/lib/features/collection/calendar.logic.ts src/lib/features/file-history/file-history.logic.ts src/lib/features/tasks/TaskLists.svelte more importers 11 not shown: src/lib/features/tasks(5) src/lib/plugins/kanban(3) src/lib/plugins/calendar(1) +2 modules: q importers src/lib/utils/date.ts
 entry src/lib/utils/log.service.ts ext-in13 src/lib/app/AppShell.svelte src/lib/app/boot.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/core/editor/editor.service.ts src/lib/core/note-creator/note-creator.service.ts more importers 8 not shown: src/lib/features/rail-shell(2) src/lib/plugins/queryjs(2) src/lib/core/settings(1) +3 modules: q importers src/lib/utils/log.service.ts
 entry src/lib/utils/clamp.ts ext-in10 src/lib/core/editor/open-note-at.service.ts src/lib/core/settings/sections/FileHistorySection.svelte src/lib/core/settings/settings.logic.ts src/lib/features/auto-organize/AutoOrganizeSection.svelte src/lib/features/collection/expression/evaluator.ts more importers 5 not shown: src/lib/plugins/kanban(2) src/lib/plugins/queryjs(2) src/lib/features/rail-shell(1): q importers src/lib/utils/clamp.ts
-entry src/lib/utils/color.ts ext-in8 src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts src/lib/core/settings/sections/ThemePreview.svelte src/lib/core/settings/theme-builder.logic.ts src/lib/core/settings/theme.logic.ts src/lib/core/settings/theme.service.ts more importers 3 not shown: src/lib/features/collection(1) src/lib/features/rail-shell(1) src/lib/plugins/graph-view(1): q importers src/lib/utils/color.ts
+entry src/lib/utils/color.ts ext-in9 src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts src/lib/core/settings/sections/ThemePreview.svelte src/lib/core/settings/theme-builder.logic.ts src/lib/core/settings/theme-surfaces.logic.ts src/lib/core/settings/theme.logic.ts more importers 4 not shown: src/lib/core/settings(1) src/lib/features/collection(1) src/lib/features/rail-shell(1) +1 modules: q importers src/lib/utils/color.ts
 entry src/lib/utils/fuzzy-match.ts ext-in7 src/lib/core/filesystem/file-entries.logic.ts src/lib/core/markdown-editor/extensions/tag/completion.logic.ts src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts src/lib/core/markdown-editor/extensions/wikilink/completion.ts src/lib/features/command-palette/command-palette.logic.ts more importers 2 not shown: src/lib/features/quick-switcher(1) src/lib/plugins/mods(1): q importers src/lib/utils/fuzzy-match.ts
 entry src/lib/utils/tag-extraction.ts ext-in7 src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/tag-handler.ts src/lib/features/collection/collection.logic.ts src/lib/features/search/search.logic.ts src/lib/features/tasks/task-headings.logic.ts more importers 2 not shown: src/lib/features/tasks(1) src/lib/features/todoist-sync(1): q importers src/lib/utils/tag-extraction.ts
 entry src/lib/utils/color-presets.ts ext-in6 src/lib/features/collection/expression/evaluator.ts src/lib/plugins/kanban/KanbanCard.svelte src/lib/plugins/kanban/KanbanCardText.svelte src/lib/plugins/kanban/KanbanListView.svelte src/lib/plugins/kanban/KanbanTableView.svelte more importers 1 not shown: src/lib/plugins/queryjs(1): q importers src/lib/utils/color-presets.ts
@@ -86,7 +86,7 @@ file src/lib/utils/build-info.js other L167 module src/lib/utils in1 t1
 file src/lib/utils/capture-path.ts other L14 module src/lib/utils in3 t1
 file src/lib/utils/clamp.ts other L9 module src/lib/utils in10 t1
 file src/lib/utils/color-presets.ts other L39 module src/lib/utils in6 t1
-file src/lib/utils/color.ts other L203 module src/lib/utils in8 t10
+file src/lib/utils/color.ts other L244 module src/lib/utils in9 t21
 file src/lib/utils/date.ts other L170 module src/lib/utils in17 t3
 file src/lib/utils/debounce.ts other L55 module src/lib/utils in4 t4
 file src/lib/utils/debug.ts other L166 module src/lib/utils in74 t53
@@ -107,7 +107,7 @@ file src/lib/utils/platform.ts other L40 module src/lib/utils in5 t4
 file src/lib/utils/roving-list.ts other L93 module src/lib/utils in3 t1 | The generic keyboard model of a roving-tabindex list: which row a key focuses, which row stays current when the list changes, and which row holds the list's on…
 file src/lib/utils/sanitize-url.ts other L15 module src/lib/utils in5 t1
 file src/lib/utils/sanitize.ts other L86 module src/lib/utils in6 t1
-file src/lib/utils/tag-colors.ts other L44 module src/lib/utils in4 t1
+file src/lib/utils/tag-colors.ts other L44 module src/lib/utils in4 t3
 file src/lib/utils/tag-extraction.ts other L152 module src/lib/utils in7 t4
 file src/lib/utils/task-tokens.ts other L128 module src/lib/utils in3 t3 | Due date and priority token patches on a task text (Rust `Task.text`, the part after `[ ] `).
 file src/lib/utils/template.ts other L216 module src/lib/utils in2 t4
@@ -120,10 +120,13 @@ sym src/lib/utils/color-presets.ts:23 const COLOR_PRESET_BG: Record<string, stri
 sym src/lib/utils/color-presets.ts:28 const COLOR_PRESET_TEXT: Record<string, string> L3 | Named color presets with full opacity for text/bars.
 sym src/lib/utils/color-presets.ts:37 const COLOR_PRESET_CHIP_TEXT: Record<string, string> L3 | Named color presets for text on a `COLOR_PRESET_BG` chip: the preset moved 70% toward `--editor-fg`, so it keeps its hue and stays readable on the chip tint.
 sym src/lib/utils/color.ts:48 fn flatten(color: string, base: string): string | null L7 | Composites `color` (alpha honored) over the opaque `base` into a 6-digit hex; null when either is unparseable.
-sym src/lib/utils/color.ts:71 fn isDarkColor(color: string): boolean | null L4 | True when a background color is dark (WCAG relative luminance below 0.2), false when light, null when the value is not a hex, rgb() or oklch() color.
-sym src/lib/utils/color.ts:127 fn ensureContrast(fg: string, bg: string, min: number): string L20 | Returns `fg` moved in OKLab toward white or black by the smallest 1% step that reaches `min` contrast on `bg`, keeping its hue family and any 8-digit alpha suf…
-sym src/lib/utils/color.ts:152 fn mixColors(a: string, b: string, t = 0.5): string | null L8 | OKLab mix of two colors as a 6-digit hex (alpha ignored): `t` is the share of `b`, 0.5 (the midpoint) by default.
-sym src/lib/utils/color.ts:198 fn labelColors(color: string): { fill: string; text: '#000000' | '#ffffff' } | null L6 | Fill and text for a label drawn on `color` (a badge, an event bar).
+sym src/lib/utils/color.ts:61 fn tint(color: string, share: number, base: string): string | null L7 | Composites `color` at `share` of its own alpha over the opaque `base` into a 6-digit hex: what Tailwind's `bg-x/25` or `color-mix(in oklch, x 18%, transparent)…
+sym src/lib/utils/color.ts:84 fn isDarkColor(color: string): boolean | null L4 | True when a background color is dark (WCAG relative luminance below 0.2), false when light, null when the value is not a hex, rgb() or oklch() color.
+sym src/lib/utils/color.ts:140 fn ensureContrast(fg: string, bg: string, min: number): string L20 | Returns `fg` moved in OKLab toward white or black by the smallest 1% step that reaches `min` contrast on `bg`, keeping its hue family and any 8-digit alpha suf…
+sym src/lib/utils/color.ts:167 fn ensureContrastOn(fg: string, bgs: string[], min: number): string L9 | `ensureContrast` against several backgrounds at once (a row and its hover or selected tint): lifts `fg` until it reaches `min` on each of `bgs`.
+sym src/lib/utils/color.ts:182 fn shiftLightness(color: string, delta: number): string | null L6 | Moves a color's OKLab lightness by `delta` (-1 to 1) keeping a and b, the TS twin of CSS `oklch(from x calc(l + delta) c h)`, as a 6-digit hex clamped to the s…
+sym src/lib/utils/color.ts:193 fn mixColors(a: string, b: string, t = 0.5): string | null L8 | OKLab mix of two colors as a 6-digit hex (alpha ignored): `t` is the share of `b`, 0.5 (the midpoint) by default.
+sym src/lib/utils/color.ts:239 fn labelColors(color: string): { fill: string; text: '#000000' | '#ffffff' } | null L6 | Fill and text for a label drawn on `color` (a badge, an event bar).
 sym src/lib/utils/date.ts:15 fn formatNow(outputFormat: string, offsetDays: number = 0): string L3 | Returns the current datetime formatted, with an optional day offset.
 sym src/lib/utils/date.ts:42 fn formatDate(date: dayjs.ConfigType, format: string): string L3 | Formats a date value (string, Date, dayjs, etc.) into the given format string.
 sym src/lib/utils/date.ts:92 fn formatToCapturingRegex(format: string): RegExp L36 | Converts a dayjs format string into an anchored regex (`^...$`) with named capture groups.

@@ -18,9 +18,9 @@ imp src/lib/app/boot.ts:15 -> src/lib/features/type-definitions/type-sidebar.log
 imp src/lib/app/commands.ts:21 -> src/lib/features/type-definitions/type-sidebar.logic.ts collectViewFiles,getViewLabel,getViewOpensInEditor,getViewVisible
 imp src/lib/app/editor-host.ts:31 -> src/lib/features/type-definitions/type-sidebar.logic.ts getViewOpensInEditor
 imp src/lib/features/event-calendar/event-calendar-event.logic.ts:17 -> src/lib/features/type-definitions/type-sidebar.logic.ts excludeSystemFolder
-imp src/lib/features/note-list/NoteRow.svelte:13 -> src/lib/features/type-definitions/type-sidebar.logic.ts splitPropertyIntoPills
+imp src/lib/features/note-list/NoteRow.svelte:15 -> src/lib/features/type-definitions/type-sidebar.logic.ts splitPropertyIntoPills
 imp src/lib/features/note-list/NoteRowMenu.svelte:34 -> src/lib/features/type-definitions/type-sidebar.logic.ts getViewVisible
-imp src/lib/features/rail-shell/Rail.svelte:27 -> src/lib/features/type-definitions/type-sidebar.logic.ts excludeSystemFolder
+imp src/lib/features/rail-shell/Rail.svelte:28 -> src/lib/features/type-definitions/type-sidebar.logic.ts excludeSystemFolder
 imp src/lib/features/rail-shell/RailArchivedMenu.svelte:5 -> src/lib/features/type-definitions/type-sidebar.logic.ts type:ArchivedFilter
 imp src/lib/features/rail-shell/RailNoteList.svelte:47 -> src/lib/features/type-definitions/type-sidebar.logic.ts effectiveViewSortLabel,getViewListProperties,getViewSort
 imp src/lib/features/rail-shell/RailNoteList.svelte:62 -> src/lib/features/type-definitions/type-sidebar.logic.ts type:ArchivedFilter
@@ -35,7 +35,7 @@ imp src/lib/plugins/calendar/day-lens.logic.ts:4 -> src/lib/features/type-defini
 imp src/lib/plugins/queryjs/kb-api.ts:15 -> src/lib/features/type-definitions/type-sidebar.logic.ts excludeSystemFolder,isListableNote
 ## reach
 in2 src/lib/features/type-definitions/type-sidebar.logic.ts 42 files in 16 modules: src/lib/features/event-calendar(12) src/lib/features/rail-shell(8) src/lib/app(5) src/lib/features/auto-organize(2) src/lib/plugins/calendar(2) +11 modules: q impact src/lib/features/type-definitions/type-sidebar.logic.ts --depth 2
-out2 src/lib/features/type-definitions/type-sidebar.logic.ts 5 files in 5 modules: src/lib/contracts(1) src/lib/core/frontmatter(1) src/lib/core/settings(1) src/lib/features/file-icons(1) src/lib/utils(1)
+out2 src/lib/features/type-definitions/type-sidebar.logic.ts 6 files in 5 modules: src/lib/core/settings(2) src/lib/contracts(1) src/lib/core/frontmatter(1) src/lib/features/file-icons(1) src/lib/utils(1)
 ## tests
 test src/tests/lib/features/type-definitions/type-sidebar.logic.test.ts imports src/lib/features/type-definitions/type-sidebar.logic.ts mirror
 test src/tests/help/type-definitions-views.test.ts imports src/lib/features/type-definitions/type-sidebar.logic.ts
@@ -62,7 +62,7 @@ by src/lib/features/type-definitions/type-sidebar.logic.ts:TypeSidebarSelection 
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:65 fn excludeSystemFolder<T extends { path: string }>(entries: T[], vaultPath: string | null | undefined, systemFolder: string): T[] L11 | Returns a new array containing only entries whose `path` is outside the configured system folder.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/app/AppShell.svelte:69 in $effect@66 call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/event-calendar/event-calendar-event.logic.ts:252 in eventsFromEntries call
-by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/rail-shell/Rail.svelte:69 in inboxCount=$derived call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/rail-shell/Rail.svelte:72 in inboxCount=$derived call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/rail-shell/lens.logic.ts:330 in listEntries call +4
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/plugins/calendar/day-lens.logic.ts:48 in noteDateCounts call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/plugins/queryjs/kb-api.ts:477 in KBAPI.ensureCache call
@@ -83,7 +83,7 @@ by src/lib/features/type-definitions/type-sidebar.logic.ts:formatRelativeTime <-
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:283 fn formatPropertyValue(value: unknown): string L7 | Formats a frontmatter value for display.
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:291 interface PropertyPill L4
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:297 fn splitPropertyIntoPills(value: unknown): PropertyPill[] L22 | Splits a property value into pills, extracting wikilinks as separate entries.
-by src/lib/features/type-definitions/type-sidebar.logic.ts:splitPropertyIntoPills <- src/lib/features/note-list/NoteRow.svelte:146 in (markup) markup
+by src/lib/features/type-definitions/type-sidebar.logic.ts:splitPropertyIntoPills <- src/lib/features/note-list/NoteRow.svelte:154 in (markup) markup
 by src/lib/features/type-definitions/type-sidebar.logic.ts:splitPropertyIntoPills <- src/lib/features/rail-shell/list-search.logic.ts:28 in noteMatchesListQuery call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:321 interface ViewFileEntry L6 | A .view file entry for sidebar rendering.
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:329 fn collectViewFiles(tree: FileTreeNode[]): ViewFileEntry[] L6 | Collects .view files from the file tree, sorted by name in natural order ("Week 2" before "Week 10").

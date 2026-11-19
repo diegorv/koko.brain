@@ -27,12 +27,12 @@ imp src/lib/app/AppShell.svelte:38 -> src/lib/features/rail-shell/lens.logic.ts 
 imp src/lib/app/boot.ts:13 -> src/lib/features/rail-shell/lens.logic.ts blockRowSet,viewEntriesLoaded,viewRowSet
 imp src/lib/app/commands.ts:17 -> src/lib/features/rail-shell/lens.logic.ts FILES_RAIL_ITEM,pinnedRailItems
 imp src/lib/app/rail-navigation.ts:4 -> src/lib/features/rail-shell/lens.logic.ts SEARCH_RAIL_ITEM,TYPES_RAIL_ITEM,VIEW_LENS_KIND
-imp src/lib/features/quick-switcher/QuickSwitcher.svelte:16 -> src/lib/features/rail-shell/lens.logic.ts fileKind
-imp src/lib/features/rail-shell/FilesNavigator.svelte:58 -> src/lib/features/rail-shell/lens.logic.ts FILES_LENS,FOLDER_LENS_KIND,folderFiles,navigatorFolders,systemFolderPredicate,systemFoldersLast,VIEW_LENS_KIND,viewLabels
+imp src/lib/features/quick-switcher/QuickSwitcher.svelte:18 -> src/lib/features/rail-shell/lens.logic.ts fileKind
+imp src/lib/features/rail-shell/FilesNavigator.svelte:60 -> src/lib/features/rail-shell/lens.logic.ts FILES_LENS,FOLDER_LENS_KIND,folderFiles,navigatorFolders,systemFolderPredicate,systemFoldersLast,VIEW_LENS_KIND,viewLabels
 imp src/lib/features/rail-shell/LayoutSection.svelte:8 -> src/lib/features/rail-shell/lens.logic.ts SEARCH_RAIL_ITEM,TODAY_RAIL_ITEM
-imp src/lib/features/rail-shell/Rail.svelte:29 -> src/lib/features/rail-shell/lens.logic.ts pinnedRailItems
+imp src/lib/features/rail-shell/Rail.svelte:30 -> src/lib/features/rail-shell/lens.logic.ts pinnedRailItems
 imp src/lib/features/rail-shell/RailNoteList.svelte:66 -> src/lib/features/rail-shell/lens.logic.ts FOLDER_LENS_KIND,INBOX_LENS,lensListsEntries,newNoteRule,queryViewLens,resolveLens,resolveViewLens,TODAY_DATED_GROUP,TODAY_LENS_KIND,todayLens,VIEW_LENS_KIND,viewEntriesLoaded,viewLoadFromQuery,viewNoteType,viewReadError
-imp src/lib/features/rail-shell/TypesNavigator.svelte:52 -> src/lib/features/rail-shell/lens.logic.ts sameLens,VIEW_LENS_KIND,viewEntriesLoaded,viewLabels
+imp src/lib/features/rail-shell/TypesNavigator.svelte:54 -> src/lib/features/rail-shell/lens.logic.ts sameLens,VIEW_LENS_KIND,viewEntriesLoaded,viewLabels
 imp src/lib/features/rail-shell/files-navigator.service.ts:3 -> src/lib/features/rail-shell/lens.logic.ts followFolderPathChange
 imp src/lib/features/rail-shell/list-empty.logic.ts:2 -> src/lib/features/rail-shell/lens.logic.ts ARCHIVE_LENS,FAVORITES_LENS,FOLDER_LENS_KIND,INBOX_LENS,NEIGHBOURHOOD_LENS_KIND,TYPES_LENS,UNTYPED_LENS,VIEW_LENS_KIND
 imp src/lib/features/rail-shell/neighbourhood.service.ts:3 -> src/lib/features/rail-shell/lens.logic.ts NEIGHBOURHOOD_RAIL_ITEM,TODAY_RAIL_ITEM
@@ -102,16 +102,16 @@ sym src/lib/features/rail-shell/lens.logic.ts:106 const TYPES_LENS: Lens L1 | Th
 by src/lib/features/rail-shell/lens.logic.ts:TYPES_LENS <- src/lib/features/rail-shell/list-empty.logic.ts:115 in explainEmptyList member +1
 sym src/lib/features/rail-shell/lens.logic.ts:109 const VIEW_LENS_KIND L1 | The lens kind of a `.view` file; its target is the file's absolute path.
 by src/lib/features/rail-shell/lens.logic.ts:VIEW_LENS_KIND <- src/lib/app/rail-navigation.ts:58 in openRailView ref
-by src/lib/features/rail-shell/lens.logic.ts:VIEW_LENS_KIND <- src/lib/features/rail-shell/FilesNavigator.svelte:482 in (markup) markup
+by src/lib/features/rail-shell/lens.logic.ts:VIEW_LENS_KIND <- src/lib/features/rail-shell/FilesNavigator.svelte:487 in (markup) markup
 by src/lib/features/rail-shell/lens.logic.ts:VIEW_LENS_KIND <- src/lib/features/rail-shell/RailNoteList.svelte:154 in viewPath=$derived ref
-by src/lib/features/rail-shell/lens.logic.ts:VIEW_LENS_KIND <- src/lib/features/rail-shell/TypesNavigator.svelte:67 in viewRows=$derived ref +2
+by src/lib/features/rail-shell/lens.logic.ts:VIEW_LENS_KIND <- src/lib/features/rail-shell/TypesNavigator.svelte:69 in viewRows=$derived ref +2
 by src/lib/features/rail-shell/lens.logic.ts:VIEW_LENS_KIND <- src/lib/features/rail-shell/list-empty.logic.ts:120 in explainEmptyList ref
 sym src/lib/features/rail-shell/lens.logic.ts:112 const FOLDER_LENS_KIND L1 | The lens kind of a Files navigator folder; its target is the folder's absolute path, none is the vault root.
-by src/lib/features/rail-shell/lens.logic.ts:FOLDER_LENS_KIND <- src/lib/features/rail-shell/FilesNavigator.svelte:150 in lensFor ref +1
+by src/lib/features/rail-shell/lens.logic.ts:FOLDER_LENS_KIND <- src/lib/features/rail-shell/FilesNavigator.svelte:152 in lensFor ref +1
 by src/lib/features/rail-shell/lens.logic.ts:FOLDER_LENS_KIND <- src/lib/features/rail-shell/RailNoteList.svelte:597 in currentNewNoteRule ref
 by src/lib/features/rail-shell/lens.logic.ts:FOLDER_LENS_KIND <- src/lib/features/rail-shell/list-empty.logic.ts:116 in explainEmptyList ref +1
 sym src/lib/features/rail-shell/lens.logic.ts:115 const FILES_LENS: Lens L1 | The Files rail item's lens before a folder is picked: the vault root.
-by src/lib/features/rail-shell/lens.logic.ts:FILES_LENS <- src/lib/features/rail-shell/FilesNavigator.svelte:150 in lensFor ref +1
+by src/lib/features/rail-shell/lens.logic.ts:FILES_LENS <- src/lib/features/rail-shell/FilesNavigator.svelte:152 in lensFor ref +1
 sym src/lib/features/rail-shell/lens.logic.ts:118 const TODAY_RAIL_ITEM L1 | The rail item that shows the Today lens.
 by src/lib/features/rail-shell/lens.logic.ts:TODAY_RAIL_ITEM <- src/lib/features/rail-shell/LayoutSection.svelte:34 in FIXED_DESCRIPTIONS ref +1
 by src/lib/features/rail-shell/lens.logic.ts:TODAY_RAIL_ITEM <- src/lib/features/rail-shell/neighbourhood.service.ts:33 in registerNeighbourhoodPathChangeConsumer ref
@@ -140,7 +140,7 @@ by src/lib/features/rail-shell/lens.logic.ts:restoreRailItem <- src/lib/app/AppS
 sym src/lib/features/rail-shell/lens.logic.ts:219 fn pinnedRailItems(entries: readonly NoteEntryV2[], typeMetadataMap: Map<string, TypeMetadata>): RailPin[] L21 | The rail's pinned items: every `.view` and type definition in the entries snapshot whose `_rail` is the YAML boolean `true` (only the canonical spelling; `"tru…
 by src/lib/features/rail-shell/lens.logic.ts:pinnedRailItems <- src/lib/app/AppShell.svelte:177 in $effect@161 call
 by src/lib/features/rail-shell/lens.logic.ts:pinnedRailItems <- src/lib/app/commands.ts:68 in railGoToCommands call
-by src/lib/features/rail-shell/lens.logic.ts:pinnedRailItems <- src/lib/features/rail-shell/Rail.svelte:95 in items=$derived call
+by src/lib/features/rail-shell/lens.logic.ts:pinnedRailItems <- src/lib/features/rail-shell/Rail.svelte:98 in items=$derived call
 sym src/lib/features/rail-shell/lens.logic.ts:247 fn staleRailPinFix(railItem: unknown, pinned: readonly RailPin[]): Pick<Partial<LayoutSettings>, 'railItem'> | null L4 | The layout change that sends a saved pin that is no longer pinned (file gone, `_rail` removed) back to the default item: `{ railItem }` when `railItem` is a pi…
 by src/lib/features/rail-shell/lens.logic.ts:staleRailPinFix <- src/lib/app/AppShell.svelte:177 in $effect@161 call
 sym src/lib/features/rail-shell/lens.logic.ts:260 fn noteSubtitle(entry: NoteEntryV2, vaultPath: string | null, { withFolder = true }: { withFolder?: boolean } = {}): string L3 | The row's second line: the note's modified time in relative form (`formatRelativeTime`, the order most lists sort by) and its vault-relative folder.
@@ -156,14 +156,14 @@ by src/lib/features/rail-shell/lens.logic.ts:lensListsEntries <- src/lib/feature
 sym src/lib/features/rail-shell/lens.logic.ts:474 fn viewEntriesLoaded(store: { readonly entries: readonly { path: string }[]; readonly entriesVersion: number }, propertyIndex: ReadonlyMap<… L11 | Whether this vault's entries have landed, for a `.view`'s row set (`viewRowSet` drops a record with no entry).
 by src/lib/features/rail-shell/lens.logic.ts:viewEntriesLoaded <- src/lib/app/boot.ts:79 in registerAppPorts call
 by src/lib/features/rail-shell/lens.logic.ts:viewEntriesLoaded <- src/lib/features/rail-shell/RailNoteList.svelte:260 in loadView call
-by src/lib/features/rail-shell/lens.logic.ts:viewEntriesLoaded <- src/lib/features/rail-shell/TypesNavigator.svelte:108 in $effect@96 call
+by src/lib/features/rail-shell/lens.logic.ts:viewEntriesLoaded <- src/lib/features/rail-shell/TypesNavigator.svelte:114 in $effect@102 call
 sym src/lib/features/rail-shell/lens.logic.ts:495 fn typeNavigatorRows(ctx: Pick<LensContext, 'entries' | 'vaultPath' | 'systemFolder' | 'typeMetadataMap'>, showUntyped: boolean): TypeNavig… L25 | The Types navigator's rows: the visible types in sidebar order, each with the number of notes its lens lists, then Untyped when `showUntyped` is on.
 by src/lib/features/rail-shell/lens.logic.ts:typeNavigatorRows <- src/lib/app/AppShell.svelte:133 in entryTypeRows=$derived call
 sym src/lib/features/rail-shell/lens.logic.ts:526 fn parseTypesPick(saved: unknown): Lens | null L7 | The Types navigator pick saved in `layout.railTypesLens`.
 sym src/lib/features/rail-shell/lens.logic.ts:539 fn pickedTypesLens(saved: unknown, rows: readonly TypeNavigatorRow[]): Lens L3 | The lens the Types rail item shows: the saved pick (kept even when the snapshot does not list it yet, as right after New type or a rename), else the first row,…
 by src/lib/features/rail-shell/lens.logic.ts:pickedTypesLens <- src/lib/app/AppShell.svelte:148 in railLens=$derived call
 sym src/lib/features/rail-shell/lens.logic.ts:544 fn sameLens(a: Lens, b: Lens): boolean L3 | True when two lenses pick the same thing.
-by src/lib/features/rail-shell/lens.logic.ts:sameLens <- src/lib/features/rail-shell/TypesNavigator.svelte:278 in (markup) markup +1
+by src/lib/features/rail-shell/lens.logic.ts:sameLens <- src/lib/features/rail-shell/TypesNavigator.svelte:284 in (markup) markup +1
 sym src/lib/features/rail-shell/lens.logic.ts:559 fn staleTypesPickFix(railItem: unknown, saved: unknown, rows: readonly TypeNavigatorRow[], viewPaths: readonly string[]): Pick<Partial<Layo… L11 | The layout change that drops a saved Types pick that no longer exists (a view gone from the tree, a deleted type, or Untyped with untyped notes hidden): the pi…
 by src/lib/features/rail-shell/lens.logic.ts:staleTypesPickFix <- src/lib/app/AppShell.svelte:173 in $effect@161 call
 sym src/lib/features/rail-shell/lens.logic.ts:572 interface TypesPickCheck L10 | Where the once-per-vault-open stale Types pick check stands.
@@ -179,8 +179,8 @@ by src/lib/features/rail-shell/lens.logic.ts:newNoteContent <- src/lib/features/
 sym src/lib/features/rail-shell/lens.logic.ts:659 fn viewNavigatorRows(tree: FileTreeNode[], entriesByPath: Map<string, NoteEntryV2>): TypeNavigatorRow[] L24 | The Views part of the Types navigator: every `.view` file in the tree but the hidden ones (`_visible: false`), labelled by its `_sidebar_label`, marked to open…
 by src/lib/features/rail-shell/lens.logic.ts:viewNavigatorRows <- src/lib/app/AppShell.svelte:128 in viewRows=$derived call
 sym src/lib/features/rail-shell/lens.logic.ts:689 fn viewLabels(tree: FileTreeNode[], entriesByPath: Map<string, NoteEntryV2>, exceptPath?: string): string[] L5 | The label of every `.view` in the tree, hidden ones included, except the one at `exceptPath`: the names New view refuses, and Edit view with the edited view's …
-by src/lib/features/rail-shell/lens.logic.ts:viewLabels <- src/lib/features/rail-shell/FilesNavigator.svelte:481 in (markup) markup
-by src/lib/features/rail-shell/lens.logic.ts:viewLabels <- src/lib/features/rail-shell/TypesNavigator.svelte:476 in (markup) markup +1
+by src/lib/features/rail-shell/lens.logic.ts:viewLabels <- src/lib/features/rail-shell/FilesNavigator.svelte:486 in (markup) markup
+by src/lib/features/rail-shell/lens.logic.ts:viewLabels <- src/lib/features/rail-shell/TypesNavigator.svelte:482 in (markup) markup +1
 sym src/lib/features/rail-shell/lens.logic.ts:696 interface ViewQueryOverrides L8 | The Sort and Filter toolbar state that replaces a view's saved filters and sort.
 sym src/lib/features/rail-shell/lens.logic.ts:706 type ViewRowContext L1 | What a `.view`'s row set reads besides the matched records.
 sym src/lib/features/rail-shell/lens.logic.ts:720 fn viewRowSet<T extends { path: string }>(records: readonly T[], view: CollectionViewDef, viewPath: string, ctx: ViewRowContext, def… L18 | The one row set of a `.view` view, which the editor (through the collection row-set port), the rail's view lens and the navigator count all use.
@@ -207,15 +207,15 @@ sym src/lib/features/rail-shell/lens.logic.ts:869 fn describeViewFilters(groups:
 sym src/lib/features/rail-shell/lens.logic.ts:895 fn viewNoteType(groups: readonly FilterGroup[], knownTypes: Iterable<string>): string | null L15 | The type a view's "+ New here" note gets: the value of its one `_type` equality filter, in the casing of the matching known type.
 by src/lib/features/rail-shell/lens.logic.ts:viewNoteType <- src/lib/features/rail-shell/RailNoteList.svelte:366 in viewTypeName=$derived call
 sym src/lib/features/rail-shell/lens.logic.ts:916 fn fileKind(name: string): FileKind L10 | The kind of a file, from its name's extension (case-insensitive).
-by src/lib/features/rail-shell/lens.logic.ts:fileKind <- src/lib/features/quick-switcher/QuickSwitcher.svelte:130 in (markup) markup
+by src/lib/features/rail-shell/lens.logic.ts:fileKind <- src/lib/features/quick-switcher/QuickSwitcher.svelte:135 in (markup) markup
 sym src/lib/features/rail-shell/lens.logic.ts:948 fn navigatorFolders(nodes: readonly FileTreeNode[] | undefined): FileTreeNode[] L3 | The folders of a tree level the Files navigator shows: directories, hidden ones left out, in tree order.
-by src/lib/features/rail-shell/lens.logic.ts:navigatorFolders <- src/lib/features/rail-shell/FilesNavigator.svelte:98 in topFolders=$derived call +1
+by src/lib/features/rail-shell/lens.logic.ts:navigatorFolders <- src/lib/features/rail-shell/FilesNavigator.svelte:100 in topFolders=$derived call +1
 sym src/lib/features/rail-shell/lens.logic.ts:957 fn folderFiles(nodes: readonly FileTreeNode[] | undefined): FileTreeNode[] L3 | The files of a tree level a folder lens lists: files of every kind, hidden ones left out, in tree order.
-by src/lib/features/rail-shell/lens.logic.ts:folderFiles <- src/lib/features/rail-shell/FilesNavigator.svelte:506 in (markup) markup
+by src/lib/features/rail-shell/lens.logic.ts:folderFiles <- src/lib/features/rail-shell/FilesNavigator.svelte:513 in (markup) markup
 sym src/lib/features/rail-shell/lens.logic.ts:967 fn systemFolderPredicate(vaultPath: string, folders: readonly string[]): (path: string) => boolean L5 | Whether a tree path is one of the configured system folders (`templates.systemFolder`, `templates.folder`) or lies under one.
-by src/lib/features/rail-shell/lens.logic.ts:systemFolderPredicate <- src/lib/features/rail-shell/FilesNavigator.svelte:90 in isSystem=$derived call
+by src/lib/features/rail-shell/lens.logic.ts:systemFolderPredicate <- src/lib/features/rail-shell/FilesNavigator.svelte:92 in isSystem=$derived call
 sym src/lib/features/rail-shell/lens.logic.ts:974 fn systemFoldersLast(folders: readonly FileTreeNode[], isSystem: (path: string) => boolean): FileTreeNode[] L3 | `folders` with the system ones moved after the others, each half in its incoming order.
-by src/lib/features/rail-shell/lens.logic.ts:systemFoldersLast <- src/lib/features/rail-shell/FilesNavigator.svelte:100 in topFolders=$derived call
+by src/lib/features/rail-shell/lens.logic.ts:systemFoldersLast <- src/lib/features/rail-shell/FilesNavigator.svelte:102 in topFolders=$derived call
 sym src/lib/features/rail-shell/lens.logic.ts:1047 fn pickedFolderLens(saved: unknown): Lens L3 | The Files navigator's pick saved in `layout.railFolder` as a lens; anything but a non-empty string is the vault root.
 by src/lib/features/rail-shell/lens.logic.ts:pickedFolderLens <- src/lib/app/AppShell.svelte:150 in railLens=$derived call
 sym src/lib/features/rail-shell/lens.logic.ts:1052 fn parseExpandedFolders(saved: unknown): string[] L3 | The expanded folders saved in `layout.railExpandedFolders`; a hand-edited non-array reads as none, non-strings are dropped.

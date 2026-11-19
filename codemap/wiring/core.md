@@ -25,9 +25,9 @@ reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver sink src/lib/core
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver read-by src/lib/core/editor/editor.hooks.ts:119 notifyNoteCreated
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/app/commands.ts:162 in getBuiltInCommands
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/core/note-creator/note-creator.service.ts:130 in openOrCreateNote
-reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/quick-switcher/QuickSwitcher.svelte:110 in createAndOpenNote <- src/lib/features/quick-switcher/QuickSwitcher.svelte:124 in handleInputKeydown <- src/lib/features/quick-switcher/QuickSwitcher.svelte:163 in (markup)
-reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/quick-switcher/QuickSwitcher.svelte:110 in createAndOpenNote <- src/lib/features/quick-switcher/QuickSwitcher.svelte:190 in (markup)
-reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/rail-shell/FilesNavigator.svelte:170 in handleNewFile <- src/lib/features/rail-shell/FilesNavigator.svelte:128 in createItems=$derived
+reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/quick-switcher/QuickSwitcher.svelte:114 in createAndOpenNote <- src/lib/features/quick-switcher/QuickSwitcher.svelte:128 in handleInputKeydown <- src/lib/features/quick-switcher/QuickSwitcher.svelte:168 in (markup)
+reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/quick-switcher/QuickSwitcher.svelte:114 in createAndOpenNote <- src/lib/features/quick-switcher/QuickSwitcher.svelte:195 in (markup)
+reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/rail-shell/FilesNavigator.svelte:172 in handleNewFile <- src/lib/features/rail-shell/FilesNavigator.svelte:130 in createItems=$derived
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/rail-shell/new-note.service.ts:41 in createNoteHere
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver registered-at src/lib/plugins/mods/mods-host.service.ts:681 in createModContext args=(filePath) => { const path = vaultRelativeKey(vaultPath, filePath); if (path ==… -> src/lib/plugins/mods/mods-host.service.ts:createModContext
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver invoked-at src/lib/plugins/mods/mods-host.service.ts:836 in loadMod

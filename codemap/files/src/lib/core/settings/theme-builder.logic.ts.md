@@ -1,6 +1,6 @@
 # file card src/lib/core/settings/theme-builder.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/settings/theme-builder.logic.ts ' codemap/files
-file src/lib/core/settings/theme-builder.logic.ts logic L318 module src/lib/core/settings in3 t10
+file src/lib/core/settings/theme-builder.logic.ts logic L318 module src/lib/core/settings in3 t11
 ## imports
 imp src/lib/core/settings/theme-builder.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:Theme,type:ThemeColors
 imp src/lib/core/settings/theme-builder.logic.ts:2 -> src/lib/utils/color.ts ensureContrast,flatten,mixColors
@@ -13,6 +13,7 @@ in2 src/lib/core/settings/theme-builder.logic.ts 24 files in 11 modules: src/lib
 out2 src/lib/core/settings/theme-builder.logic.ts 1 files in 1 modules: src/lib/core/settings(1)
 ## tests
 test src/tests/lib/core/settings/theme-builder.logic.test.ts imports src/lib/core/settings/theme-builder.logic.ts mirror
+test src/tests/fixtures/hard-palette-themes.fixture.ts imports src/lib/core/settings/theme-builder.logic.ts
 test src/tests/lib/core/settings/AppearanceSection.test.ts imports src/lib/core/settings/theme-builder.logic.ts
 test src/tests/lib/core/settings/settings.service.test.ts imports src/lib/core/settings/theme-builder.logic.ts
 test src/tests/lib/core/settings/theme-catalog.service.test.ts imports src/lib/core/settings/theme-builder.logic.ts
@@ -24,7 +25,7 @@ test src/tests/lib/core/settings/theme.logic.test.ts imports src/lib/core/settin
 test src/tests/lib/features/rail-shell/RailNoteList.test.ts imports src/lib/core/settings/theme-builder.logic.ts
 ## symbols
 sym src/lib/core/settings/theme-builder.logic.ts:8 const TYPE_PALETTE_NAMES L1 | Names of the categorical type palette.
-by src/lib/core/settings/theme-builder.logic.ts:TYPE_PALETTE_NAMES <- src/lib/features/file-icons/file-icons.logic.ts:222 in iconColorCss ref
+by src/lib/core/settings/theme-builder.logic.ts:TYPE_PALETTE_NAMES <- src/lib/features/file-icons/file-icons.logic.ts:223 in iconColorCss ref
 sym src/lib/core/settings/theme-builder.logic.ts:11 const TYPE_PALETTE_TOKENS L3 | UI token keys of the type palette, in `TYPE_PALETTE_NAMES` order.
 sym src/lib/core/settings/theme-builder.logic.ts:19 interface CorePalette L60 | Core palette of a built-in theme; `buildTheme` derives every other token from it.
 by src/lib/core/settings/theme-builder.logic.ts:CorePalette <- src/lib/core/settings/theme-package.logic.ts:2 in (module) import

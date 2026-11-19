@@ -15,7 +15,7 @@ imp src/lib/features/properties/RelationshipSearch.svelte:12 -> src/lib/features
 imp src/lib/features/properties/PropertiesView.svelte:41 -> src/lib/features/properties/RelationshipSearch.svelte default
 ## reach
 in2 src/lib/features/properties/RelationshipSearch.svelte 1 files in 1 modules: src/lib/app(1)
-out2 src/lib/features/properties/RelationshipSearch.svelte 12 files in 9 modules: src/lib/features/file-icons(3) src/lib/utils(2) src/lib/components(1) src/lib/contracts(1) src/lib/core/filesystem(1) +4 modules
+out2 src/lib/features/properties/RelationshipSearch.svelte 13 files in 9 modules: src/lib/features/file-icons(3) src/lib/core/settings(2) src/lib/utils(2) src/lib/components(1) src/lib/contracts(1) +4 modules
 ## tests
 test src/tests/lib/features/properties/RelationshipSearch.test.ts imports src/lib/features/properties/RelationshipSearch.svelte mirror
 ## symbols

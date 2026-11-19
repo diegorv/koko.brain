@@ -33,7 +33,7 @@ imp src/lib/features/collection/view-row-set.port.ts:1 -> src/lib/features/colle
 imp src/lib/features/collection/yaml-parser.ts:2 -> src/lib/features/collection/collection.types.ts type:CollectionDefinition,type:CollectionFilter,type:CollectionViewDef,type:SortDef
 imp src/lib/features/rail-shell/RailNoteList.svelte:33 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord,type:SortDef
 imp src/lib/features/rail-shell/RailNoteList.svelte:46 -> src/lib/features/collection/collection.types.ts type:CollectionDefinition
-imp src/lib/features/rail-shell/TypesNavigator.svelte:47 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
+imp src/lib/features/rail-shell/TypesNavigator.svelte:49 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
 imp src/lib/features/rail-shell/lens.logic.ts:43 -> src/lib/features/collection/collection.types.ts type:CollectionDefinition,type:CollectionViewDef,type:PropertyIndexRecord,type:SortDef
 imp src/lib/features/rail-shell/list-view-sort.logic.ts:1 -> src/lib/features/collection/collection.types.ts type:SortDef
 imp src/lib/features/rail-shell/view-lens.service.ts:1 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord

@@ -10,17 +10,17 @@ imp src/lib/app/EditorView.svelte:26 -> src/lib/features/file-icons/IconRenderer
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:9 -> src/lib/features/file-icons/IconRenderer.svelte default
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:14 -> src/lib/features/file-icons/IconRenderer.svelte default
 imp src/lib/features/file-icons/IconPicker.svelte:7 -> src/lib/features/file-icons/IconRenderer.svelte default
-imp src/lib/features/note-list/NoteRow.svelte:9 -> src/lib/features/file-icons/IconRenderer.svelte default
+imp src/lib/features/note-list/NoteRow.svelte:11 -> src/lib/features/file-icons/IconRenderer.svelte default
 imp src/lib/features/properties/PropertiesView.svelte:27 -> src/lib/features/file-icons/IconRenderer.svelte default
 imp src/lib/features/properties/RelationshipSearch.svelte:12 -> src/lib/features/file-icons/IconRenderer.svelte default
-imp src/lib/features/quick-switcher/QuickSwitcher.svelte:14 -> src/lib/features/file-icons/IconRenderer.svelte default
-imp src/lib/features/rail-shell/FilesNavigator.svelte:50 -> src/lib/features/file-icons/IconRenderer.svelte default
-imp src/lib/features/rail-shell/Rail.svelte:25 -> src/lib/features/file-icons/IconRenderer.svelte default
-imp src/lib/features/rail-shell/TypesNavigator.svelte:30 -> src/lib/features/file-icons/IconRenderer.svelte default
+imp src/lib/features/quick-switcher/QuickSwitcher.svelte:16 -> src/lib/features/file-icons/IconRenderer.svelte default
+imp src/lib/features/rail-shell/FilesNavigator.svelte:52 -> src/lib/features/file-icons/IconRenderer.svelte default
+imp src/lib/features/rail-shell/Rail.svelte:26 -> src/lib/features/file-icons/IconRenderer.svelte default
+imp src/lib/features/rail-shell/TypesNavigator.svelte:32 -> src/lib/features/file-icons/IconRenderer.svelte default
 imp src/lib/features/tasks/TasksView.svelte:31 -> src/lib/features/file-icons/IconRenderer.svelte default
 ## reach
 in2 src/lib/features/file-icons/IconRenderer.svelte 5 files in 4 modules: src/lib/app(2) src/lib/features/auto-organize(1) src/lib/features/note-list(1) src/lib/features/rail-shell(1)
-out2 src/lib/features/file-icons/IconRenderer.svelte 3 files in 3 modules: src/lib/core/frontmatter(1) src/lib/core/settings(1) src/lib/types(1)
+out2 src/lib/features/file-icons/IconRenderer.svelte 4 files in 3 modules: src/lib/core/settings(2) src/lib/core/frontmatter(1) src/lib/types(1)
 ## tests
 test src/tests/lib/features/file-icons/IconRenderer.test.ts imports src/lib/features/file-icons/IconRenderer.svelte mirror
 ## symbols
@@ -29,10 +29,10 @@ by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/app/Editor
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:299 in (markup) mount
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:593 in (markup) mount
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/file-icons/IconPicker.svelte:224 in (markup) mount +1
-by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/note-list/NoteRow.svelte:68 in (markup) mount +1
+by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/note-list/NoteRow.svelte:76 in (markup) mount +1
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/properties/PropertiesView.svelte:179 in (markup) mount +2
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/properties/RelationshipSearch.svelte:74 in (markup) mount
-by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/quick-switcher/QuickSwitcher.svelte:137 in (markup) mount
+by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/quick-switcher/QuickSwitcher.svelte:142 in (markup) mount
 more by 4 not shown: src/lib/features/rail-shell(3) src/lib/features/tasks(1): q importers src/lib/features/file-icons/IconRenderer.svelte:default
 ## mounted-at
 mount src/lib/app/EditorView.svelte:59 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
@@ -40,18 +40,18 @@ mount src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:299 IconRen
 mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:593 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/file-icons/IconPicker.svelte:224 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/file-icons/IconPicker.svelte:239 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/note-list/NoteRow.svelte:68 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/note-list/NoteRow.svelte:122 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/note-list/NoteRow.svelte:76 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/note-list/NoteRow.svelte:130 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/properties/PropertiesView.svelte:179 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/properties/PropertiesView.svelte:193 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/properties/PropertiesView.svelte:266 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/properties/RelationshipSearch.svelte:74 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/quick-switcher/QuickSwitcher.svelte:137 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/rail-shell/FilesNavigator.svelte:560 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/rail-shell/Rail.svelte:364 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/rail-shell/Rail.svelte:371 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/rail-shell/TypesNavigator.svelte:290 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/rail-shell/TypesNavigator.svelte:420 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/quick-switcher/QuickSwitcher.svelte:142 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/rail-shell/FilesNavigator.svelte:567 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/rail-shell/Rail.svelte:385 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/rail-shell/Rail.svelte:393 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/rail-shell/TypesNavigator.svelte:296 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/rail-shell/TypesNavigator.svelte:426 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/tasks/TasksView.svelte:789 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 ## calls
 call src/lib/features/file-icons/IconRenderer.svelte:20 in cssColor=$derived -> src/lib/features/file-icons/file-icons.logic.ts:iconColorCss call

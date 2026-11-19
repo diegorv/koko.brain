@@ -6,7 +6,7 @@ imp src/lib/features/type-definitions/TypeNameDialog.svelte:2 -> src/lib/compone
 imp src/lib/features/type-definitions/TypeNameDialog.svelte:3 -> src/lib/components/ui/input/index.ts Input
 imp src/lib/features/type-definitions/TypeNameDialog.svelte:4 -> src/lib/components/ui/button/index.ts Button
 ## imported-by
-imp src/lib/features/rail-shell/TypesNavigator.svelte:50 -> src/lib/features/type-definitions/TypeNameDialog.svelte default
+imp src/lib/features/rail-shell/TypesNavigator.svelte:52 -> src/lib/features/type-definitions/TypeNameDialog.svelte default
 ## reach
 in2 src/lib/features/type-definitions/TypeNameDialog.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/type-definitions/TypeNameDialog.svelte 12 files in 1 modules: src/lib/components(12)
@@ -14,7 +14,7 @@ out2 src/lib/features/type-definitions/TypeNameDialog.svelte 12 files in 1 modul
 test src/tests/lib/features/type-definitions/TypeNameDialog.svelte.test.ts imports src/lib/features/type-definitions/TypeNameDialog.svelte mirror
 ## symbols
 sym src/lib/features/type-definitions/TypeNameDialog.svelte:1 component TypeNameDialog props:open=$bindable,title,confirmLabel,busyLabel,initialValue=,description=,validate,normalize,onConfirm L100
-by src/lib/features/type-definitions/TypeNameDialog.svelte:default <- src/lib/features/rail-shell/TypesNavigator.svelte:465 in (markup) mount +1
+by src/lib/features/type-definitions/TypeNameDialog.svelte:default <- src/lib/features/rail-shell/TypesNavigator.svelte:471 in (markup) mount +1
 ## locals
 local src/lib/features/type-definitions/TypeNameDialog.svelte:53 fn setOpen(next: boolean) L4
 local src/lib/features/type-definitions/TypeNameDialog.svelte:58 fn confirm() L12
@@ -24,8 +24,8 @@ mount src/lib/features/type-definitions/TypeNameDialog.svelte:88 Input -> src/li
 mount src/lib/features/type-definitions/TypeNameDialog.svelte:96 Button -> src/lib/components/ui/button/button.svelte
 mount src/lib/features/type-definitions/TypeNameDialog.svelte:97 Button -> src/lib/components/ui/button/button.svelte
 ## mounted-at
-mount src/lib/features/rail-shell/TypesNavigator.svelte:465 TypeNameDialog -> src/lib/features/type-definitions/TypeNameDialog.svelte
-mount src/lib/features/rail-shell/TypesNavigator.svelte:487 TypeNameDialog -> src/lib/features/type-definitions/TypeNameDialog.svelte
+mount src/lib/features/rail-shell/TypesNavigator.svelte:471 TypeNameDialog -> src/lib/features/type-definitions/TypeNameDialog.svelte
+mount src/lib/features/rail-shell/TypesNavigator.svelte:493 TypeNameDialog -> src/lib/features/type-definitions/TypeNameDialog.svelte
 ## calls
 call src/lib/features/type-definitions/TypeNameDialog.svelte:74 in handleKeydown -> src/lib/features/type-definitions/TypeNameDialog.svelte:confirm call
 call src/lib/features/type-definitions/TypeNameDialog.svelte:79 in (markup) -> src/lib/features/type-definitions/TypeNameDialog.svelte:setOpen markup +1

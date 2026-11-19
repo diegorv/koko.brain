@@ -33,7 +33,7 @@ imp src/lib/features/event-calendar/EventCalendarSection.svelte:18 -> src/lib/fe
 imp src/lib/features/event-calendar/event-calendar.service.ts:31 -> src/lib/features/type-definitions/type-definitions.service.ts createTypedNote
 imp src/lib/features/note-list/NoteRowMenu.svelte:32 -> src/lib/features/type-definitions/type-definitions.service.ts showViewInViews,ViewWriteError
 imp src/lib/features/rail-shell/RailNoteList.svelte:38 -> src/lib/features/type-definitions/type-definitions.service.ts updateViewListProperties,updateViewToolbarKey,ViewWriteConflict,ViewWriteError
-imp src/lib/features/rail-shell/TypesNavigator.svelte:35 -> src/lib/features/type-definitions/type-definitions.service.ts createNoteOfType,createTypeDefinition,removeViewIcon,renameType,setViewRailPin,updateViewIcon,updateViewIconColors,ViewWriteError
+imp src/lib/features/rail-shell/TypesNavigator.svelte:37 -> src/lib/features/type-definitions/type-definitions.service.ts createNoteOfType,createTypeDefinition,removeViewIcon,renameType,setViewRailPin,updateViewIcon,updateViewIconColors,ViewWriteError
 imp src/lib/features/rail-shell/new-note.service.ts:9 -> src/lib/features/type-definitions/type-definitions.service.ts createTypedNote
 imp src/lib/features/type-definitions/ViewDialog.svelte:17 -> src/lib/features/type-definitions/type-definitions.service.ts createView,editView
 imp src/lib/plugins/mods/mod-app.service.ts:11 -> src/lib/features/type-definitions/type-definitions.service.ts createTypedNote
@@ -62,7 +62,7 @@ by src/lib/features/type-definitions/type-definitions.service.ts:refreshTypeDefi
 sym src/lib/features/type-definitions/type-definitions.service.ts:37 interface TypedNoteTarget L12 | Where a new note of a type goes, and the template it starts from.
 sym src/lib/features/type-definitions/type-definitions.service.ts:54 fn resolveTypedNoteTarget(typeName: string, baseTitle: string): Promise<TypedNoteTarget | null> L28 | Resolves the folder, deduped filename and template for a new note of `typeName` titled `baseTitle`.
 sym src/lib/features/type-definitions/type-definitions.service.ts:84 fn createNoteOfType(typeName: string): Promise<void> L12 | Creates a new note of a given type, applying the type's template if configured.
-by src/lib/features/type-definitions/type-definitions.service.ts:createNoteOfType <- src/lib/features/rail-shell/TypesNavigator.svelte:350 in (markup) markup
+by src/lib/features/type-definitions/type-definitions.service.ts:createNoteOfType <- src/lib/features/rail-shell/TypesNavigator.svelte:356 in (markup) markup
 sym src/lib/features/type-definitions/type-definitions.service.ts:98 interface CreateTypedNoteOptions L15 | Options for createTypedNote.
 sym src/lib/features/type-definitions/type-definitions.service.ts:129 fn createTypedNote(options: CreateTypedNoteOptions): Promise<string> L27 | Creates a note of a type without opening it, through the same folder, dedupe and template owner as createNoteOfType.
 by src/lib/features/type-definitions/type-definitions.service.ts:createTypedNote <- src/lib/features/event-calendar/event-calendar.service.ts:938 in createNow call
@@ -70,30 +70,30 @@ by src/lib/features/type-definitions/type-definitions.service.ts:createTypedNote
 by src/lib/features/type-definitions/type-definitions.service.ts:createTypedNote <- src/lib/plugins/mods/mod-app.service.ts:36 in MOD_APP ref
 sym src/lib/features/type-definitions/type-definitions.service.ts:173 fn createTypeDefinition(typeName: string, opts: { select?: boolean } = {}): Promise<string | null> L32 | Creates a type definition note with default frontmatter.
 by src/lib/features/type-definitions/type-definitions.service.ts:createTypeDefinition <- src/lib/features/event-calendar/EventCalendarSection.svelte:96 in openEventType call
-by src/lib/features/type-definitions/type-definitions.service.ts:createTypeDefinition <- src/lib/features/rail-shell/TypesNavigator.svelte:138 in handleNewType call +1
+by src/lib/features/type-definitions/type-definitions.service.ts:createTypeDefinition <- src/lib/features/rail-shell/TypesNavigator.svelte:144 in handleNewType call +1
 sym src/lib/features/type-definitions/type-definitions.service.ts:221 fn renameType(oldName: string, newName: string, definitionPath: string): Promise<void> L40 | True rename of a type.
-by src/lib/features/type-definitions/type-definitions.service.ts:renameType <- src/lib/features/rail-shell/TypesNavigator.svelte:496 in (markup) markup
+by src/lib/features/type-definitions/type-definitions.service.ts:renameType <- src/lib/features/rail-shell/TypesNavigator.svelte:502 in (markup) markup
 sym src/lib/features/type-definitions/type-definitions.service.ts:271 fn createView(name: string, filters?: CollectionFilter | string, folder?: string): Promise<string> L9 | Creates a `.view` named `name` in `folder` (the vault root without it), with `name` as its label and table view name and `filters` (when given) as that view's …
 by src/lib/features/type-definitions/type-definitions.service.ts:createView <- src/lib/features/type-definitions/ViewDialog.svelte:129 in submit call
 sym src/lib/features/type-definitions/type-definitions.service.ts:291 type ViewWriteReason L1 | Why a `.view` rewrite refused or failed: - `save-failed`: saving the open tab failed.
 sym src/lib/features/type-definitions/type-definitions.service.ts:301 class ViewWriteError extends Error L13 | Typed failure of `rewriteViewFile`.
 by src/lib/features/type-definitions/type-definitions.service.ts:ViewWriteError <- src/lib/features/note-list/NoteRowMenu.svelte:114 in handleShowInViews ref
 by src/lib/features/type-definitions/type-definitions.service.ts:ViewWriteError <- src/lib/features/rail-shell/RailNoteList.svelte:344 in persistViewState ref +1
-by src/lib/features/type-definitions/type-definitions.service.ts:ViewWriteError <- src/lib/features/rail-shell/TypesNavigator.svelte:203 in handleRailPin ref
+by src/lib/features/type-definitions/type-definitions.service.ts:ViewWriteError <- src/lib/features/rail-shell/TypesNavigator.svelte:209 in handleRailPin ref
 sym src/lib/features/type-definitions/type-definitions.service.ts:350 fn rewriteViewFile(path: string, transform: (base: string) => string, options: RewriteViewOptions = {}): Promise<boolean> L15 | Rewrites the `.view` at `path` to `transform(base)`.
 by src/lib/features/type-definitions/type-definitions.service.ts:rewriteViewFile <- src/lib/app/EditorView.svelte:90 in (markup) markup
 sym src/lib/features/type-definitions/type-definitions.service.ts:444 fn updateViewIcon(path: string, icon?: string, color?: string, titleColor?: string): Promise<void> L8 | Updates _icon, _color, and _title_color in a .view YAML file; a save that changes none of them does not touch the file.
-by src/lib/features/type-definitions/type-definitions.service.ts:updateViewIcon <- src/lib/features/rail-shell/TypesNavigator.svelte:164 in handleIconSelect call
+by src/lib/features/type-definitions/type-definitions.service.ts:updateViewIcon <- src/lib/features/rail-shell/TypesNavigator.svelte:170 in handleIconSelect call
 sym src/lib/features/type-definitions/type-definitions.service.ts:454 fn updateViewIconColors(path: string, color?: string, titleColor?: string): Promise<void> L3 | Updates the colors in a .view YAML file, leaving its icon; a save that changes no color does not touch the file.
-by src/lib/features/type-definitions/type-definitions.service.ts:updateViewIconColors <- src/lib/features/rail-shell/TypesNavigator.svelte:174 in handleIconColors call
+by src/lib/features/type-definitions/type-definitions.service.ts:updateViewIconColors <- src/lib/features/rail-shell/TypesNavigator.svelte:180 in handleIconColors call
 sym src/lib/features/type-definitions/type-definitions.service.ts:465 fn setViewRailPin(path: string, pinned: boolean): Promise<void> L4 | Pins the `.view` at `path` to the rail (`_rail: true`) or unpins it (the key removed), through `rewriteViewFile`.
-by src/lib/features/type-definitions/type-definitions.service.ts:setViewRailPin <- src/lib/features/rail-shell/TypesNavigator.svelte:337 in (markup) markup
+by src/lib/features/type-definitions/type-definitions.service.ts:setViewRailPin <- src/lib/features/rail-shell/TypesNavigator.svelte:343 in (markup) markup
 sym src/lib/features/type-definitions/type-definitions.service.ts:475 fn showViewInViews(path: string): Promise<void> L4 | Shows the hidden `.view` at `path` in Views (`showViewInViewsYaml` removes `_visible` and `_open_in_editor`).
 by src/lib/features/type-definitions/type-definitions.service.ts:showViewInViews <- src/lib/features/note-list/NoteRowMenu.svelte:111 in handleShowInViews call
 sym src/lib/features/type-definitions/type-definitions.service.ts:485 fn updateViewListProperties(path: string, properties: readonly string[]): Promise<void> L3 | Saves the property columns the rail note list shows for the `.view` at `path` (`_list_properties_display`; an empty list removes the key).
 by src/lib/features/type-definitions/type-definitions.service.ts:updateViewListProperties <- src/lib/features/rail-shell/RailNoteList.svelte:498 in handlePropertiesChange call
 sym src/lib/features/type-definitions/type-definitions.service.ts:490 fn removeViewIcon(path: string): Promise<void> L3 | Removes _icon, _color, and _title_color from a .view YAML file.
-by src/lib/features/type-definitions/type-definitions.service.ts:removeViewIcon <- src/lib/features/rail-shell/TypesNavigator.svelte:183 in handleIconRemove call
+by src/lib/features/type-definitions/type-definitions.service.ts:removeViewIcon <- src/lib/features/rail-shell/TypesNavigator.svelte:189 in handleIconRemove call
 sym src/lib/features/type-definitions/type-definitions.service.ts:495 class ViewWriteConflict extends Error L13 | A toolbar edit refused because its key in the `.view` changed since the toolbar read it.
 by src/lib/features/type-definitions/type-definitions.service.ts:ViewWriteConflict <- src/lib/features/rail-shell/RailNoteList.svelte:342 in persistViewState ref
 sym src/lib/features/type-definitions/type-definitions.service.ts:518 fn updateViewToolbarKey<K extends ToolbarKey>(path: string, key: K, next: ToolbarValues[K], base: string): Promise<CollectionDefinition> L16 | Writes one key of the rail toolbar (`applyToolbarEdit`) to the `.view` at `path`, through `rewriteViewFile`, so the bytes it checks are a dirty tab's buffer or…

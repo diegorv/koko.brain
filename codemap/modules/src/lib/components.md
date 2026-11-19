@@ -56,7 +56,7 @@ entry src/lib/components/ui/resizable/index.ts ext-in1 src/lib/app/AppShell.svel
 ## files
 file src/lib/components/EmptyState.svelte component L57 module src/lib/components in1 t1
 file src/lib/components/ui/button/button.svelte component L82 module src/lib/components in1 t0
-file src/lib/components/ui/button/index.ts other L17 module src/lib/components in39 t0
+file src/lib/components/ui/button/index.ts other L17 module src/lib/components in39 t1
 file src/lib/components/ui/collapsible/collapsible-content.svelte component L7 module src/lib/components in1 t0
 file src/lib/components/ui/collapsible/collapsible-trigger.svelte component L7 module src/lib/components in1 t0
 file src/lib/components/ui/collapsible/collapsible.svelte component L11 module src/lib/components in1 t0

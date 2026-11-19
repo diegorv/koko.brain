@@ -7,7 +7,7 @@ imp src/lib/core/markdown-editor/extensions/tag/completion.logic.ts:1 -> src/lib
 imp src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:2 -> src/lib/utils/fuzzy-match.ts fuzzyMatch
 imp src/lib/core/markdown-editor/extensions/wikilink/completion.ts:3 -> src/lib/utils/fuzzy-match.ts fuzzyMatch
 imp src/lib/features/command-palette/command-palette.logic.ts:2 -> src/lib/utils/fuzzy-match.ts fuzzyMatch
-imp src/lib/features/quick-switcher/QuickSwitcher.svelte:18 -> src/lib/utils/fuzzy-match.ts fuzzyMatchPositions
+imp src/lib/features/quick-switcher/QuickSwitcher.svelte:20 -> src/lib/utils/fuzzy-match.ts fuzzyMatchPositions
 imp src/lib/plugins/mods/ModDialogHost.svelte:13 -> src/lib/utils/fuzzy-match.ts fuzzyMatch
 ## reach
 in2 src/lib/utils/fuzzy-match.ts 15 files in 9 modules: src/lib/core/markdown-editor(3) src/lib/app(2) src/lib/features/properties(2) src/lib/plugins/kanban(2) src/lib/plugins/quick-capture(2) +4 modules: q impact src/lib/utils/fuzzy-match.ts --depth 2
@@ -25,4 +25,4 @@ by src/lib/utils/fuzzy-match.ts:fuzzyMatch <- src/lib/core/markdown-editor/exten
 by src/lib/utils/fuzzy-match.ts:fuzzyMatch <- src/lib/features/command-palette/command-palette.logic.ts:38 in filterAndRankCommands call
 by src/lib/utils/fuzzy-match.ts:fuzzyMatch <- src/lib/plugins/mods/ModDialogHost.svelte:37 in pickItems=$derived call
 sym src/lib/utils/fuzzy-match.ts:47 fn fuzzyMatchPositions(query: string, target: string): number[] L13 | The indices in `target` of the characters `fuzzyMatch` matches, found by the same greedy scan.
-by src/lib/utils/fuzzy-match.ts:fuzzyMatchPositions <- src/lib/features/quick-switcher/QuickSwitcher.svelte:142 in (markup) markup
+by src/lib/utils/fuzzy-match.ts:fuzzyMatchPositions <- src/lib/features/quick-switcher/QuickSwitcher.svelte:147 in (markup) markup

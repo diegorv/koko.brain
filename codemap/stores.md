@@ -3,7 +3,7 @@ cols: store <loc> <name> get <n> set <n> do <n> readers <reader files> writers <
 store src/lib/core/editor/editor.store.svelte.ts:33 editorStore get 9 set 0 do 16 readers 50 writers 13 card codemap/files/src/lib/core/editor/editor.store.svelte.ts.md
 store src/lib/core/filesystem/fs.store.svelte.ts:25 fsStore get 5 set 0 do 7 readers 26 writers 6 card codemap/files/src/lib/core/filesystem/fs.store.svelte.ts.md
 store src/lib/core/rule-actions/rule-actions.store.svelte.ts:38 ruleActionsStore get 1 set 0 do 3 readers 1 writers 3 card codemap/files/src/lib/core/rule-actions/rule-actions.store.svelte.ts.md
-store src/lib/core/settings/applied-theme.store.svelte.ts:14 appliedThemeStore get 2 set 0 do 3 readers 5 writers 1 card codemap/files/src/lib/core/settings/applied-theme.store.svelte.ts.md
+store src/lib/core/settings/applied-theme.store.svelte.ts:17 appliedThemeStore get 3 set 0 do 4 readers 5 writers 1 card codemap/files/src/lib/core/settings/applied-theme.store.svelte.ts.md
 store src/lib/core/settings/settings-panel.store.svelte.ts:7 settingsPanelStore get 2 set 0 do 5 readers 1 writers 7 card codemap/files/src/lib/core/settings/settings-panel.store.svelte.ts.md
 store src/lib/core/settings/settings.store.svelte.ts:167 settingsStore get 31 set 0 do 28 readers 81 writers 37 card codemap/files/src/lib/core/settings/settings.store.svelte.ts.md
 store src/lib/core/trash/trash.store.svelte.ts:14 trashStore get 4 set 0 do 5 readers 3 writers 1 card codemap/files/src/lib/core/trash/trash.store.svelte.ts.md

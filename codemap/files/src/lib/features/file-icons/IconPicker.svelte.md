@@ -14,11 +14,11 @@ imp src/lib/features/file-icons/IconPicker.svelte:10 -> src/lib/components/ui/sc
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:8 -> src/lib/features/file-icons/IconPicker.svelte default
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:13 -> src/lib/features/file-icons/IconPicker.svelte default
 imp src/lib/features/note-list/NoteRowMenu.svelte:24 -> src/lib/features/file-icons/IconPicker.svelte default
-imp src/lib/features/rail-shell/FilesNavigator.svelte:51 -> src/lib/features/file-icons/IconPicker.svelte default
-imp src/lib/features/rail-shell/TypesNavigator.svelte:31 -> src/lib/features/file-icons/IconPicker.svelte default
+imp src/lib/features/rail-shell/FilesNavigator.svelte:53 -> src/lib/features/file-icons/IconPicker.svelte default
+imp src/lib/features/rail-shell/TypesNavigator.svelte:33 -> src/lib/features/file-icons/IconPicker.svelte default
 ## reach
 in2 src/lib/features/file-icons/IconPicker.svelte 3 files in 3 modules: src/lib/app(1) src/lib/features/auto-organize(1) src/lib/features/rail-shell(1)
-out2 src/lib/features/file-icons/IconPicker.svelte 17 files in 5 modules: src/lib/components(13) src/lib/core/frontmatter(1) src/lib/core/settings(1) src/lib/types(1) src/lib/utils(1)
+out2 src/lib/features/file-icons/IconPicker.svelte 18 files in 5 modules: src/lib/components(13) src/lib/core/settings(2) src/lib/core/frontmatter(1) src/lib/types(1) src/lib/utils(1)
 ## tests
 test src/tests/lib/features/file-icons/IconPicker.colors.svelte.test.ts imports src/lib/features/file-icons/IconPicker.svelte mirror
 test src/tests/lib/features/file-icons/IconPicker.test.ts imports src/lib/features/file-icons/IconPicker.svelte mirror
@@ -27,8 +27,8 @@ sym src/lib/features/file-icons/IconPicker.svelte:1 component IconPicker props:o
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:385 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:734 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/note-list/NoteRowMenu.svelte:320 in (markup) mount
-by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/FilesNavigator.svelte:486 in (markup) mount
-by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/TypesNavigator.svelte:501 in (markup) mount
+by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/FilesNavigator.svelte:491 in (markup) mount
+by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/TypesNavigator.svelte:507 in (markup) mount
 ## locals
 local src/lib/features/file-icons/IconPicker.svelte:84 fn loadIcons() L19
 local src/lib/features/file-icons/IconPicker.svelte:134 fn handleSelect(icon: NormalizedIcon) L4
@@ -44,8 +44,8 @@ mount src/lib/features/file-icons/IconPicker.svelte:239 IconRenderer -> src/lib/
 mount src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:385 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:734 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/note-list/NoteRowMenu.svelte:320 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
-mount src/lib/features/rail-shell/FilesNavigator.svelte:486 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
-mount src/lib/features/rail-shell/TypesNavigator.svelte:501 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
+mount src/lib/features/rail-shell/FilesNavigator.svelte:491 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
+mount src/lib/features/rail-shell/TypesNavigator.svelte:507 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 ## calls
 call src/lib/features/file-icons/IconPicker.svelte:50 in packs -> src/lib/features/file-icons/file-icons.icon-data.ts:getAllIconPacks call
 call src/lib/features/file-icons/IconPicker.svelte:74 in recentNormalized=$derived -> src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync call

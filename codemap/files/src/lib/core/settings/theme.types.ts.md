@@ -18,6 +18,7 @@ imp src/lib/core/settings/theme.service.ts:3 -> src/lib/core/settings/theme.type
 in2 src/lib/core/settings/theme.types.ts 105 files in 28 modules: src/lib/core/settings(21) src/lib/features/event-calendar(13) src/lib/features/rail-shell(10) src/lib/app(9) src/lib/features/search(5) +23 modules: q impact src/lib/core/settings/theme.types.ts --depth 2
 out2 src/lib/core/settings/theme.types.ts 3 files in 1 modules: src/lib/core/settings(3)
 ## tests
+test src/tests/fixtures/hard-palette-themes.fixture.ts imports-type src/lib/core/settings/theme.types.ts
 test src/tests/lib/core/settings/ThemePreview.test.ts imports-type src/lib/core/settings/theme.types.ts
 test src/tests/lib/core/settings/settings.service.test.ts imports-type src/lib/core/settings/theme.types.ts
 test src/tests/lib/core/settings/theme-builder.logic.test.ts imports-type src/lib/core/settings/theme.types.ts
@@ -25,6 +26,7 @@ test src/tests/lib/core/settings/theme-editor.logic.test.ts imports-type src/lib
 test src/tests/lib/core/settings/theme-package.logic.test.ts imports-type src/lib/core/settings/theme.types.ts
 test src/tests/lib/core/settings/theme.logic.test.ts imports-type src/lib/core/settings/theme.types.ts
 test src/tests/lib/core/settings/theme.service.test.ts imports-type src/lib/core/settings/theme.types.ts
+test src/tests/lib/features/rail-shell/rail-items.logic.test.ts imports-type src/lib/core/settings/theme.types.ts
 ## symbols
 sym src/lib/core/settings/theme.types.ts:4 interface UIColors L120 | Color tokens for the application UI shell
 by src/lib/core/settings/theme.types.ts:UIColors <- src/lib/core/settings/theme-editor.logic.ts:4 in (module) import

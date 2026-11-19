@@ -13,7 +13,7 @@ dep src/lib/features/properties -> src/lib/core/editor 7
 dep src/lib/features/properties -> src/lib/core/filesystem 7
 dep src/lib/features/properties -> src/lib/core/frontmatter 12
 dep src/lib/features/properties -> src/lib/core/layout 1
-dep src/lib/features/properties -> src/lib/core/settings 1
+dep src/lib/features/properties -> src/lib/core/settings 3
 dep src/lib/features/properties -> src/lib/core/vault 6
 dep src/lib/features/properties -> src/lib/features/file-history 1
 dep src/lib/features/properties -> src/lib/features/file-icons 6
@@ -35,7 +35,7 @@ entry src/lib/features/properties/properties.service.ts ext-in1 src/lib/app/life
 ## files
 file src/lib/features/properties/NoteInfo.svelte component L55 module src/lib/features/properties in1 t1
 file src/lib/features/properties/PropertiesView.svelte component L293 module src/lib/features/properties in1 t1
-file src/lib/features/properties/PropertyField.svelte component L202 module src/lib/features/properties in1 t1
+file src/lib/features/properties/PropertyField.svelte component L205 module src/lib/features/properties in1 t1
 file src/lib/features/properties/RelationshipSearch.svelte component L94 module src/lib/features/properties in1 t1
 file src/lib/features/properties/bookmark-migration.service.ts service L115 module src/lib/features/properties in1 t2
 file src/lib/features/properties/lifecycle-filter.logic.ts logic L10 module src/lib/features/properties in1 t1
