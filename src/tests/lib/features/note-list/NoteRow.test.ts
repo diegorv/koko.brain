@@ -17,7 +17,7 @@ vi.mock('svelte-sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } })
 vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn() }));
 vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
-import { mount, unmount, flushSync } from 'svelte';
+import { mount, unmount, flushSync, tick } from 'svelte';
 import NoteRowMenuHarness from '../../../fixtures/NoteRowMenuHarness.svelte';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
@@ -98,5 +98,50 @@ describe('NoteRow organize check', () => {
 
 		expect(check()).toBeNull();
 		expect(target.querySelectorAll('[data-note-row]')).toHaveLength(1);
+	});
+
+	it('leaves the row in the native Tab order when no tabindex is passed', () => {
+		mountRow({ onOrganize: vi.fn() });
+
+		expect(target.querySelector('[data-note-row]')!.hasAttribute('tabindex')).toBe(false);
+	});
+});
+
+describe('NoteRow rename input', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		fsStore.reset();
+		vi.clearAllMocks();
+		target = document.body.appendChild(document.createElement('div'));
+		component = mount(NoteRowMenuHarness, { target, props: { notes: [note] } });
+		flushSync();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.replaceChildren();
+	});
+
+	async function pressInRename(key: string) {
+		fsStore.setRenamingPath(ALPHA);
+		flushSync();
+		const input = target.querySelector<HTMLInputElement>('input')!;
+		input.focus();
+		input.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+		await tick();
+		flushSync();
+	}
+
+	// Enter with the title unchanged is a cancel, so no file service runs.
+	it.each(['Escape', 'Enter'])('%s returns focus to the row', async (key) => {
+		await pressInRename(key);
+
+		expect(fsStore.renamingPath).toBeNull();
+		expect(document.activeElement).toBe(target.querySelector('[data-note-row]'));
 	});
 });

@@ -151,6 +151,40 @@ describe('RailListSearch', () => {
 		expect(onClose).not.toHaveBeenCalled();
 	});
 
+	describe('ArrowDown', () => {
+		function renderWithArrowDown(onArrowDown: (event: KeyboardEvent) => void) {
+			mounted.push(mount(RailListSearch, { target, props: { value: '', loading: false, onChange, onClose, onArrowDown } }));
+			flushSync();
+		}
+
+		it('hands a bare ArrowDown to onArrowDown, which may prevent the caret move', () => {
+			const onArrowDown = vi.fn((event: KeyboardEvent) => event.preventDefault());
+			renderWithArrowDown(onArrowDown);
+			const event = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
+			input().dispatchEvent(event);
+			expect(onArrowDown).toHaveBeenCalledTimes(1);
+			expect(event.defaultPrevented).toBe(true);
+			expect(onClose).not.toHaveBeenCalled();
+		});
+
+		it('leaves a modified ArrowDown and ArrowUp to the input', () => {
+			const onArrowDown = vi.fn();
+			renderWithArrowDown(onArrowDown);
+			input().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', shiftKey: true, bubbles: true }));
+			input().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', metaKey: true, bubbles: true }));
+			input().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+			expect(onArrowDown).not.toHaveBeenCalled();
+		});
+
+		it('does nothing on ArrowDown without onArrowDown', () => {
+			render();
+			const event = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
+			input().dispatchEvent(event);
+			expect(event.defaultPrevented).toBe(false);
+			expect(onClose).not.toHaveBeenCalled();
+		});
+	});
+
 	it('cancels the pending timer on unmount so no onChange fires afterwards', () => {
 		const component = render();
 		type('a');

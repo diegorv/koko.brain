@@ -16,9 +16,11 @@
 		onChange: (value: string) => void;
 		/** Called on Escape. The parent decides whether that hides the search row. */
 		onClose: () => void;
+		/** Called on a bare ArrowDown; the parent prevents the default when it moves focus to the list. */
+		onArrowDown?: (event: KeyboardEvent) => void;
 	}
 
-	let { value, loading, onChange, onClose }: Props = $props();
+	let { value, loading, onChange, onClose, onArrowDown }: Props = $props();
 
 	let draft = $state(untrack(() => value));
 	let debouncing = $state(false);
@@ -78,6 +80,7 @@
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') onClose();
+		else if (event.key === 'ArrowDown' && !(event.metaKey || event.ctrlKey || event.altKey || event.shiftKey)) onArrowDown?.(event);
 	}
 </script>
 

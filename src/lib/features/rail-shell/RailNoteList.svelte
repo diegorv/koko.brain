@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { untrack, type Component } from 'svelte';
+	import { flushSync, tick, untrack, type Component, type SvelteComponent } from 'svelte';
 	import dayjs from 'dayjs';
-	import { VList } from 'virtua/svelte';
+	import { VList, type VListHandle } from 'virtua/svelte';
 	import { toast } from 'svelte-sonner';
 	import Plus from '@lucide/svelte/icons/plus';
 	import ListFilter from '@lucide/svelte/icons/list-filter';
@@ -24,6 +24,7 @@
 	import { FrontmatterWriteError, toastFrontmatterWriteError } from '#lib/core/frontmatter/frontmatter-write.service.js';
 	import { debug } from '#lib/utils/debug.js';
 	import { appendLog } from '#lib/utils/log.service.js';
+	import { nextCurrentRow, resolveRovingFocus, tabStopRow } from '#lib/utils/roving-list.js';
 	import { Popover, PopoverPortal, PopoverTrigger, PopoverContent } from '#lib/components/ui/popover/index.js';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import FilterPanel from '#lib/features/collection/toolbar/FilterPanel.svelte';
@@ -512,6 +513,9 @@
 	let fullTextGeneration = 0;
 	let searching = $derived(normalizeListQuery(query) !== '');
 
+	/** The note row that last took focus; null hands the list's Tab stop to the first row */
+	let currentKey = $state<string | null>(null);
+
 	/** Which list this is. A folder or neighbourhood lens keeps its kind while its target moves. */
 	let listIdentity = $derived(`${lens.kind}:${lens.target ?? ''}`);
 
@@ -523,6 +527,7 @@
 			propertiesOverlay = null;
 			archivedFilter = 'active';
 			closeSearch();
+			currentKey = null;
 		});
 	});
 
@@ -763,6 +768,142 @@
 		else archivedFilter = action === 'show-active' ? 'active' : 'all';
 	}
 
+	/** A note row of the shown list: its roving key and its index in its `VList`'s `data`. */
+	interface RovingRow {
+		key: string;
+		index: number;
+	}
+
+	/**
+	 * The note rows in display order: the arrows walk these and skip group
+	 * headers, empty notices and Today sections. A grouped key carries the group,
+	 * since the neighbourhood lists one note under several groups.
+	 */
+	let rovingRows = $derived.by((): RovingRow[] =>
+		groupedItems
+			? groupedItems.flatMap((item, index) => (item.kind === 'note' ? [{ key: item.key, index }] : []))
+			: notes.map((note, index) => ({ key: note.path, index })),
+	);
+	let rovingKeys = $derived(rovingRows.map((row) => row.key));
+
+	/** The one note row in the Tab order */
+	let tabStopKey = $derived(tabStopRow(rovingKeys, rovingKeys, currentKey));
+	/** The Tab-stop row stays mounted while scrolled away, so Tab can reach it */
+	let keepMounted = $derived.by(() => {
+		const row = rovingRows.find((r) => r.key === tabStopKey);
+		return row ? [row.index] : undefined;
+	});
+
+	/** The shown `VList`, to scroll an unmounted row into view */
+	let listInstance = $state<SvelteComponent | null>(null);
+	/** NoteRowMenu's wrapper around the rows; focus on it (a click on blank area) counts as focus in the list */
+	let rowsWrapper = $state<HTMLElement | null>(null);
+
+	/** The rename being applied, so the current row follows its note to the new path */
+	let renamed: { from: string; to: string } | null = null;
+
+	function rowElement(key: string): HTMLElement | null {
+		for (const item of listRoot?.querySelectorAll<HTMLElement>('[data-note-list-key]') ?? []) {
+			if (item.dataset.noteListKey === key) return item.querySelector<HTMLElement>('[data-note-row]');
+		}
+		return null;
+	}
+
+	/** Makes `key` the current row and focuses it, mounting it first when it is scrolled away. */
+	function focusRow(key: string) {
+		currentKey = key;
+		let el = rowElement(key);
+		if (!el) {
+			const row = rovingRows.find((r) => r.key === key);
+			// virtua ships `.svelte` source, which svelte-check types as a bare component.
+			if (row) (listInstance as unknown as VListHandle | null)?.scrollToIndex(row.index);
+			// `keepMounted` now holds the row.
+			flushSync();
+			el = rowElement(key);
+		}
+		el?.focus();
+	}
+
+	function searchInput(): HTMLInputElement | null {
+		return listRoot?.querySelector<HTMLInputElement>('[data-note-list-search] input') ?? null;
+	}
+
+	function handleSearchArrowDown(e: KeyboardEvent) {
+		const first = rovingKeys[0];
+		if (first === undefined) return;
+		e.preventDefault();
+		focusRow(first);
+	}
+
+	function handleRowsFocusin(e: FocusEvent) {
+		const key = (e.target as Element).closest<HTMLElement>('[data-note-list-key]')?.dataset.noteListKey;
+		if (key !== undefined) currentKey = key;
+	}
+
+	// Only a key on the row itself moves focus: in the rename input the arrows
+	// move the caret. Enter is handled here, not left to the button's native
+	// activation, so a held Enter opens the note once.
+	function handleRowsKeydown(e: KeyboardEvent) {
+		const target = e.target as HTMLElement;
+		if (!target.matches('[data-note-row]')) return;
+		const key = target.closest<HTMLElement>('[data-note-list-key]')?.dataset.noteListKey;
+		const index = key === undefined ? -1 : rovingKeys.indexOf(key);
+		if (index < 0) return;
+		const modified = e.metaKey || e.ctrlKey || e.altKey || e.shiftKey;
+		if (!modified && e.key === 'Enter') {
+			e.preventDefault();
+			if (!e.repeat) target.click();
+			return;
+		}
+		const input = searchInput();
+		if (!modified && e.key === 'ArrowUp' && index === 0 && input) {
+			e.preventDefault();
+			input.focus();
+			return;
+		}
+		const next = resolveRovingFocus({
+			key: e.key,
+			onRow: true,
+			meta: e.metaKey,
+			ctrl: e.ctrlKey,
+			alt: e.altKey,
+			shift: e.shiftKey,
+			index,
+			count: rovingKeys.length,
+		});
+		if (next === null) return;
+		e.preventDefault();
+		focusRow(rovingKeys[next]);
+	}
+
+	/** The keys the removal effect below last saw */
+	let lastRovingKeys: string[] = [];
+
+	// When the current row leaves (archived, organized, moved, renamed), the next
+	// row becomes current. Pre, so focus is read before the row leaves the DOM:
+	// focus on the row or the wrapper follows to the new row, focus elsewhere
+	// (the search input) stays.
+	$effect.pre(() => {
+		const keys = rovingKeys;
+		untrack(() => {
+			const prev = lastRovingKeys;
+			lastRovingKeys = keys;
+			const current = currentKey;
+			if (current === null || keys.includes(current)) return;
+			let next = nextCurrentRow(keys, prev, current);
+			// Flat keys are the path; grouped keys are `${group.id}:${path}`.
+			if (renamed && (current === renamed.from || current.endsWith(`:${renamed.from}`))) {
+				const moved = current.slice(0, current.length - renamed.from.length) + renamed.to;
+				if (keys.includes(moved)) next = moved;
+				renamed = null;
+			}
+			const active = document.activeElement;
+			const follow = active !== null && rowsWrapper?.contains(active) === true;
+			currentKey = next;
+			if (follow && next !== null) void tick().then(() => focusRow(next));
+		});
+	});
+
 	function listPropertiesFor(note: LensNote): string[] {
 		// A list with a file of its own shows exactly its selection, also while the metadata still holds a just-unticked key.
 		if (viewPath || definitionPath || selectedProperties.length > 0) return selectedProperties;
@@ -879,7 +1020,13 @@
 	</div>
 	{#if searchOpen && listToolbarReady}
 		{#key listIdentity}
-			<RailListSearch value={query} loading={fullTextLoading} onChange={(next) => (query = next)} onClose={closeSearch} />
+			<RailListSearch
+				value={query}
+				loading={fullTextLoading}
+				onChange={(next) => (query = next)}
+				onClose={closeSearch}
+				onArrowDown={handleSearchArrowDown}
+			/>
 		{/key}
 	{/if}
 	{#if resolved?.rule}
@@ -888,10 +1035,27 @@
 		</div>
 	{/if}
 
-	<NoteRowMenu {notes} extraItems={railRegistryStore.menuItems} class="flex-1 overflow-hidden">
+	<NoteRowMenu
+		{notes}
+		extraItems={railRegistryStore.menuItems}
+		class="flex-1 overflow-hidden"
+		bind:ref={rowsWrapper}
+		onRename={(from, to) => (renamed = { from, to })}
+		onRenameFailed={(from) => {
+			if (renamed?.from === from) renamed = null;
+		}}
+	>
 		<!-- A search with no match shows its state on a grouped lens too: the search keeps empty groups. -->
 		{#if groupedItems && !(searching && notes.length === 0)}
-			<VList data={groupedItems} getKey={(item: GroupedItem) => item.key} class="px-1 py-1">
+			<VList
+				bind:this={listInstance}
+				data={groupedItems}
+				getKey={(item: GroupedItem) => item.key}
+				{keepMounted}
+				class="px-1 py-1"
+				onfocusin={handleRowsFocusin}
+				onkeydown={handleRowsKeydown}
+			>
 				{#snippet children(item: GroupedItem)}
 					{#if item.kind === 'header'}
 						<div
@@ -907,7 +1071,7 @@
 						{#if item.divided}
 							<div class="h-px bg-file-explorer-border"></div>
 						{/if}
-						{@render noteRow(item.note)}
+						{@render noteRow(item.note, item.key)}
 					{:else if item.kind === 'empty'}
 						<div class="px-2 py-1 text-xs text-file-explorer-muted-fg" data-note-list-group-empty>Nothing here</div>
 					{:else}
@@ -957,31 +1121,42 @@
 				{...{ [EMPTY_HOOKS[empty.state]]: '' }}
 			/>
 		{:else}
-			<VList data={notes} getKey={(note: LensNote) => note.path} class="px-1 py-1">
+			<VList
+				bind:this={listInstance}
+				data={notes}
+				getKey={(note: LensNote) => note.path}
+				{keepMounted}
+				class="px-1 py-1"
+				onfocusin={handleRowsFocusin}
+				onkeydown={handleRowsKeydown}
+			>
 				{#snippet children(note: LensNote, i: number)}
 					{#if i > 0}
 						<div class="h-px bg-file-explorer-border"></div>
 					{/if}
-					{@render noteRow(note)}
+					{@render noteRow(note, note.path)}
 				{/snippet}
 			</VList>
 		{/if}
 	</NoteRowMenu>
 </div>
 
-{#snippet noteRow(note: LensNote)}
-	<NoteRow
-		{note}
-		icon={resolveNoteIcon(note)}
-		isActive={note.path === activePath}
-		listProperties={listPropertiesFor(note)}
-		{allPaths}
-		typeName={typeChipFor(note)}
-		subtitle={note.subtitle}
-		italic={note.italic}
-		archived={offersArchivedFilter && archivedFilter === 'all' && note.archived}
-		fallbackIcon={KIND_ICONS[note.kind]}
-		draggable
-		onOrganize={lens.kind === INBOX_LENS.kind && note.kind === 'markdown' ? () => setOrganizedForPath(note.path, true) : undefined}
-	/>
+{#snippet noteRow(note: LensNote, key: string)}
+	<div data-note-list-key={key}>
+		<NoteRow
+			{note}
+			tabindex={key === tabStopKey ? 0 : -1}
+			icon={resolveNoteIcon(note)}
+			isActive={note.path === activePath}
+			listProperties={listPropertiesFor(note)}
+			{allPaths}
+			typeName={typeChipFor(note)}
+			subtitle={note.subtitle}
+			italic={note.italic}
+			archived={offersArchivedFilter && archivedFilter === 'all' && note.archived}
+			fallbackIcon={KIND_ICONS[note.kind]}
+			draggable
+			onOrganize={lens.kind === INBOX_LENS.kind && note.kind === 'markdown' ? () => setOrganizedForPath(note.path, true) : undefined}
+		/>
+	</div>
 {/snippet}

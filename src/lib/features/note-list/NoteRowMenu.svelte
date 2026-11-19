@@ -20,7 +20,7 @@
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { duplicateItem, renameItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
 	import { deleteNoteWithConfirm } from '#lib/core/filesystem/delete-note.service.js';
-	import { fileOperationErrorMessage, getFileName, getRelativePath, isMarkdownFile, isViewFile, PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
+	import { fileOperationErrorMessage, getFileName, getRelativePath, isMarkdownFile, isViewFile, PreDeleteSaveError, renamedPath } from '#lib/core/filesystem/fs.logic.js';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import { setIconForPath, setIconColors, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
@@ -46,9 +46,15 @@
 		class?: string;
 		/** The list content, holding NoteRow components */
 		children: Snippet;
+		/** The wrapper element; a click on its blank area focuses it (the menu trigger's `tabindex="-1"`) */
+		ref?: HTMLElement | null;
+		/** Called with the old and the new path when an inline rename is applied, before the file moves */
+		onRename?: (from: string, to: string) => void;
+		/** Called with the old path when an inline rename announced through `onRename` fails */
+		onRenameFailed?: (from: string) => void;
 	}
 
-	let { notes, extraItems = [], class: className = '', children }: Props = $props();
+	let { notes, extraItems = [], class: className = '', children, ref = $bindable(null), onRename, onRenameFailed }: Props = $props();
 
 	let contextTarget = $state<NoteRowNote | null>(null);
 	let rename = $state<NoteRowRenameState>({ value: '', input: undefined });
@@ -76,15 +82,17 @@
 	 * throttle. Asked here, at the user's own action, not in the fs services: auto-organize
 	 * and vault mods call those too, and their bursts stay throttled. Asked before the
 	 * operation, since its index event can arrive before the operation resolves.
+	 * Resolves to whether the operation succeeded.
 	 */
-	async function runOrToast(verb: string, note: NoteRowNote, op: () => Promise<unknown>) {
+	async function runOrToast(verb: string, note: NoteRowNote, op: () => Promise<unknown>): Promise<boolean> {
 		vaultStore.requestPromptIndexRefresh();
 		try {
 			await op();
+			return true;
 		} catch (err) {
 			// The editor already toasted the failed save.
-			if (err instanceof PreDeleteSaveError) return;
-			toast.error(fileOperationErrorMessage(verb, getFileName(note.path), err));
+			if (!(err instanceof PreDeleteSaveError)) toast.error(fileOperationErrorMessage(verb, getFileName(note.path), err));
+			return false;
 		}
 	}
 
@@ -146,7 +154,8 @@
 			toast.error(`Could not rename "${note.title}": ${result.error}`);
 			return;
 		}
-		await runOrToast('rename', note, () => renameItem(note.path, result.name));
+		onRename?.(note.path, renamedPath(note.path, result.name));
+		if (!(await runOrToast('rename', note, () => renameItem(note.path, result.name)))) onRenameFailed?.(note.path);
 	}
 
 	/** Exits rename mode without applying changes */
@@ -217,6 +226,7 @@
 		{#snippet child({ props })}
 			<div
 				{...props}
+				bind:this={ref}
 				class={className}
 				oncontextmenu={(e) => {
 					// List virtualizers wrap every row in positioning divs, so "blank area"
