@@ -267,6 +267,23 @@ test.describe('Rail shell', () => {
 		await expect.poll(() => exists(page, `${TEST_VAULT_PATH}/Projects/archive/2025-Q4.md`)).toBe(false);
 	});
 
+	test('the check on an Inbox row marks its note organized without opening it, and the row leaves', async ({ vaultPage: page }) => {
+		await openInbox(page);
+		const first = noteList(page).locator('[data-note-row]').first();
+		const title = (await first.locator('[data-note-row-title]').textContent())!.trim();
+		const before = await noteList(page).locator('[data-note-row]').count();
+
+		await first.hover();
+		await first.locator('xpath=..').locator('[data-note-row-organize]').click();
+
+		await expect(listRow(page, title)).toHaveCount(0, { timeout: 15_000 });
+		await expect(noteList(page).locator('[data-note-row]')).toHaveCount(before - 1);
+		const path = Object.keys(await page.evaluate(() => window.__e2e.fs.dump())).find((file) => file.endsWith(`/${title}.md`))!;
+		expect(await savedFile(page, path)).toContain('_organized: true');
+		// The check opened no tab for the note.
+		await expect(page.locator('.editor-tabs-bar [role="tab"]', { hasText: title })).toHaveCount(0);
+	});
+
 	test('New here in the Inbox creates an unorganized note in the Cmd+N folder, opens it and lists it', async ({ vaultPage: page }) => {
 		await openInbox(page);
 		// The test vault's Cmd+N folder: periodicNotes.folder `Daily` + the default `YYYY/MM-MMM`.
@@ -309,7 +326,7 @@ test.describe('Rail shell', () => {
 		const bar = page.getByTestId('note-action-bar');
 
 		await bar.getByRole('button', { name: 'More note actions' }).click();
-		await page.getByRole('menuitem', { name: 'Archive this note' }).click();
+		await page.getByRole('menuitem', { name: 'Archive', exact: true }).click();
 
 		const archive = page.locator('[data-rail-item="archive"]');
 		const favorites = page.locator('[data-rail-item="favorites"]');
@@ -321,7 +338,7 @@ test.describe('Rail shell', () => {
 		await expect(listRow(page, 'Welcome')).toBeVisible({ timeout: 15_000 });
 
 		await bar.getByRole('button', { name: 'More note actions' }).click();
-		await page.getByRole('menuitem', { name: 'Restore this archived note' }).click();
+		await page.getByRole('menuitem', { name: 'Restore', exact: true }).click();
 		await expect(listRow(page, 'Welcome')).toHaveCount(0, { timeout: 15_000 });
 	});
 

@@ -112,6 +112,8 @@ These commands are available via the Command Palette (`Cmd+P`) but don't have ke
 | New File from Template | Create a note from a template |
 | Open Daily Note | Open or create today's daily note |
 | Pin/Unpin Tab | Pin or unpin the active tab |
+| Toggle Archived | Archive the active note, or restore it when archived |
+| Move Note to Trash | Move the active file to the Trash, after a confirmation. Says "No file is open." on a tab with no file (Calendar, Tasks, Graph, Tags) |
 | Copy Block Embed | Copy an embed link to the current block |
 | Toggle Tags View | Open tags as a dedicated virtual tab |
 | Tasks: Show all statuses / Tasks: Show open only | Set the Tasks View's Status filter to All, or back to Open, and open the Tasks View |

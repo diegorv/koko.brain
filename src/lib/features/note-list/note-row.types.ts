@@ -8,6 +8,10 @@ export interface NoteRowNote {
 	title: string;
 	/** Whether the note carries `_favorite: true` */
 	favorite: boolean;
+	/** Whether the note is organized (only `_organized: false` is not); true for a file that is not a note */
+	organized: boolean;
+	/** Whether the note carries `_archived: true`; false for a file that is not a note */
+	archived: boolean;
 	/** Last modification time, unix seconds (0 when unknown) */
 	modifiedAt: number;
 	/** Parsed frontmatter, read for the list-property pills */

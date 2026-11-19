@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
 	import Archive from '@lucide/svelte/icons/archive';
+	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
@@ -36,9 +37,11 @@
 		fallbackIcon?: Component;
 		/** Lets the row be dragged with its path as `text/plain` (dropped on a Files navigator folder to move it) */
 		draggable?: boolean;
+		/** Marks the note organized; with it the row shows a check at its top right (the Inbox lens) */
+		onOrganize?: () => void;
 	}
 
-	let { note, icon, isActive, listProperties, allPaths, typeName = null, subtitle, italic = false, archived = false, fallbackIcon = FileText, draggable = false }: Props = $props();
+	let { note, icon, isActive, listProperties, allPaths, typeName = null, subtitle, italic = false, archived = false, fallbackIcon = FileText, draggable = false, onOrganize }: Props = $props();
 	let FallbackIcon = $derived(fallbackIcon);
 
 	const menu = useNoteRowMenuContext();
@@ -63,11 +66,33 @@
 			class="h-6 flex-1 rounded-xs border border-ring bg-background px-1 text-row outline-none"
 		/>
 	</div>
+{:else if onOrganize}
+	<!--
+		The check is a sibling of the row, not inside it: a button cannot hold a
+		button, and a right-click on it opens no row menu (NoteRowMenu's blank-area rule).
+	-->
+	<div class="group/note-row relative">
+		{@render row()}
+		<button
+			data-note-row-organize
+			tabindex="-1"
+			class="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-md text-muted-foreground transition-opacity hover:bg-primary/15 hover:text-type-green focus-visible:opacity-100 {isActive ? 'opacity-100' : 'opacity-0 group-hover/note-row:opacity-100 group-focus-within/note-row:opacity-100'}"
+			title="Mark organized"
+			aria-label="Mark organized"
+			onclick={onOrganize}
+		>
+			<CircleCheck class="size-4" />
+		</button>
+	</div>
 {:else}
+	{@render row()}
+{/if}
+
+{#snippet row()}
 	<button
 		data-note-row
 		data-note-row-archived={archived ? '' : undefined}
-		class="flex w-full flex-col rounded-md px-2 py-2 text-left hover:bg-primary/10 cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {isActive ? 'bg-primary/25' : ''} {archived ? 'opacity-60' : ''}"
+		class="flex w-full flex-col rounded-md px-2 py-2 text-left {onOrganize ? 'pr-8' : ''} hover:bg-primary/10 cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {isActive ? 'bg-primary/25' : ''} {archived ? 'opacity-60' : ''}"
 		onclick={() => openFileInEditor(note.path)}
 		oncontextmenu={() => menu.setContextTarget(note)}
 		onkeydown={(e) => { if (e.key === RENAME_SHORTCUT.key) menu.startRename(note); }}
@@ -130,4 +155,4 @@
 			</div>
 		{/if}
 	</button>
-{/if}
+{/snippet}

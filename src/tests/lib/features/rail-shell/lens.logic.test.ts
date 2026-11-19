@@ -202,7 +202,14 @@ describe('resolveLens - Inbox', () => {
 			frontmatter: { status: 'x' },
 			isA: null,
 			italic: true,
+			organized: false,
+			archived: false,
 		});
+	});
+
+	it('carries the organized and archived flags, which the row menu labels follow', () => {
+		const [note] = resolveLens(ARCHIVE_LENS, ctx([entryV2(`${VAULT}/a.md`, { organized: true, archived: true })]))!.notes;
+		expect(note).toMatchObject({ organized: true, archived: true });
 	});
 
 	it('resolves to an empty list over an empty snapshot', () => {
@@ -1985,7 +1992,7 @@ describe('Folder lens', () => {
 			expect(plan).toMatchObject({ title: 'Plan', isA: 'Project', favorite: true, frontmatter: { status: 'active' } });
 			// The folder is the lens itself, so a markdown row shows its modified time only.
 			expect(plan.subtitle).toBe('2h ago');
-			expect(board).toMatchObject({ title: 'Board', isA: null, favorite: false, frontmatter: {}, modifiedAt: 3, subtitle: 'Canvas', italic: false });
+			expect(board).toMatchObject({ title: 'Board', isA: null, favorite: false, frontmatter: {}, modifiedAt: 3, subtitle: 'Canvas', italic: false , organized: true, archived: false });
 		});
 
 		it('keeps the kind word on every row that is not an indexed note', () => {

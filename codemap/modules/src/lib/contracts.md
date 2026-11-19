@@ -29,7 +29,7 @@ dep src/lib/plugins/templates -> src/lib/contracts 1
 dep src/lib/types -> src/lib/contracts 1
 dep src/lib/utils -> src/lib/contracts 3
 dep src/routes -> src/lib/contracts 2
-in2 src/lib/contracts 16 modules: src/lib/plugins/queryjs(8) src/lib/core/markdown-editor(5) src/lib/features/auto-organize(5) src/lib/features/note-list(5) src/lib/plugins/one-on-one(5) +11 modules
+in2 src/lib/contracts 16 modules: src/lib/plugins/queryjs(8) src/lib/features/note-list(6) src/lib/core/markdown-editor(5) src/lib/features/auto-organize(5) src/lib/plugins/one-on-one(5) +11 modules
 out2 src/lib/contracts 0 modules: -
 ## entry files
 entry src/lib/contracts/ipc.ts ext-in46 src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/app/lifecycle/watcher-handler.service.ts src/lib/app/tauri-listeners.service.ts more importers 41 not shown: src/lib/core/filesystem(5) src/lib/features/todoist-sync(5) src/lib/core/settings(4) +21 modules: q importers src/lib/contracts/ipc.ts

@@ -1,7 +1,7 @@
 # file card src/lib/features/type-definitions/type-definitions.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/type-definitions/type-definitions.store.svelte.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, store, locals, calls
-file src/lib/features/type-definitions/type-definitions.store.svelte.ts store L125 module src/lib/features/type-definitions in21 t39
+file src/lib/features/type-definitions/type-definitions.store.svelte.ts store L125 module src/lib/features/type-definitions in21 t40
 ## imports
 imp src/lib/features/type-definitions/type-definitions.store.svelte.ts:1 -> src/lib/types/vault-v2.types.ts type:NoteEntryV2
 imp src/lib/features/type-definitions/type-definitions.store.svelte.ts:2 -> src/lib/core/frontmatter/properties.logic.ts normalizeTypeCasing
@@ -18,8 +18,8 @@ imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:14 -> src/lib/feat
 imp src/lib/features/auto-organize/auto-organize.service.ts:44 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/features/event-calendar/EventCalendarSection.svelte:16 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/features/event-calendar/event-calendar.service.ts:32 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
-imp src/lib/features/note-action-bar/NoteActionBar.svelte:34 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
-imp src/lib/features/note-list/NoteRowMenu.svelte:26 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
+imp src/lib/features/note-action-bar/NoteActionBar.svelte:38 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
+imp src/lib/features/note-list/NoteRowMenu.svelte:33 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/features/properties/PropertiesView.svelte:24 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/features/rail-shell/FilesNavigator.svelte:57 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/features/rail-shell/Rail.svelte:26 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
@@ -57,6 +57,7 @@ test src/tests/lib/features/properties/PropertiesView.test.ts imports src/lib/fe
 test src/tests/lib/features/rail-shell/FilesNavigator.new-view.test.ts imports src/lib/features/type-definitions/type-definitions.store.svelte.ts
 test src/tests/lib/features/rail-shell/LayoutSection.test.ts imports src/lib/features/type-definitions/type-definitions.store.svelte.ts
 test src/tests/lib/features/rail-shell/Rail.test.ts imports src/lib/features/type-definitions/type-definitions.store.svelte.ts
+test src/tests/lib/features/rail-shell/RailNoteList.inbox-check.test.ts imports src/lib/features/type-definitions/type-definitions.store.svelte.ts
 test src/tests/lib/features/rail-shell/RailNoteList.properties.test.ts imports src/lib/features/type-definitions/type-definitions.store.svelte.ts
 test src/tests/lib/features/rail-shell/RailNoteList.search.test.ts imports src/lib/features/type-definitions/type-definitions.store.svelte.ts
 test src/tests/lib/features/rail-shell/RailNoteList.sort.test.ts imports src/lib/features/type-definitions/type-definitions.store.svelte.ts
@@ -76,7 +77,7 @@ test src/tests/lib/plugins/one-on-one/MyPeopleSection.test.ts imports src/lib/fe
 sym src/lib/features/type-definitions/type-definitions.store.svelte.ts:19 store typeDefinitionsStore L88
 by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/app/AppShell.svelte:68 in $effect@66 member +9
 by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/app/boot.ts:56 in registerAppPorts mcall +4
-by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/app/commands.ts:65 in railGoToCommands member +3
+by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/app/commands.ts:67 in railGoToCommands member +3
 by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/app/editor-host.ts:187 in appEditorHost.openView mcall
 by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/app/lifecycle/app-lifecycle.service.ts:684 in teardownVault mcall
 by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/app/tauri-listeners.service.ts:214 in registerVaultIndexUpdatedListener mcall +3
@@ -92,10 +93,10 @@ more r 12 not shown: src/lib/app(6) src/lib/features/rail-shell(4) src/lib/plugi
 mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:22 get typeDefinitionsStore.entriesVersion r:11 w-via:setEntries,patchEntries,reset
 more r 11 not shown: src/lib/app(5) src/lib/features/rail-shell(5) src/lib/plugins/calendar(1): q store src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore.entriesVersion
 mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:23 get typeDefinitionsStore.selectedTypeOrNav r:src/lib/features/type-definitions/type-definitions.service.ts:247 w-via:setSelection,reset
-mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:30 get typeDefinitionsStore.entriesByPath r:src/lib/app/AppShell.svelte:128,src/lib/app/commands.ts:102,src/lib/features/rail-shell/FilesNavigator.svelte:481,src/lib/features/rail-shell/TypesNavigator.svelte:191,src/lib/features/rail-shell/TypesNavigator.svelte:476,src/lib/features/rail-shell/TypesNavigator.svelte:482 w-via:setEntries,patchEntries,reset | O(1) path → entry index over the latest snapshot, for callers that need the whole map (a comparator resolving many paths) rather than a single lookup.
-mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:33 do typeDefinitionsStore.getTypeMetadata w:src/lib/features/rail-shell/RailNoteList.svelte:767 | Returns metadata for a type name, or undefined if not defined.
-mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:38 do typeDefinitionsStore.getEntryByPath w:src/lib/app/boot.ts:56,src/lib/app/boot.ts:80,src/lib/app/editor-host.ts:187,src/lib/features/note-list/NoteRowMenu.svelte:90,src/lib/features/rail-shell/RailNoteList.svelte:385,src/lib/features/rail-shell/RailNoteList.svelte:824 | O(1) lookup of an entry by absolute path in the latest snapshot.
-mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:43 do typeDefinitionsStore.getTypeDefinitionPath w:src/lib/app/boot.ts:57,src/lib/features/rail-shell/RailNoteList.svelte:382,src/lib/features/rail-shell/RailNoteList.svelte:664 | O(1) lookup of a type definition note's absolute path by type name (the `isA` its notes carry).
+mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:30 get typeDefinitionsStore.entriesByPath r:src/lib/app/AppShell.svelte:128,src/lib/app/commands.ts:104,src/lib/features/rail-shell/FilesNavigator.svelte:481,src/lib/features/rail-shell/TypesNavigator.svelte:191,src/lib/features/rail-shell/TypesNavigator.svelte:476,src/lib/features/rail-shell/TypesNavigator.svelte:482 w-via:setEntries,patchEntries,reset | O(1) path → entry index over the latest snapshot, for callers that need the whole map (a comparator resolving many paths) rather than a single lookup.
+mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:33 do typeDefinitionsStore.getTypeMetadata w:src/lib/features/rail-shell/RailNoteList.svelte:769 | Returns metadata for a type name, or undefined if not defined.
+mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:38 do typeDefinitionsStore.getEntryByPath w:src/lib/app/boot.ts:56,src/lib/app/boot.ts:80,src/lib/app/editor-host.ts:187,src/lib/features/note-list/NoteRowMenu.svelte:97,src/lib/features/rail-shell/RailNoteList.svelte:387,src/lib/features/rail-shell/RailNoteList.svelte:826 | O(1) lookup of an entry by absolute path in the latest snapshot.
+mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:43 do typeDefinitionsStore.getTypeDefinitionPath w:src/lib/app/boot.ts:57,src/lib/features/rail-shell/RailNoteList.svelte:384,src/lib/features/rail-shell/RailNoteList.svelte:666 | O(1) lookup of a type definition note's absolute path by type name (the `isA` its notes carry).
 mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:48 get typeDefinitionsStore.sortedTypes r:src/lib/features/properties/PropertiesView.svelte:94 w-via:setTypeMetadataMap,reset | Returns all type metadata entries sorted by order.
 mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:52 do typeDefinitionsStore.setTypeMetadataMap w:src/lib/features/type-definitions/type-definitions.service.ts:33
 mem src/lib/features/type-definitions/type-definitions.store.svelte.ts:57 do typeDefinitionsStore.setEntries w:src/lib/app/tauri-listeners.service.ts:214,src/lib/app/tauri-listeners.service.ts:254 | Stores the latest vault entries snapshot for sidebar consumption.

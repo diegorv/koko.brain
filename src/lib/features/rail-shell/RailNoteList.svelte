@@ -57,12 +57,14 @@
 	} from '#lib/features/type-definitions/type-note-list.logic.js';
 	import NoteRowMenu from '#lib/features/note-list/NoteRowMenu.svelte';
 	import NoteRow from '#lib/features/note-list/NoteRow.svelte';
+	import { setOrganizedForPath } from '#lib/features/properties/lifecycle.service.js';
 	import type { ArchivedFilter } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import { acquireCalendarClock } from '#lib/features/event-calendar/event-calendar.service.js';
 	import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 	import { eventCalendarDailyNoteStore } from '#lib/features/event-calendar/event-calendar-daily-note.store.svelte.js';
 	import {
 		FOLDER_LENS_KIND,
+		INBOX_LENS,
 		lensListsEntries,
 		newNoteRule,
 		queryViewLens,
@@ -980,5 +982,6 @@
 		archived={offersArchivedFilter && archivedFilter === 'all' && note.archived}
 		fallbackIcon={KIND_ICONS[note.kind]}
 		draggable
+		onOrganize={lens.kind === INBOX_LENS.kind && note.kind === 'markdown' ? () => setOrganizedForPath(note.path, true) : undefined}
 	/>
 {/snippet}

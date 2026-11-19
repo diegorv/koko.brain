@@ -23,7 +23,7 @@ reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver invoked-at src/lib/
 reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver invoked-at src/lib/plugins/mods/mods-host.service.ts:836 in loadMod
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver sink src/lib/core/editor/editor.hooks.ts:104 | stores noteCreatedObservers push | doc Adds a note-created observer.
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver read-by src/lib/core/editor/editor.hooks.ts:119 notifyNoteCreated
-reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/app/commands.ts:160 in getBuiltInCommands
+reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/app/commands.ts:162 in getBuiltInCommands
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/core/note-creator/note-creator.service.ts:130 in openOrCreateNote
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/quick-switcher/QuickSwitcher.svelte:110 in createAndOpenNote <- src/lib/features/quick-switcher/QuickSwitcher.svelte:124 in handleInputKeydown <- src/lib/features/quick-switcher/QuickSwitcher.svelte:163 in (markup)
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/quick-switcher/QuickSwitcher.svelte:110 in createAndOpenNote <- src/lib/features/quick-switcher/QuickSwitcher.svelte:190 in (markup)

@@ -20,6 +20,7 @@ function note(frontmatter: Record<string, LensNote['frontmatter'][string]> = {})
 		isA: null,
 		subtitle: '',
 		italic: false,
+		organized: false,
 		archived: false,
 		kind: 'markdown',
 	};

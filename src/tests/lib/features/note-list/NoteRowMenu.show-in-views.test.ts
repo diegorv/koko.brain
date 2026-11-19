@@ -61,7 +61,7 @@ const SHOWN = `${WORK}/Shown.view`;
 const NOTE = `${WORK}/note.md`;
 const HIDDEN_BODY = '_visible: false\n_open_in_editor: true\nviews:\n  - type: table\n    name: All\n';
 
-const row = (path: string, title: string): NoteRowNote => ({ path, title, favorite: false, modifiedAt: 0, frontmatter: {} });
+const row = (path: string, title: string): NoteRowNote => ({ path, title, favorite: false, organized: true, archived: false, modifiedAt: 0, frontmatter: {} });
 const notes: NoteRowNote[] = [row(TABLE, 'Untitled'), row(SHOWN, 'Shown'), row(NOTE, 'note')];
 
 /** Sets the entry snapshot Views reads, as the index refresh does. */

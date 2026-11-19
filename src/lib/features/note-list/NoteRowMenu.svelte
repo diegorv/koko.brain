@@ -1,7 +1,10 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
-	import { ask } from '@tauri-apps/plugin-dialog';
+	import type { Component, Snippet } from 'svelte';
 	import { toast } from 'svelte-sonner';
+	import Archive from '@lucide/svelte/icons/archive';
+	import ArchiveRestore from '@lucide/svelte/icons/archive-restore';
+	import CircleCheck from '@lucide/svelte/icons/circle-check';
+	import History from '@lucide/svelte/icons/history';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import Copy from '@lucide/svelte/icons/copy';
 	import Eye from '@lucide/svelte/icons/eye';
@@ -12,15 +15,19 @@
 	import Star from '@lucide/svelte/icons/star';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
-	import { deleteItem, duplicateItem, renameItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
+	import { duplicateItem, renameItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
+	import { deleteNoteWithConfirm } from '#lib/core/filesystem/delete-note.service.js';
 	import { fileOperationErrorMessage, getFileName, getRelativePath, isMarkdownFile, isViewFile, PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import { setIconForPath, setIconColors, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
-	import { toggleFavoriteForPath } from '#lib/features/properties/lifecycle.service.js';
+	import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
+	import { setArchivedForPath, setOrganizedForPath, toggleFavoriteForPath } from '#lib/features/properties/lifecycle.service.js';
+	import { noteActions, type NoteActionId } from '#lib/features/properties/note-actions.logic.js';
 	import { buildRenameFileName } from '#lib/features/type-definitions/type-note-list.logic.js';
 	import { showViewInViews, ViewWriteError } from '#lib/features/type-definitions/type-definitions.service.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -159,14 +166,23 @@
 		}
 	}
 
-	async function handleDelete(note: NoteRowNote) {
-		const confirmed = await ask(
-			`Move "${note.title}" to trash?`,
-			{ title: 'Move to Trash', kind: 'warning', okLabel: 'Move to Trash', cancelLabel: 'Cancel' },
-		);
-		if (confirmed) {
-			await runOrToast('move {name} to the Trash', note, () => deleteItem(note.path, false));
-		}
+	/** The icon of a note action; Archive shows the restore icon on an archived note. */
+	function noteActionIcon(id: NoteActionId, note: NoteRowNote): Component {
+		if (id === 'archive') return note.archived ? ArchiveRestore : Archive;
+		if (id === 'organize') return CircleCheck;
+		if (id === 'history') return History;
+		return Trash2;
+	}
+
+	/** Runs a note action on the row's own note, never on the active tab. */
+	async function runNoteAction(id: NoteActionId, note: NoteRowNote) {
+		if (id === 'archive') return setArchivedForPath(note.path, !note.archived);
+		if (id === 'organize') return setOrganizedForPath(note.path, !note.organized);
+		if (id === 'trash') return deleteNoteWithConfirm(note.path);
+		// History's Restore writes into the active tab (file-history.service), so
+		// the note is activated first and the dialog opens only once it is.
+		await openFileInEditor(note.path);
+		if (editorStore.activeTabPath === note.path) await openFileHistory(note.path);
 	}
 
 	function handleChangeIcon(path: string) {
@@ -279,10 +295,13 @@
 				<span>Rename</span>
 				<ContextMenu.Shortcut>{formatShortcut(RENAME_SHORTCUT)}</ContextMenu.Shortcut>
 			</ContextMenu.Item>
-			<ContextMenu.Item variant="destructive" onclick={() => handleDelete(target)}>
-				<Trash2 class="size-4" />
-				<span>Move to Trash</span>
-			</ContextMenu.Item>
+			{#each noteActions(isMarkdownFile(target.path) ? 'markdown' : 'other', target) as action (action.id)}
+				{@const Icon = noteActionIcon(action.id, target)}
+				<ContextMenu.Item variant={action.danger ? 'destructive' : 'default'} onclick={() => runNoteAction(action.id, target)}>
+					<Icon class="size-4" />
+					<span>{action.label}</span>
+				</ContextMenu.Item>
+			{/each}
 		{/if}
 	</ContextMenu.Content>
 </ContextMenu.Root>

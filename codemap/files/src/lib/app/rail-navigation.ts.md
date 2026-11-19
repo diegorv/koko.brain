@@ -12,7 +12,7 @@ imp src/lib/app/rail-navigation.ts:12 -> src/lib/features/tasks/tasks.service.ts
 imp src/lib/app/rail-navigation.ts:13 -> src/lib/plugins/graph-view/graph-view.service.ts openGraphTab
 ## imported-by
 imp src/lib/app/AppShell.svelte:41 -> src/lib/app/rail-navigation.ts selectRailItem
-imp src/lib/app/commands.ts:55 -> src/lib/app/rail-navigation.ts openRailView,selectRailItem
+imp src/lib/app/commands.ts:57 -> src/lib/app/rail-navigation.ts openRailView,selectRailItem
 imp src/lib/app/editor-host.ts:36 -> src/lib/app/rail-navigation.ts openRailView
 ## reach
 in2 src/lib/app/rail-navigation.ts 3 files in 2 modules: src/lib/app(2) src/routes(1)
@@ -22,9 +22,9 @@ test src/tests/lib/app/rail-navigation.test.ts imports src/lib/app/rail-navigati
 ## symbols
 sym src/lib/app/rail-navigation.ts:25 fn selectRailItem(item: Pick<RailItem, 'key' | 'pin'>): void L21 | What a click on a rail item does, and the only place that decides it: the rail hands every click here (with the pin, for a pinned item), and so do the palette'…
 by src/lib/app/rail-navigation.ts:selectRailItem <- src/lib/app/AppShell.svelte:205 in (markup) markup
-by src/lib/app/rail-navigation.ts:selectRailItem <- src/lib/app/commands.ts:73 in railGoToCommands call
+by src/lib/app/rail-navigation.ts:selectRailItem <- src/lib/app/commands.ts:75 in railGoToCommands call
 sym src/lib/app/rail-navigation.ts:53 fn openRailView(path: string, opensInEditor: boolean): void L7 | Does what a click on the view's Views row does, for the palette's Open view commands: a view with `_open_in_editor` opens in the editor and leaves the layout a…
-by src/lib/app/rail-navigation.ts:openRailView <- src/lib/app/commands.ts:110 in openViewCommands call
+by src/lib/app/rail-navigation.ts:openRailView <- src/lib/app/commands.ts:112 in openViewCommands call
 by src/lib/app/rail-navigation.ts:openRailView <- src/lib/app/editor-host.ts:187 in appEditorHost.openView call
 ## calls
 call src/lib/app/rail-navigation.ts:28 in selectRailItem -> src/lib/features/search/open-search.service.ts:openSearch call

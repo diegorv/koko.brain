@@ -132,7 +132,7 @@ by src/lib/core/frontmatter/properties.logic.ts:addProperty <- src/lib/features/
 by src/lib/core/frontmatter/properties.logic.ts:addProperty <- src/lib/features/properties/properties.service.ts:192 in addNewProperty call
 sym src/lib/core/frontmatter/properties.logic.ts:711 fn removeProperty(properties: Property[], key: string): Property[] L3 | Removes a property by key.
 by src/lib/core/frontmatter/properties.logic.ts:removeProperty <- src/lib/features/file-icons/frontmatter-icon.service.ts:27 in withIconColors call +1
-by src/lib/core/frontmatter/properties.logic.ts:removeProperty <- src/lib/features/properties/lifecycle.service.ts:70 in setTypeRailPin call
+by src/lib/core/frontmatter/properties.logic.ts:removeProperty <- src/lib/features/properties/lifecycle.service.ts:99 in setTypeRailPin call
 by src/lib/core/frontmatter/properties.logic.ts:removeProperty <- src/lib/features/properties/properties.service.ts:176 in removePropertyByKey call
 by src/lib/core/frontmatter/properties.logic.ts:removeProperty <- src/lib/features/rail-shell/list-prefs.service.ts:13 in withProperty call
 sym src/lib/core/frontmatter/properties.logic.ts:719 fn updatePropertyValue(properties: Property[], key: string, value: string | number | boolean | string[], type?: PropertyType): Property[] L11 | Updates a property's value and optionally its type.

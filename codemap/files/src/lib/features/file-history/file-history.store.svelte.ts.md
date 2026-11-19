@@ -1,18 +1,20 @@
 # file card src/lib/features/file-history/file-history.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/file-history/file-history.store.svelte.ts ' codemap/files
-file src/lib/features/file-history/file-history.store.svelte.ts store L61 module src/lib/features/file-history in2 t3
+file src/lib/features/file-history/file-history.store.svelte.ts store L61 module src/lib/features/file-history in2 t5
 ## imports
 imp src/lib/features/file-history/file-history.store.svelte.ts:1 -> src/lib/features/file-history/file-history.types.ts type:SnapshotInfo,type:DiffLine
 ## imported-by
 imp src/lib/features/file-history/FileHistoryDialog.svelte:4 -> src/lib/features/file-history/file-history.store.svelte.ts fileHistoryStore
 imp src/lib/features/file-history/file-history.service.ts:3 -> src/lib/features/file-history/file-history.store.svelte.ts fileHistoryStore
 ## reach
-in2 src/lib/features/file-history/file-history.store.svelte.ts 4 files in 1 modules: src/lib/app(4)
+in2 src/lib/features/file-history/file-history.store.svelte.ts 6 files in 3 modules: src/lib/app(4) src/lib/features/note-action-bar(1) src/lib/features/note-list(1)
 out2 src/lib/features/file-history/file-history.store.svelte.ts 1 files in 1 modules: src/lib/contracts(1)
 ## tests
 test src/tests/lib/features/file-history/file-history.store.test.ts imports src/lib/features/file-history/file-history.store.svelte.ts mirror
 test src/tests/lib/features/file-history/FileHistoryDialog.test.ts imports src/lib/features/file-history/file-history.store.svelte.ts
 test src/tests/lib/features/file-history/file-history.service.test.ts imports src/lib/features/file-history/file-history.store.svelte.ts
+test src/tests/lib/features/note-action-bar/NoteActionBar.test.ts imports src/lib/features/file-history/file-history.store.svelte.ts
+test src/tests/lib/features/note-list/NoteRowMenu.lifecycle.test.ts imports src/lib/features/file-history/file-history.store.svelte.ts
 ## symbols
 sym src/lib/features/file-history/file-history.store.svelte.ts:28 store fileHistoryStore L34 | Reactive store for file history dialog state.
 by src/lib/features/file-history/file-history.store.svelte.ts:fileHistoryStore <- src/lib/features/file-history/FileHistoryDialog.svelte:15 in fileName=$derived member +18

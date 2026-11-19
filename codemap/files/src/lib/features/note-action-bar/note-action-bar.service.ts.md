@@ -14,7 +14,7 @@ imp src/lib/features/note-action-bar/note-action-bar.service.ts:10 -> src/lib/co
 imp src/lib/features/note-action-bar/note-action-bar.service.ts:11 -> src/lib/utils/debug.ts error
 imp src/lib/features/note-action-bar/note-action-bar.service.ts:12 -> src/lib/utils/path.ts basename,stem
 ## imported-by
-imp src/lib/features/note-action-bar/NoteActionBar.svelte:39 -> src/lib/features/note-action-bar/note-action-bar.service.ts copyNoteDeepLink,copyNotePath,createLinkedNote,revealNote,toggleWideNotes
+imp src/lib/features/note-action-bar/NoteActionBar.svelte:44 -> src/lib/features/note-action-bar/note-action-bar.service.ts copyNoteDeepLink,copyNotePath,createLinkedNote,revealNote,toggleWideNotes
 ## reach
 in2 src/lib/features/note-action-bar/note-action-bar.service.ts 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/note-action-bar/note-action-bar.service.ts 22 files in 10 modules: src/lib/core/editor(4) src/lib/core/filesystem(4) src/lib/core/settings(4) src/lib/utils(3) src/lib/contracts(2) +5 modules
@@ -22,15 +22,15 @@ out2 src/lib/features/note-action-bar/note-action-bar.service.ts 22 files in 10 
 test src/tests/lib/features/note-action-bar/note-action-bar.service.test.ts imports src/lib/features/note-action-bar/note-action-bar.service.ts mirror
 ## symbols
 sym src/lib/features/note-action-bar/note-action-bar.service.ts:15 fn toggleWideNotes(): void L3 | Flips the one global note width setting between the configured content width and full width.
-by src/lib/features/note-action-bar/note-action-bar.service.ts:toggleWideNotes <- src/lib/features/note-action-bar/NoteActionBar.svelte:96 in foldable=$derived ref
+by src/lib/features/note-action-bar/note-action-bar.service.ts:toggleWideNotes <- src/lib/features/note-action-bar/NoteActionBar.svelte:101 in foldable=$derived ref
 sym src/lib/features/note-action-bar/note-action-bar.service.ts:23 fn revealNote(path: string): Promise<void> L8 | Shows the note in Finder; a failure (file gone, opener refused) is shown in a toast.
-by src/lib/features/note-action-bar/note-action-bar.service.ts:revealNote <- src/lib/features/note-action-bar/NoteActionBar.svelte:102 in foldable=$derived call
+by src/lib/features/note-action-bar/note-action-bar.service.ts:revealNote <- src/lib/features/note-action-bar/NoteActionBar.svelte:107 in foldable=$derived call
 sym src/lib/features/note-action-bar/note-action-bar.service.ts:48 fn copyNotePath(path: string): Promise<void> L3 | Copies the note's absolute path and confirms with a toast.
-by src/lib/features/note-action-bar/note-action-bar.service.ts:copyNotePath <- src/lib/features/note-action-bar/NoteActionBar.svelte:104 in foldable=$derived call
+by src/lib/features/note-action-bar/note-action-bar.service.ts:copyNotePath <- src/lib/features/note-action-bar/NoteActionBar.svelte:109 in foldable=$derived call
 sym src/lib/features/note-action-bar/note-action-bar.service.ts:57 fn copyNoteDeepLink(path: string): Promise<void> L10 | Copies a `kokobrain://open` link for the note in the open vault and confirms with a toast.
-by src/lib/features/note-action-bar/note-action-bar.service.ts:copyNoteDeepLink <- src/lib/features/note-action-bar/NoteActionBar.svelte:199 in (markup) markup
+by src/lib/features/note-action-bar/note-action-bar.service.ts:copyNoteDeepLink <- src/lib/features/note-action-bar/NoteActionBar.svelte:219 in (markup) markup
 sym src/lib/features/note-action-bar/note-action-bar.service.ts:75 fn createLinkedNote(hubPath: string): Promise<void> L13 | New linked note: creates a plain `Untitled` note (deduped) in the hub's folder whose frontmatter is `_belongs_to: [[hub]]`, then opens it.
-by src/lib/features/note-action-bar/note-action-bar.service.ts:createLinkedNote <- src/lib/features/note-action-bar/NoteActionBar.svelte:73 in hubButton=$derived call
+by src/lib/features/note-action-bar/note-action-bar.service.ts:createLinkedNote <- src/lib/features/note-action-bar/NoteActionBar.svelte:78 in hubButton=$derived call
 ## locals
 local src/lib/features/note-action-bar/note-action-bar.service.ts:33 fn copyWithToast(text: string, what: string, confirmation: string): Promise<void> L10
 ## calls

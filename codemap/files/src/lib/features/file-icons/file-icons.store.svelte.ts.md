@@ -1,6 +1,6 @@
 # file card src/lib/features/file-icons/file-icons.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/file-icons/file-icons.store.svelte.ts ' codemap/files
-file src/lib/features/file-icons/file-icons.store.svelte.ts store L59 module src/lib/features/file-icons in9 t27
+file src/lib/features/file-icons/file-icons.store.svelte.ts store L59 module src/lib/features/file-icons in9 t28
 ## imports
 imp src/lib/features/file-icons/file-icons.store.svelte.ts:1 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId,type:RecentIcon
 ## imported-by
@@ -9,7 +9,7 @@ imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:16 -> src/lib/feat
 imp src/lib/features/file-icons/IconPicker.svelte:6 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
 imp src/lib/features/file-icons/file-icons.service.ts:6 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore,type:FrontmatterIconRef
 imp src/lib/features/file-icons/icon-resolver.ts:1 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore,type:FrontmatterIconRef
-imp src/lib/features/note-list/NoteRowMenu.svelte:20 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
+imp src/lib/features/note-list/NoteRowMenu.svelte:25 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
 imp src/lib/features/rail-shell/FilesNavigator.svelte:52 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
 imp src/lib/features/rail-shell/Rail.svelte:23 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
 imp src/lib/features/rail-shell/TypesNavigator.svelte:32 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
@@ -34,6 +34,7 @@ test src/tests/lib/features/quick-switcher/QuickSwitcher.test.ts imports src/lib
 test src/tests/lib/features/rail-shell/FilesNavigator.menu.test.ts imports src/lib/features/file-icons/file-icons.store.svelte.ts
 test src/tests/lib/features/rail-shell/FilesNavigator.test.ts imports src/lib/features/file-icons/file-icons.store.svelte.ts
 test src/tests/lib/features/rail-shell/Rail.test.ts imports src/lib/features/file-icons/file-icons.store.svelte.ts
+test src/tests/lib/features/rail-shell/RailNoteList.inbox-check.test.ts imports src/lib/features/file-icons/file-icons.store.svelte.ts
 test src/tests/lib/features/rail-shell/RailNoteList.properties.test.ts imports src/lib/features/file-icons/file-icons.store.svelte.ts
 test src/tests/lib/features/rail-shell/RailNoteList.search.test.ts imports src/lib/features/file-icons/file-icons.store.svelte.ts
 test src/tests/lib/features/rail-shell/RailNoteList.sort.test.ts imports src/lib/features/file-icons/file-icons.store.svelte.ts
@@ -54,7 +55,7 @@ by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/file-icons/IconPicker.svelte:73 in recentNormalized=$derived member
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/file-icons/file-icons.service.ts:18 in (module) mcall +23
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/file-icons/icon-resolver.ts:65 in resolveIconForPath member +3
-by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/note-list/NoteRowMenu.svelte:55 in iconPickerRef=$derived mcall
+by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/note-list/NoteRowMenu.svelte:62 in iconPickerRef=$derived mcall
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/rail-shell/FilesNavigator.svelte:143 in iconPickerRef=$derived mcall
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/rail-shell/Rail.svelte:214 in actionIcon member
 more by 1 not shown: src/lib/features/rail-shell(1): q importers src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore

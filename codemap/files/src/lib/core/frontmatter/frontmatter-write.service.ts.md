@@ -38,22 +38,22 @@ by src/lib/core/frontmatter/frontmatter-write.service.ts:FrontmatterWriteError <
 by src/lib/core/frontmatter/frontmatter-write.service.ts:FrontmatterWriteError <- src/lib/features/event-calendar/event-calendar.service.ts:538 in requireEvent new +7
 by src/lib/core/frontmatter/frontmatter-write.service.ts:FrontmatterWriteError <- src/lib/features/file-icons/frontmatter-icon.service.ts:46 in writeIconFrontmatter ref
 by src/lib/core/frontmatter/frontmatter-write.service.ts:FrontmatterWriteError <- src/lib/features/properties/bookmark-migration.service.ts:82 in migrateBookmarksToFavorites ref +1
-by src/lib/core/frontmatter/frontmatter-write.service.ts:FrontmatterWriteError <- src/lib/features/properties/lifecycle.service.ts:38 in updateActiveNote ref +2
+by src/lib/core/frontmatter/frontmatter-write.service.ts:FrontmatterWriteError <- src/lib/features/properties/lifecycle.service.ts:38 in updateActiveNote ref +3
 by src/lib/core/frontmatter/frontmatter-write.service.ts:FrontmatterWriteError <- src/lib/features/properties/properties.service.ts:92 in commitChanges new
-by src/lib/core/frontmatter/frontmatter-write.service.ts:FrontmatterWriteError <- src/lib/features/rail-shell/RailNoteList.svelte:457 in writeThroughOverlay ref
+by src/lib/core/frontmatter/frontmatter-write.service.ts:FrontmatterWriteError <- src/lib/features/rail-shell/RailNoteList.svelte:459 in writeThroughOverlay ref
 by src/lib/core/frontmatter/frontmatter-write.service.ts:FrontmatterWriteError <- src/lib/features/todoist-sync/sync-now.service.ts:898 in writeProjectId new
 sym src/lib/core/frontmatter/frontmatter-write.service.ts:64 fn toastFrontmatterWriteError(err: FrontmatterWriteError, options: { id?: string; suffix?: string } = {}): void L9 | Reports a failed `updateNoteFrontmatter` call in an error toast prefixed with the note's file name, since the target can differ from what the user clicked (a f…
 by src/lib/core/frontmatter/frontmatter-write.service.ts:toastFrontmatterWriteError <- src/lib/app/deep-link-actions.ts:220 in executeCaptureAction call
 by src/lib/core/frontmatter/frontmatter-write.service.ts:toastFrontmatterWriteError <- src/lib/features/file-icons/frontmatter-icon.service.ts:47 in writeIconFrontmatter call
-by src/lib/core/frontmatter/frontmatter-write.service.ts:toastFrontmatterWriteError <- src/lib/features/properties/lifecycle.service.ts:39 in updateActiveNote call +2
+by src/lib/core/frontmatter/frontmatter-write.service.ts:toastFrontmatterWriteError <- src/lib/features/properties/lifecycle.service.ts:39 in updateActiveNote call +3
 by src/lib/core/frontmatter/frontmatter-write.service.ts:toastFrontmatterWriteError <- src/lib/features/properties/properties.service.ts:92 in commitChanges call
-by src/lib/core/frontmatter/frontmatter-write.service.ts:toastFrontmatterWriteError <- src/lib/features/rail-shell/RailNoteList.svelte:457 in writeThroughOverlay call
+by src/lib/core/frontmatter/frontmatter-write.service.ts:toastFrontmatterWriteError <- src/lib/features/rail-shell/RailNoteList.svelte:459 in writeThroughOverlay call
 sym src/lib/core/frontmatter/frontmatter-write.service.ts:99 fn updateNoteFrontmatter(path: string, mutate: (props: Property[]) => Property[]): Promise<string> L7 | Rewrites one note's frontmatter by path without losing data, and returns the written content (the unchanged base when `mutate` changes nothing).
 by src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter <- src/lib/features/auto-organize/auto-organize.service.ts:721 in writeRuleProperties call
 by src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter <- src/lib/features/event-calendar/event-calendar.service.ts:759 in renameAndWrite call
 by src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter <- src/lib/features/file-icons/frontmatter-icon.service.ts:43 in writeIconFrontmatter call
 by src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter <- src/lib/features/properties/bookmark-migration.service.ts:80 in migrateBookmarksToFavorites call
-by src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter <- src/lib/features/properties/lifecycle.service.ts:36 in updateActiveNote call +2
+by src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter <- src/lib/features/properties/lifecycle.service.ts:36 in updateActiveNote call +3
 by src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter <- src/lib/features/rail-shell/list-prefs.service.ts:44 in saveDefinitionProperty call
 by src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter <- src/lib/features/todoist-sync/sync-now.service.ts:903 in writeProjectId call
 by src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter <- src/lib/plugins/mods/mod-app.service.ts:53 in MOD_APP ref

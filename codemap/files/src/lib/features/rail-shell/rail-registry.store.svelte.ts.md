@@ -1,6 +1,6 @@
 # file card src/lib/features/rail-shell/rail-registry.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/rail-shell/rail-registry.store.svelte.ts ' codemap/files
-file src/lib/features/rail-shell/rail-registry.store.svelte.ts store L111 module src/lib/features/rail-shell in11 t26
+file src/lib/features/rail-shell/rail-registry.store.svelte.ts store L111 module src/lib/features/rail-shell in11 t27
 ## imports
 imp src/lib/features/rail-shell/rail-registry.store.svelte.ts:1 -> src/lib/features/rail-shell/rail-shell.types.ts type:RailAction,type:RailFolderCreator,type:RailLensProvider,type:RailMenuItem,type:RailNavigator,type:RailTodaySection
 ## imported-by
@@ -9,7 +9,7 @@ imp src/lib/app/commands.ts:19 -> src/lib/features/rail-shell/rail-registry.stor
 imp src/lib/features/rail-shell/FilesNavigator.svelte:68 -> src/lib/features/rail-shell/rail-registry.store.svelte.ts railRegistryStore
 imp src/lib/features/rail-shell/LayoutSection.svelte:21 -> src/lib/features/rail-shell/rail-registry.store.svelte.ts railRegistryStore
 imp src/lib/features/rail-shell/Rail.svelte:49 -> src/lib/features/rail-shell/rail-registry.store.svelte.ts railRegistryStore
-imp src/lib/features/rail-shell/RailNoteList.svelte:102 -> src/lib/features/rail-shell/rail-registry.store.svelte.ts railRegistryStore
+imp src/lib/features/rail-shell/RailNoteList.svelte:104 -> src/lib/features/rail-shell/rail-registry.store.svelte.ts railRegistryStore
 imp src/lib/plugins/calendar/calendar-rail.service.ts:5 -> src/lib/features/rail-shell/rail-registry.store.svelte.ts railRegistryStore
 imp src/lib/plugins/kanban/kanban.service.ts:11 -> src/lib/features/rail-shell/rail-registry.store.svelte.ts railRegistryStore
 imp src/lib/plugins/mods/mod-app.service.ts:10 -> src/lib/features/rail-shell/rail-registry.store.svelte.ts railRegistryStore
@@ -27,6 +27,7 @@ test src/tests/lib/features/rail-shell/FilesNavigator.menu.test.ts imports src/l
 test src/tests/lib/features/rail-shell/FilesNavigator.new-view.test.ts imports src/lib/features/rail-shell/rail-registry.store.svelte.ts
 test src/tests/lib/features/rail-shell/LayoutSection.test.ts imports src/lib/features/rail-shell/rail-registry.store.svelte.ts
 test src/tests/lib/features/rail-shell/Rail.test.ts imports src/lib/features/rail-shell/rail-registry.store.svelte.ts
+test src/tests/lib/features/rail-shell/RailNoteList.inbox-check.test.ts imports src/lib/features/rail-shell/rail-registry.store.svelte.ts
 test src/tests/lib/features/rail-shell/RailNoteList.properties.test.ts imports src/lib/features/rail-shell/rail-registry.store.svelte.ts
 test src/tests/lib/features/rail-shell/RailNoteList.search.test.ts imports src/lib/features/rail-shell/rail-registry.store.svelte.ts
 test src/tests/lib/features/rail-shell/RailNoteList.sort.test.ts imports src/lib/features/rail-shell/rail-registry.store.svelte.ts
@@ -48,21 +49,21 @@ test src/tests/lib/plugins/one-on-one/MyPeopleSection.test.ts imports src/lib/fe
 ## symbols
 sym src/lib/features/rail-shell/rail-registry.store.svelte.ts:27 store railRegistryStore L85
 by src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore <- src/lib/app/AppShell.svelte:108 in railItem=$derived member +1
-by src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore <- src/lib/app/commands.ts:68 in railGoToCommands member
+by src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore <- src/lib/app/commands.ts:70 in railGoToCommands member
 by src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore <- src/lib/features/rail-shell/FilesNavigator.svelte:119 in fileCreators=$derived member +1
 by src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore <- src/lib/features/rail-shell/LayoutSection.svelte:40 in items=$derived member
 by src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore <- src/lib/features/rail-shell/Rail.svelte:94 in items=$derived member +1
-by src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore <- src/lib/features/rail-shell/RailNoteList.svelte:200 in resolved=$derived member +5
+by src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore <- src/lib/features/rail-shell/RailNoteList.svelte:202 in resolved=$derived member +5
 by src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore <- src/lib/plugins/calendar/calendar-rail.service.ts:26 in registerCalendarRail mcall +1
 by src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore <- src/lib/plugins/kanban/kanban.service.ts:28 in registerKanbanFolderCreator mcall
 more by 3 not shown: src/lib/plugins/mods(2) src/lib/plugins/one-on-one(1): q importers src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore
 ## store
 store src/lib/features/rail-shell/rail-registry.store.svelte.ts:27 railRegistryStore esc:1
-mem src/lib/features/rail-shell/rail-registry.store.svelte.ts:29 get railRegistryStore.menuItems r:src/lib/features/rail-shell/FilesNavigator.svelte:433,src/lib/features/rail-shell/RailNoteList.svelte:889 w-via:registerMenuItem,reset | Registered note-row and folder menu actions
+mem src/lib/features/rail-shell/rail-registry.store.svelte.ts:29 get railRegistryStore.menuItems r:src/lib/features/rail-shell/FilesNavigator.svelte:433,src/lib/features/rail-shell/RailNoteList.svelte:891 w-via:registerMenuItem,reset | Registered note-row and folder menu actions
 mem src/lib/features/rail-shell/rail-registry.store.svelte.ts:34 do railRegistryStore.registerMenuItem w:src/lib/plugins/mods/mods-host.service.ts:221 | Adds a menu item, replacing one with the same id.
-mem src/lib/features/rail-shell/rail-registry.store.svelte.ts:42 get railRegistryStore.navigators r:src/lib/app/AppShell.svelte:108,src/lib/app/AppShell.svelte:116,src/lib/app/commands.ts:68,src/lib/features/rail-shell/LayoutSection.svelte:40,src/lib/features/rail-shell/Rail.svelte:94 w-via:registerNavigator,reset | Registered navigators
-mem src/lib/features/rail-shell/rail-registry.store.svelte.ts:46 get railRegistryStore.lensProviders r:src/lib/features/rail-shell/RailNoteList.svelte:200,src/lib/features/rail-shell/RailNoteList.svelte:600,src/lib/features/rail-shell/RailNoteList.svelte:646,src/lib/features/rail-shell/RailNoteList.svelte:712 w-via:registerLensProvider,reset | Registered lens providers
-mem src/lib/features/rail-shell/rail-registry.store.svelte.ts:50 get railRegistryStore.todaySections r:src/lib/features/rail-shell/RailNoteList.svelte:687 w-via:registerTodaySection,reset | Registered Today sections
+mem src/lib/features/rail-shell/rail-registry.store.svelte.ts:42 get railRegistryStore.navigators r:src/lib/app/AppShell.svelte:108,src/lib/app/AppShell.svelte:116,src/lib/app/commands.ts:70,src/lib/features/rail-shell/LayoutSection.svelte:40,src/lib/features/rail-shell/Rail.svelte:94 w-via:registerNavigator,reset | Registered navigators
+mem src/lib/features/rail-shell/rail-registry.store.svelte.ts:46 get railRegistryStore.lensProviders r:src/lib/features/rail-shell/RailNoteList.svelte:202,src/lib/features/rail-shell/RailNoteList.svelte:602,src/lib/features/rail-shell/RailNoteList.svelte:648,src/lib/features/rail-shell/RailNoteList.svelte:714 w-via:registerLensProvider,reset | Registered lens providers
+mem src/lib/features/rail-shell/rail-registry.store.svelte.ts:50 get railRegistryStore.todaySections r:src/lib/features/rail-shell/RailNoteList.svelte:689 w-via:registerTodaySection,reset | Registered Today sections
 mem src/lib/features/rail-shell/rail-registry.store.svelte.ts:54 get railRegistryStore.folderCreators r:src/lib/features/rail-shell/FilesNavigator.svelte:119 w-via:registerFolderCreator,reset | Registered folder menu creators
 mem src/lib/features/rail-shell/rail-registry.store.svelte.ts:58 get railRegistryStore.actions r:src/lib/features/rail-shell/Rail.svelte:206 w-via:registerAction,reset | Registered action buttons
 mem src/lib/features/rail-shell/rail-registry.store.svelte.ts:63 do railRegistryStore.registerNavigator w:src/lib/plugins/calendar/calendar-rail.service.ts:26 | Adds a navigator, replacing one with the same id.

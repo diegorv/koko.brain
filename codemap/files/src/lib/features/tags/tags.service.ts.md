@@ -34,7 +34,7 @@ sym src/lib/features/tags/tags.service.ts:126 fn openTagsTab(): void L14 | Opens
 by src/lib/features/tags/tags.service.ts:openTagsTab <- src/lib/app/rail-navigation.ts:37 in selectRailItem call
 sym src/lib/features/tags/tags.service.ts:142 fn closeTagsTab(): void L6 | Closes the Tags tab if it exists.
 sym src/lib/features/tags/tags.service.ts:150 fn toggleTagsTab(): void L10 | Toggles the Tags tab: opens if closed, closes if active, focuses if open but not active.
-by src/lib/features/tags/tags.service.ts:toggleTagsTab <- src/lib/app/commands.ts:301 in getBuiltInCommands call
+by src/lib/features/tags/tags.service.ts:toggleTagsTab <- src/lib/app/commands.ts:303 in getBuiltInCommands call
 sym src/lib/features/tags/tags.service.ts:162 fn resetTags(): void L7 | Resets all tag state and cancels any pending scheduled rebuild.
 by src/lib/features/tags/tags.service.ts:resetTags <- src/lib/app/lifecycle/app-lifecycle.service.ts:664 in teardownVault call
 ## locals

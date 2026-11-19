@@ -1,6 +1,6 @@
 # file card src/lib/features/file-icons/file-icons.icon-data.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/file-icons/file-icons.icon-data.ts ' codemap/files
-file src/lib/features/file-icons/file-icons.icon-data.ts other L320 module src/lib/features/file-icons in7 t31
+file src/lib/features/file-icons/file-icons.icon-data.ts other L320 module src/lib/features/file-icons in7 t34
 ## imports
 imp src/lib/features/file-icons/file-icons.icon-data.ts:1 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId,type:IconPackMeta,type:NormalizedIcon
 ## imported-by
@@ -27,7 +27,9 @@ test src/tests/lib/app/meta-bind-open-view.test.ts mocks src/lib/features/file-i
 test src/tests/lib/features/collection/CollectionView.view-writes.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/file-icons/file-icons.service.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/file-icons/icon-resolver.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
+test src/tests/lib/features/note-list/NoteRow.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/note-list/NoteRowMenu.favorite.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
+test src/tests/lib/features/note-list/NoteRowMenu.lifecycle.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/note-list/NoteRowMenu.show-in-views.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/note-list/NoteRowMenu.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/properties/NoteInfo.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
@@ -38,6 +40,7 @@ test src/tests/lib/features/rail-shell/FilesNavigator.new-view.test.ts mocks src
 test src/tests/lib/features/rail-shell/FilesNavigator.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/rail-shell/LayoutSection.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/rail-shell/Rail.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
+test src/tests/lib/features/rail-shell/RailNoteList.inbox-check.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/rail-shell/RailNoteList.properties.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/rail-shell/RailNoteList.search.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/rail-shell/RailNoteList.sort.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts

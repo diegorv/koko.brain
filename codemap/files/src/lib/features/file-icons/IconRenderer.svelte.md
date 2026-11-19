@@ -10,7 +10,7 @@ imp src/lib/app/EditorView.svelte:26 -> src/lib/features/file-icons/IconRenderer
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:9 -> src/lib/features/file-icons/IconRenderer.svelte default
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:14 -> src/lib/features/file-icons/IconRenderer.svelte default
 imp src/lib/features/file-icons/IconPicker.svelte:7 -> src/lib/features/file-icons/IconRenderer.svelte default
-imp src/lib/features/note-list/NoteRow.svelte:8 -> src/lib/features/file-icons/IconRenderer.svelte default
+imp src/lib/features/note-list/NoteRow.svelte:9 -> src/lib/features/file-icons/IconRenderer.svelte default
 imp src/lib/features/properties/PropertiesView.svelte:27 -> src/lib/features/file-icons/IconRenderer.svelte default
 imp src/lib/features/properties/RelationshipSearch.svelte:12 -> src/lib/features/file-icons/IconRenderer.svelte default
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:14 -> src/lib/features/file-icons/IconRenderer.svelte default
@@ -29,7 +29,7 @@ by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/app/Editor
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:299 in (markup) mount
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:593 in (markup) mount
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/file-icons/IconPicker.svelte:224 in (markup) mount +1
-by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/note-list/NoteRow.svelte:54 in (markup) mount +1
+by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/note-list/NoteRow.svelte:57 in (markup) mount +1
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/properties/PropertiesView.svelte:179 in (markup) mount +2
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/properties/RelationshipSearch.svelte:74 in (markup) mount
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/quick-switcher/QuickSwitcher.svelte:137 in (markup) mount
@@ -40,8 +40,8 @@ mount src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:299 IconRen
 mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:593 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/file-icons/IconPicker.svelte:224 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/file-icons/IconPicker.svelte:239 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/note-list/NoteRow.svelte:54 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/note-list/NoteRow.svelte:84 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/note-list/NoteRow.svelte:57 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/note-list/NoteRow.svelte:109 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/properties/PropertiesView.svelte:179 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/properties/PropertiesView.svelte:193 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/properties/PropertiesView.svelte:266 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte

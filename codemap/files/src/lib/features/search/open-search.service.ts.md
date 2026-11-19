@@ -19,7 +19,7 @@ out2 src/lib/features/search/open-search.service.ts 21 files in 8 modules: src/l
 test src/tests/lib/features/search/open-search.service.test.ts imports src/lib/features/search/open-search.service.ts mirror
 ## symbols
 sym src/lib/features/search/open-search.service.ts:11 fn openSearch(query?: string): void L5 | Shows Search with `query` (the current query stays when it is left out): picks the Search rail item, shows the panels Cmd+1 may have hidden and focuses the inp…
-by src/lib/features/search/open-search.service.ts:openSearch <- src/lib/app/commands.ts:208 in getBuiltInCommands call
+by src/lib/features/search/open-search.service.ts:openSearch <- src/lib/app/commands.ts:210 in getBuiltInCommands call
 by src/lib/features/search/open-search.service.ts:openSearch <- src/lib/app/editor-host.ts:192 in appEditorHost.openTagSearch call
 by src/lib/features/search/open-search.service.ts:openSearch <- src/lib/app/global-keybindings.ts:46 in registerSlashSearchKeybinding call +1
 by src/lib/features/search/open-search.service.ts:openSearch <- src/lib/app/rail-navigation.ts:28 in selectRailItem call

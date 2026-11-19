@@ -39,7 +39,7 @@ by src/lib/features/rail-shell/rail-items.logic.ts:RailItem <- src/lib/app/rail-
 by src/lib/features/rail-shell/rail-items.logic.ts:RailItem <- src/lib/features/rail-shell/LayoutSection.svelte:18 in (script) import
 by src/lib/features/rail-shell/rail-items.logic.ts:RailItem <- src/lib/features/rail-shell/Rail.svelte:47 in (script) import
 sym src/lib/features/rail-shell/rail-items.logic.ts:46 fn railItems(navigators: readonly RailNavigator[], pins: readonly RailPin[], hidden: readonly string[] = [], order: readonly string… L37 | Every rail button in rail order: Search, Inbox, Today, Favorites; Types, the registered navigators (Days), Files; Tasks, Graph, Tags (the Tabs items); the pins…
-by src/lib/features/rail-shell/rail-items.logic.ts:railItems <- src/lib/app/commands.ts:68 in railGoToCommands call
+by src/lib/features/rail-shell/rail-items.logic.ts:railItems <- src/lib/app/commands.ts:70 in railGoToCommands call
 by src/lib/features/rail-shell/rail-items.logic.ts:railItems <- src/lib/features/rail-shell/LayoutSection.svelte:40 in items=$derived call
 by src/lib/features/rail-shell/rail-items.logic.ts:railItems <- src/lib/features/rail-shell/Rail.svelte:93 in items=$derived call
 sym src/lib/features/rail-shell/rail-items.logic.ts:92 fn arrangeRailGroups(groups: readonly (readonly string[])[], hidden: readonly string[], order: readonly string[]): string[][] L12 | The rail's groups of keys as the rail draws them, from the groups in default order: a hidden key is dropped, except Search and Today (the way into search and t…
@@ -47,11 +47,11 @@ sym src/lib/features/rail-shell/rail-items.logic.ts:111 fn moveRailItem(items: r
 by src/lib/features/rail-shell/rail-items.logic.ts:moveRailItem <- src/lib/features/rail-shell/LayoutSection.svelte:47 in move call +2
 sym src/lib/features/rail-shell/rail-items.logic.ts:129 fn parseRailHidden(saved: unknown): string[] L3 | The hidden rail items saved in `layout.railHidden`; a hand-edited non-array reads as none, non-strings are dropped.
 by src/lib/features/rail-shell/rail-items.logic.ts:parseRailHidden <- src/lib/app/AppShell.svelte:110 in railItem=$derived call
-by src/lib/features/rail-shell/rail-items.logic.ts:parseRailHidden <- src/lib/app/commands.ts:68 in railGoToCommands call
+by src/lib/features/rail-shell/rail-items.logic.ts:parseRailHidden <- src/lib/app/commands.ts:70 in railGoToCommands call
 by src/lib/features/rail-shell/rail-items.logic.ts:parseRailHidden <- src/lib/features/rail-shell/LayoutSection.svelte:38 in hidden=$derived call
 by src/lib/features/rail-shell/rail-items.logic.ts:parseRailHidden <- src/lib/features/rail-shell/Rail.svelte:96 in items=$derived call
 sym src/lib/features/rail-shell/rail-items.logic.ts:134 fn parseRailOrder(saved: unknown): string[] L3 | The rail order saved in `layout.railOrder`; a hand-edited non-array reads as the default order, non-strings are dropped.
-by src/lib/features/rail-shell/rail-items.logic.ts:parseRailOrder <- src/lib/app/commands.ts:68 in railGoToCommands call
+by src/lib/features/rail-shell/rail-items.logic.ts:parseRailOrder <- src/lib/app/commands.ts:70 in railGoToCommands call
 by src/lib/features/rail-shell/rail-items.logic.ts:parseRailOrder <- src/lib/features/rail-shell/LayoutSection.svelte:40 in items=$derived call
 by src/lib/features/rail-shell/rail-items.logic.ts:parseRailOrder <- src/lib/features/rail-shell/Rail.svelte:97 in items=$derived call
 sym src/lib/features/rail-shell/rail-items.logic.ts:139 fn parseRailInboxBadge(saved: unknown): boolean L3 | Whether the rail's Inbox badge is on, from `layout.railInboxBadge`: off only for the boolean `false`.

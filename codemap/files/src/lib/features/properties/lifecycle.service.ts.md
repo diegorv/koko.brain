@@ -1,6 +1,6 @@
 # file card src/lib/features/properties/lifecycle.service.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/properties/lifecycle.service.ts ' codemap/files
-file src/lib/features/properties/lifecycle.service.ts service L93 module src/lib/features/properties in5 t15
+file src/lib/features/properties/lifecycle.service.ts service L122 module src/lib/features/properties in6 t16
 ## imports
 imp src/lib/features/properties/lifecycle.service.ts:1 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/properties/lifecycle.service.ts:2 -> src/lib/core/editor/editor.logic.ts isMarkdownNoteTab
@@ -10,16 +10,18 @@ imp src/lib/features/properties/lifecycle.service.ts:9 -> src/lib/core/frontmatt
 imp src/lib/features/properties/lifecycle.service.ts:10 -> src/lib/core/frontmatter/properties.types.ts type:Property
 imp src/lib/features/properties/lifecycle.service.ts:11 -> src/lib/features/properties/lifecycle.logic.ts getLifecycleState,isFavorite,isOrganized,setBooleanFlag,toggleArchived,toggleFavorite,toggleOrganized
 ## imported-by
-imp src/lib/app/commands.ts:53 -> src/lib/features/properties/lifecycle.service.ts toggleActiveNoteFavorite,toggleActiveNoteOrganized
+imp src/lib/app/commands.ts:53 -> src/lib/features/properties/lifecycle.service.ts toggleActiveNoteArchived,toggleActiveNoteFavorite,toggleActiveNoteOrganized
 imp src/lib/app/global-keybindings.ts:28 -> src/lib/features/properties/lifecycle.service.ts toggleActiveNoteFavorite,toggleActiveNoteOrganized
-imp src/lib/features/note-action-bar/NoteActionBar.svelte:29 -> src/lib/features/properties/lifecycle.service.ts toggleActiveNoteArchived,toggleActiveNoteFavorite,toggleActiveNoteOrganized
-imp src/lib/features/note-list/NoteRowMenu.svelte:23 -> src/lib/features/properties/lifecycle.service.ts toggleFavoriteForPath
+imp src/lib/features/note-action-bar/NoteActionBar.svelte:31 -> src/lib/features/properties/lifecycle.service.ts toggleActiveNoteArchived,toggleActiveNoteFavorite,toggleActiveNoteOrganized
+imp src/lib/features/note-list/NoteRowMenu.svelte:29 -> src/lib/features/properties/lifecycle.service.ts setArchivedForPath,setOrganizedForPath,toggleFavoriteForPath
+imp src/lib/features/rail-shell/RailNoteList.svelte:60 -> src/lib/features/properties/lifecycle.service.ts setOrganizedForPath
 imp src/lib/features/rail-shell/TypesNavigator.svelte:45 -> src/lib/features/properties/lifecycle.service.ts setTypeRailPin
 ## reach
-in2 src/lib/features/properties/lifecycle.service.ts 5 files in 3 modules: src/lib/app(3) src/lib/features/rail-shell(1) src/routes(1)
+in2 src/lib/features/properties/lifecycle.service.ts 4 files in 2 modules: src/lib/app(3) src/routes(1)
 out2 src/lib/features/properties/lifecycle.service.ts 6 files in 3 modules: src/lib/core/editor(3) src/lib/utils(2) src/lib/core/vault(1)
 ## tests
 test src/tests/lib/features/properties/lifecycle.service.favorite-path.test.ts imports src/lib/features/properties/lifecycle.service.ts mirror
+test src/tests/lib/features/properties/lifecycle.service.organized-path.test.ts imports src/lib/features/properties/lifecycle.service.ts mirror
 test src/tests/lib/features/properties/lifecycle.service.rail-pin.test.ts imports src/lib/features/properties/lifecycle.service.ts mirror
 test src/tests/lib/features/properties/lifecycle.service.test.ts imports src/lib/features/properties/lifecycle.service.ts mirror
 test src/tests/lib/features/properties/frontmatter-number-spelling.test.ts imports src/lib/features/properties/lifecycle.service.ts
@@ -36,21 +38,28 @@ test src/tests/lib/features/rail-shell/RailNoteList.view.test.ts mocks src/lib/f
 test src/tests/lib/features/rail-shell/TypesNavigator.test.ts mocks src/lib/features/properties/lifecycle.service.ts
 ## symbols
 sym src/lib/features/properties/lifecycle.service.ts:48 fn toggleFavoriteForPath(filePath: string, favorite: boolean): Promise<void> L10 | Toggles _favorite on a note by path through `updateNoteFrontmatter`, so an open tab keeps its unsaved edits.
-by src/lib/features/properties/lifecycle.service.ts:toggleFavoriteForPath <- src/lib/features/note-list/NoteRowMenu.svelte:261 in (markup) markup
-sym src/lib/features/properties/lifecycle.service.ts:66 fn setTypeRailPin(definitionPath: string, pinned: boolean): Promise<void> L10 | Pins the type whose definition note is at `definitionPath` to the rail (`_rail: true`) or unpins it (the key removed), through `updateNoteFrontmatter`, so the …
+by src/lib/features/properties/lifecycle.service.ts:toggleFavoriteForPath <- src/lib/features/note-list/NoteRowMenu.svelte:277 in (markup) markup
+sym src/lib/features/properties/lifecycle.service.ts:76 fn setOrganizedForPath(filePath: string, organized: boolean): Promise<void> L3 | Sets `_organized` on a note by path; `_archived` is left as-is.
+by src/lib/features/properties/lifecycle.service.ts:setOrganizedForPath <- src/lib/features/note-list/NoteRowMenu.svelte:180 in runNoteAction call
+by src/lib/features/properties/lifecycle.service.ts:setOrganizedForPath <- src/lib/features/rail-shell/RailNoteList.svelte:985 in (markup) markup
+sym src/lib/features/properties/lifecycle.service.ts:84 fn setArchivedForPath(filePath: string, archived: boolean): Promise<void> L3 | Sets `_archived` on a note by path; `_organized` is left as-is.
+by src/lib/features/properties/lifecycle.service.ts:setArchivedForPath <- src/lib/features/note-list/NoteRowMenu.svelte:179 in runNoteAction call
+sym src/lib/features/properties/lifecycle.service.ts:95 fn setTypeRailPin(definitionPath: string, pinned: boolean): Promise<void> L10 | Pins the type whose definition note is at `definitionPath` to the rail (`_rail: true`) or unpins it (the key removed), through `updateNoteFrontmatter`, so the …
 by src/lib/features/properties/lifecycle.service.ts:setTypeRailPin <- src/lib/features/rail-shell/TypesNavigator.svelte:384 in (markup) markup
-sym src/lib/features/properties/lifecycle.service.ts:78 fn toggleActiveNoteFavorite(): Promise<void> L3 | Flips `_favorite` on the active note.
-by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteFavorite <- src/lib/app/commands.ts:361 in getBuiltInCommands call
+sym src/lib/features/properties/lifecycle.service.ts:107 fn toggleActiveNoteFavorite(): Promise<void> L3 | Flips `_favorite` on the active note.
+by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteFavorite <- src/lib/app/commands.ts:363 in getBuiltInCommands call
 by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteFavorite <- src/lib/app/global-keybindings.ts:195 in GLOBAL_KEYBINDINGS call
-by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteFavorite <- src/lib/features/note-action-bar/NoteActionBar.svelte:151 in (markup) markup
-sym src/lib/features/properties/lifecycle.service.ts:83 fn toggleActiveNoteOrganized(): Promise<void> L3 | Flips `_organized` on the active note; `_archived` is left as-is.
-by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteOrganized <- src/lib/app/commands.ts:368 in getBuiltInCommands call
+by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteFavorite <- src/lib/features/note-action-bar/NoteActionBar.svelte:171 in (markup) markup
+sym src/lib/features/properties/lifecycle.service.ts:112 fn toggleActiveNoteOrganized(): Promise<void> L3 | Flips `_organized` on the active note; `_archived` is left as-is.
+by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteOrganized <- src/lib/app/commands.ts:370 in getBuiltInCommands call
 by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteOrganized <- src/lib/app/global-keybindings.ts:201 in GLOBAL_KEYBINDINGS call
-by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteOrganized <- src/lib/features/note-action-bar/NoteActionBar.svelte:160 in (markup) markup
-sym src/lib/features/properties/lifecycle.service.ts:91 fn toggleActiveNoteArchived(): Promise<void> L3 | Archives the active note, or restores it when archived.
-by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteArchived <- src/lib/features/note-action-bar/NoteActionBar.svelte:207 in (markup) markup
+by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteOrganized <- src/lib/features/note-action-bar/NoteActionBar.svelte:121 in noteActionItems ref +1
+sym src/lib/features/properties/lifecycle.service.ts:120 fn toggleActiveNoteArchived(): Promise<void> L3 | Archives the active note, or restores it when archived.
+by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteArchived <- src/lib/app/commands.ts:376 in getBuiltInCommands call
+by src/lib/features/properties/lifecycle.service.ts:toggleActiveNoteArchived <- src/lib/features/note-action-bar/NoteActionBar.svelte:117 in noteActionItems ref
 ## locals
 local src/lib/features/properties/lifecycle.service.ts:30 fn updateActiveNote(mutate: (props: Property[]) => Property[]): Promise<void> L12
+local src/lib/features/properties/lifecycle.service.ts:65 fn updateNoteAtPath(filePath: string, mutate: (props: Property[]) => Property[]): Promise<void> L9
 ## calls
 call src/lib/features/properties/lifecycle.service.ts:32 in updateActiveNote -> src/lib/core/editor/editor.logic.ts:isMarkdownNoteTab call
 call src/lib/features/properties/lifecycle.service.ts:34 in updateActiveNote -> src/lib/core/vault/vault.store.svelte.ts:vaultStore.requestPromptIndexRefresh mcall
@@ -60,17 +69,24 @@ call src/lib/features/properties/lifecycle.service.ts:50 in toggleFavoriteForPat
 call src/lib/features/properties/lifecycle.service.ts:52 in toggleFavoriteForPath -> src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter call
 call src/lib/features/properties/lifecycle.service.ts:52 in toggleFavoriteForPath -> src/lib/features/properties/lifecycle.logic.ts:toggleFavorite call
 call src/lib/features/properties/lifecycle.service.ts:55 in toggleFavoriteForPath -> src/lib/core/frontmatter/frontmatter-write.service.ts:toastFrontmatterWriteError call
-call src/lib/features/properties/lifecycle.service.ts:68 in setTypeRailPin -> src/lib/core/vault/vault.store.svelte.ts:vaultStore.requestPromptIndexRefresh mcall
-call src/lib/features/properties/lifecycle.service.ts:70 in setTypeRailPin -> src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter call
-call src/lib/features/properties/lifecycle.service.ts:70 in setTypeRailPin -> src/lib/core/frontmatter/properties.logic.ts:removeProperty call
-call src/lib/features/properties/lifecycle.service.ts:70 in setTypeRailPin -> src/lib/features/properties/lifecycle.logic.ts:setBooleanFlag call
-call src/lib/features/properties/lifecycle.service.ts:73 in setTypeRailPin -> src/lib/core/frontmatter/frontmatter-write.service.ts:toastFrontmatterWriteError call
-call src/lib/features/properties/lifecycle.service.ts:79 in toggleActiveNoteFavorite -> src/lib/features/properties/lifecycle.logic.ts:isFavorite call
-call src/lib/features/properties/lifecycle.service.ts:79 in toggleActiveNoteFavorite -> src/lib/features/properties/lifecycle.logic.ts:toggleFavorite call
-call src/lib/features/properties/lifecycle.service.ts:79 in toggleActiveNoteFavorite -> src/lib/features/properties/lifecycle.service.ts:updateActiveNote call
-call src/lib/features/properties/lifecycle.service.ts:84 in toggleActiveNoteOrganized -> src/lib/features/properties/lifecycle.logic.ts:isOrganized call
-call src/lib/features/properties/lifecycle.service.ts:84 in toggleActiveNoteOrganized -> src/lib/features/properties/lifecycle.logic.ts:toggleOrganized call
-call src/lib/features/properties/lifecycle.service.ts:84 in toggleActiveNoteOrganized -> src/lib/features/properties/lifecycle.service.ts:updateActiveNote call
-call src/lib/features/properties/lifecycle.service.ts:92 in toggleActiveNoteArchived -> src/lib/features/properties/lifecycle.logic.ts:getLifecycleState call
-call src/lib/features/properties/lifecycle.service.ts:92 in toggleActiveNoteArchived -> src/lib/features/properties/lifecycle.logic.ts:toggleArchived call
-call src/lib/features/properties/lifecycle.service.ts:92 in toggleActiveNoteArchived -> src/lib/features/properties/lifecycle.service.ts:updateActiveNote call
+call src/lib/features/properties/lifecycle.service.ts:66 in updateNoteAtPath -> src/lib/core/vault/vault.store.svelte.ts:vaultStore.requestPromptIndexRefresh mcall
+call src/lib/features/properties/lifecycle.service.ts:68 in updateNoteAtPath -> src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter call
+call src/lib/features/properties/lifecycle.service.ts:71 in updateNoteAtPath -> src/lib/core/frontmatter/frontmatter-write.service.ts:toastFrontmatterWriteError call
+call src/lib/features/properties/lifecycle.service.ts:77 in setOrganizedForPath -> src/lib/features/properties/lifecycle.logic.ts:toggleOrganized call
+call src/lib/features/properties/lifecycle.service.ts:77 in setOrganizedForPath -> src/lib/features/properties/lifecycle.service.ts:updateNoteAtPath call
+call src/lib/features/properties/lifecycle.service.ts:85 in setArchivedForPath -> src/lib/features/properties/lifecycle.logic.ts:toggleArchived call
+call src/lib/features/properties/lifecycle.service.ts:85 in setArchivedForPath -> src/lib/features/properties/lifecycle.service.ts:updateNoteAtPath call
+call src/lib/features/properties/lifecycle.service.ts:97 in setTypeRailPin -> src/lib/core/vault/vault.store.svelte.ts:vaultStore.requestPromptIndexRefresh mcall
+call src/lib/features/properties/lifecycle.service.ts:99 in setTypeRailPin -> src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter call
+call src/lib/features/properties/lifecycle.service.ts:99 in setTypeRailPin -> src/lib/core/frontmatter/properties.logic.ts:removeProperty call
+call src/lib/features/properties/lifecycle.service.ts:99 in setTypeRailPin -> src/lib/features/properties/lifecycle.logic.ts:setBooleanFlag call
+call src/lib/features/properties/lifecycle.service.ts:102 in setTypeRailPin -> src/lib/core/frontmatter/frontmatter-write.service.ts:toastFrontmatterWriteError call
+call src/lib/features/properties/lifecycle.service.ts:108 in toggleActiveNoteFavorite -> src/lib/features/properties/lifecycle.logic.ts:isFavorite call
+call src/lib/features/properties/lifecycle.service.ts:108 in toggleActiveNoteFavorite -> src/lib/features/properties/lifecycle.logic.ts:toggleFavorite call
+call src/lib/features/properties/lifecycle.service.ts:108 in toggleActiveNoteFavorite -> src/lib/features/properties/lifecycle.service.ts:updateActiveNote call
+call src/lib/features/properties/lifecycle.service.ts:113 in toggleActiveNoteOrganized -> src/lib/features/properties/lifecycle.logic.ts:isOrganized call
+call src/lib/features/properties/lifecycle.service.ts:113 in toggleActiveNoteOrganized -> src/lib/features/properties/lifecycle.logic.ts:toggleOrganized call
+call src/lib/features/properties/lifecycle.service.ts:113 in toggleActiveNoteOrganized -> src/lib/features/properties/lifecycle.service.ts:updateActiveNote call
+call src/lib/features/properties/lifecycle.service.ts:121 in toggleActiveNoteArchived -> src/lib/features/properties/lifecycle.logic.ts:getLifecycleState call
+call src/lib/features/properties/lifecycle.service.ts:121 in toggleActiveNoteArchived -> src/lib/features/properties/lifecycle.logic.ts:toggleArchived call
+call src/lib/features/properties/lifecycle.service.ts:121 in toggleActiveNoteArchived -> src/lib/features/properties/lifecycle.service.ts:updateActiveNote call

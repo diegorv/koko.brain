@@ -1,7 +1,7 @@
 # module card src/lib/utils
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/utils ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 90/110 ipc 3/0 card ~9.9k
+module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 90/110 ipc 3/0 card ~10k
 ## neighbors
 dep src/lib/app -> src/lib/utils 17
 dep src/lib/core/editor -> src/lib/utils 7
@@ -24,7 +24,7 @@ dep src/lib/features/dock-badge -> src/lib/utils 1
 dep src/lib/features/event-calendar -> src/lib/utils 3
 dep src/lib/features/file-history -> src/lib/utils 2
 dep src/lib/features/file-icons -> src/lib/utils 2
-dep src/lib/features/note-action-bar -> src/lib/utils 4
+dep src/lib/features/note-action-bar -> src/lib/utils 5
 dep src/lib/features/note-list -> src/lib/utils 2
 dep src/lib/features/outgoing-links -> src/lib/utils 2
 dep src/lib/features/properties -> src/lib/utils 7
@@ -60,11 +60,11 @@ entry src/lib/utils/color.ts ext-in8 src/lib/core/markdown-editor/extensions/liv
 entry src/lib/utils/fuzzy-match.ts ext-in7 src/lib/core/filesystem/file-entries.logic.ts src/lib/core/markdown-editor/extensions/tag/completion.logic.ts src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts src/lib/core/markdown-editor/extensions/wikilink/completion.ts src/lib/features/command-palette/command-palette.logic.ts more importers 2 not shown: src/lib/features/quick-switcher(1) src/lib/plugins/mods(1): q importers src/lib/utils/fuzzy-match.ts
 entry src/lib/utils/tag-extraction.ts ext-in7 src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/tag-handler.ts src/lib/features/collection/collection.logic.ts src/lib/features/search/search.logic.ts src/lib/features/tasks/task-headings.logic.ts more importers 2 not shown: src/lib/features/tasks(1) src/lib/features/todoist-sync(1): q importers src/lib/utils/tag-extraction.ts
 entry src/lib/utils/color-presets.ts ext-in6 src/lib/features/collection/expression/evaluator.ts src/lib/plugins/kanban/KanbanCard.svelte src/lib/plugins/kanban/KanbanCardText.svelte src/lib/plugins/kanban/KanbanListView.svelte src/lib/plugins/kanban/KanbanTableView.svelte more importers 1 not shown: src/lib/plugins/queryjs(1): q importers src/lib/utils/color-presets.ts
+entry src/lib/utils/keybindings.ts ext-in6 src/lib/app/global-keybindings.ts src/lib/core/markdown-editor/MarkdownEditor.svelte src/lib/core/markdown-editor/setup/editor-extensions.ts src/lib/features/command-palette/CommandPalette.svelte src/lib/features/note-action-bar/NoteActionBar.svelte more importers 1 not shown: src/lib/features/note-list(1): q importers src/lib/utils/keybindings.ts
 entry src/lib/utils/sanitize.ts ext-in6 src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts src/lib/features/canvas/canvas-markdown.logic.ts src/lib/features/collection/CollectionTableView.svelte src/lib/features/collection/collection-block-widget.ts src/lib/features/file-icons/IconRenderer.svelte more importers 1 not shown: src/lib/features/search(1): q importers src/lib/utils/sanitize.ts
 entry src/lib/utils/font-stacks.ts ext-in5 src/lib/core/markdown-editor/extensions/live-preview/styles.ts src/lib/core/markdown-editor/highlight-styles.ts src/lib/core/markdown-editor/setup/editor-theme.ts src/lib/core/settings/sections/EditorSection.svelte src/lib/plugins/queryjs/kb-ui.ts
 entry src/lib/utils/frontmatter-aliases.ts ext-in5 src/lib/core/frontmatter/properties.logic.ts src/lib/core/markdown-editor/extensions/live-preview/widgets.ts src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte src/lib/features/auto-organize/auto-organize.logic.ts src/lib/features/properties/properties.service.ts
 entry src/lib/utils/inflight.ts ext-in5 src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/core/vault/vault-entries.service.ts src/lib/features/backlinks/backlinks.service.ts src/lib/features/outgoing-links/outgoing-links.service.ts src/lib/plugins/mods/mods-host.service.ts
-entry src/lib/utils/keybindings.ts ext-in5 src/lib/app/global-keybindings.ts src/lib/core/markdown-editor/MarkdownEditor.svelte src/lib/core/markdown-editor/setup/editor-extensions.ts src/lib/features/command-palette/CommandPalette.svelte src/lib/features/note-list/NoteRowMenu.svelte
 entry src/lib/utils/platform.ts ext-in5 src/lib/core/markdown-editor/MarkdownEditor.svelte src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts src/lib/core/markdown-editor/extensions/live-preview/widgets.ts src/lib/core/markdown-editor/wikilink-click-target.ts src/lib/plugins/queryjs/kb-api.ts
 entry src/lib/utils/sanitize-url.ts ext-in5 src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts src/lib/core/markdown-editor/extensions/live-preview/widgets.ts src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts src/lib/features/canvas/LinkNode.svelte src/lib/features/tasks/tasks.logic.ts
 entry src/lib/utils/debounce.ts ext-in4 src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/core/editor/editor.service.ts src/lib/features/rail-shell/TypesNavigator.svelte src/lib/features/tags/tags.service.ts
@@ -93,10 +93,10 @@ file src/lib/utils/debug.ts other L166 module src/lib/utils in74 t53
 file src/lib/utils/font-stacks.ts other L56 module src/lib/utils in5 t5 | Font stacks shared by every place that sets a `font-family` from TypeScript, so code and app text render in one face per role on every machine.
 file src/lib/utils/frontmatter-aliases.ts other L31 module src/lib/utils in5 t6
 file src/lib/utils/fuzzy-match.ts other L59 module src/lib/utils in7 t2
-file src/lib/utils/index-dedupe.ts other L39 module src/lib/utils in3 t33
+file src/lib/utils/index-dedupe.ts other L39 module src/lib/utils in3 t35
 file src/lib/utils/inflight.ts other L173 module src/lib/utils in5 t1
-file src/lib/utils/keybindings.ts other L81 module src/lib/utils in5 t5
-file src/lib/utils/log.service.ts service L236 module src/lib/utils in14 t46
+file src/lib/utils/keybindings.ts other L81 module src/lib/utils in6 t6
+file src/lib/utils/log.service.ts service L236 module src/lib/utils in14 t50
 file src/lib/utils/markdown-plain-text.ts other L57 module src/lib/utils in1 t1 | Markdown to plain text for one-line previews such as search snippets.
 file src/lib/utils/menu-action.types.ts types L21 module src/lib/utils in2 t0
 file src/lib/utils/node-shims/fs.js other L3 module src/lib/utils in0 t0

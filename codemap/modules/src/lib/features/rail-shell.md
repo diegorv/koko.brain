@@ -24,12 +24,12 @@ dep src/lib/features/rail-shell -> src/lib/features/collection 16
 dep src/lib/features/rail-shell -> src/lib/features/event-calendar 3
 dep src/lib/features/rail-shell -> src/lib/features/file-icons 20
 dep src/lib/features/rail-shell -> src/lib/features/note-list 3
-dep src/lib/features/rail-shell -> src/lib/features/properties 1
+dep src/lib/features/rail-shell -> src/lib/features/properties 2
 dep src/lib/features/rail-shell -> src/lib/features/type-definitions 26
 dep src/lib/features/rail-shell -> src/lib/types 2
 dep src/lib/features/rail-shell -> src/lib/utils 12
 in2 src/lib/features/rail-shell 3 modules: src/routes(3) src/lib/features/deep-link(1) src/lib/features/tags(1)
-out2 src/lib/features/rail-shell 3 modules: src/lib/core/trash(4) src/lib/core/markdown-editor(1) src/lib/utils.ts(1)
+out2 src/lib/features/rail-shell 4 modules: src/lib/core/trash(4) src/lib/core/markdown-editor(1) src/lib/features/file-history(1) src/lib/utils.ts(1)
 ## entry files
 entry src/lib/features/rail-shell/lens.logic.ts ext-in8 src/lib/app/AppShell.svelte src/lib/app/boot.ts src/lib/app/commands.ts src/lib/app/rail-navigation.ts src/lib/features/quick-switcher/QuickSwitcher.svelte more importers 3 not shown: src/lib/features/search(1) src/lib/plugins/calendar(1) src/lib/plugins/one-on-one(1): q importers src/lib/features/rail-shell/lens.logic.ts
 entry src/lib/features/rail-shell/rail-registry.store.svelte.ts ext-in7 src/lib/app/AppShell.svelte src/lib/app/commands.ts src/lib/plugins/calendar/calendar-rail.service.ts src/lib/plugins/kanban/kanban.service.ts src/lib/plugins/mods/mod-app.service.ts more importers 2 not shown: src/lib/plugins/mods(1) src/lib/plugins/one-on-one(1): q importers src/lib/features/rail-shell/rail-registry.store.svelte.ts
@@ -51,13 +51,13 @@ file src/lib/features/rail-shell/LayoutSection.svelte component L202 module src/
 file src/lib/features/rail-shell/Rail.svelte component L403 module src/lib/features/rail-shell in1 t3
 file src/lib/features/rail-shell/RailArchivedMenu.svelte component L67 module src/lib/features/rail-shell in1 t0
 file src/lib/features/rail-shell/RailListSearch.svelte component L119 module src/lib/features/rail-shell in1 t1
-file src/lib/features/rail-shell/RailNoteList.svelte component L984 module src/lib/features/rail-shell in1 t6
+file src/lib/features/rail-shell/RailNoteList.svelte component L987 module src/lib/features/rail-shell in1 t7
 file src/lib/features/rail-shell/RailPropertiesPicker.svelte component L177 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/RailSortMenu.svelte component L233 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/TypesNavigator.svelte component L512 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/files-navigator.service.ts service L20 module src/lib/features/rail-shell in1 t3
 file src/lib/features/rail-shell/kind-icons.ts other L24 module src/lib/features/rail-shell in2 t0
-file src/lib/features/rail-shell/lens.logic.ts logic L1145 module src/lib/features/rail-shell in20 t30
+file src/lib/features/rail-shell/lens.logic.ts logic L1147 module src/lib/features/rail-shell in20 t31
 file src/lib/features/rail-shell/list-empty.logic.ts logic L145 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/list-fulltext.service.ts service L34 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/list-prefs.logic.ts logic L107 module src/lib/features/rail-shell in1 t1
@@ -72,8 +72,8 @@ file src/lib/features/rail-shell/neighbourhood.service.ts service L36 module src
 file src/lib/features/rail-shell/neighbourhood.store.svelte.ts store L25 module src/lib/features/rail-shell in3 t4 | The note the rail shell's Neighbourhood lens shows.
 file src/lib/features/rail-shell/new-note.service.ts service L47 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/rail-items.logic.ts logic L230 module src/lib/features/rail-shell in5 t5
-file src/lib/features/rail-shell/rail-registry.store.svelte.ts store L111 module src/lib/features/rail-shell in11 t26
-file src/lib/features/rail-shell/rail-shell.types.ts types L234 module src/lib/features/rail-shell in16 t0
+file src/lib/features/rail-shell/rail-registry.store.svelte.ts store L111 module src/lib/features/rail-shell in11 t27
+file src/lib/features/rail-shell/rail-shell.types.ts types L232 module src/lib/features/rail-shell in16 t0
 file src/lib/features/rail-shell/types-navigator.service.ts service L21 module src/lib/features/rail-shell in1 t2
 file src/lib/features/rail-shell/view-lens-seed.logic.ts logic L56 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/view-lens.service.ts service L48 module src/lib/features/rail-shell in1 t2
@@ -81,7 +81,7 @@ file src/lib/features/rail-shell/view-lens.service.ts service L48 module src/lib
 sym src/lib/features/rail-shell/FilesNavigator.svelte:1 component FilesNavigator props:picked,expanded,onPick,onToggle,onPickView L579
 sym src/lib/features/rail-shell/LayoutSection.svelte:1 component LayoutSection L202
 sym src/lib/features/rail-shell/Rail.svelte:1 component Rail props:activeItem,onSelect L403
-sym src/lib/features/rail-shell/RailNoteList.svelte:1 component RailNoteList props:lens,firstPane= L984
+sym src/lib/features/rail-shell/RailNoteList.svelte:1 component RailNoteList props:lens,firstPane= L987
 sym src/lib/features/rail-shell/TypesNavigator.svelte:1 component TypesNavigator props:rows,picked,onPick L512
 sym src/lib/features/rail-shell/files-navigator.service.ts:11 fn registerFilesNavigatorPathChangeConsumer(): () => void L10 | Registers the Files navigator as a path-change consumer, so its saved pick and expanded folders follow a folder renamed, moved or deleted anywhere in the app.
 sym src/lib/features/rail-shell/kind-icons.ts:16 const KIND_ICONS: Record<FileKind, Component> L9 | The row icon of each file kind when the file has no icon of its own (the file tree's kind icons).
@@ -94,22 +94,22 @@ sym src/lib/features/rail-shell/lens.logic.ts:189 fn restoreRailItem(saved: unkn
 sym src/lib/features/rail-shell/lens.logic.ts:219 fn pinnedRailItems(entries: readonly NoteEntryV2[], typeMetadataMap: Map<string, TypeMetadata>): RailPin[] L21 | The rail's pinned items: every `.view` and type definition in the entries snapshot whose `_rail` is the YAML boolean `true` (only the canonical spelling; `"tru…
 sym src/lib/features/rail-shell/lens.logic.ts:247 fn staleRailPinFix(railItem: unknown, pinned: readonly RailPin[]): Pick<Partial<LayoutSettings>, 'railItem'> | null L4 | The layout change that sends a saved pin that is no longer pinned (file gone, `_rail` removed) back to the default item: `{ railItem }` when `railItem` is a pi…
 sym src/lib/features/rail-shell/lens.logic.ts:265 fn entryNoteDate(entry: NoteEntryV2): string | null L8 | An entry's note date (`noteDateKey`: frontmatter `date`, else `created`, else the disk creation time), or null.
-sym src/lib/features/rail-shell/lens.logic.ts:328 fn listEntries(ctx: LensContext, includes: (entry: NoteEntryV2) => boolean): LensNote[] L6 | The entries `includes` keeps as note list rows: system folder excluded, newest change first (the built-in lenses' order).
-sym src/lib/features/rail-shell/lens.logic.ts:473 fn viewEntriesLoaded(store: { readonly entries: readonly { path: string }[]; readonly entriesVersion: number }, propertyIndex: ReadonlyMap<… L11 | Whether this vault's entries have landed, for a `.view`'s row set (`viewRowSet` drops a record with no entry).
-sym src/lib/features/rail-shell/lens.logic.ts:494 fn typeNavigatorRows(ctx: Pick<LensContext, 'entries' | 'vaultPath' | 'systemFolder' | 'typeMetadataMap'>, showUntyped: boolean): TypeNavig… L25 | The Types navigator's rows: the visible types in sidebar order, each with the number of notes its lens lists, then Untyped when `showUntyped` is on.
-sym src/lib/features/rail-shell/lens.logic.ts:538 fn pickedTypesLens(saved: unknown, rows: readonly TypeNavigatorRow[]): Lens L3 | The lens the Types rail item shows: the saved pick (kept even when the snapshot does not list it yet, as right after New type or a rename), else the first row,…
-sym src/lib/features/rail-shell/lens.logic.ts:558 fn staleTypesPickFix(railItem: unknown, saved: unknown, rows: readonly TypeNavigatorRow[], viewPaths: readonly string[]): Pick<Partial<Layo… L11 | The layout change that drops a saved Types pick that no longer exists (a view gone from the tree, a deleted type, or Untyped with untyped notes hidden): the pi…
-sym src/lib/features/rail-shell/lens.logic.ts:571 interface TypesPickCheck L10 | Where the once-per-vault-open stale Types pick check stands.
-sym src/lib/features/rail-shell/lens.logic.ts:583 const INITIAL_TYPES_PICK_CHECK: TypesPickCheck L1 | The check state before any vault is seen.
-sym src/lib/features/rail-shell/lens.logic.ts:594 fn stepTypesPickCheck(prev: TypesPickCheck, now: { vaultPath: string | null; indexReady: boolean; entriesVersion: number }): { next: TypesPi… L13 | Advances the stale Types pick check by one observation and says whether to run `staleTypesPickFix` now.
-sym src/lib/features/rail-shell/lens.logic.ts:658 fn viewNavigatorRows(tree: FileTreeNode[], entriesByPath: Map<string, NoteEntryV2>): TypeNavigatorRow[] L24 | The Views part of the Types navigator: every `.view` file in the tree but the hidden ones (`_visible: false`), labelled by its `_sidebar_label`, marked to open…
-sym src/lib/features/rail-shell/lens.logic.ts:719 fn viewRowSet<T extends { path: string }>(records: readonly T[], view: CollectionViewDef, viewPath: string, ctx: ViewRowContext, def… L18 | The one row set of a `.view` view, which the editor (through the collection row-set port), the rail's view lens and the navigator count all use.
-sym src/lib/features/rail-shell/lens.logic.ts:751 fn blockRowSet<T extends Pick<PropertyIndexRecord, 'path' | 'properties'>>(records: readonly T[], view: CollectionViewDef, definition… L15 | The row set of an inline ` ```collection ` block: `viewRowSet`'s rule read from the records alone. Takes the records the block's query matched (filters and the…
-sym src/lib/features/rail-shell/lens.logic.ts:915 fn fileKind(name: string): FileKind L10 | The kind of a file, from its name's extension (case-insensitive).
-sym src/lib/features/rail-shell/lens.logic.ts:1045 fn pickedFolderLens(saved: unknown): Lens L3 | The Files navigator's pick saved in `layout.railFolder` as a lens; anything but a non-empty string is the vault root.
-sym src/lib/features/rail-shell/lens.logic.ts:1050 fn parseExpandedFolders(saved: unknown): string[] L3 | The expanded folders saved in `layout.railExpandedFolders`; a hand-edited non-array reads as none, non-strings are dropped.
-sym src/lib/features/rail-shell/lens.logic.ts:1063 fn staleFolderPickFix(railItem: unknown, savedPick: unknown, savedExpanded: unknown, tree: readonly FileTreeNode[], vaultPath: string): Pick… L19 | The layout change that drops what the Files navigator saved but the tree no longer holds: a picked folder that is gone clears the pick and, when Files is the a…
-sym src/lib/features/rail-shell/lens.logic.ts:1084 fn toggleExpandedFolder(savedExpanded: unknown, path: string): string[] L4 | The expanded folder list after a chevron click on `path`: added when collapsed, removed when expanded.
+sym src/lib/features/rail-shell/lens.logic.ts:329 fn listEntries(ctx: LensContext, includes: (entry: NoteEntryV2) => boolean): LensNote[] L6 | The entries `includes` keeps as note list rows: system folder excluded, newest change first (the built-in lenses' order).
+sym src/lib/features/rail-shell/lens.logic.ts:474 fn viewEntriesLoaded(store: { readonly entries: readonly { path: string }[]; readonly entriesVersion: number }, propertyIndex: ReadonlyMap<… L11 | Whether this vault's entries have landed, for a `.view`'s row set (`viewRowSet` drops a record with no entry).
+sym src/lib/features/rail-shell/lens.logic.ts:495 fn typeNavigatorRows(ctx: Pick<LensContext, 'entries' | 'vaultPath' | 'systemFolder' | 'typeMetadataMap'>, showUntyped: boolean): TypeNavig… L25 | The Types navigator's rows: the visible types in sidebar order, each with the number of notes its lens lists, then Untyped when `showUntyped` is on.
+sym src/lib/features/rail-shell/lens.logic.ts:539 fn pickedTypesLens(saved: unknown, rows: readonly TypeNavigatorRow[]): Lens L3 | The lens the Types rail item shows: the saved pick (kept even when the snapshot does not list it yet, as right after New type or a rename), else the first row,…
+sym src/lib/features/rail-shell/lens.logic.ts:559 fn staleTypesPickFix(railItem: unknown, saved: unknown, rows: readonly TypeNavigatorRow[], viewPaths: readonly string[]): Pick<Partial<Layo… L11 | The layout change that drops a saved Types pick that no longer exists (a view gone from the tree, a deleted type, or Untyped with untyped notes hidden): the pi…
+sym src/lib/features/rail-shell/lens.logic.ts:572 interface TypesPickCheck L10 | Where the once-per-vault-open stale Types pick check stands.
+sym src/lib/features/rail-shell/lens.logic.ts:584 const INITIAL_TYPES_PICK_CHECK: TypesPickCheck L1 | The check state before any vault is seen.
+sym src/lib/features/rail-shell/lens.logic.ts:595 fn stepTypesPickCheck(prev: TypesPickCheck, now: { vaultPath: string | null; indexReady: boolean; entriesVersion: number }): { next: TypesPi… L13 | Advances the stale Types pick check by one observation and says whether to run `staleTypesPickFix` now.
+sym src/lib/features/rail-shell/lens.logic.ts:659 fn viewNavigatorRows(tree: FileTreeNode[], entriesByPath: Map<string, NoteEntryV2>): TypeNavigatorRow[] L24 | The Views part of the Types navigator: every `.view` file in the tree but the hidden ones (`_visible: false`), labelled by its `_sidebar_label`, marked to open…
+sym src/lib/features/rail-shell/lens.logic.ts:720 fn viewRowSet<T extends { path: string }>(records: readonly T[], view: CollectionViewDef, viewPath: string, ctx: ViewRowContext, def… L18 | The one row set of a `.view` view, which the editor (through the collection row-set port), the rail's view lens and the navigator count all use.
+sym src/lib/features/rail-shell/lens.logic.ts:752 fn blockRowSet<T extends Pick<PropertyIndexRecord, 'path' | 'properties'>>(records: readonly T[], view: CollectionViewDef, definition… L15 | The row set of an inline ` ```collection ` block: `viewRowSet`'s rule read from the records alone. Takes the records the block's query matched (filters and the…
+sym src/lib/features/rail-shell/lens.logic.ts:916 fn fileKind(name: string): FileKind L10 | The kind of a file, from its name's extension (case-insensitive).
+sym src/lib/features/rail-shell/lens.logic.ts:1047 fn pickedFolderLens(saved: unknown): Lens L3 | The Files navigator's pick saved in `layout.railFolder` as a lens; anything but a non-empty string is the vault root.
+sym src/lib/features/rail-shell/lens.logic.ts:1052 fn parseExpandedFolders(saved: unknown): string[] L3 | The expanded folders saved in `layout.railExpandedFolders`; a hand-edited non-array reads as none, non-strings are dropped.
+sym src/lib/features/rail-shell/lens.logic.ts:1065 fn staleFolderPickFix(railItem: unknown, savedPick: unknown, savedExpanded: unknown, tree: readonly FileTreeNode[], vaultPath: string): Pick… L19 | The layout change that drops what the Files navigator saved but the tree no longer holds: a picked folder that is gone clears the pick and, when Files is the a…
+sym src/lib/features/rail-shell/lens.logic.ts:1086 fn toggleExpandedFolder(savedExpanded: unknown, path: string): string[] L4 | The expanded folder list after a chevron click on `path`: added when collapsed, removed when expanded.
 sym src/lib/features/rail-shell/neighbourhood.service.ts:10 fn openNeighbourhood(path: string): void L4 | Fills the note list with the neighbourhood of the note at `path`, showing the panels Cmd+1 may have hidden.
 sym src/lib/features/rail-shell/neighbourhood.service.ts:22 fn registerNeighbourhoodPathChangeConsumer(): () => void L15 | Registers the Neighbourhood lens as a path-change consumer, so the open neighbourhood follows its note (or a folder above it) when renamed or moved.
 sym src/lib/features/rail-shell/neighbourhood.store.svelte.ts:10 store neighbourhoodStore L16
@@ -128,9 +128,9 @@ sym src/lib/features/rail-shell/rail-items.logic.ts:228 fn railHeaderPad(railWid
 sym src/lib/features/rail-shell/rail-registry.store.svelte.ts:27 store railRegistryStore L85
 sym src/lib/features/rail-shell/rail-shell.types.ts:12 interface Lens L6 | What the user picked on the left: a rail item, a navigator entry or a note's neighbourhood.
 sym src/lib/features/rail-shell/rail-shell.types.ts:20 interface LensContext L12 | The snapshot a lens resolves against.
-sym src/lib/features/rail-shell/rail-shell.types.ts:63 interface ResolvedLens L12 | A lens turned into what the note list shows.
-sym src/lib/features/rail-shell/rail-shell.types.ts:134 type NewNoteRule L1 | What "+ New here" creates for a lens.
-sym src/lib/features/rail-shell/rail-shell.types.ts:137 interface NewNoteContext L12 | What a lens's creation rule reads.
+sym src/lib/features/rail-shell/rail-shell.types.ts:61 interface ResolvedLens L12 | A lens turned into what the note list shows.
+sym src/lib/features/rail-shell/rail-shell.types.ts:132 type NewNoteRule L1 | What "+ New here" creates for a lens.
+sym src/lib/features/rail-shell/rail-shell.types.ts:135 interface NewNoteContext L12 | What a lens's creation rule reads.
 sym src/lib/features/rail-shell/types-navigator.service.ts:12 fn registerTypesNavigatorPathChangeConsumer(): () => void L10 | Registers the Types navigator as a path-change consumer, so a saved pick of a view and the rail showing it as a pinned item follow a rename or move of the view…
 ## stores
 store src/lib/features/rail-shell/neighbourhood.store.svelte.ts:10 neighbourhoodStore esc:0

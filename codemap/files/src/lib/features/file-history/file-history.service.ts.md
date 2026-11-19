@@ -1,6 +1,7 @@
 # file card src/lib/features/file-history/file-history.service.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/file-history/file-history.service.ts ' codemap/files
-file src/lib/features/file-history/file-history.service.ts service L197 module src/lib/features/file-history in4 t6
+sections: imports, imported-by, reach, tests, symbols, locals, calls, effects
+file src/lib/features/file-history/file-history.service.ts service L197 module src/lib/features/file-history in6 t6
 ## imports
 imp src/lib/features/file-history/file-history.service.ts:1 -> src/lib/contracts/ipc.ts call
 imp src/lib/features/file-history/file-history.service.ts:2 -> pkg:@tauri-apps/plugin-fs readTextFile,writeTextFile,mkdir,exists,readDir
@@ -18,8 +19,10 @@ imp src/lib/app/commands.ts:51 -> src/lib/features/file-history/file-history.ser
 imp src/lib/app/global-keybindings.ts:20 -> src/lib/features/file-history/file-history.service.ts openFileHistory
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:75 -> src/lib/features/file-history/file-history.service.ts registerFileHistoryHook,closeFileHistory
 imp src/lib/features/file-history/FileHistoryDialog.svelte:5 -> src/lib/features/file-history/file-history.service.ts selectSnapshot,restoreSnapshot,closeFileHistory
+imp src/lib/features/note-action-bar/NoteActionBar.svelte:36 -> src/lib/features/file-history/file-history.service.ts openFileHistory
+imp src/lib/features/note-list/NoteRowMenu.svelte:28 -> src/lib/features/file-history/file-history.service.ts openFileHistory
 ## reach
-in2 src/lib/features/file-history/file-history.service.ts 2 files in 2 modules: src/lib/app(1) src/routes(1)
+in2 src/lib/features/file-history/file-history.service.ts 4 files in 3 modules: src/lib/app(2) src/lib/features/rail-shell(1) src/routes(1)
 out2 src/lib/features/file-history/file-history.service.ts 17 files in 7 modules: src/lib/core/settings(4) src/lib/utils(4) src/lib/contracts(3) src/lib/core/editor(2) src/lib/core/filesystem(2) +2 modules
 ## tests
 test src/tests/lib/features/file-history/file-history.service.test.ts imports src/lib/features/file-history/file-history.service.ts mirror
@@ -30,8 +33,10 @@ test src/tests/lib/features/command-palette/CommandPalette.test.ts mocks src/lib
 test src/tests/lib/features/file-history/FileHistoryDialog.test.ts mocks src/lib/features/file-history/file-history.service.ts
 ## symbols
 sym src/lib/features/file-history/file-history.service.ts:17 fn openFileHistory(absoluteFilePath: string): Promise<void> L35 | Opens the file history dialog for a given file.
-by src/lib/features/file-history/file-history.service.ts:openFileHistory <- src/lib/app/commands.ts:448 in getBuiltInCommands call
+by src/lib/features/file-history/file-history.service.ts:openFileHistory <- src/lib/app/commands.ts:466 in getBuiltInCommands call
 by src/lib/features/file-history/file-history.service.ts:openFileHistory <- src/lib/app/global-keybindings.ts:174 in GLOBAL_KEYBINDINGS call
+by src/lib/features/file-history/file-history.service.ts:openFileHistory <- src/lib/features/note-action-bar/NoteActionBar.svelte:123 in noteActionItems call
+by src/lib/features/file-history/file-history.service.ts:openFileHistory <- src/lib/features/note-list/NoteRowMenu.svelte:185 in runNoteAction call
 sym src/lib/features/file-history/file-history.service.ts:56 fn selectSnapshot(snapshot: SnapshotInfo): Promise<void> L22 | Selects a snapshot and computes the diff against current file content.
 by src/lib/features/file-history/file-history.service.ts:selectSnapshot <- src/lib/features/file-history/FileHistoryDialog.svelte:72 in (markup) markup
 sym src/lib/features/file-history/file-history.service.ts:82 fn restoreSnapshot(snapshotId: number): Promise<void> L24 | Restores a snapshot by replacing the editor content and saving through the normal save flow.

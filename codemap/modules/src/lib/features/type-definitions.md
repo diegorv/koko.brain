@@ -46,7 +46,7 @@ file src/lib/features/type-definitions/ViewDialog.svelte component L221 module s
 file src/lib/features/type-definitions/inbox-workflow.logic.ts logic L24 module src/lib/features/type-definitions in4 t2
 file src/lib/features/type-definitions/type-definitions.logic.ts logic L275 module src/lib/features/type-definitions in9 t23
 file src/lib/features/type-definitions/type-definitions.service.ts service L549 module src/lib/features/type-definitions in10 t14
-file src/lib/features/type-definitions/type-definitions.store.svelte.ts store L125 module src/lib/features/type-definitions in21 t39
+file src/lib/features/type-definitions/type-definitions.store.svelte.ts store L125 module src/lib/features/type-definitions in21 t40
 file src/lib/features/type-definitions/type-note-list.logic.ts logic L208 module src/lib/features/type-definitions in4 t6
 file src/lib/features/type-definitions/type-sidebar.logic.ts logic L649 module src/lib/features/type-definitions in19 t9
 file src/lib/features/type-definitions/view-parse-cache.ts other L100 module src/lib/features/type-definitions in6 t17

@@ -63,6 +63,8 @@ function resizeBar(width: number) {
 	flushSync();
 }
 
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { mount, unmount, flushSync } from 'svelte';
 import { writeTextFile, exists, rename, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
@@ -76,6 +78,7 @@ import { resetHooks } from '#lib/core/editor/editor.hooks.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { trashStore } from '#lib/core/trash/trash.store.svelte.js';
+import { fileHistoryStore } from '#lib/features/file-history/file-history.store.svelte.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
 import { _resetParseFrontmatterCache } from '#lib/core/frontmatter/properties.logic.js';
 import { tocStore } from '#lib/plugins/table-of-contents/toc.store.svelte.js';
@@ -91,6 +94,8 @@ import { noteActionBarActionsStore } from '#lib/features/note-action-bar/note-ac
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { extractTypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import { registerOneOnOneActionBarAction } from '#lib/plugins/one-on-one/one-on-one.service.js';
+import { shortcutFor } from '#lib/app/global-keybindings.js';
+import { formatShortcut } from '#lib/utils/keybindings.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import { neighbourhoodStore } from '#lib/features/rail-shell/neighbourhood.store.svelte.js';
 import { NEIGHBOURHOOD_LENS_KIND, NEIGHBOURHOOD_RAIL_ITEM, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
@@ -136,6 +141,7 @@ describe('NoteActionBar', () => {
 		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		neighbourhoodStore.reset();
 		trashStore.setItems([]);
+		fileHistoryStore.reset();
 		vaultStore._reset();
 		vaultStore.open('/vault');
 		resetHooks();
@@ -282,6 +288,12 @@ describe('NoteActionBar', () => {
 		expect([...bar.classList].filter((c) => /^h-/.test(c))).toEqual([]);
 	});
 
+	/** A More menu item's label, without its shortcut hint. */
+	function itemLabel(el: Element): string {
+		const hint = el.querySelector('[data-slot="dropdown-menu-shortcut"]')?.textContent ?? '';
+		return (el.textContent ?? '').replace(hint, '').trim();
+	}
+
 	/** Opens the More menu from the keyboard and returns its item labelled `label`. */
 	async function moreItem(label: string): Promise<HTMLElement> {
 		const trigger = button(/More note actions/);
@@ -289,21 +301,21 @@ describe('NoteActionBar', () => {
 		trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 		await settle();
 		const item = [...document.querySelectorAll<HTMLElement>('[data-slot="dropdown-menu-item"]')].find(
-			(el) => el.textContent?.trim() === label,
+			(el) => itemLabel(el) === label,
 		);
 		if (!item) throw new Error(`No More menu item "${label}"`);
 		return item;
 	}
 
-	it('More > Archive this note sets _archived and the item turns into Restore', async () => {
+	it('More > Archive sets _archived and the item turns into Restore', async () => {
 		openNote('---\n_organized: true\n---\nBody\n');
 		render();
 
-		(await moreItem('Archive this note')).click();
+		(await moreItem('Archive')).click();
 		await settle();
 
 		expect(disk.get(PATH)).toBe('---\n_organized: true\n_archived: true\n---\nBody\n');
-		(await moreItem('Restore this archived note')).click();
+		(await moreItem('Restore')).click();
 		await settle();
 
 		expect(disk.get(PATH)).toBe('---\n_organized: true\n_archived: false\n---\nBody\n');
@@ -318,17 +330,72 @@ describe('NoteActionBar', () => {
 
 		// A missing _organized reads as organized, as in the Rust index, so the click turns it off.
 		expect(disk.get(PATH)).toBe('---\n_archived: true\n_organized: false\n---\nBody\n');
-		expect(await moreItem('Restore this archived note')).toBeTruthy();
+		expect(await moreItem('Restore')).toBeTruthy();
 	});
 
-	it('More > Delete this note, confirmed, moves the note to the trash and closes its tab', async () => {
+	it('More > Mark organized writes _organized: true and the item turns into Mark not organized', async () => {
+		openNote('---\n_organized: false\n---\nBody\n');
+		render();
+
+		(await moreItem('Mark organized')).click();
+		await settle();
+
+		expect(disk.get(PATH)).toBe('---\n_organized: true\n---\nBody\n');
+		expect(await moreItem('Mark not organized')).toBeTruthy();
+	});
+
+	it('More > History opens the History dialog on this note', async () => {
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => (cmd === 'get_file_history' ? [] : undefined));
+		openNote('Body\n');
+		render();
+
+		(await moreItem('History')).click();
+		await settle();
+
+		expect(fileHistoryStore.isOpen).toBe(true);
+		expect(fileHistoryStore.filePath).toBe(PATH);
+	});
+
+	it('More hints the shortcuts of the active-note actions: Cmd+E on Mark organized, Cmd+Shift+H on History', async () => {
+		openNote('---\n_organized: false\n---\nBody\n');
+		render();
+
+		const content = (await moreItem('Copy deeplink')).parentElement!;
+		const hints = Object.fromEntries(
+			[...content.querySelectorAll('[data-slot="dropdown-menu-item"]')]
+				.filter((el) => el.querySelector('[data-slot="dropdown-menu-shortcut"]'))
+				.map((el) => [itemLabel(el), el.querySelector('[data-slot="dropdown-menu-shortcut"]')!.textContent]),
+		);
+		expect(hints).toEqual({
+			'Mark organized': formatShortcut(shortcutFor('note:toggle-organized')),
+			History: formatShortcut(shortcutFor('file-history:open')),
+		});
+	});
+
+	it('retires the old More labels everywhere in the app', () => {
+		const root = join(process.cwd(), 'src/lib');
+		const files = readdirSync(root, { recursive: true, encoding: 'utf8' }).filter((f) => /\.(svelte|ts)$/.test(f));
+		const hits = files.filter((f) => /Delete this note|Archive this note|Restore this archived note/.test(readFileSync(join(root, f), 'utf8')));
+		expect(hits).toEqual([]);
+	});
+
+	it('More draws only Move to Trash red', async () => {
+		openNote('Body\n');
+		render();
+
+		const content = (await moreItem('Copy deeplink')).parentElement!;
+		const red = [...content.querySelectorAll('[data-slot="dropdown-menu-item"][data-variant="destructive"]')].map(itemLabel);
+		expect(red).toEqual(['Move to Trash']);
+	});
+
+	it('More > Move to Trash, confirmed, moves the note to the trash and closes its tab', async () => {
 		vi.mocked(ask).mockResolvedValue(true);
 		// The tree refresh after the delete rescans the vault.
 		vi.mocked(invoke).mockImplementation(async (cmd: string) => (cmd === 'scan_vault' ? [] : undefined));
 		openNote('Body\n');
 		render();
 
-		(await moreItem('Delete this note')).click();
+		(await moreItem('Move to Trash')).click();
 		await vi.waitFor(() => expect(editorStore.tabs).toEqual([]));
 		// applyPathChange closes the tab before its disk op awaits the Trash move.
 		await vi.waitFor(() => expect(disk.has(PATH)).toBe(false));
@@ -338,12 +405,12 @@ describe('NoteActionBar', () => {
 		expect(toast.error).not.toHaveBeenCalled();
 	});
 
-	it('More > Delete this note asks for confirmation and keeps the note when declined', async () => {
+	it('More > Move to Trash asks for confirmation and keeps the note when declined', async () => {
 		vi.mocked(ask).mockResolvedValue(false);
 		openNote('Body\n');
 		render();
 
-		(await moreItem('Delete this note')).click();
+		(await moreItem('Move to Trash')).click();
 		await settle();
 
 		expect(ask).toHaveBeenCalledWith('Move "Launch plan.md" to trash?', {
@@ -512,16 +579,27 @@ describe('NoteActionBar', () => {
 		return [...content.children].map((el) =>
 			el.getAttribute('data-slot') === 'dropdown-menu-separator'
 				? '---'
-				: ((el as HTMLElement).dataset.action ?? el.textContent?.trim() ?? ''),
+				: ((el as HTMLElement).dataset.action ?? itemLabel(el)),
 		);
 	}
 
-	it('groups More as the folded actions with Copy deeplink, then the lifecycle actions', async () => {
+	it('groups More as the folded actions with Copy deeplink, then the note actions of the row menu', async () => {
 		openNote('Body\n');
 		render();
 		resizeBar(BAR_RESERVED_WIDTH + 3 * ACTION_SLOT_WIDTH);
 
-		expect(await moreEntries()).toEqual(['reveal', 'copy-path', 'Copy deeplink', '---', 'Archive this note', 'Delete this note']);
+		expect(await moreEntries()).toEqual([
+			'reveal', 'copy-path', 'Copy deeplink', '---',
+			'Archive', 'Mark not organized', 'History', 'Move to Trash',
+		]);
+	});
+
+	it('labels the note actions from the note: Restore and Mark organized on an archived inbox note', async () => {
+		openNote('---\n_organized: false\n_archived: true\n---\nBody\n');
+		render();
+		resizeBar(WIDE);
+
+		expect((await moreEntries()).slice(-4)).toEqual(['Restore', 'Mark organized', 'History', 'Move to Trash']);
 	});
 
 	it('draws no separator in More when nothing is folded, which would leave Copy deeplink alone', async () => {
@@ -529,7 +607,7 @@ describe('NoteActionBar', () => {
 		render();
 		resizeBar(WIDE);
 
-		expect(await moreEntries()).toEqual(['Copy deeplink', 'Archive this note', 'Delete this note']);
+		expect(await moreEntries()).toEqual(['Copy deeplink', 'Archive', 'Mark not organized', 'History', 'Move to Trash']);
 	});
 
 	it('a folded action still works from More', async () => {

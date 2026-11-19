@@ -10,7 +10,7 @@ imp src/lib/features/file-history/SnapshotList.svelte:4 -> src/lib/features/file
 imp src/lib/features/file-history/file-history.service.ts:4 -> src/lib/features/file-history/file-history.logic.ts getRelativePath,getSnapshotBackupDir,getSnapshotBackupPath
 imp src/lib/features/properties/note-info.logic.ts:1 -> src/lib/features/file-history/file-history.logic.ts formatFileSize
 ## reach
-in2 src/lib/features/file-history/file-history.logic.ts 5 files in 2 modules: src/lib/app(4) src/lib/features/properties(1)
+in2 src/lib/features/file-history/file-history.logic.ts 7 files in 4 modules: src/lib/app(4) src/lib/features/note-action-bar(1) src/lib/features/note-list(1) src/lib/features/properties(1)
 out2 src/lib/features/file-history/file-history.logic.ts 1 files in 1 modules: src/lib/contracts(1)
 ## tests
 test src/tests/lib/features/file-history/file-history.logic.test.ts imports src/lib/features/file-history/file-history.logic.ts mirror

@@ -1,9 +1,9 @@
 # module card src/lib/core/filesystem
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/core/filesystem ' codemap/modules
 sections: neighbors, entry files, files, public, stores, effects, debt
-module src/lib/core/filesystem core files 14 in-modules 30 out-modules 7 pub 62/91 ipc 14/0 card ~7.2k
+module src/lib/core/filesystem core files 14 in-modules 30 out-modules 7 pub 62/91 ipc 14/0 card ~7.3k
 ## neighbors
-dep src/lib/app -> src/lib/core/filesystem 22
+dep src/lib/app -> src/lib/core/filesystem 23
 dep src/lib/core/editor -> src/lib/core/filesystem 2
 dep src/lib/core/layout -> src/lib/core/filesystem 1
 dep src/lib/core/markdown-editor -> src/lib/core/filesystem 6
@@ -18,7 +18,7 @@ dep src/lib/features/event-calendar -> src/lib/core/filesystem 5
 dep src/lib/features/file-history -> src/lib/core/filesystem 1
 dep src/lib/features/file-icons -> src/lib/core/filesystem 2
 dep src/lib/features/note-action-bar -> src/lib/core/filesystem 3
-dep src/lib/features/note-list -> src/lib/core/filesystem 5
+dep src/lib/features/note-list -> src/lib/core/filesystem 6
 dep src/lib/features/properties -> src/lib/core/filesystem 7
 dep src/lib/features/quick-switcher -> src/lib/core/filesystem 3
 dep src/lib/features/rail-shell -> src/lib/core/filesystem 22
@@ -37,7 +37,7 @@ dep src/lib/core/filesystem -> src/lib/contracts 8
 dep src/lib/core/filesystem -> src/lib/core/editor 10
 dep src/lib/core/filesystem -> src/lib/core/markdown-editor 1
 dep src/lib/core/filesystem -> src/lib/core/trash 1
-dep src/lib/core/filesystem -> src/lib/core/vault 4
+dep src/lib/core/filesystem -> src/lib/core/vault 5
 dep src/lib/core/filesystem -> src/lib/types 1
 dep src/lib/core/filesystem -> src/lib/utils 13
 in2 src/lib/core/filesystem 8 modules: src/routes(8) src/lib/plugins/calendar(5) src/lib/core/frontmatter(2) src/lib/core/vault(2) src/lib/features/backlinks(2) +3 modules
@@ -51,17 +51,17 @@ entry src/lib/core/filesystem/note-change.service.ts ext-in12 src/lib/app/boot.t
 entry src/lib/core/filesystem/file-entries.logic.ts ext-in11 src/lib/app/editor-host.ts src/lib/core/markdown-editor/editor-host.ts src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts src/lib/features/canvas/CanvasFilePicker.svelte src/lib/features/properties/PropertiesView.svelte more importers 6 not shown: src/lib/plugins/kanban(2) src/lib/features/properties(1) src/lib/features/quick-switcher(1) +2 modules: q importers src/lib/core/filesystem/file-entries.logic.ts
 entry src/lib/core/filesystem/fs.types.ts ext-in7 src/lib/app/editor-host.ts src/lib/core/settings/settings.logic.ts src/lib/features/rail-shell/FilesNavigator.svelte src/lib/features/rail-shell/lens.logic.ts src/lib/features/rail-shell/rail-shell.types.ts more importers 2 not shown: src/lib/features/type-definitions(1) src/lib/plugins/templates(1): q importers src/lib/core/filesystem/fs.types.ts
 entry src/lib/core/filesystem/path-change.service.ts ext-in7 src/lib/app/boot.ts src/lib/features/collection/collection.service.ts src/lib/features/event-calendar/event-calendar.service.ts src/lib/features/rail-shell/files-navigator.service.ts src/lib/features/rail-shell/neighbourhood.service.ts more importers 2 not shown: src/lib/features/rail-shell(1) src/lib/plugins/mods(1): q importers src/lib/core/filesystem/path-change.service.ts
+entry src/lib/core/filesystem/delete-note.service.ts ext-in4 src/lib/app/commands.ts src/lib/features/note-action-bar/NoteActionBar.svelte src/lib/features/note-list/NoteRowMenu.svelte src/lib/features/rail-shell/TypesNavigator.svelte
 entry src/lib/core/filesystem/folder-notes.logic.ts ext-in3 src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/app/tauri-listeners.service.ts src/lib/features/rail-shell/FilesNavigator.svelte
-entry src/lib/core/filesystem/delete-note.service.ts ext-in2 src/lib/features/note-action-bar/NoteActionBar.svelte src/lib/features/rail-shell/TypesNavigator.svelte
 entry src/lib/core/filesystem/fs.watcher.ts ext-in2 src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/plugins/mods/mods-host.service.ts
 entry src/lib/core/filesystem/task-write.service.ts ext-in2 src/lib/features/tasks/tasks.service.ts src/lib/features/todoist-sync/closed-note-writer.service.ts
 ## files
-file src/lib/core/filesystem/delete-note.service.ts service L28 module src/lib/core/filesystem in2 t1
+file src/lib/core/filesystem/delete-note.service.ts service L33 module src/lib/core/filesystem in4 t1
 file src/lib/core/filesystem/file-entries.logic.ts logic L105 module src/lib/core/filesystem in12 t3
 file src/lib/core/filesystem/folder-notes.logic.ts logic L65 module src/lib/core/filesystem in3 t1
 file src/lib/core/filesystem/fs.logic.ts logic L642 module src/lib/core/filesystem in47 t15
 file src/lib/core/filesystem/fs.service.ts service L376 module src/lib/core/filesystem in27 t45
-file src/lib/core/filesystem/fs.store.svelte.ts store L48 module src/lib/core/filesystem in26 t62
+file src/lib/core/filesystem/fs.store.svelte.ts store L48 module src/lib/core/filesystem in26 t64
 file src/lib/core/filesystem/fs.types.ts types L16 module src/lib/core/filesystem in13 t0
 file src/lib/core/filesystem/fs.watcher.ts other L304 module src/lib/core/filesystem in2 t5
 file src/lib/core/filesystem/link-updater.logic.ts logic L119 module src/lib/core/filesystem in1 t1
@@ -71,7 +71,7 @@ file src/lib/core/filesystem/path-change.service.ts service L258 module src/lib/
 file src/lib/core/filesystem/task-write.service.ts service L38 module src/lib/core/filesystem in2 t1
 file src/lib/core/filesystem/wikilink-resolution.logic.ts logic L184 module src/lib/core/filesystem in15 t8
 ## public
-sym src/lib/core/filesystem/delete-note.service.ts:12 fn deleteNoteWithConfirm(path: string): Promise<void> L17 | Asks the same "Move to Trash" confirmation as the file explorer, then moves the note to the trash.
+sym src/lib/core/filesystem/delete-note.service.ts:16 fn deleteNoteWithConfirm(path: string): Promise<void> L18 | Asks the same "Move to Trash" confirmation as the file explorer, naming the file, then moves the note to the trash.
 sym src/lib/core/filesystem/file-entries.logic.ts:5 interface FileEntry L5
 sym src/lib/core/filesystem/file-entries.logic.ts:11 fn flattenFileTree(nodes: FileTreeNode[]): FileEntry[] L17
 sym src/lib/core/filesystem/file-entries.logic.ts:38 fn entryFolder(vaultPath: string, path: string): string L5 | The folder holding a file, relative to the vault.

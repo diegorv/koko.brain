@@ -39,7 +39,7 @@ dep src/lib/core/settings -> src/lib/core/markdown-editor 1
 dep src/lib/core/settings -> src/lib/core/trash 4
 dep src/lib/core/settings -> src/lib/core/vault 4
 dep src/lib/core/settings -> src/lib/utils 17
-in2 src/lib/core/settings 12 modules: src/lib/core/filesystem(5) src/lib/core/editor(2) src/lib/features/backlinks(2) src/lib/features/collection(2) src/lib/features/note-list(2) +7 modules
+in2 src/lib/core/settings 12 modules: src/lib/core/filesystem(5) src/lib/features/note-list(3) src/lib/core/editor(2) src/lib/features/backlinks(2) src/lib/features/collection(2) +7 modules
 out2 src/lib/core/settings 1 modules: src/lib/core/editor(2)
 ## entry files
 entry src/lib/core/settings/settings.store.svelte.ts ext-in69 src/lib/app/AppShell.svelte src/lib/app/EditorView.svelte src/lib/app/boot.ts src/lib/app/commands.ts src/lib/app/deep-link-actions.ts more importers 64 not shown: src/lib/features/event-calendar(10) src/lib/features/rail-shell(9) src/lib/features/search(5) +22 modules: q importers src/lib/core/settings/settings.store.svelte.ts
@@ -97,7 +97,7 @@ file src/lib/core/settings/settings-panel.store.svelte.ts store L24 module src/l
 file src/lib/core/settings/settings-persistence.svelte.ts other L122 module src/lib/core/settings in2 t9
 file src/lib/core/settings/settings.logic.ts logic L323 module src/lib/core/settings in13 t2
 file src/lib/core/settings/settings.service.ts service L297 module src/lib/core/settings in3 t6
-file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in85 t135
+file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in85 t137
 file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in26 t0
 file src/lib/core/settings/theme-builder.logic.ts logic L318 module src/lib/core/settings in3 t10
 file src/lib/core/settings/theme-catalog.service.ts service L45 module src/lib/core/settings in1 t1

@@ -19,12 +19,14 @@ import { toast } from 'svelte-sonner';
 import { deleteItem } from '#lib/core/filesystem/fs.service.js';
 import { PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
 import { deleteNoteWithConfirm } from '#lib/core/filesystem/delete-note.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 
 const PATH = '/vault/Projects/Launch plan.md';
 
 describe('deleteNoteWithConfirm', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vaultStore._reset();
 	});
 
 	it('asks the file explorer\'s "Move to Trash" question naming the file, then trashes the note', async () => {
@@ -42,12 +44,27 @@ describe('deleteNoteWithConfirm', () => {
 		expect(toast.error).not.toHaveBeenCalled();
 	});
 
-	it('leaves the note alone when the user declines', async () => {
+	it('leaves the note alone when the user declines, and asks for no index refresh', async () => {
 		vi.mocked(ask).mockResolvedValue(false);
 
 		await deleteNoteWithConfirm(PATH);
 
 		expect(deleteItem).not.toHaveBeenCalled();
+		expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+	});
+
+	// Lens lists read the index snapshot, which refreshes after a 2 to 10 s
+	// throttle unless a prompt refresh was asked before the delete's index event.
+	it('asks for the prompt index refresh before the trash move', async () => {
+		vi.mocked(ask).mockResolvedValue(true);
+		let requestedAtCall: boolean | undefined;
+		vi.mocked(deleteItem).mockImplementationOnce(async () => {
+			requestedAtCall = vaultStore.takePromptIndexRefresh();
+		});
+
+		await deleteNoteWithConfirm(PATH);
+
+		expect(requestedAtCall).toBe(true);
 	});
 
 	it('shows the file-operation error toast when the trash move fails', async () => {

@@ -34,7 +34,7 @@ sym src/lib/plugins/graph-view/graph-view.service.ts:34 fn openGraphTab(): void 
 by src/lib/plugins/graph-view/graph-view.service.ts:openGraphTab <- src/lib/app/rail-navigation.ts:34 in selectRailItem call
 sym src/lib/plugins/graph-view/graph-view.service.ts:54 fn closeGraphTab(): void L6 | Closes the Graph View tab if it exists.
 sym src/lib/plugins/graph-view/graph-view.service.ts:62 fn toggleGraphTab(): void L11 | Toggles the Graph View tab: opens if closed, closes if active, focuses if open but not active.
-by src/lib/plugins/graph-view/graph-view.service.ts:toggleGraphTab <- src/lib/app/commands.ts:216 in getBuiltInCommands call
+by src/lib/plugins/graph-view/graph-view.service.ts:toggleGraphTab <- src/lib/app/commands.ts:218 in getBuiltInCommands call
 by src/lib/plugins/graph-view/graph-view.service.ts:toggleGraphTab <- src/lib/app/global-keybindings.ts:112 in GLOBAL_KEYBINDINGS call
 sym src/lib/plugins/graph-view/graph-view.service.ts:75 fn resetGraphView() L4 | Resets all graph view state
 by src/lib/plugins/graph-view/graph-view.service.ts:resetGraphView <- src/lib/app/lifecycle/app-lifecycle.service.ts:667 in teardownVault call

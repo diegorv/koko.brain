@@ -65,7 +65,14 @@ Right-click a note list row or a folder and choose **Move to Trash**. A confirma
 | **Favorite / Unfavorite** | Sets or clears `_favorite` (Markdown notes only) |
 | **Reveal in Finder** | Opens the file's location in macOS Finder |
 | **Rename** | Starts inline rename (`F2`) |
-| **Move to Trash** | Moves the file to the trash, after a confirmation |
+| **Archive / Restore** | Sets or clears `_archived` on this row's note, whichever tab is active; a type's `_archive_to` folder applies (Markdown notes only) |
+| **Mark organized / Mark not organized** | Sets `_organized` on this row's note, whichever tab is active (Markdown notes only) |
+| **History** | Opens the note in the editor, then its [File History](15-file-history.md) (Markdown notes only) |
+| **Move to Trash** | Asks `Move "<file name>" to trash?`, then moves the file to the trash |
+
+The last four are the same actions, in the same order, as the end of the note action bar's More menu (see [Note Action Bar](03-editor.md#note-action-bar)). A canvas, view, PDF, image or other file gets **Move to Trash** only.
+
+In the **Inbox**, the active row, and any row you hover or focus, shows a check at its top right: click it to mark that note organized without opening it. The row leaves the Inbox.
 
 **A folder in the navigator:**
 

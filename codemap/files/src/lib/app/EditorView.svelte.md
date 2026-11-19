@@ -27,7 +27,7 @@ imp src/lib/app/EditorView.svelte:28 -> src/lib/core/editor/editor.types.ts type
 imp src/lib/app/AppShell.svelte:40 -> src/lib/app/EditorView.svelte default
 ## reach
 in2 src/lib/app/EditorView.svelte 1 files in 1 modules: src/routes(1)
-out2 src/lib/app/EditorView.svelte 137 files in 30 modules: src/lib/features/collection(19) src/lib/core/markdown-editor(12) src/lib/features/event-calendar(12) src/lib/features/tasks(12) src/lib/utils(10) +25 modules
+out2 src/lib/app/EditorView.svelte 139 files in 31 modules: src/lib/features/collection(19) src/lib/core/markdown-editor(12) src/lib/features/event-calendar(12) src/lib/features/tasks(12) src/lib/utils(10) +26 modules
 ## tests
 test src/tests/lib/app/EditorView.test.ts imports src/lib/app/EditorView.svelte mirror
 test src/tests/lib/features/canvas/canvas-tab-switch.test.ts imports src/lib/app/EditorView.svelte

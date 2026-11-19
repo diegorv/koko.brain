@@ -16,13 +16,12 @@ fx src/lib/features/deep-link/deep-link.service.ts:226 tauri-clipboard-manager.r
 fx src/lib/features/deep-link/deep-link.service.ts:102 tauri-deep-link.getCurrent in registerDeepLinkListener
 fx src/lib/features/deep-link/deep-link.service.ts:90 tauri-deep-link.onOpenUrl in registerDeepLinkListener
 fx src/lib/core/editor/editor.service.ts:376 tauri-dialog.ask in closeTab
-fx src/lib/core/filesystem/delete-note.service.ts:14 tauri-dialog.ask in deleteNoteWithConfirm
+fx src/lib/core/filesystem/delete-note.service.ts:18 tauri-dialog.ask in deleteNoteWithConfirm
 fx src/lib/core/settings/sections/TrashSection.svelte:34 tauri-dialog.ask in handleDeletePermanently
 fx src/lib/core/settings/sections/TrashSection.svelte:49 tauri-dialog.ask in handleEmptyTrash
 fx src/lib/core/settings/sections/UpdateSection.svelte:237 tauri-dialog.ask in confirmDowngrade
 fx src/lib/core/vault/exit.service.ts:35 tauri-dialog.ask in confirmDiscardFailedSaves
 fx src/lib/features/file-history/FileHistoryDialog.svelte:44 tauri-dialog.ask in handleRestore
-fx src/lib/features/note-list/NoteRowMenu.svelte:163 tauri-dialog.ask in handleDelete
 fx src/lib/features/rail-shell/FilesNavigator.svelte:248 tauri-dialog.ask in handleDelete
 fx src/lib/features/todoist-sync/sync-now.service.ts:1170 tauri-dialog.ask in confirmOverCap
 fx src/lib/features/todoist-sync/sync-now.service.ts:1184 tauri-dialog.ask in confirmLineBrake
