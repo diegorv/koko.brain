@@ -15,14 +15,14 @@ Not in this ticket: refusing a taken name (open-itens 059); the iOS host's conta
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first (`templates.service` test, real `resolveFilePath`): `createFileFromTemplate(template, '../Outside')` rejects and `openOrCreateNote` is not called; `Folder/../Name` still creates `<vault>/Name.md`.
-- [ ] Failing test first (`TemplatePicker.test.ts`): typing `../Outside` shows "Must stay inside the vault", not "Creates ../Outside.md in the vault", and Enter does not call `createFileFromTemplate`. The pure check has its own tests in `templates.logic.test.ts` (plain, `Folder/Name`, `../x`, `a/../../x`, `a/../x`).
-- [ ] Plain names and `Folder/Name` still create inside the vault (existing TemplatePicker and templates.service tests stay green).
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first (`templates.service` test, real `resolveFilePath`): `createFileFromTemplate(template, '../Outside')` rejects and `openOrCreateNote` is not called; `Folder/../Name` still creates `<vault>/Name.md`.
+- [x] Failing test first (`TemplatePicker.test.ts`): typing `../Outside` shows "Must stay inside the vault", not "Creates ../Outside.md in the vault", and Enter does not call `createFileFromTemplate`. The pure check has its own tests in `templates.logic.test.ts` (plain, `Folder/Name`, `../x`, `a/../../x`, `a/../x`).
+- [x] Plain names and `Folder/Name` still create inside the vault (existing TemplatePicker and templates.service tests stay green).
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Evidence
 
@@ -33,3 +33,4 @@ Not in this ticket: refusing a taken name (open-itens 059); the iOS host's conta
 
 - 2026-11-18: opened from Issue 29's review (finding 3). Needs a ledger row and triage from the main session.
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: guard in the service with `resolveFilePath` and the same rule in the picker hint (see What to build).
+- 2026-11-18, delivered (branch issue/48-template-file-name-stays-inside-vault): `createFileFromTemplate` resolves the typed name with `resolveFilePath` and rejects names outside the vault; the TemplatePicker hint shows "Must stay inside the vault" and Enter does nothing for such names. Review round 1 APPROVED (two nits; JSDoc nit fixed), round 2 APPROVED with no findings. Tests: `pnpm check` 0 errors; full suite at 175ae76bf exit 0 (662 files, 17830 passed, 56 skipped, 1 todo).

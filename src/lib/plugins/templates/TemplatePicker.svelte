@@ -5,7 +5,7 @@
 	import { toast } from 'svelte-sonner';
 	import { templatesStore } from './templates.store.svelte';
 	import { createFileFromTemplate } from './templates.service';
-	import { filterTemplates, noteExistsInTree, withMdExtension } from './templates.logic';
+	import { filterTemplates, nameLeavesVault, noteExistsInTree, withMdExtension } from './templates.logic';
 	import FileText from '@lucide/svelte/icons/file-text';
 
 	let searchQuery = $state('');
@@ -27,6 +27,9 @@
 
 	/** The vault-relative file `createFileFromTemplate` will create or open */
 	let targetFileName = $derived(withMdExtension(fileName.trim()));
+
+	/** Whether the typed name climbs out of the vault, which the service refuses */
+	let leavesVault = $derived(nameLeavesVault(fileName.trim()));
 
 	/** Whether Enter opens a note that already exists instead of creating one */
 	let targetExists = $derived(
@@ -62,7 +65,7 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter' && isNamingStep && fileName.trim() && !isCreating) {
+		if (e.key === 'Enter' && isNamingStep && fileName.trim() && !leavesVault && !isCreating) {
 			e.preventDefault();
 			isCreating = true;
 			confirmCreate()
@@ -108,6 +111,8 @@
 		<div class="p-4 text-center text-sm text-muted-foreground">
 			{#if !fileName.trim()}
 				Type a name for the new file
+			{:else if leavesVault}
+				Must stay inside the vault
 			{:else if targetExists}
 				<kbd class="rounded-xs border px-1.5 py-0.5 text-xs">Enter</kbd> opens the existing note
 			{:else}
