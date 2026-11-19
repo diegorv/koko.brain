@@ -7,7 +7,7 @@ imp src/lib/plugins/quick-capture/composer-editor-host.service.ts:2 -> src/lib/c
 imp src/lib/plugins/quick-capture/composer-editor-host.service.ts:3 -> src/lib/core/filesystem/wikilink-resolution.logic.ts getNoteName,isLinkTargetFile
 imp src/lib/plugins/quick-capture/composer-editor-host.service.ts:4 -> src/lib/core/markdown-editor/editor-host.ts NOOP_HOST,type:EditorHost,type:LinkCandidates,type:VaultTag
 ## imported-by
-imp src/routes/composer/+page.svelte:9 -> src/lib/plugins/quick-capture/composer-editor-host.service.ts createComposerEditorHost
+imp src/routes/composer/+page.svelte:10 -> src/lib/plugins/quick-capture/composer-editor-host.service.ts createComposerEditorHost
 ## reach
 in2 src/lib/plugins/quick-capture/composer-editor-host.service.ts 0 files in 0 modules: -
 out2 src/lib/plugins/quick-capture/composer-editor-host.service.ts 7 files in 4 modules: src/lib/contracts(3) src/lib/utils(2) src/lib/core/filesystem(1) src/lib/types(1)
@@ -16,7 +16,7 @@ test src/tests/lib/plugins/quick-capture/composer-editor-host.service.test.ts im
 ## symbols
 sym src/lib/plugins/quick-capture/composer-editor-host.service.ts:7 interface ComposerEditorHost L4 | The composer's editor host, plus the per-summon reset of its reads.
 sym src/lib/plugins/quick-capture/composer-editor-host.service.ts:24 fn createComposerEditorHost(): ComposerEditorHost L48 | The editor host of the composer popover.
-by src/lib/plugins/quick-capture/composer-editor-host.service.ts:createComposerEditorHost <- src/routes/composer/+page.svelte:37 in host call
+by src/lib/plugins/quick-capture/composer-editor-host.service.ts:createComposerEditorHost <- src/routes/composer/+page.svelte:42 in host call
 ## calls
 call src/lib/plugins/quick-capture/composer-editor-host.service.ts:30 in createComposerEditorHost -> src/lib/contracts/ipc.ts:call call +1
 call src/lib/plugins/quick-capture/composer-editor-host.service.ts:43 in createComposerEditorHost -> src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile call

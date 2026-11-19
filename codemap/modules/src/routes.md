@@ -23,7 +23,7 @@ file src/routes/(app)/+layout.svelte component L192 module src/routes in0 t0
 file src/routes/(app)/+page.svelte component L72 module src/routes in0 t0
 file src/routes/+layout.svelte component L7 module src/routes in0 t0
 file src/routes/+layout.ts other L5 module src/routes in0 t0
-file src/routes/composer/+page.svelte component L321 module src/routes in0 t1
+file src/routes/composer/+page.svelte component L379 module src/routes in0 t1
 ## effects
 fx-count dom.keydown 1
 fx-count dom.storage 1

@@ -7,11 +7,11 @@ fx src/lib/features/command-palette/command-palette.store.svelte.ts:9 storage.ge
 fx src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:9 storage.getItem in loadRecentPaths
 fx src/lib/plugins/mods/mods-enabled.store.svelte.ts:30 storage.getItem in loadEnabledVaults
 fx src/lib/plugins/mods/mods-enabled.store.svelte.ts:39 storage.getItem in loadDisabledMods
-fx src/routes/composer/+page.svelte:59 storage.getItem in readDraft
+fx src/routes/composer/+page.svelte:64 storage.getItem in readDraft
 fx src/lib/core/zoom/zoom.service.ts:61 storage.removeItem in applyZoom
 fx src/lib/features/command-palette/command-palette.store.svelte.ts:52 storage.removeItem in commandPaletteStore.reset
 fx src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:51 storage.removeItem in quickSwitcherStore.reset
-fx src/routes/composer/+page.svelte:68 storage.removeItem in writeDraft
+fx src/routes/composer/+page.svelte:73 storage.removeItem in writeDraft
 fx src/lib/core/settings/theme.service.ts:82 storage.setItem in applyActiveTheme
 fx src/lib/core/vault/vault.store.svelte.ts:56 storage.setItem in persistRecentVaults
 fx src/lib/core/zoom/zoom.service.ts:62 storage.setItem in applyZoom
@@ -19,4 +19,4 @@ fx src/lib/features/command-palette/command-palette.store.svelte.ts:18 storage.s
 fx src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:18 storage.setItem in persistRecentPaths
 fx src/lib/plugins/mods/mods-enabled.store.svelte.ts:61 storage.setItem in modsEnabledStore.setEnabled
 fx src/lib/plugins/mods/mods-enabled.store.svelte.ts:79 storage.setItem in modsEnabledStore.setModEnabled
-fx src/routes/composer/+page.svelte:67 storage.setItem in writeDraft
+fx src/routes/composer/+page.svelte:72 storage.setItem in writeDraft
