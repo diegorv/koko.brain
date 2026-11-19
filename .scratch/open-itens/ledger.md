@@ -51,7 +51,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 014 | [Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen at the same index version](issues/014-backlinks-outgoing-links-always-show-open-note.md) | none | wontfix | | |
 | 015 | [Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails](issues/015-closing-tab-unsaved-text-saves-closes-prompt.md) | none | done | issue/015-closing-tab-unsaved-text-saves-closes-prompt (da26b0dcd) | 2026-11-12 |
 | 016 | [File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot](issues/016-file-history-keeps-snapshot-pre-save-bytes.md) | 015 | todo | | |
-| 017 | [An external change to an open note is never overwritten by the next autosave or calendar write](issues/017-external-change-open-note-never-overwritten-next.md) | none | in-progress | | |
+| 017 | [An external change to an open note is never overwritten by the next autosave or calendar write](issues/017-external-change-open-note-never-overwritten-next.md) | none | done | issue/017-external-change-open-note-never-overwritten-next (4b4602bdb) | 2026-11-19 |
 | 018 | [A note deleted or renamed outside the app is closed or marked orphaned, never recreated by the next autosave](issues/018-note-deleted-renamed-outside-app-closed-marked.md) | 017 | todo | | |
 | 019 | [Every tab write checks the disk first, so an external change is never overwritten without a copy](issues/019-every-tab-write-checks-disk-first-so.md) | 017 | todo | | |
 | 020 | [A failed tree refresh still fans out the burst, and scan_vault skips an unreadable subfolder](issues/020-watcher-events-keep-fts5-semantic-rust-indexes.md) | none | todo | | |
@@ -313,3 +313,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 06:44 — 007 — start — launched by /relay-lite:run — 17d5120f5
 - 2026-11-19 06:56 — 007 — deliver — merged 74219cc76; review 1 APPROVED (fix round: drop test, comment), review 2 APPROVED no findings; full suite 17984 passed — 74219cc76
 - 2026-11-19 07:15 — 017 — start — launched by /relay-lite:run — f8bfbc0a9
+- 2026-11-19 07:36 — 017 — deliver — merged 4b4602bdb; review 1 CHANGES_REQUESTED (1 blocker, 1 minor, 2 nits; fixed), review 2 APPROVED (1 nit kept); full suite 18012 passed — 4b4602bdb
