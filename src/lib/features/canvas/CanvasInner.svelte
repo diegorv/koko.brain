@@ -495,7 +495,7 @@
 	/** Create a file node for the selected file */
 	function handleFileSelected(filePath: string) {
 		const center = getViewportCenter();
-		const newNode = createFileNode(center.x - 125, center.y - 30, filePath);
+		const newNode = createFileNode(center.x - 125, center.y - 30, toVaultRelativePath(filePath, vaultStore.path));
 		const flowNode = canvasNodeToFlowNode(newNode);
 		nodes = [...nodes, flowNode];
 		persistChanges(nodes, edges);
@@ -587,7 +587,7 @@
 		if (isImageFile(filePath)) {
 			newNode = createImageNode(flowPos.x - 150, flowPos.y - 100, toVaultRelativePath(filePath, vaultStore.path));
 		} else if (filePath.endsWith('.md')) {
-			newNode = createFileNode(flowPos.x - 125, flowPos.y - 30, filePath);
+			newNode = createFileNode(flowPos.x - 125, flowPos.y - 30, toVaultRelativePath(filePath, vaultStore.path));
 		} else {
 			return;
 		}
