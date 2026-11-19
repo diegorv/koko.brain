@@ -44,7 +44,7 @@ describe('themeColorsToCssVars', () => {
 	it('maps syntax colors with syntax- prefix', () => {
 		const vars = themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors);
 		expect(vars['--syntax-heading1']).toBe('#E8A5FF');
-		expect(vars['--syntax-emphasis']).toBe('#93c5fd');
+		expect(vars['--syntax-emphasis']).toBe('#f5d0a9');
 		expect(vars['--syntax-active-line-gutter']).toBe('#171a24');
 	});
 

@@ -157,3 +157,16 @@ export function mixColors(a: string, b: string, t = 0.5): string | null {
 	const q = toOklab(y.map(toLinear));
 	return oklabToHex(p.map((v, i) => v + (q[i] - v) * t));
 }
+
+/**
+ * Perceptual distance between two colors: the Euclidean OKLab distance scaled by
+ * 100 (black to white is 100), alpha ignored. Null when either is unparseable.
+ */
+export function colorDistance(a: string, b: string): number | null {
+	const x = parseRgb(a);
+	const y = parseRgb(b);
+	if (!x || !y) return null;
+	const p = toOklab(x.map(toLinear));
+	const q = toOklab(y.map(toLinear));
+	return Math.hypot(...p.map((v, i) => v - q[i])) * 100;
+}

@@ -29,7 +29,7 @@ describe('applyTheme', () => {
 		applyTheme(KOKOBRAIN_DEFAULT_THEME);
 
 		expect(document.documentElement.style.getPropertyValue('--syntax-heading1')).toBe('#E8A5FF');
-		expect(document.documentElement.style.getPropertyValue('--syntax-emphasis')).toBe('#93c5fd');
+		expect(document.documentElement.style.getPropertyValue('--syntax-emphasis')).toBe('#f5d0a9');
 	});
 
 	it('sets callout colors with correct prefix', () => {
