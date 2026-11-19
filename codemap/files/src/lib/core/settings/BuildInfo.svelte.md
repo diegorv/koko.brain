@@ -13,8 +13,8 @@ out2 src/lib/core/settings/BuildInfo.svelte 0 files in 0 modules: -
 test src/tests/lib/core/settings/BuildInfo.test.ts imports src/lib/core/settings/BuildInfo.svelte mirror
 ## symbols
 sym src/lib/core/settings/BuildInfo.svelte:1 component BuildInfo props:variant= L52
-by src/lib/core/settings/BuildInfo.svelte:default <- src/lib/core/settings/sections/UpdateSection.svelte:268 in (markup) mount
+by src/lib/core/settings/BuildInfo.svelte:default <- src/lib/core/settings/sections/UpdateSection.svelte:267 in (markup) mount
 by src/lib/core/settings/BuildInfo.svelte:default <- src/routes/(app)/+page.svelte:70 in (markup) mount
 ## mounted-at
-mount src/lib/core/settings/sections/UpdateSection.svelte:268 BuildInfo -> src/lib/core/settings/BuildInfo.svelte
+mount src/lib/core/settings/sections/UpdateSection.svelte:267 BuildInfo -> src/lib/core/settings/BuildInfo.svelte
 mount src/routes/(app)/+page.svelte:70 BuildInfo -> src/lib/core/settings/BuildInfo.svelte

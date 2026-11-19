@@ -90,14 +90,14 @@ file src/lib/core/settings/sections/ThemePreview.svelte component L53 module src
 file src/lib/core/settings/sections/TrashSection.svelte component L138 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/TroubleshootingSection.svelte component L180 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/TypesSection.svelte component L58 module src/lib/core/settings in1 t1
-file src/lib/core/settings/sections/UpdateSection.svelte component L376 module src/lib/core/settings in1 t4
+file src/lib/core/settings/sections/UpdateSection.svelte component L394 module src/lib/core/settings in1 t5
 file src/lib/core/settings/sentry.logic.ts logic L28 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sentry.service.ts service L134 module src/lib/core/settings in3 t6
 file src/lib/core/settings/settings-panel.store.svelte.ts store L24 module src/lib/core/settings in7 t8
 file src/lib/core/settings/settings-persistence.svelte.ts other L122 module src/lib/core/settings in2 t9
 file src/lib/core/settings/settings.logic.ts logic L323 module src/lib/core/settings in13 t2
 file src/lib/core/settings/settings.service.ts service L297 module src/lib/core/settings in3 t6
-file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in85 t134
+file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in85 t135
 file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in26 t0
 file src/lib/core/settings/theme-builder.logic.ts logic L318 module src/lib/core/settings in3 t10
 file src/lib/core/settings/theme-catalog.service.ts service L45 module src/lib/core/settings in1 t1
@@ -127,7 +127,7 @@ sym src/lib/core/settings/sections/SettingItem.svelte:1 component SettingItem pr
 sym src/lib/core/settings/sections/TrashSection.svelte:1 component TrashSection L138
 sym src/lib/core/settings/sections/TroubleshootingSection.svelte:1 component TroubleshootingSection L180
 sym src/lib/core/settings/sections/TypesSection.svelte:1 component TypesSection L58
-sym src/lib/core/settings/sections/UpdateSection.svelte:1 component UpdateSection L376
+sym src/lib/core/settings/sections/UpdateSection.svelte:1 component UpdateSection L394
 sym src/lib/core/settings/sentry.service.ts:94 fn configureSentry(settings: SentrySettings): Promise<SentryConfigurationResult> L6 | Enables or disables error monitoring for one vault.
 sym src/lib/core/settings/sentry.service.ts:102 fn disableSentry(): Promise<SentryConfigurationResult> L3 | Disables the active Sentry client without changing persisted settings.
 sym src/lib/core/settings/sentry.service.ts:112 fn captureSentryException(tag: string, exception: unknown): void L7 | Captures a handled application error only when the current vault opted in to Sentry.

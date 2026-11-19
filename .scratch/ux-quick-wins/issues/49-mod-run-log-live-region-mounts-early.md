@@ -10,13 +10,13 @@ Not in this ticket: the load time shown only in a tooltip (`ModsStatusList.svelt
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first: with a run shown and no lines yet, `[data-mod-run-log]` exists with `role="log"`; a line added later renders inside that same element.
-- [ ] A run with no lines shows no visible log box (no padding or background while empty); existing `ModActionPicker.test.ts` tests stay green.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass; `bash scripts/e2e.sh vault-mods.spec.ts` passes.
+- [x] Failing test first: with a run shown and no lines yet, `[data-mod-run-log]` exists with `role="log"`; a line added later renders inside that same element.
+- [x] A run with no lines shows no visible log box (no padding or background while empty); existing `ModActionPicker.test.ts` tests stay green.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass; `bash scripts/e2e.sh vault-mods.spec.ts` passes.
 
 ## Evidence
 
@@ -26,3 +26,4 @@ Not in this ticket: the load time shown only in a tooltip (`ModsStatusList.svelt
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Accepted by the owner as written.
+- 2026-11-19, issue/49-mod-run-log-live-region-mounts-early: `[data-mod-run-log]` (role="log") now mounts with the run, before its first line, and stays invisible while empty. Review round 1 APPROVED (comment wording fix applied at ModActionPicker.svelte:136; the Playwright bounding-box suggestion was declined as out of scope); fix round ran; round 2 APPROVED with no findings. Tests: pnpm check 0 errors; ModActionPicker.test.ts 41 passed; full suite at 120dbc646: 665 files, 17863 tests passed, exit=0.

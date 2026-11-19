@@ -1,6 +1,6 @@
 # file card src/lib/features/todoist-sync/TodoistSection.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/todoist-sync/TodoistSection.svelte ' codemap/files
-file src/lib/features/todoist-sync/TodoistSection.svelte component L208 module src/lib/features/todoist-sync in1 t1
+file src/lib/features/todoist-sync/TodoistSection.svelte component L209 module src/lib/features/todoist-sync in1 t1
 ## imports
 imp src/lib/features/todoist-sync/TodoistSection.svelte:2 -> pkg:@tauri-apps/plugin-opener openUrl
 imp src/lib/features/todoist-sync/TodoistSection.svelte:3 -> src/lib/components/ui/input/index.ts Input
@@ -22,7 +22,7 @@ out2 src/lib/features/todoist-sync/TodoistSection.svelte 26 files in 7 modules: 
 ## tests
 test src/tests/lib/features/todoist-sync/TodoistSection.test.ts imports src/lib/features/todoist-sync/TodoistSection.svelte mirror
 ## symbols
-sym src/lib/features/todoist-sync/TodoistSection.svelte:1 component TodoistSection L208
+sym src/lib/features/todoist-sync/TodoistSection.svelte:1 component TodoistSection L209
 by src/lib/features/todoist-sync/TodoistSection.svelte:default <- src/lib/app/SettingsPanel.svelte:83 in sectionComponents ref
 ## locals
 local src/lib/features/todoist-sync/TodoistSection.svelte:36 fn handleTokenChange(value: string) L3
@@ -37,14 +37,14 @@ mount src/lib/features/todoist-sync/TodoistSection.svelte:103 Input -> src/lib/c
 mount src/lib/features/todoist-sync/TodoistSection.svelte:115 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
 mount src/lib/features/todoist-sync/TodoistSection.svelte:116 Switch -> src/lib/components/ui/switch/switch.svelte
 mount src/lib/features/todoist-sync/TodoistSection.svelte:124 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/features/todoist-sync/TodoistSection.svelte:129 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/todoist-sync/TodoistSection.svelte:155 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/features/todoist-sync/TodoistSection.svelte:156 Switch -> src/lib/components/ui/switch/switch.svelte
-mount src/lib/features/todoist-sync/TodoistSection.svelte:164 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/features/todoist-sync/TodoistSection.svelte:186 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/features/todoist-sync/TodoistSection.svelte:187 Input -> src/lib/components/ui/input/input.svelte
-mount src/lib/features/todoist-sync/TodoistSection.svelte:197 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
-mount src/lib/features/todoist-sync/TodoistSection.svelte:198 Input -> src/lib/components/ui/input/input.svelte
+mount src/lib/features/todoist-sync/TodoistSection.svelte:130 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/todoist-sync/TodoistSection.svelte:156 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/features/todoist-sync/TodoistSection.svelte:157 Switch -> src/lib/components/ui/switch/switch.svelte
+mount src/lib/features/todoist-sync/TodoistSection.svelte:165 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/features/todoist-sync/TodoistSection.svelte:187 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/features/todoist-sync/TodoistSection.svelte:188 Input -> src/lib/components/ui/input/input.svelte
+mount src/lib/features/todoist-sync/TodoistSection.svelte:198 SettingItem -> src/lib/core/settings/sections/SettingItem.svelte
+mount src/lib/features/todoist-sync/TodoistSection.svelte:199 Input -> src/lib/components/ui/input/input.svelte
 ## calls
 call src/lib/features/todoist-sync/TodoistSection.svelte:37 in handleTokenChange -> src/lib/core/settings/settings.store.svelte.ts:settingsStore.updateTodoist mcall
 call src/lib/features/todoist-sync/TodoistSection.svelte:41 in handleDefaultLabelChange -> src/lib/core/settings/settings.store.svelte.ts:settingsStore.updateTodoist mcall
@@ -57,7 +57,7 @@ call src/lib/features/todoist-sync/TodoistSection.svelte:63 in loadProjects -> s
 call src/lib/features/todoist-sync/TodoistSection.svelte:82 in (markup) -> src/lib/features/todoist-sync/TodoistSection.svelte:handleTokenChange markup
 call src/lib/features/todoist-sync/TodoistSection.svelte:106 in (markup) -> src/lib/features/todoist-sync/TodoistSection.svelte:handleDefaultLabelChange markup
 call src/lib/features/todoist-sync/TodoistSection.svelte:118 in (markup) -> src/lib/core/settings/settings.store.svelte.ts:settingsStore.updateTodoist markup +4
-call src/lib/features/todoist-sync/TodoistSection.svelte:129 in (markup) -> src/lib/features/todoist-sync/TodoistSection.svelte:loadProjects markup
-call src/lib/features/todoist-sync/TodoistSection.svelte:204 in (markup) -> src/lib/features/todoist-sync/TodoistSection.svelte:handleIntervalChange markup
+call src/lib/features/todoist-sync/TodoistSection.svelte:130 in (markup) -> src/lib/features/todoist-sync/TodoistSection.svelte:loadProjects markup
+call src/lib/features/todoist-sync/TodoistSection.svelte:205 in (markup) -> src/lib/features/todoist-sync/TodoistSection.svelte:handleIntervalChange markup
 ## effects
 fx src/lib/features/todoist-sync/TodoistSection.svelte:92 tauri-opener.openUrl in (markup)
