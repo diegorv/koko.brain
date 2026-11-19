@@ -86,7 +86,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 49 | [The mod run log is a live region before its first line arrives](issues/49-mod-run-log-live-region-mounts-early.md) | none | done | issue/49-mod-run-log-live-region-mounts-early (0c4692315) | 2026-11-19 |
 | 50 | [The Kanban card menu opens from the keyboard](issues/50-kanban-card-menu-opens-from-keyboard.md) | none | todo | | |
 | 51 | [The Create note path warning names a path and follows the typed text](issues/51-auto-organize-create-path-warning-reads-draft.md) | none | done | issue/51-auto-organize-create-path-warning-reads-draft (29563b109) | 2026-11-19 |
-| 52 | [Readable note list chips, archived rows and search snippet](issues/52-note-list-chips-archived-rows-search-snippet.md) | none | todo | | |
+| 52 | [Readable note list chips, archived rows and search snippet](issues/52-note-list-chips-archived-rows-search-snippet.md) | none | in-progress | | |
 | 53 | [Default theme: bold and italic off the link blue](issues/53-default-bold-italic-off-link-blue.md) | 40 | todo | | |
 
 ## Log
@@ -178,3 +178,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 00:27 — 51 — deliver — merged after review 1 APPROVED with two findings, fix round (effect clears a refused draft when the stored path changes, live warning test), re-review 2 APPROVED (claude); full vitest suite passed (17868 tests) — 29563b109
 - 2026-11-19 00:27 — 41 — start — launched by /relay-lite:run — b53009810
 - 2026-11-19 00:35 — 41 — deliver — merged after review 1 APPROVED with 3 nits, none changed (claude); full vitest suite passed (17877 tests); word-count E2E not run — 9068eb154
+- 2026-11-19 06:56 — 52 — start — launched by /relay-lite:run — df393fc18
