@@ -126,11 +126,41 @@ export function notifyNoteCreated(filePath: string): void {
 	}
 }
 
+/**
+ * Keeps a copy of a note's on-disk content that the editor is about to
+ * overwrite with a dirty tab's typing. Resolves once the copy is kept and
+ * rejects when it could not be.
+ */
+export type ExternalVersionKeeper = (filePath: string, content: string) => Promise<void>;
+
+/**
+ * The registered keeper, or null when none is (File History off). A single
+ * slot: core cannot import the feature that keeps the copy (ADR-0003).
+ */
+let externalVersionKeeper: ExternalVersionKeeper | null = null;
+
+/**
+ * Sets the external-version keeper, replacing any earlier one. The returned
+ * function clears the slot only while it still holds `keeper`.
+ */
+export function setExternalVersionKeeper(keeper: ExternalVersionKeeper): () => void {
+	externalVersionKeeper = keeper;
+	return () => {
+		if (externalVersionKeeper === keeper) externalVersionKeeper = null;
+	};
+}
+
+/** Returns the registered external-version keeper, or null when none is. */
+export function getExternalVersionKeeper(): ExternalVersionKeeper | null {
+	return externalVersionKeeper;
+}
+
 /** Removes all hooks and observers. Used in tests and teardown. */
 export function resetHooks(): void {
 	debug('HOOKS', 'Resetting all hooks and observers');
 	afterSaveObservers.length = 0;
 	noteCreatedObservers.length = 0;
+	externalVersionKeeper = null;
 	for (const timer of recentSaves.values()) clearTimeout(timer);
 	recentSaves.clear();
 	clearAllIndexed();

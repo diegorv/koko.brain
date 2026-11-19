@@ -21,12 +21,13 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({
 
 vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	addAfterSaveObserver: vi.fn(() => vi.fn()),
+	setExternalVersionKeeper: vi.fn(() => vi.fn()),
 }));
 
 import { invoke } from '@tauri-apps/api/core';
 import { readTextFile, writeTextFile, mkdir, exists, readDir } from '@tauri-apps/plugin-fs';
 import { saveCurrentFile } from '#lib/core/editor/editor.service.js';
-import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
+import { addAfterSaveObserver, setExternalVersionKeeper } from '#lib/core/editor/editor.hooks.js';
 import { fileHistoryStore } from '#lib/features/file-history/file-history.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -296,13 +297,54 @@ describe('registerFileHistoryHook', () => {
 		});
 	});
 
-	it('returns an unsubscribe function', () => {
-		const unsubscribe = vi.fn();
-		vi.mocked(addAfterSaveObserver).mockReturnValue(unsubscribe);
+	it('registers a keeper that snapshots the external version and rejects when the snapshot fails', async () => {
+		let capturedKeeper: ((filePath: string, content: string) => Promise<void>) | null = null;
+		vi.mocked(setExternalVersionKeeper).mockImplementation((keeper) => {
+			capturedKeeper = keeper;
+			return vi.fn();
+		});
+
+		registerFileHistoryHook();
+		expect(capturedKeeper).not.toBeNull();
+
+		vi.mocked(invoke).mockResolvedValueOnce(true);
+		await capturedKeeper!('/vault/note.md', 'external content');
+		expect(invoke).toHaveBeenCalledWith('save_snapshot', {
+			filePath: 'note.md',
+			content: 'external content',
+		});
+
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('DB error'));
+		await expect(capturedKeeper!('/vault/note.md', 'external content')).rejects.toThrow('DB error');
+	});
+
+	it('registers a keeper that rejects without saving when no vault is open', async () => {
+		let capturedKeeper: ((filePath: string, content: string) => Promise<void>) | null = null;
+		vi.mocked(setExternalVersionKeeper).mockImplementation((keeper) => {
+			capturedKeeper = keeper;
+			return vi.fn();
+		});
+		registerFileHistoryHook();
+		vaultStore._reset();
+
+		await expect(capturedKeeper!('/vault/note.md', 'external content')).rejects.toThrow('No vault open');
+		expect(invoke).not.toHaveBeenCalledWith('save_snapshot', expect.anything());
+	});
+
+	it('returns one unsubscribe function that removes the observer and the keeper', () => {
+		const unsubscribeObserver = vi.fn();
+		const unsubscribeKeeper = vi.fn();
+		vi.mocked(addAfterSaveObserver).mockReturnValue(unsubscribeObserver);
+		vi.mocked(setExternalVersionKeeper).mockReturnValue(unsubscribeKeeper);
 
 		const result = registerFileHistoryHook();
+		expect(unsubscribeObserver).not.toHaveBeenCalled();
+		expect(unsubscribeKeeper).not.toHaveBeenCalled();
 
-		expect(result).toBe(unsubscribe);
+		result();
+
+		expect(unsubscribeObserver).toHaveBeenCalledTimes(1);
+		expect(unsubscribeKeeper).toHaveBeenCalledTimes(1);
 	});
 });
 

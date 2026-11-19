@@ -22,6 +22,7 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
 vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	resetHooks: vi.fn(),
 	addAfterSaveObserver: vi.fn(() => vi.fn()),
+	setExternalVersionKeeper: vi.fn(() => vi.fn()),
 	notifyAfterSave: vi.fn(),
 	areAllRecentSaves: vi.fn(() => false),
 }));
