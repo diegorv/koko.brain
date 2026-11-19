@@ -63,7 +63,7 @@ test src/tests/lib/plugins/queryjs/kb-api-contract.test.ts imports src/lib/featu
 test src/tests/lib/plugins/queryjs/kbapi-firewall.test.ts imports src/lib/features/collection/collection.logic.ts
 ## symbols
 sym src/lib/features/collection/collection.logic.ts:23 fn buildNoteRecord(filePath: string, content: string, mtime = 0, ctime = 0, size = 0): PropertyIndexRecord L22 | Builds a PropertyIndexRecord from a file path and its content.
-by src/lib/features/collection/collection.logic.ts:buildNoteRecord <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:172 in preview=$derived call
+by src/lib/features/collection/collection.logic.ts:buildNoteRecord <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:184 in preview=$derived call
 by src/lib/features/collection/collection.logic.ts:buildNoteRecord <- src/lib/features/auto-organize/auto-organize.service.ts:294 in evaluateAndMove call +4
 by src/lib/features/collection/collection.logic.ts:buildNoteRecord <- src/lib/features/collection/collection.service.ts:154 in updateNoteInIndex call
 sym src/lib/features/collection/collection.logic.ts:117 type QueryRowSet L5 | Picks the rows a query shows from the records it matched (filtered, formulas computed, the view's own sort applied, `limit` not yet applied), in display order.

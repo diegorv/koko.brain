@@ -100,7 +100,7 @@ by src/lib/core/filesystem/fs.logic.ts:isMarkdownFile <- src/lib/core/filesystem
 by src/lib/core/filesystem/fs.logic.ts:isMarkdownFile <- src/lib/core/filesystem/link-updater.service.ts:42 in updateLinksAfterRename call
 by src/lib/core/filesystem/fs.logic.ts:isMarkdownFile <- src/lib/core/filesystem/path-change.service.ts:201 in applyPathChange call
 by src/lib/core/filesystem/fs.logic.ts:isMarkdownFile <- src/lib/core/note-creator/note-creator.service.ts:118 in openOrCreateNote call
-by src/lib/core/filesystem/fs.logic.ts:isMarkdownFile <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:165 in previewNote=$derived call
+by src/lib/core/filesystem/fs.logic.ts:isMarkdownFile <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:177 in previewNote=$derived call
 by src/lib/core/filesystem/fs.logic.ts:isMarkdownFile <- src/lib/features/auto-organize/auto-organize.logic.ts:325 in isValidCreatePath call +1
 by src/lib/core/filesystem/fs.logic.ts:isMarkdownFile <- src/lib/features/collection/collection.service.ts:186 in registerCollectionNoteChangeConsumer call
 by src/lib/core/filesystem/fs.logic.ts:isMarkdownFile <- src/lib/features/deep-link/deep-link.service.ts:324 in executeNewAction call

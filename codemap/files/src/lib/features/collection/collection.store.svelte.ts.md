@@ -65,8 +65,8 @@ more tests 5 not shown: src/tests/lib/plugins/queryjs(3) src/tests/lib/plugins/m
 ## symbols
 sym src/lib/features/collection/collection.store.svelte.ts:28 store collectionStore L56 | Reactive store for the collection property index
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/app/boot.ts:79 in registerAppPorts member
-by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:172 in preview=$derived member
-by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:90 in availableProperties=$derived member +4
+by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:184 in preview=$derived member
+by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:92 in availableProperties=$derived member +4
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/auto-organize/auto-organize.service.ts:293 in evaluateAndMove member
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/collection/CollectionView.svelte:148 in restoreViewIndex mcall +7
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/collection/collection-block-widget.ts:85 in CollectionBlockWidget.constructor member +5

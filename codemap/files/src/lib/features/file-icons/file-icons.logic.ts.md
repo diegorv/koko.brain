@@ -32,7 +32,7 @@ test src/tests/lib/features/file-icons/file-icons.icon-data.test.ts imports src/
 sym src/lib/features/file-icons/file-icons.logic.ts:14 fn addRecentIcon(recent: RecentIcon[], iconPack: IconPackId, iconName: string): RecentIcon[] L4 | Adds an icon to the recently used list.
 by src/lib/features/file-icons/file-icons.logic.ts:addRecentIcon <- src/lib/features/file-icons/file-icons.service.ts:78 in trackRecentIcon call
 sym src/lib/features/file-icons/file-icons.logic.ts:41 fn parseIconValuePermissive(raw: string): { iconPack: IconPackId; iconName: string } | null L8 | Parses an icon value that may be either `pack:name` or a bare name.
-by src/lib/features/file-icons/file-icons.logic.ts:parseIconValuePermissive <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:207 in iconRef=$derived call
+by src/lib/features/file-icons/file-icons.logic.ts:parseIconValuePermissive <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:219 in iconRef=$derived call
 by src/lib/features/file-icons/file-icons.logic.ts:parseIconValuePermissive <- src/lib/features/rail-shell/Rail.svelte:214 in actionIcon call
 by src/lib/features/file-icons/file-icons.logic.ts:parseIconValuePermissive <- src/lib/features/type-definitions/type-sidebar.logic.ts:534 in updateViewIconYaml call
 by src/lib/features/file-icons/file-icons.logic.ts:parseIconValuePermissive <- src/lib/plugins/mods/mods-host.service.ts:592 in createModContext call
