@@ -21,7 +21,7 @@ test src/tests/lib/plugins/mods/mod-theme.test.ts imports src/lib/core/settings/
 test src/tests/lib/plugins/mods/mods-host.service.test.ts imports src/lib/core/settings/applied-theme.store.svelte.ts
 ## symbols
 sym src/lib/core/settings/applied-theme.store.svelte.ts:14 store appliedThemeStore L22 | Reactive mode of the applied theme.
-by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/app/AppOverlays.svelte:17 in (markup) markup
+by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/app/AppOverlays.svelte:31 in (markup) markup
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/core/markdown-editor/MarkdownEditor.svelte:119 in freshState member +2
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/core/settings/theme.service.ts:35 in applyMode mcall +1
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/features/rail-shell/Rail.svelte:194 in actionRow member

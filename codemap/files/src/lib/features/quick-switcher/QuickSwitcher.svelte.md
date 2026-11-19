@@ -30,7 +30,7 @@ out2 src/lib/features/quick-switcher/QuickSwitcher.svelte 52 files in 15 modules
 test src/tests/lib/features/quick-switcher/QuickSwitcher.test.ts imports src/lib/features/quick-switcher/QuickSwitcher.svelte mirror
 ## symbols
 sym src/lib/features/quick-switcher/QuickSwitcher.svelte:1 component QuickSwitcher L203
-by src/lib/features/quick-switcher/QuickSwitcher.svelte:default <- src/lib/app/AppOverlays.svelte:19 in (markup) mount
+by src/lib/features/quick-switcher/QuickSwitcher.svelte:default <- src/lib/app/AppOverlays.svelte:36 in (markup) mount
 ## locals
 local src/lib/features/quick-switcher/QuickSwitcher.svelte:70 fn targetPath(vaultPath: string, folder: string, name: string): string L3
 local src/lib/features/quick-switcher/QuickSwitcher.svelte:74 fn handleOpenChange(open: boolean) L6
@@ -40,7 +40,7 @@ local src/lib/features/quick-switcher/QuickSwitcher.svelte:120 fn handleInputKey
 ## mounts
 mount src/lib/features/quick-switcher/QuickSwitcher.svelte:137 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 ## mounted-at
-mount src/lib/app/AppOverlays.svelte:19 QuickSwitcher -> src/lib/features/quick-switcher/QuickSwitcher.svelte
+mount src/lib/app/AppOverlays.svelte:36 QuickSwitcher -> src/lib/features/quick-switcher/QuickSwitcher.svelte
 ## calls
 call src/lib/features/quick-switcher/QuickSwitcher.svelte:32 in allFiles=$derived -> src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree call
 call src/lib/features/quick-switcher/QuickSwitcher.svelte:33 in createPath=$derived -> src/lib/features/quick-switcher/quick-switcher.logic.ts:parseCreatePath call

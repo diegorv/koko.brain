@@ -14,11 +14,11 @@ out2 src/lib/core/zoom/ZoomChip.svelte 5 files in 3 modules: src/lib/contracts(2
 test src/tests/lib/core/zoom/ZoomChip.test.ts imports src/lib/core/zoom/ZoomChip.svelte mirror
 ## symbols
 sym src/lib/core/zoom/ZoomChip.svelte:1 component ZoomChip L22
-by src/lib/core/zoom/ZoomChip.svelte:default <- src/lib/app/AppOverlays.svelte:27 in (markup) mount
+by src/lib/core/zoom/ZoomChip.svelte:default <- src/lib/app/AppOverlays.svelte:44 in (markup) mount
 ## locals
 local src/lib/core/zoom/ZoomChip.svelte:7 fn reset() L3
 ## mounted-at
-mount src/lib/app/AppOverlays.svelte:27 ZoomChip -> src/lib/core/zoom/ZoomChip.svelte
+mount src/lib/app/AppOverlays.svelte:44 ZoomChip -> src/lib/core/zoom/ZoomChip.svelte
 ## calls
 call src/lib/core/zoom/ZoomChip.svelte:8 in reset -> src/lib/core/zoom/zoom.service.ts:resetZoom call
 call src/lib/core/zoom/ZoomChip.svelte:8 in reset -> src/lib/utils/debug.ts:error call

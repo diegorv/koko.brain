@@ -16,12 +16,12 @@ out2 src/lib/plugins/one-on-one/OneOnOnePicker.svelte 28 files in 12 modules: sr
 test src/tests/lib/plugins/one-on-one/OneOnOnePicker.test.ts imports src/lib/plugins/one-on-one/OneOnOnePicker.svelte mirror
 ## symbols
 sym src/lib/plugins/one-on-one/OneOnOnePicker.svelte:1 component OneOnOnePicker L95
-by src/lib/plugins/one-on-one/OneOnOnePicker.svelte:default <- src/lib/app/AppOverlays.svelte:22 in (markup) mount
+by src/lib/plugins/one-on-one/OneOnOnePicker.svelte:default <- src/lib/app/AppOverlays.svelte:39 in (markup) mount
 ## locals
 local src/lib/plugins/one-on-one/OneOnOnePicker.svelte:20 fn handleOpenChange(open: boolean) L6
 local src/lib/plugins/one-on-one/OneOnOnePicker.svelte:27 fn selectPerson(person: PersonEntry) L24
 ## mounted-at
-mount src/lib/app/AppOverlays.svelte:22 OneOnOnePicker -> src/lib/plugins/one-on-one/OneOnOnePicker.svelte
+mount src/lib/app/AppOverlays.svelte:39 OneOnOnePicker -> src/lib/plugins/one-on-one/OneOnOnePicker.svelte
 ## calls
 call src/lib/plugins/one-on-one/OneOnOnePicker.svelte:13 in filteredWork=$derived -> src/lib/plugins/one-on-one/one-on-one.logic.ts:filterPeople call
 call src/lib/plugins/one-on-one/OneOnOnePicker.svelte:16 in filteredPersonal=$derived -> src/lib/plugins/one-on-one/one-on-one.logic.ts:filterPeople call

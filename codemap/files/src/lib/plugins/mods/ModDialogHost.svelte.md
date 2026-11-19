@@ -18,7 +18,7 @@ test src/tests/lib/plugins/mods/ModDialogHost.test.ts imports src/lib/plugins/mo
 test src/tests/lib/plugins/mods/ModDialogDiagnostics.test.ts imports src/lib/plugins/mods/ModDialogHost.svelte
 ## symbols
 sym src/lib/plugins/mods/ModDialogHost.svelte:1 component ModDialogHost L210
-by src/lib/plugins/mods/ModDialogHost.svelte:default <- src/lib/app/AppOverlays.svelte:24 in (markup) mount
+by src/lib/plugins/mods/ModDialogHost.svelte:default <- src/lib/app/AppOverlays.svelte:41 in (markup) mount
 ## locals
 local src/lib/plugins/mods/ModDialogHost.svelte:52 fn handleOpenChange(open: boolean) L3
 local src/lib/plugins/mods/ModDialogHost.svelte:56 fn focusInitial(e: Event) L6
@@ -36,7 +36,7 @@ mount src/lib/plugins/mods/ModDialogHost.svelte:171 Button -> src/lib/components
 mount src/lib/plugins/mods/ModDialogHost.svelte:199 Button -> src/lib/components/ui/button/button.svelte
 mount src/lib/plugins/mods/ModDialogHost.svelte:204 Button -> src/lib/components/ui/button/button.svelte
 ## mounted-at
-mount src/lib/app/AppOverlays.svelte:24 ModDialogHost -> src/lib/plugins/mods/ModDialogHost.svelte
+mount src/lib/app/AppOverlays.svelte:41 ModDialogHost -> src/lib/plugins/mods/ModDialogHost.svelte
 ## calls
 call src/lib/plugins/mods/ModDialogHost.svelte:37 in pickItems=$derived -> src/lib/utils/fuzzy-match.ts:fuzzyMatch call
 call src/lib/plugins/mods/ModDialogHost.svelte:53 in handleOpenChange -> src/lib/plugins/mods/mod-dialogs.store.svelte.ts:modDialogsStore.dismiss mcall

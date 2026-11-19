@@ -17,7 +17,7 @@ out2 src/lib/plugins/templates/TemplatePicker.svelte 20 files in 7 modules: src/
 test src/tests/lib/plugins/templates/TemplatePicker.test.ts imports src/lib/plugins/templates/TemplatePicker.svelte mirror
 ## symbols
 sym src/lib/plugins/templates/TemplatePicker.svelte:1 component TemplatePicker L147
-by src/lib/plugins/templates/TemplatePicker.svelte:default <- src/lib/app/AppOverlays.svelte:21 in (markup) mount
+by src/lib/plugins/templates/TemplatePicker.svelte:default <- src/lib/app/AppOverlays.svelte:38 in (markup) mount
 ## locals
 local src/lib/plugins/templates/TemplatePicker.svelte:40 fn handleOpenChange(open: boolean) L5
 local src/lib/plugins/templates/TemplatePicker.svelte:46 fn selectTemplate(path: string) L5
@@ -25,7 +25,7 @@ local src/lib/plugins/templates/TemplatePicker.svelte:52 fn confirmCreate() L14
 local src/lib/plugins/templates/TemplatePicker.svelte:67 fn handleKeydown(e: KeyboardEvent) L13
 local src/lib/plugins/templates/TemplatePicker.svelte:81 fn reset() L6
 ## mounted-at
-mount src/lib/app/AppOverlays.svelte:21 TemplatePicker -> src/lib/plugins/templates/TemplatePicker.svelte
+mount src/lib/app/AppOverlays.svelte:38 TemplatePicker -> src/lib/plugins/templates/TemplatePicker.svelte
 ## calls
 call src/lib/plugins/templates/TemplatePicker.svelte:17 in filteredTemplates=$derived -> src/lib/plugins/templates/templates.logic.ts:filterTemplates call
 call src/lib/plugins/templates/TemplatePicker.svelte:29 in targetFileName=$derived -> src/lib/plugins/templates/templates.logic.ts:withMdExtension call
