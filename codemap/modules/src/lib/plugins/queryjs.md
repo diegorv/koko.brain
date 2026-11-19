@@ -29,7 +29,7 @@ file src/lib/plugins/queryjs/contract/kb-api.v1.ts other L739 module src/lib/plu
 file src/lib/plugins/queryjs/data-array.ts other L358 module src/lib/plugins/queryjs in2 t5
 file src/lib/plugins/queryjs/kb-api.ts other L565 module src/lib/plugins/queryjs in3 t6
 file src/lib/plugins/queryjs/kb-datetime.ts other L231 module src/lib/plugins/queryjs in3 t5
-file src/lib/plugins/queryjs/kb-ui.ts other L1080 module src/lib/plugins/queryjs in1 t3
+file src/lib/plugins/queryjs/kb-ui.ts other L1081 module src/lib/plugins/queryjs in1 t3
 file src/lib/plugins/queryjs/kb-ui.types.ts types L23 module src/lib/plugins/queryjs in1 t0
 file src/lib/plugins/queryjs/queryjs-block-widget.ts other L348 module src/lib/plugins/queryjs in2 t6
 file src/lib/plugins/queryjs/queryjs-charts.ts other L31 module src/lib/plugins/queryjs in3 t3 | Chart.js instances created by `kb.ui.chart()`, by canvas.

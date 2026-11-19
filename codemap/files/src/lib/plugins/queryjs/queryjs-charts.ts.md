@@ -14,7 +14,7 @@ test src/tests/lib/plugins/queryjs/queryjs-block-widget.test.ts imports src/lib/
 test src/tests/lib/plugins/queryjs/queryjs-session.store.test.ts imports src/lib/plugins/queryjs/queryjs-charts.ts
 ## symbols
 sym src/lib/plugins/queryjs/queryjs-charts.ts:19 fn trackChart(canvas: HTMLCanvasElement, chart: DestroyableChart): void L3 | Records the chart drawn on `canvas` so `destroyChartsIn` can find it.
-by src/lib/plugins/queryjs/queryjs-charts.ts:trackChart <- src/lib/plugins/queryjs/kb-ui.ts:683 in KBUI.chart call
+by src/lib/plugins/queryjs/queryjs-charts.ts:trackChart <- src/lib/plugins/queryjs/kb-ui.ts:684 in KBUI.chart call
 sym src/lib/plugins/queryjs/queryjs-charts.ts:24 fn destroyChartsIn(root: HTMLElement): void L8 | Destroys every tracked chart whose canvas is inside `root`.
 by src/lib/plugins/queryjs/queryjs-charts.ts:destroyChartsIn <- src/lib/plugins/queryjs/queryjs-block-widget.ts:195 in QueryjsBlockWidget.destroy call +3
 by src/lib/plugins/queryjs/queryjs-charts.ts:destroyChartsIn <- src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:64 in dropResult call

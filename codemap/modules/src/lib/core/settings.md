@@ -104,7 +104,7 @@ file src/lib/core/settings/theme-catalog.service.ts service L45 module src/lib/c
 file src/lib/core/settings/theme-editor.logic.ts logic L303 module src/lib/core/settings in3 t1
 file src/lib/core/settings/theme-package.logic.ts logic L404 module src/lib/core/settings in4 t3
 file src/lib/core/settings/theme-validation.logic.ts logic L76 module src/lib/core/settings in2 t1
-file src/lib/core/settings/theme.logic.ts logic L408 module src/lib/core/settings in7 t17
+file src/lib/core/settings/theme.logic.ts logic L408 module src/lib/core/settings in7 t18
 file src/lib/core/settings/theme.service.ts service L87 module src/lib/core/settings in5 t7
 file src/lib/core/settings/theme.types.ts types L251 module src/lib/core/settings in10 t0
 file src/lib/core/settings/update-check.service.ts service L37 module src/lib/core/settings in1 t2
