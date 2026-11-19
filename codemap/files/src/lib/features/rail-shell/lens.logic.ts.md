@@ -37,7 +37,7 @@ imp src/lib/features/rail-shell/files-navigator.service.ts:3 -> src/lib/features
 imp src/lib/features/rail-shell/list-empty.logic.ts:2 -> src/lib/features/rail-shell/lens.logic.ts ARCHIVE_LENS,FAVORITES_LENS,FOLDER_LENS_KIND,INBOX_LENS,NEIGHBOURHOOD_LENS_KIND,TYPES_LENS,UNTYPED_LENS,VIEW_LENS_KIND
 imp src/lib/features/rail-shell/neighbourhood.service.ts:3 -> src/lib/features/rail-shell/lens.logic.ts NEIGHBOURHOOD_RAIL_ITEM,TODAY_RAIL_ITEM
 imp src/lib/features/rail-shell/new-note.service.ts:10 -> src/lib/features/rail-shell/lens.logic.ts newNoteContent
-imp src/lib/features/rail-shell/rail-items.logic.ts:3 -> src/lib/features/rail-shell/lens.logic.ts FILES_RAIL_ITEM,SEARCH_RAIL_ITEM,TODAY_RAIL_ITEM,TYPES_RAIL_ITEM
+imp src/lib/features/rail-shell/rail-items.logic.ts:4 -> src/lib/features/rail-shell/lens.logic.ts FILES_RAIL_ITEM,SEARCH_RAIL_ITEM,TODAY_RAIL_ITEM,TYPES_RAIL_ITEM
 imp src/lib/features/rail-shell/types-navigator.service.ts:3 -> src/lib/features/rail-shell/lens.logic.ts followRailPinPathChange,followTypesPickPathChange
 imp src/lib/features/rail-shell/view-lens.service.ts:5 -> src/lib/features/rail-shell/lens.logic.ts queryViewLens,resolveViewLens,viewLoadFromQuery,viewReadError,type:ViewLoad
 imp src/lib/features/search/open-search.service.ts:2 -> src/lib/features/rail-shell/lens.logic.ts SEARCH_RAIL_ITEM
@@ -112,21 +112,21 @@ by src/lib/features/rail-shell/lens.logic.ts:FILES_LENS <- src/lib/features/rail
 sym src/lib/features/rail-shell/lens.logic.ts:118 const TODAY_RAIL_ITEM L1 | The rail item that shows the Today lens.
 by src/lib/features/rail-shell/lens.logic.ts:TODAY_RAIL_ITEM <- src/lib/features/rail-shell/LayoutSection.svelte:34 in FIXED_DESCRIPTIONS ref +1
 by src/lib/features/rail-shell/lens.logic.ts:TODAY_RAIL_ITEM <- src/lib/features/rail-shell/neighbourhood.service.ts:33 in registerNeighbourhoodPathChangeConsumer ref
-by src/lib/features/rail-shell/lens.logic.ts:TODAY_RAIL_ITEM <- src/lib/features/rail-shell/rail-items.logic.ts:54 in railItems ref +1
+by src/lib/features/rail-shell/lens.logic.ts:TODAY_RAIL_ITEM <- src/lib/features/rail-shell/rail-items.logic.ts:55 in railItems ref +1
 sym src/lib/features/rail-shell/lens.logic.ts:121 const DEFAULT_RAIL_ITEM L1 | The rail item shown when nothing valid is saved, and where a lost rail item or lens falls back.
 sym src/lib/features/rail-shell/lens.logic.ts:124 const SEARCH_RAIL_ITEM L1 | The rail item that shows Search.
 by src/lib/features/rail-shell/lens.logic.ts:SEARCH_RAIL_ITEM <- src/lib/app/rail-navigation.ts:27 in selectRailItem ref
 by src/lib/features/rail-shell/lens.logic.ts:SEARCH_RAIL_ITEM <- src/lib/features/rail-shell/LayoutSection.svelte:33 in FIXED_DESCRIPTIONS ref +2
-by src/lib/features/rail-shell/lens.logic.ts:SEARCH_RAIL_ITEM <- src/lib/features/rail-shell/rail-items.logic.ts:52 in railItems ref +6
+by src/lib/features/rail-shell/lens.logic.ts:SEARCH_RAIL_ITEM <- src/lib/features/rail-shell/rail-items.logic.ts:53 in railItems ref +6
 by src/lib/features/rail-shell/lens.logic.ts:SEARCH_RAIL_ITEM <- src/lib/features/search/open-search.service.ts:13 in openSearch ref
 sym src/lib/features/rail-shell/lens.logic.ts:127 const TYPES_RAIL_ITEM L1 | The rail item that opens the Types navigator.
 by src/lib/features/rail-shell/lens.logic.ts:TYPES_RAIL_ITEM <- src/lib/app/AppShell.svelte:113 in showsTypesNavigator=$derived ref +1
 by src/lib/features/rail-shell/lens.logic.ts:TYPES_RAIL_ITEM <- src/lib/app/rail-navigation.ts:58 in openRailView ref
-by src/lib/features/rail-shell/lens.logic.ts:TYPES_RAIL_ITEM <- src/lib/features/rail-shell/rail-items.logic.ts:58 in railItems ref
+by src/lib/features/rail-shell/lens.logic.ts:TYPES_RAIL_ITEM <- src/lib/features/rail-shell/rail-items.logic.ts:59 in railItems ref
 sym src/lib/features/rail-shell/lens.logic.ts:130 const FILES_RAIL_ITEM L1 | The rail item that opens the Files navigator.
 by src/lib/features/rail-shell/lens.logic.ts:FILES_RAIL_ITEM <- src/lib/app/AppShell.svelte:114 in showsFilesNavigator=$derived ref
 by src/lib/features/rail-shell/lens.logic.ts:FILES_RAIL_ITEM <- src/lib/app/commands.ts:171 in getBuiltInCommands ref
-by src/lib/features/rail-shell/lens.logic.ts:FILES_RAIL_ITEM <- src/lib/features/rail-shell/rail-items.logic.ts:60 in railItems ref
+by src/lib/features/rail-shell/lens.logic.ts:FILES_RAIL_ITEM <- src/lib/features/rail-shell/rail-items.logic.ts:61 in railItems ref
 sym src/lib/features/rail-shell/lens.logic.ts:133 const NEIGHBOURHOOD_LENS_KIND L1 | The lens kind of a note's neighbourhood; its target is the note's absolute path.
 by src/lib/features/rail-shell/lens.logic.ts:NEIGHBOURHOOD_LENS_KIND <- src/lib/features/rail-shell/list-empty.logic.ts:117 in explainEmptyList ref
 sym src/lib/features/rail-shell/lens.logic.ts:140 const NEIGHBOURHOOD_RAIL_ITEM L1 | The rail item key while the note list shows a neighbourhood.
@@ -137,7 +137,7 @@ by src/lib/features/rail-shell/lens.logic.ts:restoreRailItem <- src/lib/app/AppS
 sym src/lib/features/rail-shell/lens.logic.ts:219 fn pinnedRailItems(entries: readonly NoteEntryV2[], typeMetadataMap: Map<string, TypeMetadata>): RailPin[] L21 | The rail's pinned items: every `.view` and type definition in the entries snapshot whose `_rail` is the YAML boolean `true` (only the canonical spelling; `"tru…
 by src/lib/features/rail-shell/lens.logic.ts:pinnedRailItems <- src/lib/app/AppShell.svelte:177 in $effect@161 call
 by src/lib/features/rail-shell/lens.logic.ts:pinnedRailItems <- src/lib/app/commands.ts:66 in railGoToCommands call
-by src/lib/features/rail-shell/lens.logic.ts:pinnedRailItems <- src/lib/features/rail-shell/Rail.svelte:94 in items=$derived call
+by src/lib/features/rail-shell/lens.logic.ts:pinnedRailItems <- src/lib/features/rail-shell/Rail.svelte:95 in items=$derived call
 sym src/lib/features/rail-shell/lens.logic.ts:247 fn staleRailPinFix(railItem: unknown, pinned: readonly RailPin[]): Pick<Partial<LayoutSettings>, 'railItem'> | null L4 | The layout change that sends a saved pin that is no longer pinned (file gone, `_rail` removed) back to the default item: `{ railItem }` when `railItem` is a pi…
 by src/lib/features/rail-shell/lens.logic.ts:staleRailPinFix <- src/lib/app/AppShell.svelte:177 in $effect@161 call
 sym src/lib/features/rail-shell/lens.logic.ts:260 fn noteSubtitle(entry: NoteEntryV2, vaultPath: string | null, { withFolder = true }: { withFolder?: boolean } = {}): string L3 | The row's second line: the note's modified time in relative form (`formatRelativeTime`, the order most lists sort by) and its vault-relative folder.

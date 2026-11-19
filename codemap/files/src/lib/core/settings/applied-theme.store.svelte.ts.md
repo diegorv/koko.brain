@@ -24,7 +24,7 @@ sym src/lib/core/settings/applied-theme.store.svelte.ts:14 store appliedThemeSto
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/app/AppOverlays.svelte:17 in (markup) markup
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/core/markdown-editor/MarkdownEditor.svelte:119 in freshState member +2
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/core/settings/theme.service.ts:35 in applyMode mcall +1
-by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/features/rail-shell/Rail.svelte:193 in actionRow member
+by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/features/rail-shell/Rail.svelte:194 in actionRow member
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/plugins/graph-view/GraphView.svelte:475 in $effect@474 member
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/plugins/mods/mod-theme.svelte.ts:41 in readModTheme member +4
 ## store

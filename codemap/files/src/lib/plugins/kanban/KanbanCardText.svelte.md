@@ -3,7 +3,7 @@ cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t
 file src/lib/plugins/kanban/KanbanCardText.svelte component L49 module src/lib/plugins/kanban in3 t0
 ## imports
 imp src/lib/plugins/kanban/KanbanCardText.svelte:2 -> src/lib/plugins/kanban/kanban.logic.ts parseCardSegments,type:CardSegment
-imp src/lib/plugins/kanban/KanbanCardText.svelte:3 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_TEXT
+imp src/lib/plugins/kanban/KanbanCardText.svelte:3 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_CHIP_TEXT
 ## imported-by
 imp src/lib/plugins/kanban/KanbanCard.svelte:17 -> src/lib/plugins/kanban/KanbanCardText.svelte default
 imp src/lib/plugins/kanban/KanbanListView.svelte:7 -> src/lib/plugins/kanban/KanbanCardText.svelte default

@@ -43,7 +43,7 @@ imp src/lib/app/AppShell.svelte:56 -> src/lib/core/layout/layout.logic.ts hidesR
 imp src/routes/(app)/+layout.svelte:25 -> src/lib/app/AppShell.svelte default
 ## reach
 in2 src/lib/app/AppShell.svelte 0 files in 0 modules: -
-out2 src/lib/app/AppShell.svelte 130 files in 32 modules: src/lib/features/rail-shell(19) src/lib/components(11) src/lib/features/collection(10) src/lib/features/file-icons(8) src/lib/core/filesystem(7) +27 modules
+out2 src/lib/app/AppShell.svelte 131 files in 32 modules: src/lib/features/rail-shell(19) src/lib/components(11) src/lib/features/collection(10) src/lib/features/file-icons(8) src/lib/core/filesystem(7) +27 modules
 ## tests
 test src/tests/lib/app/AppShell.test.ts imports src/lib/app/AppShell.svelte mirror
 test src/tests/lib/app/meta-bind-open-view.test.ts imports src/lib/app/AppShell.svelte

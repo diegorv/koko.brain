@@ -62,7 +62,7 @@ by src/lib/features/type-definitions/type-sidebar.logic.ts:TypeSidebarSelection 
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:65 fn excludeSystemFolder<T extends { path: string }>(entries: T[], vaultPath: string | null | undefined, systemFolder: string): T[] L11 | Returns a new array containing only entries whose `path` is outside the configured system folder.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/app/AppShell.svelte:69 in $effect@66 call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/event-calendar/event-calendar-event.logic.ts:252 in eventsFromEntries call
-by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/rail-shell/Rail.svelte:68 in inboxCount=$derived call
+by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/rail-shell/Rail.svelte:69 in inboxCount=$derived call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/features/rail-shell/lens.logic.ts:329 in listEntries call +4
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/plugins/calendar/day-lens.logic.ts:48 in noteDateCounts call
 by src/lib/features/type-definitions/type-sidebar.logic.ts:excludeSystemFolder <- src/lib/plugins/queryjs/kb-api.ts:477 in KBAPI.ensureCache call

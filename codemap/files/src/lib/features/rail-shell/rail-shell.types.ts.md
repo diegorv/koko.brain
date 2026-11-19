@@ -10,7 +10,7 @@ imp src/lib/features/rail-shell/rail-shell.types.ts:6 -> src/lib/features/type-d
 imp src/lib/features/rail-shell/rail-shell.types.ts:220 -> src/lib/utils/menu-action.types.ts type:MenuActionTarget,type:MenuActionItem
 ## imported-by
 imp src/lib/features/rail-shell/FilesNavigator.svelte:69 -> src/lib/features/rail-shell/rail-shell.types.ts type:Lens,type:RailFolderCreator
-imp src/lib/features/rail-shell/Rail.svelte:49 -> src/lib/features/rail-shell/rail-shell.types.ts type:RailAction,type:RailPin
+imp src/lib/features/rail-shell/Rail.svelte:50 -> src/lib/features/rail-shell/rail-shell.types.ts type:RailAction,type:RailPin
 imp src/lib/features/rail-shell/RailNoteList.svelte:104 -> src/lib/features/rail-shell/rail-shell.types.ts type:Lens,type:LensContext,type:LensNote,type:NewNoteRule,type:RailHeaderAction,type:RailTodaySection,type:ResolvedLens
 imp src/lib/features/rail-shell/TypesNavigator.svelte:54 -> src/lib/features/rail-shell/rail-shell.types.ts type:Lens,type:LensContext,type:TypeNavigatorRow
 imp src/lib/features/rail-shell/kind-icons.ts:9 -> src/lib/features/rail-shell/rail-shell.types.ts type:FileKind
@@ -20,7 +20,7 @@ imp src/lib/features/rail-shell/list-properties.logic.ts:2 -> src/lib/features/r
 imp src/lib/features/rail-shell/list-search.logic.ts:2 -> src/lib/features/rail-shell/rail-shell.types.ts type:LensNote,type:ResolvedLens
 imp src/lib/features/rail-shell/list-sort-compare.logic.ts:3 -> src/lib/features/rail-shell/rail-shell.types.ts type:LensGroup,type:LensNote,type:ResolvedLens
 imp src/lib/features/rail-shell/new-note.service.ts:11 -> src/lib/features/rail-shell/rail-shell.types.ts type:NewNoteRule
-imp src/lib/features/rail-shell/rail-items.logic.ts:4 -> src/lib/features/rail-shell/rail-shell.types.ts type:RailAction,type:RailNavigator,type:RailPin
+imp src/lib/features/rail-shell/rail-items.logic.ts:5 -> src/lib/features/rail-shell/rail-shell.types.ts type:RailAction,type:RailNavigator,type:RailPin
 imp src/lib/features/rail-shell/rail-registry.store.svelte.ts:1 -> src/lib/features/rail-shell/rail-shell.types.ts type:RailAction,type:RailFolderCreator,type:RailLensProvider,type:RailMenuItem,type:RailNavigator,type:RailTodaySection
 imp src/lib/features/rail-shell/view-lens.service.ts:6 -> src/lib/features/rail-shell/rail-shell.types.ts type:LensContext
 imp src/lib/plugins/calendar/calendar-rail.service.ts:6 -> src/lib/features/rail-shell/rail-shell.types.ts type:Lens
@@ -82,9 +82,9 @@ sym src/lib/features/rail-shell/rail-shell.types.ts:86 interface TypeNavigatorRo
 by src/lib/features/rail-shell/rail-shell.types.ts:TypeNavigatorRow <- src/lib/features/rail-shell/TypesNavigator.svelte:54 in (script) import
 by src/lib/features/rail-shell/rail-shell.types.ts:TypeNavigatorRow <- src/lib/features/rail-shell/lens.logic.ts:58 in (module) import
 sym src/lib/features/rail-shell/rail-shell.types.ts:106 interface RailPin L12 | A `.view` or a type definition pinned to the rail with `_rail: true`.
-by src/lib/features/rail-shell/rail-shell.types.ts:RailPin <- src/lib/features/rail-shell/Rail.svelte:49 in (script) import
+by src/lib/features/rail-shell/rail-shell.types.ts:RailPin <- src/lib/features/rail-shell/Rail.svelte:50 in (script) import
 by src/lib/features/rail-shell/rail-shell.types.ts:RailPin <- src/lib/features/rail-shell/lens.logic.ts:56 in (module) import
-by src/lib/features/rail-shell/rail-shell.types.ts:RailPin <- src/lib/features/rail-shell/rail-items.logic.ts:4 in (module) import
+by src/lib/features/rail-shell/rail-shell.types.ts:RailPin <- src/lib/features/rail-shell/rail-items.logic.ts:5 in (module) import
 sym src/lib/features/rail-shell/rail-shell.types.ts:120 interface PlainNewNoteRule L6 | A plain "+ New here" note: where it goes and the frontmatter it inherits.
 by src/lib/features/rail-shell/rail-shell.types.ts:PlainNewNoteRule <- src/lib/features/rail-shell/lens.logic.ts:53 in (module) import
 sym src/lib/features/rail-shell/rail-shell.types.ts:128 interface TypedNewNoteRule L4 | A "+ New here" note of a type: the type's folder, dedupe and template decide the rest.
@@ -103,14 +103,14 @@ sym src/lib/features/rail-shell/rail-shell.types.ts:163 interface RailHeaderActi
 by src/lib/features/rail-shell/rail-shell.types.ts:RailHeaderAction <- src/lib/features/rail-shell/RailNoteList.svelte:109 in (script) import
 sym src/lib/features/rail-shell/rail-shell.types.ts:177 interface RailNavigator L12 | A navigator panel a plugin adds to the rail shell (e.g. the Calendar navigator).
 by src/lib/features/rail-shell/rail-shell.types.ts:RailNavigator <- src/lib/features/rail-shell/lens.logic.ts:55 in (module) import
-by src/lib/features/rail-shell/rail-shell.types.ts:RailNavigator <- src/lib/features/rail-shell/rail-items.logic.ts:4 in (module) import
+by src/lib/features/rail-shell/rail-shell.types.ts:RailNavigator <- src/lib/features/rail-shell/rail-items.logic.ts:5 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:RailNavigator <- src/lib/features/rail-shell/rail-registry.store.svelte.ts:1 in (module) import
 sym src/lib/features/rail-shell/rail-shell.types.ts:191 interface RailTodaySection L8 | A section a plugin adds to the Today lens (e.g. My people).
 by src/lib/features/rail-shell/rail-shell.types.ts:RailTodaySection <- src/lib/features/rail-shell/RailNoteList.svelte:110 in (script) import
 by src/lib/features/rail-shell/rail-shell.types.ts:RailTodaySection <- src/lib/features/rail-shell/rail-registry.store.svelte.ts:1 in (module) import
 sym src/lib/features/rail-shell/rail-shell.types.ts:204 interface RailAction L14 | A rail button that runs something on click (e.g. a vault mod's button).
-by src/lib/features/rail-shell/rail-shell.types.ts:RailAction <- src/lib/features/rail-shell/Rail.svelte:49 in (script) import
-by src/lib/features/rail-shell/rail-shell.types.ts:RailAction <- src/lib/features/rail-shell/rail-items.logic.ts:4 in (module) import
+by src/lib/features/rail-shell/rail-shell.types.ts:RailAction <- src/lib/features/rail-shell/Rail.svelte:50 in (script) import
+by src/lib/features/rail-shell/rail-shell.types.ts:RailAction <- src/lib/features/rail-shell/rail-items.logic.ts:5 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:RailAction <- src/lib/features/rail-shell/rail-registry.store.svelte.ts:1 in (module) import
 sym src/lib/features/rail-shell/rail-shell.types.ts:220 reexport RailMenuItem = src/lib/utils/menu-action.types.ts:MenuActionItem L1
 sym src/lib/features/rail-shell/rail-shell.types.ts:220 reexport RailMenuTarget = src/lib/utils/menu-action.types.ts:MenuActionTarget L1

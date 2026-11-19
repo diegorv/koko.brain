@@ -48,7 +48,7 @@ imp src/lib/app/commands.ts:55 -> src/lib/app/rail-navigation.ts openRailView,se
 imp src/lib/app/AppOverlays.svelte:14 -> src/lib/app/commands.ts getBuiltInCommands
 ## reach
 in2 src/lib/app/commands.ts 1 files in 1 modules: src/routes(1)
-out2 src/lib/app/commands.ts 106 files in 33 modules: src/lib/core/markdown-editor(15) src/lib/features/event-calendar(10) src/lib/utils(10) src/lib/core/filesystem(7) src/lib/features/tasks(7) +28 modules
+out2 src/lib/app/commands.ts 107 files in 33 modules: src/lib/core/markdown-editor(15) src/lib/utils(11) src/lib/features/event-calendar(10) src/lib/core/filesystem(7) src/lib/features/tasks(7) +28 modules
 ## tests
 test src/tests/lib/app/commands.new-commands.test.ts imports src/lib/app/commands.ts mirror
 test src/tests/lib/app/commands.test.ts imports src/lib/app/commands.ts mirror

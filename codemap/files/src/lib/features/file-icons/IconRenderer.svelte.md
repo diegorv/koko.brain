@@ -48,8 +48,8 @@ mount src/lib/features/properties/PropertiesView.svelte:266 IconRenderer -> src/
 mount src/lib/features/properties/RelationshipSearch.svelte:74 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/quick-switcher/QuickSwitcher.svelte:137 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/rail-shell/FilesNavigator.svelte:560 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/rail-shell/Rail.svelte:363 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/rail-shell/Rail.svelte:370 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/rail-shell/Rail.svelte:364 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/rail-shell/Rail.svelte:371 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/rail-shell/TypesNavigator.svelte:290 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/rail-shell/TypesNavigator.svelte:420 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/tasks/TasksView.svelte:789 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte

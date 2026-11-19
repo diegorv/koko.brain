@@ -14,7 +14,7 @@ fx src/lib/features/collection/collection-block-widget.ts:422 dom.click bar in C
 fx src/lib/features/collection/collection-block-widget.ts:505 dom.click tr in buildCollectionTable
 fx src/lib/features/event-calendar/event-calendar-gesture-guard.ts:99 dom.click window in GestureGuard.arm
 fx src/lib/plugins/graph-view/GraphView.svelte:422 dom.click canvasEl in setupInteractions
-fx src/lib/features/rail-shell/Rail.svelte:255 dom.dragstart svelte:window in (markup)
+fx src/lib/features/rail-shell/Rail.svelte:256 dom.dragstart svelte:window in (markup)
 fx src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:139 dom.error img in watchImageLoadFailure
 fx src/lib/features/event-calendar/event-calendar.service.ts:314 dom.focus window in acquireCalendarClock
 fx src/lib/features/todoist-sync/sync-scheduler.service.ts:100 dom.focus window in startAutoSync

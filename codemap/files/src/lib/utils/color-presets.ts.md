@@ -1,12 +1,12 @@
 # file card src/lib/utils/color-presets.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/utils/color-presets.ts ' codemap/files
-file src/lib/utils/color-presets.ts other L30 module src/lib/utils in6 t1
+file src/lib/utils/color-presets.ts other L39 module src/lib/utils in6 t1
 ## imported-by
 imp src/lib/features/collection/expression/evaluator.ts:7 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_TEXT
 imp src/lib/plugins/kanban/KanbanCard.svelte:15 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_TEXT
-imp src/lib/plugins/kanban/KanbanCardText.svelte:3 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_TEXT
+imp src/lib/plugins/kanban/KanbanCardText.svelte:3 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_CHIP_TEXT
 imp src/lib/plugins/kanban/KanbanListView.svelte:6 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG
-imp src/lib/plugins/kanban/KanbanTableView.svelte:6 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_TEXT
+imp src/lib/plugins/kanban/KanbanTableView.svelte:6 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_CHIP_TEXT
 imp src/lib/plugins/queryjs/kb-ui.ts:24 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG
 ## reach
 in2 src/lib/utils/color-presets.ts 6 files in 4 modules: src/lib/features/collection(2) src/lib/plugins/kanban(2) src/lib/features/auto-organize(1) src/lib/plugins/queryjs(1)
@@ -24,11 +24,13 @@ by src/lib/utils/color-presets.ts:COLOR_PRESET_BG <- src/lib/plugins/queryjs/kb-
 sym src/lib/utils/color-presets.ts:28 const COLOR_PRESET_TEXT: Record<string, string> L3 | Named color presets with full opacity for text/bars.
 by src/lib/utils/color-presets.ts:COLOR_PRESET_TEXT <- src/lib/features/collection/expression/evaluator.ts:448 in evaluateCall ref +5
 by src/lib/utils/color-presets.ts:COLOR_PRESET_TEXT <- src/lib/plugins/kanban/KanbanCard.svelte:312 in (markup) markup +1
-by src/lib/utils/color-presets.ts:COLOR_PRESET_TEXT <- src/lib/plugins/kanban/KanbanCardText.svelte:34 in (markup) markup +1
-by src/lib/utils/color-presets.ts:COLOR_PRESET_TEXT <- src/lib/plugins/kanban/KanbanTableView.svelte:66 in (markup) markup
+sym src/lib/utils/color-presets.ts:37 const COLOR_PRESET_CHIP_TEXT: Record<string, string> L3 | Named color presets for text on a `COLOR_PRESET_BG` chip: the preset moved 70% toward `--editor-fg`, so it keeps its hue and stays readable on the chip tint.
+by src/lib/utils/color-presets.ts:COLOR_PRESET_CHIP_TEXT <- src/lib/plugins/kanban/KanbanCardText.svelte:34 in (markup) markup +1
+by src/lib/utils/color-presets.ts:COLOR_PRESET_CHIP_TEXT <- src/lib/plugins/kanban/KanbanTableView.svelte:66 in (markup) markup
 ## locals
 local src/lib/utils/color-presets.ts:13 fn rgba([r, g, b]: [number, number, number], alpha: number): string L3
 local src/lib/utils/color-presets.ts:18 fn rgb([r, g, b]: [number, number, number]): string L3
 ## calls
 call src/lib/utils/color-presets.ts:24 in COLOR_PRESET_BG -> src/lib/utils/color-presets.ts:rgba call
 call src/lib/utils/color-presets.ts:29 in COLOR_PRESET_TEXT -> src/lib/utils/color-presets.ts:rgb call
+call src/lib/utils/color-presets.ts:38 in COLOR_PRESET_CHIP_TEXT -> src/lib/utils/color-presets.ts:rgb call

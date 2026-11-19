@@ -5,7 +5,7 @@ file src/lib/plugins/kanban/KanbanTableView.svelte component L93 module src/lib/
 imp src/lib/plugins/kanban/KanbanTableView.svelte:3 -> src/lib/plugins/kanban/kanban.types.ts type:KanbanBoard
 imp src/lib/plugins/kanban/KanbanTableView.svelte:4 -> src/lib/plugins/kanban/kanban.logic.ts stripCardMetadata,extractCardDate,extractCardColor,extractCardTags,cardProximity,PROXIMITY_CLASSES
 imp src/lib/plugins/kanban/KanbanTableView.svelte:5 -> src/lib/utils/date.ts formatNow
-imp src/lib/plugins/kanban/KanbanTableView.svelte:6 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_TEXT
+imp src/lib/plugins/kanban/KanbanTableView.svelte:6 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_CHIP_TEXT
 imp src/lib/plugins/kanban/KanbanTableView.svelte:7 -> src/lib/plugins/kanban/KanbanCardText.svelte default
 ## imported-by
 imp src/lib/plugins/kanban/KanbanView.svelte:56 -> src/lib/plugins/kanban/KanbanTableView.svelte default

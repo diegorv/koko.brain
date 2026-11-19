@@ -35,7 +35,7 @@ by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/fe
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/properties/RelationshipSearch.svelte:65 in (markup) markup
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/quick-switcher/QuickSwitcher.svelte:129 in (markup) markup
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/FilesNavigator.svelte:503 in (markup) markup
-by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/Rail.svelte:179 in pinRow call +1
+by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/Rail.svelte:180 in pinRow call +1
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/RailNoteList.svelte:662 in resolveNoteIcon call +1
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/TypesNavigator.svelte:279 in (markup) markup +1
 more by 1 not shown: src/lib/features/tasks(1): q importers src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath
