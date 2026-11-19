@@ -12,6 +12,7 @@ import {
 	type TemplateEntry,
 } from './templates.logic';
 import { error } from '#lib/utils/debug.js';
+import { resolveFilePath } from '#lib/utils/path.js';
 
 /**
  * Scans the _templates/ folder in the vault and populates the templates store.
@@ -50,7 +51,8 @@ export async function loadTemplates(): Promise<void> {
 /**
  * Creates a new file from a template.
  * Reads the template, processes `<% %>` expressions using the given file name as title,
- * writes the new file to the vault root, and opens it in the editor.
+ * writes the new file at the vault-relative name, and opens it in the editor.
+ * @throws {Error} When the name resolves outside the vault (e.g. `../Outside`)
  */
 export async function createFileFromTemplate(templatePath: string, fileName: string): Promise<void> {
 	const vaultPath = vaultStore.path;
@@ -58,7 +60,7 @@ export async function createFileFromTemplate(templatePath: string, fileName: str
 
 	const fullFileName = fileName.endsWith('.md') ? fileName : `${fileName}.md`;
 	const title = extractTitleFromPath(fullFileName);
-	const filePath = `${vaultPath}/${fullFileName}`;
+	const filePath = resolveFilePath(vaultPath, fullFileName);
 
 	await openOrCreateNote({
 		filePath,

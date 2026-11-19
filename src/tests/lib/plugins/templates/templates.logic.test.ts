@@ -5,6 +5,7 @@ import {
 	filterTemplates,
 	withMdExtension,
 	noteExistsInTree,
+	nameLeavesVault,
 	type TemplateEntry,
 } from '#lib/plugins/templates/templates.logic.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
@@ -103,6 +104,40 @@ describe('withMdExtension', () => {
 
 	it('keeps the folder part of the name', () => {
 		expect(withMdExtension('Projects/Standup')).toBe('Projects/Standup.md');
+	});
+});
+
+describe('nameLeavesVault', () => {
+	it('keeps a plain name inside', () => {
+		expect(nameLeavesVault('Standup')).toBe(false);
+	});
+
+	it('keeps a folder name inside', () => {
+		expect(nameLeavesVault('Folder/Name')).toBe(false);
+	});
+
+	it('refuses a name that climbs above the root', () => {
+		expect(nameLeavesVault('../x')).toBe(true);
+	});
+
+	it('refuses a name that climbs back out of a folder', () => {
+		expect(nameLeavesVault('a/../../x')).toBe(true);
+	});
+
+	it('keeps a .. that stays inside a folder', () => {
+		expect(nameLeavesVault('a/../x')).toBe(false);
+	});
+
+	it('treats a leading slash as vault-relative', () => {
+		expect(nameLeavesVault('/Folder/Name')).toBe(false);
+	});
+
+	it('keeps a trailing .. inside, since it becomes the file ...md', () => {
+		expect(nameLeavesVault('..')).toBe(false);
+	});
+
+	it('keeps an empty name inside', () => {
+		expect(nameLeavesVault('')).toBe(false);
 	});
 });
 

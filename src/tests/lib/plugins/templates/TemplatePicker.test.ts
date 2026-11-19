@@ -138,6 +138,27 @@ describe('TemplatePicker — confirmCreate', () => {
 		expect(dialogText()).toContain('Type a name for the new file');
 	});
 
+	it('refuses a name that climbs out of the vault, and Enter creates nothing', async () => {
+		const input = reachNamingStep();
+		typeName(input, '../Outside');
+
+		expect(dialogText()).toContain('Must stay inside the vault');
+		expect(dialogText()).not.toContain('Creates ../Outside.md in the vault');
+
+		pressEnter(input);
+		await Promise.resolve();
+		expect(createFileFromTemplate).not.toHaveBeenCalled();
+		expect(templatesStore.isOpen).toBe(true);
+	});
+
+	it('still offers a .. that stays inside the vault', () => {
+		const input = reachNamingStep();
+		typeName(input, 'Folder/../Name');
+
+		expect(dialogText()).not.toContain('Must stay inside the vault');
+		expect(dialogText()).toContain('Creates');
+	});
+
 	it('says Enter opens the existing note when the name matches one, ignoring case', async () => {
 		fsStore.setFileTree([{ name: 'Standup.md', path: '/vault/Standup.md', isDirectory: false }]);
 		const input = reachNamingStep();

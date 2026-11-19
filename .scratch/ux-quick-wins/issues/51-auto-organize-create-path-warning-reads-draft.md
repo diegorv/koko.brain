@@ -13,7 +13,7 @@ Not in this ticket: the Rename and Move to folder warnings (their wording was re
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
@@ -25,3 +25,7 @@ Not in this ticket: the Rename and Move to folder warnings (their wording was re
 
 - `AutoOrganizeRuleRow.svelte:310-316` at 1f700be11: the Create note path warning text and its read of `rule.createNote.path`.
 - Issue 32 asked for the folder wording, so the review marked both points optional and outside that ticket.
+
+## Comments
+
+- 2026-11-18, triage: ready-for-agent. Accepted by the owner as written.

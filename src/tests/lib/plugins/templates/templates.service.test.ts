@@ -148,6 +148,25 @@ describe('createFileFromTemplate', () => {
 		expect(vaultStore.path).toBe('/vault');
 	});
 
+	it('rejects a name that climbs out of the vault without creating anything', async () => {
+		await expect(
+			createFileFromTemplate('/vault/_templates/Note.md', '../Outside'),
+		).rejects.toThrow(/outside the vault/);
+
+		expect(openOrCreateNote).not.toHaveBeenCalled();
+	});
+
+	it('resolves a .. that stays inside the vault', async () => {
+		await createFileFromTemplate('/vault/_templates/Note.md', 'Folder/../Name');
+
+		expect(openOrCreateNote).toHaveBeenCalledWith(
+			expect.objectContaining({
+				filePath: '/vault/Name.md',
+				title: 'Name',
+			}),
+		);
+	});
+
 	it('marks the rendered template unorganized while Explicit organization is on', async () => {
 		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
 

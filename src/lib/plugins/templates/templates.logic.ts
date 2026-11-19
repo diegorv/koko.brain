@@ -42,6 +42,23 @@ export function withMdExtension(name: string): string {
 }
 
 /**
+ * Whether a typed name climbs above the vault root, the names
+ * `createFileFromTemplate` refuses. Walks the segments of the name the service
+ * sees (`withMdExtension`, so a trailing `..` becomes the file `...md`); `.` and
+ * empty segments are skipped, so a leading `/` is vault-relative as in
+ * `resolveFilePath`.
+ */
+export function nameLeavesVault(name: string): boolean {
+	let depth = 0;
+	for (const segment of withMdExtension(name).split('/')) {
+		if (segment === '' || segment === '.') continue;
+		depth += segment === '..' ? -1 : 1;
+		if (depth < 0) return true;
+	}
+	return false;
+}
+
+/**
  * Whether the note a typed name resolves to (`<vaultPath>/<name>.md`) is a
  * file in the tree. The compare folds case and Unicode normalization because
  * `exists()` is on APFS, which ignores both, so `standup` must match
