@@ -130,6 +130,15 @@ describe('SearchResult — click lands the cursor on the match (issue 02)', () =
 		}
 	});
 
+	it('renders the snippet in the muted sidebar color at full opacity', () => {
+		mountResult({ semanticResult: semanticFixture(4) });
+
+		const snippet = target.querySelector('[data-search-result-snippet]')!;
+		expect(snippet.textContent?.trim()).toBe('target line here');
+		expect(snippet.classList).toContain('text-file-explorer-muted-fg');
+		expect(snippet.className).not.toMatch(/\/\d+/);
+	});
+
 	it('renders the source badge at the label role', () => {
 		mountResult({ hybridResult: hybridFixture(3) });
 

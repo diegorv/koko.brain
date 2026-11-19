@@ -31,7 +31,7 @@
 		subtitle?: string;
 		/** Renders the title in italics (inbox notes on the rail note list) */
 		italic?: boolean;
-		/** Dims the row and adds an archive mark, for an archived note listed among active ones */
+		/** Adds an archive mark, for an archived note listed among active ones */
 		archived?: boolean;
 		/** Icon shown when `icon` is empty, e.g. the file kind's on the folder lens */
 		fallbackIcon?: Component;
@@ -105,7 +105,7 @@
 		data-note-row
 		{tabindex}
 		data-note-row-archived={archived ? '' : undefined}
-		class="flex w-full flex-col rounded-md px-2 py-2 text-left {onOrganize ? 'pr-8' : ''} hover:bg-primary/10 cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {isActive ? 'bg-primary/25' : ''} {archived ? 'opacity-60' : ''}"
+		class="flex w-full flex-col rounded-md px-2 py-2 text-left {onOrganize ? 'pr-8' : ''} hover:bg-primary/10 cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {isActive ? 'bg-primary/25' : ''}"
 		onclick={() => openFileInEditor(note.path)}
 		oncontextmenu={() => menu.setContextTarget(note)}
 		onkeydown={(e) => { if (e.key === RENAME_SHORTCUT.key) menu.startRename(note); }}
@@ -138,7 +138,7 @@
 		{#if typeName || listProperties.length > 0}
 			<div class="flex flex-wrap gap-1 mt-1">
 				{#if typeName}
-					<span class="inline-flex items-center rounded-xs bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px]" data-note-row-type>
+					<span class="inline-flex items-center rounded-xs bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary truncate max-w-[140px]" data-note-row-type>
 						{typeName}
 					</span>
 				{/if}
@@ -149,7 +149,7 @@
 							{@const resolved = resolveWikilink(pill.wikilink, allPaths, vaultStore.path)}
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<span
-								class="inline-flex items-center rounded-xs bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px] hover:bg-primary/20 hover:underline cursor-pointer"
+								class="inline-flex items-center rounded-xs bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary truncate max-w-[140px] hover:bg-primary/20 hover:underline cursor-pointer"
 								role="link"
 								tabindex="-1"
 								onclick={(e: MouseEvent) => { e.stopPropagation(); if (resolved) openFileInEditor(resolved); }}
@@ -159,7 +159,7 @@
 								{pill.text}
 							</span>
 						{:else}
-							<span class="inline-flex items-center rounded-xs bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px]">
+							<span class="inline-flex items-center rounded-xs bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary truncate max-w-[140px]">
 								{pill.text}
 							</span>
 						{/if}

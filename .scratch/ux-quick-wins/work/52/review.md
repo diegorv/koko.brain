@@ -1,0 +1,31 @@
+VERDICT: APPROVED
+
+## Acceptance criteria
+
+- [met] Failing test first, `src/tests/lib/core/settings/theme-builder.logic.test.ts` over `BUILTIN_THEMES`: `primary` on `primary` at 10% flattened over `fileExplorerBg` is at least 4.5:1, and the old `/80` composite fails on at least one theme (Lavender Haze 3.58). — New describe at `theme-builder.logic.test.ts:289-311` (commit ad5004772, before the fix commits) loops `BUILTIN_THEMES`, flattens `alpha(primary, '1a')` over `fileExplorerBg`, asserts `contrastRatio(primary, bg) >= 4.5`, and asserts the `alpha(primary, 'cc')` composite is below 4.5 with `Lavender Haze` in the failing list. `contrastRatio` composites a translucent fg over the bg (`src/lib/utils/color.ts:81-88`), so the 80% check is real. My probe: full primary 4.97 (Default) / 4.82 (Lavender Haze); old 80% 3.77 / 3.36. This test is data-only and passes before and after the component change; the red step is the component tests below, which I confirmed fail on main's `NoteRow.svelte` and `SearchResult.svelte` (3 failed, 48 passed).
+- [met] An archived `NoteRow` has no `opacity-60` and keeps the attribute and the icon (`RailNoteList.toolbar.test.ts` archived-row test stays green); `SearchResult` snippet has `text-file-explorer-muted-fg` and no `/60` (`SearchResult.test.ts`). — `NoteRow.svelte:108` drops `{archived ? 'opacity-60' : ''}`, `:107` keeps `data-note-row-archived`, `:134-136` keeps the Archive icon, `:34` prop doc updated. `NoteRow.test.ts` "marks an archived row with the attribute and the icon, without fading it" covers it. `SearchResult.svelte:171` now `text-file-explorer-muted-fg`; `SearchResult.test.ts` "renders the snippet in the muted sidebar color at full opacity" asserts the class and no `/NN`. `RailNoteList.toolbar.test.ts` (archived filter, `:351`) passes unchanged in my run.
+- [not met] Frontend gate: pnpm check and pnpm vitest run pass. The by-eye check on both themes is recorded in the commit. — `pnpm check` exit 0 (0 errors, 0 warnings). Targeted vitest files pass (see Checks); the full suite is deliver's to run. The by-eye check on a light and a dark theme was not done: commit 60cfd5463 says "By-eye check on a light and a dark theme not done in this run". Only the owner (or deliver with an app window) can do it and record it in the squash commit; no code change is asked of the fix step.
+
+## Findings
+
+1. **major** `src/lib/features/note-list/NoteRow.svelte:141` (and `src/lib/features/search/SearchResult.svelte:171`): the by-eye check on both themes that criterion 3 requires is not done or recorded. Fix: deliver or the owner opens the note list and search results on KokoBrain Default and Lavender Haze, and records the result in the squash commit's Behavior section. Not a blocker for this step: no code change follows from it.
+2. **minor** `src/lib/features/search/SearchResult.svelte:171`: on KokoBrain Default the snippet's contrast goes down, not up. Probe (`contrastRatio` over `fileExplorerBg`): old `fileExplorerFg` at 60% is 5.85:1, new `fileExplorerMutedFg` is 4.51:1. On Lavender Haze it goes up, 3.66 to 4.50. Both new values pass 4.5:1, and the swap is what the Issue asks for (one muted token across subtitle and snippet), so this is not a defect, but the Issue's Problem ("the search snippet is the least readable line") holds only for Lavender Haze. Fix: note it in the by-eye check; no code change.
+3. **minor** `src/lib/features/note-list/NoteRow.svelte:152`: the clickable property pill's `hover:bg-primary/20`, on a row that is itself hovered (`hover:bg-primary/10`), reads at about 3.5:1 (Default 3.51, Lavender Haze 3.69). The new theme test only pins the resting pill on the resting sidebar. Out of this Issue's scope (hover and selected-row pill states are not in the ticket); fix: a follow-up `.scratch` Issue, or fold into shell-sidebars-ux 04/10/11 which take the selected-row chips.
+4. **nit** `src/tests/lib/core/settings/theme-builder.logic.test.ts:304`: the Issue quotes Lavender Haze's old 80% composite as 3.58; the test's arithmetic gives 3.36, and commit 60cfd5463 repeats 3.58. The test asserts only "below 4.5", so it is correct either way. Fix: deliver's squash message should not quote 3.58 as the measured figure.
+
+## Checks run by the reviewer
+
+- `pnpm check`: exit 0, 237 files, 0 errors, 0 warnings.
+- `pnpm vitest run src/tests/lib/core/settings/theme-builder.logic.test.ts src/tests/lib/features/note-list/NoteRow.test.ts src/tests/lib/features/search/SearchResult.test.ts src/tests/lib/features/rail-shell/RailNoteList.toolbar.test.ts`: exit 0, 4 files, 95 tests passed.
+- `pnpm vitest run src/tests/lib/features/note-list/ src/tests/lib/features/search/`: exit 0, 15 files, 404 tests passed.
+- Red probe: with main's `NoteRow.svelte` and `SearchResult.svelte` restored over the branch tests, `NoteRow.test.ts` + `SearchResult.test.ts` exit 1, the 3 new tests fail; source restored afterwards, worktree clean.
+- Contrast probe: a temporary test (deleted, never committed) computed the figures quoted above over `BUILTIN_THEMES`.
+- Scope: the diff touches only `NoteRow.svelte`, `SearchResult.svelte`, the `NoteRowMenuHarness` fixture, the three test files and the Issue's discovery record. No layer baseline, composition root, selector or E2E surface changes. No test, E2E spec or doc pins `text-primary/80`, `file-explorer-fg/60` or a row `opacity-60` (`TasksView.filters.test.ts:189` is an unrelated component).
+- Full suite and E2E not run: the full suite is deliver's; no selector changed.
+
+## Resolution
+
+1. Accepted, no code change. The deliver step runs without an app window, so no by-eye check on KokoBrain Default or Lavender Haze was done. The squash commit's Behavior section says so instead of claiming one; the owner does the by-eye check after the merge.
+2. Accepted, no code change. The squash commit records the snippet contrast change: KokoBrain Default 5.85:1 to 4.51:1, Lavender Haze 3.66:1 to 4.50:1, both at or above 4.5:1.
+3. Accepted, out of scope: filed as `.scratch/ux-quick-wins/issues/54-note-list-pill-hover-contrast.md` (needs-triage), which names shell-sidebars-ux 04, 10 and 11 as the place to fold it.
+4. Accepted. The squash commit quotes Lavender Haze's old 80% composite as 3.36:1, the test's own arithmetic, not 3.58.

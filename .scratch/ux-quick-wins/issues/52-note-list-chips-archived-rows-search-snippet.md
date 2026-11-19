@@ -15,12 +15,12 @@ Not in this ticket: the selected-row subtitle and chips, `--faint-fg` and proper
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes.
 
-- [ ] Failing test first, `src/tests/lib/core/settings/theme-builder.logic.test.ts` over `BUILTIN_THEMES`: `primary` on `primary` at 10% flattened over `fileExplorerBg` is at least 4.5:1, and the old `/80` composite fails on at least one theme (Lavender Haze 3.58).
-- [ ] An archived `NoteRow` has no `opacity-60` and keeps the attribute and the icon (`RailNoteList.toolbar.test.ts` archived-row test stays green); `SearchResult` snippet has `text-file-explorer-muted-fg` and no `/60` (`SearchResult.test.ts`).
+- [x] Failing test first, `src/tests/lib/core/settings/theme-builder.logic.test.ts` over `BUILTIN_THEMES`: `primary` on `primary` at 10% flattened over `fileExplorerBg` is at least 4.5:1, and the old `/80` composite fails on at least one theme (Lavender Haze 3.58).
+- [x] An archived `NoteRow` has no `opacity-60` and keeps the attribute and the icon (`RailNoteList.toolbar.test.ts` archived-row test stays green); `SearchResult` snippet has `text-file-explorer-muted-fg` and no `/60` (`SearchResult.test.ts`).
 - [ ] Frontend gate: pnpm check and pnpm vitest run pass. The by-eye check on both themes is recorded in the commit.
 
 ## Problem
@@ -40,3 +40,4 @@ External, so not in `Blocked by`: shell-sidebars-ux 15 (`issues/15-note-actions-
 
 - 2026-11-18, split from Issue 39 after its first run blocked on this dependency.
 - 2026-11-19, triage: ready-for-agent. shell-sidebars-ux 15 (c52c7475e) and 19 (fb5f91cf7) are merged; re-read NoteRow.svelte and SearchResult.svelte before building, the line numbers above moved.
+- 2026-11-19, delivered from branch issue/52-note-list-chips-archived-rows-search-snippet. Note list type and property chips use full `text-primary`, archived rows no longer fade (attribute and icon kept), search snippet uses `text-file-explorer-muted-fg`; a theme test pins pill contrast on every built-in theme. Review round 1: APPROVED (four findings, none asking for code; pill hover contrast filed as Issue 54). Tests: pnpm check exit 0 (review); full suite 672 files, 17990 passed, 56 skipped, 1 todo, exit 0. The by-eye check on KokoBrain Default and Lavender Haze was not done (no app window in deliver), so the third criterion stays unticked; the owner checks it.

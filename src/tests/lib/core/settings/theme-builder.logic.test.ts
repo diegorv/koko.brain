@@ -285,3 +285,27 @@ describe('tab strip of every built-in theme', () => {
 		}
 	});
 });
+
+describe('note list pills of every built-in theme', () => {
+	// NoteRow's pills: `text-primary` on `bg-primary/10` over the sidebar. 10% alpha, here 0x1a (0.102)
+	function pillBg(ui: (typeof BUILTIN_THEMES)[number]['colors']['ui']): string | null {
+		return flatten(alpha(ui.primary, '1a'), ui.fileExplorerBg);
+	}
+
+	it('reads the pill text at 4.5:1 or more on the pill', () => {
+		for (const theme of BUILTIN_THEMES) {
+			const { ui } = theme.colors;
+			const bg = pillBg(ui);
+			expect(bg, theme.name).not.toBeNull();
+			expect(contrastRatio(ui.primary, bg!)!, theme.name).toBeGreaterThanOrEqual(4.5);
+		}
+	});
+
+	it('would fail 4.5:1 with the text at 80%, so the full color is needed', () => {
+		const failing = BUILTIN_THEMES.filter((theme) => {
+			const { ui } = theme.colors;
+			return contrastRatio(alpha(ui.primary, 'cc'), pillBg(ui)!)! < 4.5;
+		}).map((theme) => theme.name);
+		expect(failing).toContain('Lavender Haze');
+	});
+});

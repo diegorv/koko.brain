@@ -168,7 +168,7 @@
 		</span>
 
 		<!-- Row 3: Snippet — 2-line clamp -->
-		<span class="text-xs text-file-explorer-fg/60 leading-tight pl-5 mt-0.5 line-clamp-2" data-search-result-snippet>
+		<span class="text-xs text-file-explorer-muted-fg leading-tight pl-5 mt-0.5 line-clamp-2" data-search-result-snippet>
 			{#if snippetIsHtml && snippet}
 				{@html sanitizeSnippetHtml(snippet)}
 			{:else}

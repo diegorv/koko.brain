@@ -107,6 +107,65 @@ describe('NoteRow organize check', () => {
 	});
 });
 
+describe('NoteRow archived mark and pills', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	function mountRow(props: Record<string, unknown> = {}) {
+		component = mount(NoteRowMenuHarness, { target, props: { notes: [note], ...props } });
+		flushSync();
+	}
+
+	beforeEach(() => {
+		clearLocalStorage();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		fsStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.replaceChildren();
+	});
+
+	it('marks an archived row with the attribute and the icon, without fading it', () => {
+		mountRow({ archived: true });
+
+		const row = target.querySelector<HTMLElement>('[data-note-row]')!;
+		expect(row.hasAttribute('data-note-row-archived')).toBe(true);
+		expect(row.querySelector('[data-note-row-archived-icon]')).not.toBeNull();
+		expect(row.className).not.toMatch(/opacity-/);
+	});
+
+	it('renders an active row with no archive mark', () => {
+		mountRow();
+
+		const row = target.querySelector<HTMLElement>('[data-note-row]')!;
+		expect(row.hasAttribute('data-note-row-archived')).toBe(false);
+		expect(row.querySelector('[data-note-row-archived-icon]')).toBeNull();
+	});
+
+	it('draws the type and property pills in the full primary color', () => {
+		mountRow({
+			notes: [{ ...note, frontmatter: { status: 'draft', owner: '[[beta]]' } }],
+			typeName: 'Project',
+			listProperties: ['status', 'owner'],
+			allPaths: ['/vault/notes/beta.md'],
+		});
+
+		const typePill = target.querySelector<HTMLElement>('[data-note-row-type]')!;
+		expect(typePill.textContent?.trim()).toBe('Project');
+		const pills = [...target.querySelectorAll<HTMLElement>('[data-note-row] .bg-primary\\/10')];
+		expect(pills.map((p) => p.textContent?.trim())).toEqual(['Project', 'draft', 'beta']);
+		for (const pill of pills) {
+			expect(pill.classList).toContain('text-primary');
+			expect(pill.className).not.toMatch(/(^|\s)text-primary\/\d+/);
+		}
+	});
+});
+
 describe('NoteRow rename input', () => {
 	let target: HTMLElement;
 	let component: Record<string, unknown> | null = null;
