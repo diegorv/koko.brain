@@ -75,7 +75,7 @@ test.describe('Focus ring', () => {
 		const path = await toggle.getAttribute('data-files-navigator-toggle');
 		expect(await toggle.evaluate((el) => el.matches(':focus-visible'))).toBe(true);
 		const row = page.locator(`[data-files-navigator-row="${path}"]`);
-		const ringColor = await halfRingToken(page);
+		const ringColor = await ringToken(page);
 		expect(await row.evaluate((el) => getComputedStyle(el).boxShadow)).toContain(ringColor);
 
 		await page.keyboard.press('Tab');
@@ -175,14 +175,6 @@ async function computedColor(page: Page, color: string): Promise<string> {
 /** Resolves the ring token at full strength (the base outline and the Button ring). */
 async function ringToken(page: Page): Promise<string> {
 	return computedColor(page, 'var(--ring)');
-}
-
-/**
- * Resolves the `ring-ring/50` color (the ring token at 50%), which feature
- * sites such as `FilesNavigator.svelte` still draw.
- */
-async function halfRingToken(page: Page): Promise<string> {
-	return computedColor(page, 'color-mix(in oklab, var(--ring) 50%, transparent)');
 }
 
 /** Asserts the element is keyboard focused and the ring utilities draw (they paint with box-shadow). */

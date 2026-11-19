@@ -152,6 +152,21 @@ export const READABILITY_PAIRS: ReadabilityPair[] = [
 	...(['note', 'tip', 'important', 'warning', 'caution', 'quote'] as const).map(
 		(k): ReadabilityPair => ['callout', k, 'ui', 'editorBg', 3],
 	),
+	// Control edges and indicators (WCAG 1.4.11). `border` stays a quiet divider and is not paired.
+	['ui', 'input', 'ui', 'inputBg', 3],
+	['ui', 'input', 'ui', 'settingItemBg', 3],
+	['ui', 'input', 'ui', 'popover', 3],
+	// Search and task fields draw their edge on the sidebar and editor surfaces.
+	['ui', 'input', 'ui', 'fileExplorerBg', 3],
+	['ui', 'input', 'ui', 'editorBg', 3],
+	['ui', 'switchUncheckedBg', 'ui', 'settingItemBg', 3],
+	['ui', 'ring', 'ui', 'background', 3],
+	['ui', 'ring', 'ui', 'popover', 3],
+	['ui', 'ring', 'ui', 'editorBg', 3],
+	['ui', 'ring', 'ui', 'settingsSidebarBg', 3],
+	['preview', 'taskBorder', 'ui', 'editorBg', 3],
+	['preview', 'hrBorder', 'ui', 'editorBg', 3],
+	['preview', 'blockquoteBorder', 'ui', 'editorBg', 3],
 ];
 
 /** Moves each failing foreground of `READABILITY_PAIRS` to its minimum contrast; backgrounds are never changed. */
@@ -183,7 +198,8 @@ function readableCore(p: CorePalette): CorePalette {
 	const surfaces = [p.editorBg, p.sidebarBg, p.panelBg, p.popoverBg];
 	const lift = (color: string, min: number, on: string[] = [p.editorBg]) =>
 		on.reduce((c, bg) => ensureContrast(c, bg, min), color);
-	const primary = lift(p.primary, 4.5);
+	// Primary is also the focus ring and the selected-state cue on every surface (3:1, non-text).
+	const primary = lift(lift(p.primary, 4.5), 3, surfaces);
 	const error = lift(p.error, 3);
 	return {
 		...p,
@@ -199,6 +215,7 @@ function readableCore(p: CorePalette): CorePalette {
 		inlineFg: p.inlineFg && lift(p.inlineFg, 4.5),
 		linkFg: p.linkFg && lift(p.linkFg, 4.5),
 		meta: p.meta && lift(p.meta, 3),
+		blockquoteAccent: p.blockquoteAccent && lift(p.blockquoteAccent, 3),
 		blue: lift(p.blue, 3),
 		green: lift(p.green, 3),
 		purple: lift(p.purple, 3),

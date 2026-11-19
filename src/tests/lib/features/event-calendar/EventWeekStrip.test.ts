@@ -79,6 +79,9 @@ describe('EventWeekStrip: days', () => {
 		expect(day('2026-11-12').getAttribute('data-today')).toBe('true');
 		expect(day('2026-11-12').getAttribute('aria-pressed')).toBe('false');
 		expect(day('2026-11-11').hasAttribute('data-today')).toBe(false);
+		const number = (key: string) => day(key).querySelector('span:last-child')!;
+		for (const cls of ['font-semibold', 'ring-1', 'ring-inset', 'ring-primary']) expect(number('2026-11-12').classList, cls).toContain(cls);
+		expect(number('2026-11-11').classList).not.toContain('ring-primary');
 	});
 });
 

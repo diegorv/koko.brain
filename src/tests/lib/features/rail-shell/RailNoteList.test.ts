@@ -541,6 +541,20 @@ describe('RailNoteList', () => {
 			await landEntries();
 			expect(target.querySelector('[data-note-list-search-toggle]')).not.toBeNull();
 		});
+
+		it('marks the open Search toggle with a primary dot, not only a text color', async () => {
+			await mountList();
+			await landEntries();
+			const toggle = target.querySelector<HTMLButtonElement>('[data-note-list-search-toggle]')!;
+			expect(toggle.querySelector('[data-note-list-on-dot]')).toBeNull();
+
+			toggle.click();
+			await settle();
+			expect(toggle.getAttribute('aria-pressed')).toBe('true');
+			const dot = toggle.querySelector('[data-note-list-on-dot]')!;
+			expect(dot.classList).toContain('bg-primary');
+			expect(dot.getAttribute('aria-hidden')).toBe('true');
+		});
 	});
 
 	describe('provider header action', () => {

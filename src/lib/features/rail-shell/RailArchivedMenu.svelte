@@ -31,7 +31,7 @@
 
 <Popover bind:open>
 	<PopoverTrigger
-		class="flex shrink-0 cursor-default items-center rounded-md p-1 transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 {value !== 'active'
+		class="flex shrink-0 cursor-default items-center rounded-md p-1 transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring {value !== 'active'
 			? 'text-tab-text-active'
 			: 'text-tab-text-inactive'}"
 		title={triggerTitle}

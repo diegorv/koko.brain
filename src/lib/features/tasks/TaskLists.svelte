@@ -188,7 +188,7 @@
 						data-task-list={view.id}
 						aria-current={active ? 'true' : undefined}
 						aria-describedby={tasksStore.hasLoaded ? `${uid}-count-${view.id}` : undefined}
-						class="min-w-0 flex-1 cursor-pointer truncate rounded-md px-2 py-1 text-left text-row outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 {active ? 'font-medium text-foreground' : 'text-muted-foreground'}"
+						class="min-w-0 flex-1 cursor-pointer truncate rounded-md px-2 py-1 text-left text-row outline-none focus-visible:ring-[3px] focus-visible:ring-ring {active ? 'font-medium text-foreground' : 'text-muted-foreground'}"
 						onclick={() => selectTaskList(view.id)}
 					>
 						{view.name}
@@ -206,7 +206,7 @@
 										{...props}
 										type="button"
 										aria-label="List actions: {view.name}"
-										class="shrink-0 cursor-pointer rounded-sm p-0.5 text-muted-foreground opacity-0 hover:bg-accent hover:text-foreground group-hover/list:opacity-100 group-focus-within/list:opacity-100 data-[state=open]:opacity-100 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+										class="shrink-0 cursor-pointer rounded-sm p-0.5 text-muted-foreground opacity-0 hover:bg-accent hover:text-foreground group-hover/list:opacity-100 group-focus-within/list:opacity-100 data-[state=open]:opacity-100 outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 									>
 										<Ellipsis class="size-4" />
 									</button>
@@ -232,7 +232,7 @@
 			<button
 				type="button"
 				data-task-save-view
-				class="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-meta text-muted-foreground hover:bg-accent/50 hover:text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+				class="flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-meta text-muted-foreground hover:bg-accent/50 hover:text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 				onclick={() => startEditing({ kind: 'save' }, '')}
 			>
 				<Plus class="size-3.5" aria-hidden="true" />

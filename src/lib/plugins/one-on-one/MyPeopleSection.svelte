@@ -48,7 +48,7 @@
 		<div
 			class="flex items-center gap-1 rounded-md pr-1 {row.path === editorStore.activeTabPath
 				? 'bg-file-explorer-accent'
-				: 'hover:bg-file-explorer-accent'} has-[[data-my-people-open]:focus-visible]:ring-2 has-[[data-my-people-open]:focus-visible]:ring-ring/50 has-[[data-my-people-open]:focus-visible]:ring-inset"
+				: 'hover:bg-file-explorer-accent'} has-[[data-my-people-open]:focus-visible]:ring-2 has-[[data-my-people-open]:focus-visible]:ring-ring has-[[data-my-people-open]:focus-visible]:ring-inset"
 			data-my-people-row={row.name}
 		>
 			<button

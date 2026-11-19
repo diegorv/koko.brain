@@ -134,10 +134,14 @@
 					{@const Icon = sectionIcons[section.id]}
 					{@const active = settingsPanelStore.activeSection === section.id}
 					<button
-						class="flex items-center gap-2 rounded-md px-3 py-1.5 text-left text-row transition-colors text-settings-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {active ? 'bg-settings-hover-bg font-medium' : 'hover:bg-settings-hover-bg/60'}"
+						class="relative flex items-center gap-2 rounded-md px-3 py-1.5 text-left text-row transition-colors text-settings-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset {active ? 'bg-settings-hover-bg font-medium' : 'hover:bg-settings-hover-bg/60'}"
 						aria-current={active ? 'page' : undefined}
 						onclick={() => settingsPanelStore.setSection(section.id)}
 					>
+						{#if active}
+							<!-- The row fill is near the sidebar color on many themes; the bar is the 3:1 cue -->
+							<span data-settings-active-bar aria-hidden="true" class="absolute inset-y-1.5 left-0.5 w-0.5 rounded-full bg-primary"></span>
+						{/if}
 						<Icon class="size-4" />
 						{section.label}
 					</button>

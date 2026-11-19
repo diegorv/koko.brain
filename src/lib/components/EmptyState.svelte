@@ -46,7 +46,7 @@
 		{#if action}
 			<button
 				type="button"
-				class="mt-1.5 cursor-default rounded-md border border-border px-2.5 py-1 text-meta transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+				class="mt-1.5 cursor-default rounded-md border border-border px-2.5 py-1 text-meta transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 				onclick={action.onclick}
 				data-empty-state-action
 			>

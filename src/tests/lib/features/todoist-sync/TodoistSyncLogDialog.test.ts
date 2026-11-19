@@ -91,6 +91,15 @@ describe('TodoistSyncLogDialog', () => {
 			);
 		});
 
+		it('outlines the selected filter pill with the 3:1 input edge, the others keep a clear one', () => {
+			const pill = (name: string) => document.querySelector(`[data-sync-log-filter="${name}"]`)!;
+			expect(pill('all').classList).toContain('border-input');
+			expect(pill('cycles').classList).toContain('border-transparent');
+			filter('cycles');
+			expect(pill('cycles').classList).toContain('border-input');
+			expect(pill('all').classList).toContain('border-transparent');
+		});
+
 		it('filters to cycles, to events, and back to all', () => {
 			expect(document.querySelector('[data-sync-log-filter="all"]')?.getAttribute('aria-pressed')).toBe('true');
 

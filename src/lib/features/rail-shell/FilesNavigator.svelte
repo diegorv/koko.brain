@@ -350,7 +350,7 @@
 	function rowClass(active: boolean, dropTarget = false): string {
 		// The drop background replaces the picked one: two bg utilities on one row leave CSS order to pick.
 		const activeBg = dropTarget ? '' : 'bg-file-explorer-primary/25 ';
-		return `flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-row cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset ${active
+		return `flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-row cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset ${active
 			? `${activeBg}text-file-explorer-primary-tint-fg`
 			: 'hover:bg-file-explorer-primary/10'} ${dropTarget ? 'bg-file-explorer-accent/50 outline-dashed outline-1 outline-ring' : ''}`;
 	}
@@ -366,7 +366,7 @@
 		<span class="truncate text-title text-tab-text-active" data-files-navigator-title>Files</span>
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger
-				class="ml-auto flex shrink-0 cursor-default items-center rounded-md p-1 text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+				class="ml-auto flex shrink-0 cursor-default items-center rounded-md p-1 text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 				title="New in {pickedPlace}"
 				aria-label="New in folder"
 				data-files-navigator-new
@@ -514,7 +514,7 @@
 	<!-- The div never takes focus, so its buttons light the row; scoped to button so the rename input does not. -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="{rowClass(active, dragOverPath === node.path)} has-[button:focus-visible]:ring-2 has-[button:focus-visible]:ring-ring/50 has-[button:focus-visible]:ring-inset"
+		class="{rowClass(active, dragOverPath === node.path)} has-[button:focus-visible]:ring-2 has-[button:focus-visible]:ring-ring has-[button:focus-visible]:ring-inset"
 		style:padding-left="{depth * 12}px"
 		data-files-navigator-row={node.path}
 		draggable={renamingPath !== node.path}

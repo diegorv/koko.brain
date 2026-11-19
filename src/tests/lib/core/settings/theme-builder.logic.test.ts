@@ -3,7 +3,8 @@ import { buildTheme, alpha, coreFromColors, READABILITY_PAIRS, TYPE_PALETTE_TOKE
 import { colorDistance, contrastRatio, flatten, mixColors } from '#lib/utils/color.js';
 import { BUILTIN_THEMES, mergeThemeWithDefaults } from '#lib/core/settings/theme.logic.js';
 import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
-import type { SyntaxColors } from '#lib/core/settings/theme.types.js';
+import type { SyntaxColors, ThemeColors } from '#lib/core/settings/theme.types.js';
+import { HARD_PALETTE_THEMES } from '../../../fixtures/hard-palette-themes.fixture';
 
 const HEADING_TOKENS = ['heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6'] as const;
 
@@ -136,7 +137,11 @@ describe('buildTheme', () => {
 
 describe('coreFromColors', () => {
 	it('reads back the core palette a built theme came from', () => {
-		const full: CorePalette = { ...CORE, inlineFg: '#333333', linkFg: '#0000ff', meta: '#777777', blockquoteAccent: '#008800' };
+		// Edges dark enough that the builder does not lift them (3:1 on the panel, sidebar and editor)
+		const full: CorePalette = {
+			...CORE, borderStrong: '#888888', faintFg: '#8c8c8c',
+			inlineFg: '#333333', linkFg: '#0000ff', meta: '#777777', blockquoteAccent: '#008800',
+		};
 		expect(coreFromColors(buildTheme('T', full).colors)).toEqual(full);
 	});
 });
@@ -273,6 +278,49 @@ describe('readable contrast', () => {
 			expect(fg).toMatch(/^#[0-9a-f]{6}$/);
 			expect(contrastRatio(fg, bg)!).toBeGreaterThanOrEqual(4.5);
 		}
+	});
+});
+
+describe('non-text boundaries of every built-in and hard-palette theme', () => {
+	/** [group, token, surface group, surface token]: a control edge or indicator and the surface it sits on, at 3:1 */
+	const BOUNDARIES: [keyof ThemeColors, string, keyof ThemeColors, string][] = [
+		['ui', 'input', 'ui', 'inputBg'],
+		['ui', 'input', 'ui', 'settingItemBg'],
+		['ui', 'input', 'ui', 'popover'],
+		['ui', 'input', 'ui', 'fileExplorerBg'],
+		['ui', 'input', 'ui', 'editorBg'],
+		['ui', 'switchUncheckedBg', 'ui', 'settingItemBg'],
+		['preview', 'taskBorder', 'ui', 'editorBg'],
+		['preview', 'hrBorder', 'ui', 'editorBg'],
+		['preview', 'blockquoteBorder', 'ui', 'editorBg'],
+		['ui', 'ring', 'ui', 'background'],
+		['ui', 'ring', 'ui', 'popover'],
+		['ui', 'ring', 'ui', 'editorBg'],
+		['ui', 'ring', 'ui', 'settingsSidebarBg'],
+	];
+
+	it('draws each boundary at 3:1 or more on its surface', () => {
+		const failures: string[] = [];
+		for (const { name, colors } of [...BUILTIN_THEMES, ...HARD_PALETTE_THEMES]) {
+			for (const [group, key, bgGroup, bgKey] of BOUNDARIES) {
+				const fg = (colors[group] as unknown as Record<string, string>)[key];
+				const bg = (colors[bgGroup] as unknown as Record<string, string>)[bgKey];
+				const ratio = contrastRatio(fg, flatten(bg, colors.ui.editorBg) ?? bg);
+				if (ratio === null || ratio < 3 - 0.005) failures.push(`${name} ${group}.${key} on ${bgKey} ${ratio?.toFixed(2)}`);
+			}
+		}
+		expect(failures).toEqual([]);
+	});
+
+	it('keeps the divider border quiet: it is not lifted', () => {
+		expect(buildTheme('T', { ...CORE, border: '#eeeeee' }).colors.ui.border).toBe('#eeeeee');
+	});
+
+	it('lifts a faint input border, off switch track and task checkbox border from the core palette', () => {
+		const { ui, preview } = buildTheme('T', { ...CORE, borderStrong: '#e8e8e8', faintFg: '#dddddd' }).colors;
+		expect(contrastRatio(ui.input, ui.inputBg)!).toBeGreaterThanOrEqual(3);
+		expect(contrastRatio(ui.switchUncheckedBg, ui.settingItemBg)!).toBeGreaterThanOrEqual(3);
+		expect(contrastRatio(preview.taskBorder, ui.editorBg)!).toBeGreaterThanOrEqual(3);
 	});
 });
 

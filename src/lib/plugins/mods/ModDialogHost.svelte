@@ -148,7 +148,7 @@
 						{#if multiline}
 							<textarea
 								id="mod-dialog-field-{id}"
-								class="border-input bg-input-bg text-foreground/80 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 min-h-24 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
+								class="border-input bg-input-bg text-foreground/80 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring min-h-24 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
 								placeholder={dialog.placeholder ?? ''}
 								bind:value={text}
 								bind:this={initialFocus}

@@ -96,6 +96,9 @@ afterEach(() => {
 	document.body.innerHTML = '';
 });
 
+/** Non-hue marks of today, as the navigator's `CalendarGrid.svelte` draws them */
+const TODAY_CUE = ['font-semibold', 'ring-1', 'ring-inset', 'ring-primary'];
+
 describe('EventMonthGrid: cells and headers', () => {
 	it('renders 42 cells with Monday-first weekday headers and dims the neighbour-month days', () => {
 		mountGrid();
@@ -127,6 +130,9 @@ describe('EventMonthGrid: cells and headers', () => {
 		expect(today.getAttribute('aria-pressed')).toBe('false');
 		expect(today.classList.contains('text-primary')).toBe(true);
 		expect(today.classList.contains('bg-primary')).toBe(false);
+		// Not hue alone: primary is under 3:1 against the neighbouring day numbers on most themes
+		for (const cls of TODAY_CUE) expect(today.classList, cls).toContain(cls);
+		expect(cell('2026-11-11').querySelector('[data-month-day]')!.classList).not.toContain('ring-primary');
 	});
 
 	it('follows a Sunday-first weekStartsOn', () => {
@@ -306,8 +312,8 @@ describe('EventMonthGrid: chips', () => {
 		flushSync();
 		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
 		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
-		expect(chip.className).toContain('ring-primary/70');
-		expect(q(`[data-event-path="${P('Review')}"]`)!.className).not.toContain('ring-primary/70');
+		expect(chip.classList).toContain('ring-primary');
+		expect(q(`[data-event-path="${P('Review')}"]`)!.classList).not.toContain('ring-primary');
 		expect(openFileInEditor).not.toHaveBeenCalled();
 	});
 

@@ -254,8 +254,8 @@ describe('EventTimeGrid: timed blocks', () => {
 		block.click();
 		flushSync();
 		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
-		expect(block.className).toContain('ring-primary/70');
-		expect(q(`[data-event-path="${P('Review')}"]`)!.className).not.toContain('ring-primary/70');
+		expect(block.classList).toContain('ring-primary');
+		expect(q(`[data-event-path="${P('Review')}"]`)!.classList).not.toContain('ring-primary');
 
 		eventCalendarViewStore.closePopover();
 		block.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
@@ -389,6 +389,16 @@ describe('EventTimeGrid: accessibility and headers', () => {
 		expect(headers[2].getAttribute('aria-label')).toBe('Wednesday, November 11, 2026');
 	});
 
+	it('marks a today header that is not selected with weight and a ring, not hue alone', () => {
+		eventCalendarViewStore.setNow(new Date(2026, 10, 12, 10, 0).getTime());
+		mountGrid();
+		const number = (key: string) => q(`[data-day-header="${key}"]`)!.querySelector('span:last-child')!;
+		for (const cls of ['text-primary', 'font-semibold', 'ring-1', 'ring-inset', 'ring-primary']) {
+			expect(number('2026-11-12').classList, cls).toContain(cls);
+		}
+		expect(number('2026-11-11').classList).not.toContain('ring-primary');
+	});
+
 	it('selects a day on the first click and opens day view on the second', () => {
 		mountGrid();
 		const header = () => q<HTMLButtonElement>('[data-day-header="2026-11-12"]')!;
@@ -478,7 +488,7 @@ describe('EventTimeGrid: all-day lane', () => {
 		chip.click();
 		flushSync();
 		expect(eventCalendarViewStore.popover?.path).toBe(P('Off'));
-		expect(chip.className).toContain('ring-primary/70');
+		expect(chip.classList).toContain('ring-primary');
 		expect(openFileInEditor).not.toHaveBeenCalled();
 	});
 

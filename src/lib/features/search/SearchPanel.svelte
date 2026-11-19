@@ -331,7 +331,7 @@
 			value={searchStore.query}
 			oninput={handleInput}
 			onkeydown={handleKeydown}
-			class="w-full rounded-md border border-file-explorer-border bg-background px-2 py-1.5 pl-7 {searchStore.mode === 'text' ? 'pr-12' : 'pr-8'} text-xs text-file-explorer-fg placeholder:text-file-explorer-muted-fg focus:outline-none focus:ring-1 focus:ring-ring"
+			class="w-full rounded-md border border-input bg-background px-2 py-1.5 pl-7 {searchStore.mode === 'text' ? 'pr-12' : 'pr-8'} text-xs text-file-explorer-fg placeholder:text-file-explorer-muted-fg focus:outline-none focus:ring-1 focus:ring-ring"
 		/>
 		{#if searchSlow}
 			<!-- Decorative: the role="status" region carries the Searching text -->

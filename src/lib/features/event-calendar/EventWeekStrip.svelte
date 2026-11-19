@@ -50,7 +50,7 @@
 					{selected
 					? 'bg-primary font-semibold text-primary-foreground'
 					: today
-						? 'text-primary group-hover:bg-muted'
+						? 'font-semibold text-primary ring-1 ring-inset ring-primary group-hover:bg-muted'
 						: 'group-hover:bg-muted'}"
 			>
 				{fromKey(day).getDate()}

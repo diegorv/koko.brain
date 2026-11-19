@@ -77,7 +77,7 @@
 					<button
 						type="button"
 						class="flex h-7 w-full shrink-0 items-center overflow-hidden rounded-md px-2 text-left outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring
-							{selectedPath === chip.path ? 'ring-2 ring-primary/70' : ''}"
+							{selectedPath === chip.path ? 'ring-2 ring-primary' : ''}"
 						style={eventColorStyle(chip.color, chip.archived)}
 						data-event-path={chip.path}
 						data-readonly={chip.readOnly || undefined}

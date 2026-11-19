@@ -395,7 +395,7 @@ describe('AppShell with a Markdown note open', () => {
 		expect(toggle().classList).not.toContain('bg-accent');
 		expect(toggle().classList).toContain('dark:hover:bg-accent/50');
 		expect(toggle().classList).toContain('focus-visible:ring-[3px]');
-		expect(toggle().classList).toContain('focus-visible:ring-ring/50');
+		expect(toggle().classList).toContain('focus-visible:ring-ring');
 		expect(toggle().classList).toContain('focus-visible:outline-none');
 
 		settingsStore.updateLayout({ rightSidebarVisible: true });

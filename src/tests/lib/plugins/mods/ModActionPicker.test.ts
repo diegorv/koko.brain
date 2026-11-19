@@ -243,6 +243,9 @@ describe('ModActionPicker', () => {
 
 			const bar = runView()!.querySelector('[role="progressbar"]')!;
 			expect(bar.getAttribute('aria-label')).toBe('Slow job, 1 of 4');
+			// The track is a 3:1 input edge; the primary fill sits on the popover, not on a muted track
+			expect(bar.classList).toContain('ring-input');
+			expect(bar.classList).not.toContain('bg-muted');
 			const log = runView()!.querySelector('[data-mod-run-log]')!;
 			expect(log.getAttribute('role')).toBe('log');
 		});

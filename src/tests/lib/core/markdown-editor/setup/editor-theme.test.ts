@@ -4,6 +4,9 @@ import { EditorView } from '@codemirror/view';
 
 import { buildEditorTheme } from '#lib/core/markdown-editor/setup/editor-theme.js';
 import { APP_SANS_FONT_STACK } from '#lib/utils/font-stacks.js';
+import { BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
+import { contrastRatio, flatten } from '#lib/utils/color.js';
+import { HARD_PALETTE_THEMES } from '../../../../fixtures/hard-palette-themes.fixture';
 
 /** The CSS rule the theme emits for `selector`, read from its style rules. */
 function themeRule(selector: string, fontFamily = 'Menlo', fontSize = 16): string | undefined {
@@ -20,6 +23,22 @@ function themeRule(selector: string, fontFamily = 'Menlo', fontSize = 16): strin
 function scrollerFontFamily(fontFamily: string): string | undefined {
 	return themeRule('.cm-scroller', fontFamily)?.match(/font-family: ([^;]+);/)?.[1];
 }
+
+describe('native text selection', () => {
+	it('paints selected text in the editor text color on the selection tint', () => {
+		const rule = themeRule('.cm-content ::selection');
+		expect(rule).toContain('background-color: var(--syntax-selection)');
+		// Links, wikilinks and code keep their hue otherwise, under 4.5:1 on the tint on most themes
+		expect(rule).toContain('color: var(--editor-fg)');
+	});
+
+	it('reads the editor text at 4.5:1 on the selection tint of every theme', () => {
+		for (const { name, colors } of [...BUILTIN_THEMES, ...HARD_PALETTE_THEMES]) {
+			const tint = flatten(colors.syntax.selection, colors.ui.editorBg)!;
+			expect(contrastRatio(colors.ui.editorFg, tint)!, name).toBeGreaterThanOrEqual(4.5);
+		}
+	});
+});
 
 describe('buildEditorTheme', () => {
 	it('returns a valid Extension', () => {

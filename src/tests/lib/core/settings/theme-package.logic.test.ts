@@ -27,6 +27,7 @@ import {
 	themeColorsToCssVars,
 } from '#lib/core/settings/theme.logic.js';
 import type { AppearanceSettings, Theme } from '#lib/core/settings/theme.types.js';
+import { contrastRatio } from '#lib/utils/color.js';
 import legacyFixture from '../../../fixtures/legacy-builtin-themes.fixture.json';
 
 /** A valid schemaVersion 1 package whose palette is the default theme's core. */
@@ -434,14 +435,34 @@ describe('loadAppearance - migration of the ex-built-in themes', () => {
 	 * They carry tokens retired since, so the JSON type does not overlap `Theme`.
 	 */
 	const legacy = legacyFixture as unknown as Theme[];
+	const HEX = /^#[0-9a-f]{6}$/i;
 	/**
 	 * A saved theme's CSS variables plus `--success`, which postdates the fixture and is derived on load,
 	 * without the retired `--lp-frontmatter-bg` / `--lp-frontmatter-border`, which the fixture still carries.
+	 * The control edges in `LIFTED_EDGES` postdate it too: the builder lifts them to 3:1 on load.
 	 */
 	const savedVars = (theme: Theme) => {
 		const { '--lp-frontmatter-bg': _bg, '--lp-frontmatter-border': _border, ...vars } = themeColorsToCssVars(theme.colors);
-		return { ...vars, '--success': expect.stringMatching(/^#[0-9a-f]{6}$/i) };
+		const lifted = Object.fromEntries(LIFTED_EDGES.map(([cssVar]) => [cssVar, expect.stringMatching(HEX)]));
+		return { ...vars, '--success': expect.stringMatching(HEX), ...lifted };
 	};
+	/** CSS variable of a control edge the builder lifts, and the surface variable it reaches 3:1 on. */
+	const LIFTED_EDGES: [string, string][] = [
+		['--input', '--input-bg'],
+		['--input', '--setting-item-bg'],
+		['--input', '--file-explorer-bg'],
+		['--input', '--editor-bg'],
+		['--switch-unchecked-bg', '--setting-item-bg'],
+		['--lp-task-border', '--editor-bg'],
+		['--lp-hr-border', '--editor-bg'],
+	];
+	/** Boundaries the saved themes already draw at 3:1, so the builder keeps them as saved. */
+	const SAVED_BOUNDARIES: [string, string][] = [
+		['--ring', '--background'],
+		['--ring', '--popover'],
+		['--ring', '--editor-bg'],
+		['--lp-blockquote-border', '--editor-bg'],
+	];
 	/** Ids the 22 themes were published under in `diegorv/koko.brain-themes` `index.json`. */
 	const PUBLISHED_IDS: Record<string, string> = {
 		'Cool Mist': 'cool-mist', 'Deep Ocean': 'deep-ocean', Foolscap: 'foolscap', 'Graphite Violet': 'graphite-violet',
@@ -492,7 +513,11 @@ describe('loadAppearance - migration of the ex-built-in themes', () => {
 			const pkg = result.installed![0];
 			expect(pkg.id, saved.name).toBe(PUBLISHED_IDS[saved.name]);
 			expect(parseThemePackage(JSON.parse(JSON.stringify(pkg)))).toEqual({ kind: 'package', pkg });
-			expect(themeColorsToCssVars(buildThemeFromPackage(pkg).colors), saved.name).toEqual(savedVars(saved));
+			const vars: Record<string, string> = themeColorsToCssVars(buildThemeFromPackage(pkg).colors);
+			expect(vars, saved.name).toEqual(savedVars(saved));
+			for (const [edge, surface] of [...LIFTED_EDGES, ...SAVED_BOUNDARIES]) {
+				expect(contrastRatio(vars[edge], vars[surface])!, `${saved.name} ${edge}`).toBeGreaterThanOrEqual(3 - 0.005);
+			}
 		}
 	});
 

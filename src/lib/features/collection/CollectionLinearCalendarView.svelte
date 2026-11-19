@@ -129,7 +129,7 @@
 			{#each colorMapping.values as value}
 				<div class="flex items-center gap-1.5">
 					<span
-						class="inline-block size-3 rounded-sm"
+						class="inline-block size-3 rounded-sm border border-input"
 						style="background: {barColors(getColorForValue(value, colorMapping) ?? '').fill}"
 					></span>
 					<span class="text-xs text-muted-foreground">{value}</span>

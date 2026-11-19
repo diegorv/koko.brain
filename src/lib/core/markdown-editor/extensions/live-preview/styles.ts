@@ -772,7 +772,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		outline: 'none',
 	},
 	'.cm-lp-meta-bind-btn:focus-visible': {
-		boxShadow: '0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent)',
+		boxShadow: '0 0 0 2px var(--ring)',
 	},
 	'.cm-lp-meta-bind-btn-default': {
 		backgroundColor: 'var(--lp-meta-bind-btn-default-bg)',
@@ -978,7 +978,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	// Same ring as `.cm-lp-meta-bind-btn:focus-visible`; the UA outline would draw a second one.
 	'.cm-lp-qjs-run:focus-visible': {
 		outline: 'none',
-		boxShadow: '0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent)',
+		boxShadow: '0 0 0 2px var(--ring)',
 	},
 	// Run again sits inside the 0.95em error wrapper: divide it back out to match the first-run button.
 	'.cm-lp-qjs-error .cm-lp-qjs-run': {
@@ -1063,7 +1063,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-qjs-table-nav-btn:focus-visible': {
 		outline: 'none',
-		boxShadow: '0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent)',
+		boxShadow: '0 0 0 2px var(--ring)',
 	},
 	'.cm-lp-qjs-table-nav-btn:disabled': {
 		opacity: '0.4',

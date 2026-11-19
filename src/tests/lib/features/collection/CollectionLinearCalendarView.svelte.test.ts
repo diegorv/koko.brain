@@ -56,6 +56,8 @@ describe('CollectionLinearCalendarView', () => {
 		expect(trip.style.background).toBe(probe.style.background);
 		expect(trip.classList).not.toContain('text-white');
 		expect(target.querySelector<HTMLElement>('span.size-3')!.style.background).toBe(probe.style.background);
+		// Light fills vanish on the card: the swatch has a 3:1 input edge
+		expect(target.querySelector<HTMLElement>('span.size-3')!.classList).toContain('border-input');
 	});
 
 	it('gives the var(--primary) fallback bar the theme primary foreground', () => {

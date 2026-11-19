@@ -56,7 +56,7 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 	/** Whether a button carries the active tint of its own item color. */
 	const tinted = (el: Element) => (el.getAttribute('style') ?? '').includes('color-mix');
 	/** The focus ring every rail button keeps, for keyboard users. */
-	const FOCUS_RING = ['focus-visible:outline-none', 'focus-visible:ring-2', 'focus-visible:ring-ring/50', 'focus-visible:ring-inset'];
+	const FOCUS_RING = ['focus-visible:outline-none', 'focus-visible:ring-2', 'focus-visible:ring-ring', 'focus-visible:ring-inset'];
 	const sectionTitles = () => [...target.querySelectorAll('[data-rail-section-title]')].map((el) => el.getAttribute('data-rail-section-title'));
 
 	beforeEach(() => {

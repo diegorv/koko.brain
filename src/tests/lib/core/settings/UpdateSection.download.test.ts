@@ -117,6 +117,9 @@ describe('UpdateSection check and download', () => {
 		expect(bar!.getAttribute('aria-valuemin')).toBe('0');
 		expect(bar!.getAttribute('aria-valuemax')).toBe('100');
 		expect(target.textContent).toContain('Downloading v9.9.10 (1 KB)... 50%');
+		// The track is a 3:1 input edge; bg-muted was invisible on a Settings row
+		expect(bar!.classList).toContain('ring-input');
+		expect(bar!.classList).not.toContain('bg-muted');
 	});
 
 	it('shows no "?" and no value when the size is unknown', async () => {

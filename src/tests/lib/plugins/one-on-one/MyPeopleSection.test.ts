@@ -240,7 +240,7 @@ describe('MyPeopleSection', () => {
 		const row = rowEl('Ana');
 		for (const cls of [
 			'has-[[data-my-people-open]:focus-visible]:ring-2',
-			'has-[[data-my-people-open]:focus-visible]:ring-ring/50',
+			'has-[[data-my-people-open]:focus-visible]:ring-ring',
 			'has-[[data-my-people-open]:focus-visible]:ring-inset',
 		]) {
 			expect(row.classList).toContain(cls);

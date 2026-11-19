@@ -386,7 +386,8 @@ describe('TasksView: keyboard and accessible rows', () => {
 			({ component } = await mountTasksView());
 			await until(() => expect(rows()).toHaveLength(3));
 			const classes = Array.from(searchInput().classList);
-			expect(classes).toContain('border-border');
+			expect(classes).toContain('border-input');
+			expect(classes).not.toContain('border-border');
 			expect(classes).toContain('placeholder:text-muted-foreground');
 			expect(classes.filter((c) => c.endsWith('/50'))).toEqual([]);
 		});

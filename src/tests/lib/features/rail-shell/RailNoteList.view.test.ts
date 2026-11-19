@@ -342,6 +342,14 @@ views:
 			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe(`status == 'done', not archived, view "Done"`);
 		});
 
+		it('marks the Filter toggle with a primary dot while the view has a filter', async () => {
+			files[VIEW] = RAIL_VIEW;
+			await mountList();
+			const dot = target.querySelector('[data-note-list-filter] [data-note-list-on-dot]');
+			expect(dot).not.toBeNull();
+			expect(dot!.classList).toContain('bg-primary');
+		});
+
 		it("seeds the Sort and Filter popovers from the second view's sort and filters", async () => {
 			files[VIEW] = RAIL_VIEW;
 			await mountList();
