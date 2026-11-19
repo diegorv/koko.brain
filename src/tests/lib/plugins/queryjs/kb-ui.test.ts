@@ -22,6 +22,8 @@ import { KBUI } from '#lib/plugins/queryjs/kb-ui.js';
 import { destroyChartsIn } from '#lib/plugins/queryjs/queryjs-charts.js';
 import { DataArray } from '#lib/plugins/queryjs/data-array.js';
 import { APP_SANS_FONT_STACK } from '#lib/utils/font-stacks.js';
+import { contrastRatio, flatten, mixColors } from '#lib/utils/color.js';
+import { BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
 
 import { BLOCK_TEXT_FLOOR, resolvedFontPx } from '../../../fixtures/font-size.fixture.js';
 
@@ -422,6 +424,20 @@ describe('KBUI', () => {
 			const result = ui.tags(['a']);
 			expect(result).toBe(container.firstElementChild);
 		});
+
+		it('reads its default chip text at 4.5:1 or more on every built-in theme', () => {
+			ui.tags(['a']);
+			const chip = (container.firstElementChild as HTMLElement).children[0] as HTMLElement;
+			const style = chip.getAttribute('style') ?? '';
+			const m = /color: color-mix\(in oklab, (rgb\(\d+,\s*\d+,\s*\d+\)) (\d+)%, var\(--editor-fg\)\)/.exec(style);
+			expect(m).not.toBeNull();
+			// A QueryJS block paints `--lp-collection-bg` (`.cm-lp-qjs-block` in live-preview styles.ts)
+			for (const { colors: { ui: theme, preview } } of BUILTIN_THEMES) {
+				const text = mixColors(m![1], theme.editorFg, 1 - Number(m![2]) / 100)!;
+				const fill = flatten(chip.style.backgroundColor, preview.collectionBg)!;
+				expect(contrastRatio(text, fill)!).toBeGreaterThanOrEqual(4.5);
+			}
+		});
 	});
 
 	describe('statusCards', () => {
@@ -493,6 +509,20 @@ describe('KBUI', () => {
 		it('returns the wrapper element', () => {
 			const result = ui.statusCards(items);
 			expect(result).toBe(container.firstElementChild);
+		});
+
+		it('reads every default status badge at 4.5:1 or more on every built-in theme', () => {
+			ui.statusCards(['active', 'planning', 'done', 'draft', 'unknown'].map((status) => ({ title: status, status })));
+			const cards = [...(container.firstElementChild as HTMLElement).children] as HTMLElement[];
+			for (const card of cards) {
+				const badge = card.lastElementChild as HTMLElement;
+				expect(badge.style.color).toBe('var(--editor-fg)');
+				for (const { colors: { ui: theme, preview } } of BUILTIN_THEMES) {
+					const surface = flatten(card.style.backgroundColor, preview.collectionBg)!;
+					const fill = flatten(badge.style.backgroundColor, surface)!;
+					expect(contrastRatio(theme.editorFg, fill)!, `${badge.textContent} on ${preview.collectionBg}`).toBeGreaterThanOrEqual(4.5);
+				}
+			}
 		});
 	});
 
@@ -1035,6 +1065,23 @@ describe('KBUI', () => {
 			await ui.chart('bar', radarOpts);
 
 			expect(chartCalls[0].canvas.tagName).toBe('CANVAS');
+		});
+
+		it('reads the load error text at 4.5:1 or more on every built-in theme', async () => {
+			vi.spyOn(KBUI as unknown as { loadChartJS: () => Promise<unknown> }, 'loadChartJS').mockRejectedValueOnce(
+				new Error('offline'),
+			);
+			await ui.chart('bar', radarOpts);
+			const errorEl = (container.firstElementChild as HTMLElement).firstElementChild!.firstElementChild as HTMLElement;
+			expect(errorEl.textContent).toBe('Chart error: offline');
+			const style = errorEl.getAttribute('style') ?? '';
+			const m = /(?:^|;)\s*color: color-mix\(in oklab, (rgb\(\d+,\s*\d+,\s*\d+\)) (\d+)%, var\(--editor-fg\)\)/.exec(style);
+			expect(m).not.toBeNull();
+			for (const { colors: { ui: theme, preview } } of BUILTIN_THEMES) {
+				const text = mixColors(m![1], theme.editorFg, 1 - Number(m![2]) / 100)!;
+				const fill = flatten(errorEl.style.backgroundColor, preview.collectionBg)!;
+				expect(contrastRatio(text, fill)!).toBeGreaterThanOrEqual(4.5);
+			}
 		});
 	});
 

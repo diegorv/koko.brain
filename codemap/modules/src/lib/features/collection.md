@@ -56,7 +56,7 @@ file src/lib/features/collection/expression/methods.logic.ts logic L285 module s
 file src/lib/features/collection/expression/parser.ts other L231 module src/lib/features/collection in5 t1
 file src/lib/features/collection/expression/tokenizer.ts other L181 module src/lib/features/collection in1 t1
 file src/lib/features/collection/key-edit.logic.ts logic L100 module src/lib/features/collection in2 t1
-file src/lib/features/collection/linear-calendar.logic.ts logic L322 module src/lib/features/collection in2 t2
+file src/lib/features/collection/linear-calendar.logic.ts logic L322 module src/lib/features/collection in2 t3
 file src/lib/features/collection/toolbar/CalendarConfigPanel.svelte component L144 module src/lib/features/collection in1 t0
 file src/lib/features/collection/toolbar/FilterPanel.svelte component L220 module src/lib/features/collection in4 t1
 file src/lib/features/collection/toolbar/FilterRow.svelte component L205 module src/lib/features/collection in1 t1

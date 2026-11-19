@@ -1,9 +1,9 @@
 # file card src/lib/features/rail-shell/rail-items.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/rail-shell/rail-items.logic.ts ' codemap/files
-file src/lib/features/rail-shell/rail-items.logic.ts logic L230 module src/lib/features/rail-shell in5 t5
+file src/lib/features/rail-shell/rail-items.logic.ts logic L227 module src/lib/features/rail-shell in5 t5
 ## imports
 imp src/lib/features/rail-shell/rail-items.logic.ts:1 -> src/lib/utils/clamp.ts clamp
-imp src/lib/features/rail-shell/rail-items.logic.ts:2 -> src/lib/utils/color.ts contrastRatio
+imp src/lib/features/rail-shell/rail-items.logic.ts:2 -> src/lib/utils/color.ts labelColors
 imp src/lib/features/rail-shell/rail-items.logic.ts:3 -> src/lib/core/editor/editor.logic.ts GRAPH_VIRTUAL_PATH,TAGS_VIRTUAL_PATH,TASKS_VIRTUAL_PATH
 imp src/lib/features/rail-shell/rail-items.logic.ts:4 -> src/lib/features/rail-shell/lens.logic.ts FILES_RAIL_ITEM,SEARCH_RAIL_ITEM,TODAY_RAIL_ITEM,TYPES_RAIL_ITEM
 imp src/lib/features/rail-shell/rail-items.logic.ts:5 -> src/lib/features/rail-shell/rail-shell.types.ts type:RailAction,type:RailNavigator,type:RailPin
@@ -12,7 +12,7 @@ imp src/lib/app/AppShell.svelte:39 -> src/lib/features/rail-shell/rail-items.log
 imp src/lib/app/commands.ts:18 -> src/lib/features/rail-shell/rail-items.logic.ts parseRailHidden,parseRailOrder,railItems
 imp src/lib/app/rail-navigation.ts:5 -> src/lib/features/rail-shell/rail-items.logic.ts GRAPH_TAB_RAIL_ITEM,TAGS_TAB_RAIL_ITEM,TASKS_TAB_RAIL_ITEM,type:RailItem
 imp src/lib/features/rail-shell/LayoutSection.svelte:9 -> src/lib/features/rail-shell/rail-items.logic.ts moveRailItem,parseRailCollapsed,parseRailHidden,parseRailInboxBadge,parseRailOrder,parseRailStyle,RAIL_STYLES,railItems,type:RailItem,type:RailItemGroup
-imp src/lib/features/rail-shell/Rail.svelte:30 -> src/lib/features/rail-shell/rail-items.logic.ts parseRailCollapsed,parseRailHidden,parseRailInboxBadge,parseRailOrder,parseRailStyle,parseRailWidth,GRAPH_TAB_RAIL_ITEM,RAIL_PIN_COLOR,RAIL_WIDTH,railActionColor,railBadgeTextColor,railFormWidth,railItemColor,railItems,TAGS_TAB_RAIL_ITEM,TASKS_TAB_RAIL_ITEM,type:RailItem
+imp src/lib/features/rail-shell/Rail.svelte:30 -> src/lib/features/rail-shell/rail-items.logic.ts parseRailCollapsed,parseRailHidden,parseRailInboxBadge,parseRailOrder,parseRailStyle,parseRailWidth,GRAPH_TAB_RAIL_ITEM,RAIL_PIN_COLOR,RAIL_WIDTH,railActionColor,railBadgeColors,railFormWidth,railItemColor,railItems,TAGS_TAB_RAIL_ITEM,TASKS_TAB_RAIL_ITEM,type:RailItem
 ## reach
 in2 src/lib/features/rail-shell/rail-items.logic.ts 4 files in 2 modules: src/lib/app(3) src/routes(1)
 out2 src/lib/features/rail-shell/rail-items.logic.ts 21 files in 8 modules: src/lib/features/collection(5) src/lib/features/type-definitions(4) src/lib/utils(4) src/lib/core/filesystem(3) src/lib/core/settings(2) +3 modules
@@ -83,9 +83,9 @@ by src/lib/features/rail-shell/rail-items.logic.ts:railFormWidth <- src/lib/app/
 by src/lib/features/rail-shell/rail-items.logic.ts:railFormWidth <- src/lib/features/rail-shell/Rail.svelte:228 in frameWidth=$derived call
 sym src/lib/features/rail-shell/rail-items.logic.ts:208 fn railItemColor(key: string): string L3 | A rail item's color: a built-in key gives its own, any other key the fallback.
 by src/lib/features/rail-shell/rail-items.logic.ts:railItemColor <- src/lib/features/rail-shell/Rail.svelte:167 in itemRow call
-sym src/lib/features/rail-shell/rail-items.logic.ts:216 fn railBadgeTextColor(color: string): string L6 | Text color for a count badge filled with a rail item's `color`: black or white, whichever contrasts more; `var(--primary-foreground)` for a color it cannot par…
-by src/lib/features/rail-shell/rail-items.logic.ts:railBadgeTextColor <- src/lib/features/rail-shell/Rail.svelte:397 in (markup) markup
-sym src/lib/features/rail-shell/rail-items.logic.ts:228 fn railHeaderPad(railWidth: number): number L3 | The left padding, in px, of the header strip beside a rail this wide: the macOS traffic lights and the rail toggle reach 120 px from the window's edge, and pas…
+sym src/lib/features/rail-shell/rail-items.logic.ts:216 fn railBadgeColors(color: string): { fill: string; text: string } L3 | Fill and text for a count badge on a rail item's `color` (`labelColors`); the color itself with `var(--primary-foreground)` when it cannot be parsed.
+by src/lib/features/rail-shell/rail-items.logic.ts:railBadgeColors <- src/lib/features/rail-shell/Rail.svelte:397 in (markup) markup
+sym src/lib/features/rail-shell/rail-items.logic.ts:225 fn railHeaderPad(railWidth: number): number L3 | The left padding, in px, of the header strip beside a rail this wide: the macOS traffic lights and the rail toggle reach 120 px from the window's edge, and pas…
 by src/lib/features/rail-shell/rail-items.logic.ts:railHeaderPad <- src/lib/app/AppShell.svelte:187 in (markup) markup
 ## locals
 local src/lib/features/rail-shell/rail-items.logic.ts:124 fn parseKeyList(saved: unknown): string[] L3
@@ -94,4 +94,4 @@ call src/lib/features/rail-shell/rail-items.logic.ts:70 in railItems -> src/lib/
 call src/lib/features/rail-shell/rail-items.logic.ts:130 in parseRailHidden -> src/lib/features/rail-shell/rail-items.logic.ts:parseKeyList call
 call src/lib/features/rail-shell/rail-items.logic.ts:135 in parseRailOrder -> src/lib/features/rail-shell/rail-items.logic.ts:parseKeyList call
 call src/lib/features/rail-shell/rail-items.logic.ts:179 in parseRailWidth -> src/lib/utils/clamp.ts:clamp call
-call src/lib/features/rail-shell/rail-items.logic.ts:217 in railBadgeTextColor -> src/lib/utils/color.ts:contrastRatio call +1
+call src/lib/features/rail-shell/rail-items.logic.ts:217 in railBadgeColors -> src/lib/utils/color.ts:labelColors call

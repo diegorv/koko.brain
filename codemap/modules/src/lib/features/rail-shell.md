@@ -48,7 +48,7 @@ entry src/lib/features/rail-shell/types-navigator.service.ts ext-in1 src/lib/app
 ## files
 file src/lib/features/rail-shell/FilesNavigator.svelte component L579 module src/lib/features/rail-shell in1 t4
 file src/lib/features/rail-shell/LayoutSection.svelte component L202 module src/lib/features/rail-shell in1 t1
-file src/lib/features/rail-shell/Rail.svelte component L403 module src/lib/features/rail-shell in1 t3
+file src/lib/features/rail-shell/Rail.svelte component L404 module src/lib/features/rail-shell in1 t3
 file src/lib/features/rail-shell/RailArchivedMenu.svelte component L67 module src/lib/features/rail-shell in1 t0
 file src/lib/features/rail-shell/RailListSearch.svelte component L122 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/RailNoteList.svelte component L1162 module src/lib/features/rail-shell in1 t8
@@ -71,7 +71,7 @@ file src/lib/features/rail-shell/list-view-sort.logic.ts logic L68 module src/li
 file src/lib/features/rail-shell/neighbourhood.service.ts service L36 module src/lib/features/rail-shell in2 t2
 file src/lib/features/rail-shell/neighbourhood.store.svelte.ts store L25 module src/lib/features/rail-shell in3 t4 | The note the rail shell's Neighbourhood lens shows.
 file src/lib/features/rail-shell/new-note.service.ts service L47 module src/lib/features/rail-shell in1 t1
-file src/lib/features/rail-shell/rail-items.logic.ts logic L230 module src/lib/features/rail-shell in5 t5
+file src/lib/features/rail-shell/rail-items.logic.ts logic L227 module src/lib/features/rail-shell in5 t5
 file src/lib/features/rail-shell/rail-registry.store.svelte.ts store L111 module src/lib/features/rail-shell in11 t28
 file src/lib/features/rail-shell/rail-shell.types.ts types L232 module src/lib/features/rail-shell in16 t0
 file src/lib/features/rail-shell/types-navigator.service.ts service L21 module src/lib/features/rail-shell in1 t2
@@ -80,7 +80,7 @@ file src/lib/features/rail-shell/view-lens.service.ts service L48 module src/lib
 ## public
 sym src/lib/features/rail-shell/FilesNavigator.svelte:1 component FilesNavigator props:picked,expanded,onPick,onToggle,onPickView L579
 sym src/lib/features/rail-shell/LayoutSection.svelte:1 component LayoutSection L202
-sym src/lib/features/rail-shell/Rail.svelte:1 component Rail props:activeItem,onSelect L403
+sym src/lib/features/rail-shell/Rail.svelte:1 component Rail props:activeItem,onSelect L404
 sym src/lib/features/rail-shell/RailNoteList.svelte:1 component RailNoteList props:lens,firstPane= L1162
 sym src/lib/features/rail-shell/TypesNavigator.svelte:1 component TypesNavigator props:rows,picked,onPick L512
 sym src/lib/features/rail-shell/files-navigator.service.ts:11 fn registerFilesNavigatorPathChangeConsumer(): () => void L10 | Registers the Files navigator as a path-change consumer, so its saved pick and expanded folders follow a folder renamed, moved or deleted anywhere in the app.
@@ -124,7 +124,7 @@ sym src/lib/features/rail-shell/rail-items.logic.ts:177 fn parseRailWidth(saved:
 sym src/lib/features/rail-shell/rail-items.logic.ts:192 fn parseRailStyle(saved: unknown): RailStyle L3 | The rail's style from `layout.railStyle`: only `'captioned'` gives captioned, anything else reads as labeled.
 sym src/lib/features/rail-shell/rail-items.logic.ts:197 fn parseRailCollapsed(saved: unknown): boolean L3 | Whether the rail is collapsed, from `layout.railCollapsed`: only the boolean `true` collapses.
 sym src/lib/features/rail-shell/rail-items.logic.ts:202 fn railFormWidth(style: RailStyle, collapsed: boolean, labeledWidth: number): number L4 | The rail's width in px from its parsed style, collapsed state and labeled width.
-sym src/lib/features/rail-shell/rail-items.logic.ts:228 fn railHeaderPad(railWidth: number): number L3 | The left padding, in px, of the header strip beside a rail this wide: the macOS traffic lights and the rail toggle reach 120 px from the window's edge, and pas…
+sym src/lib/features/rail-shell/rail-items.logic.ts:225 fn railHeaderPad(railWidth: number): number L3 | The left padding, in px, of the header strip beside a rail this wide: the macOS traffic lights and the rail toggle reach 120 px from the window's edge, and pas…
 sym src/lib/features/rail-shell/rail-registry.store.svelte.ts:27 store railRegistryStore L85
 sym src/lib/features/rail-shell/rail-shell.types.ts:12 interface Lens L6 | What the user picked on the left: a rail item, a navigator entry or a note's neighbourhood.
 sym src/lib/features/rail-shell/rail-shell.types.ts:20 interface LensContext L12 | The snapshot a lens resolves against.

@@ -1,6 +1,6 @@
 # file card src/lib/core/settings/theme.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/settings/theme.logic.ts ' codemap/files
-file src/lib/core/settings/theme.logic.ts logic L408 module src/lib/core/settings in7 t17
+file src/lib/core/settings/theme.logic.ts logic L408 module src/lib/core/settings in7 t18
 ## imports
 imp src/lib/core/settings/theme.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:Theme,type:ThemeColors,type:UIColors,type:SyntaxColors,type:PreviewColors,type:WikilinkColors,type:CalloutColors,type:AppearanceSettings
 imp src/lib/core/settings/theme.logic.ts:11 -> src/lib/utils/color.ts isDarkColor
@@ -34,6 +34,7 @@ test src/tests/lib/core/settings/theme.service.test.ts imports src/lib/core/sett
 test src/tests/lib/plugins/graph-view/GraphView.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/plugins/graph-view/graph-view.logic.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/plugins/mods/mod-theme.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/plugins/queryjs/kb-ui.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/utils/color-presets.test.ts imports src/lib/core/settings/theme.logic.ts
 ## symbols
 sym src/lib/core/settings/theme.logic.ts:15 fn camelToKebab(s: string): string L3 | Converts a camelCase string to kebab-case

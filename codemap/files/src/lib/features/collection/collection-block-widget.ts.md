@@ -13,7 +13,7 @@ imp src/lib/features/collection/collection-block-widget.ts:9 -> src/lib/core/vau
 imp src/lib/features/collection/collection-block-widget.ts:10 -> src/lib/utils/sanitize.ts sanitizeHtml
 imp src/lib/features/collection/collection-block-widget.ts:11 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord,type:CollectionViewDef,type:QueryResult
 imp src/lib/features/collection/collection-block-widget.ts:12 -> src/lib/features/collection/calendar.logic.ts getCalendarGrid,groupRecordsByDate,countUndated,formatMonthYear,getWeekDayLabels,formatDateKey
-imp src/lib/features/collection/collection-block-widget.ts:20 -> src/lib/features/collection/linear-calendar.logic.ts buildLinearYearLayout,buildColorMapping,getColorForValue,barTextColor
+imp src/lib/features/collection/collection-block-widget.ts:20 -> src/lib/features/collection/linear-calendar.logic.ts buildLinearYearLayout,buildColorMapping,getColorForValue,barColors
 ## imported-by
 imp src/lib/app/editor-host.ts:28 -> src/lib/features/collection/collection-block-widget.ts collectionBlockRenderer
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:84 -> src/lib/features/collection/collection-block-widget.ts clearCollectionCache
@@ -59,8 +59,8 @@ call src/lib/features/collection/collection-block-widget.ts:292 in CollectionBlo
 call src/lib/features/collection/collection-block-widget.ts:293 in CollectionBlockWidget.buildCalendar -> src/lib/features/collection/collection-block-widget.ts:handleRowClick call
 call src/lib/features/collection/collection-block-widget.ts:324 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/linear-calendar.logic.ts:buildLinearYearLayout call
 call src/lib/features/collection/collection-block-widget.ts:325 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/linear-calendar.logic.ts:buildColorMapping call
+call src/lib/features/collection/collection-block-widget.ts:417 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/linear-calendar.logic.ts:barColors call
 call src/lib/features/collection/collection-block-widget.ts:417 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/linear-calendar.logic.ts:getColorForValue call
-call src/lib/features/collection/collection-block-widget.ts:418 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/linear-calendar.logic.ts:barTextColor call
 call src/lib/features/collection/collection-block-widget.ts:421 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/collection-block-widget.ts:stopEditorMousedown call
 call src/lib/features/collection/collection-block-widget.ts:422 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/collection-block-widget.ts:handleRowClick call
 call src/lib/features/collection/collection-block-widget.ts:458 in collectionBlockRenderer.widget -> src/lib/features/collection/collection-block-widget.ts:CollectionBlockWidget new

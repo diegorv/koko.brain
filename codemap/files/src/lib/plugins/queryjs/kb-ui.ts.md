@@ -1,6 +1,6 @@
 # file card src/lib/plugins/queryjs/kb-ui.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/plugins/queryjs/kb-ui.ts ' codemap/files
-file src/lib/plugins/queryjs/kb-ui.ts other L1080 module src/lib/plugins/queryjs in1 t3
+file src/lib/plugins/queryjs/kb-ui.ts other L1081 module src/lib/plugins/queryjs in1 t3
 ## imports
 imp src/lib/plugins/queryjs/kb-ui.ts:1 -> src/lib/plugins/queryjs/kb-ui.types.ts type:KBCardItem,type:KBCardsOptions,type:KBProgressBarOptions,type:KBHeatmapOptions,type:KBTagsOptions,type:KBTagCloudOptions,type:KBStatusCardItem,type:KBStatusCardsOptions,type:KBStatusColorMap,type:KBTimelineItem,type:KBTimelineOptions,type:KBUITableOptions,type:KBChartType,type:KBChartDataset,type:KBChartOptions,type:KBHeatmapCalendarEntry,type:KBHeatmapCalendarOptions,type:KBYearlyCalendarOptions
 imp src/lib/plugins/queryjs/kb-ui.ts:21 -> src/lib/plugins/queryjs/contract/kb-api.v1.ts type:DataArrayV1,type:KBUIV1
@@ -19,23 +19,23 @@ test src/tests/lib/plugins/queryjs/kb-ui.test.ts imports src/lib/plugins/queryjs
 test src/tests/lib/plugins/queryjs/kb-api-contract.test.ts imports src/lib/plugins/queryjs/kb-ui.ts
 test src/tests/lib/plugins/queryjs/queryjs-table-pager-click.test.ts imports src/lib/plugins/queryjs/kb-ui.ts
 ## symbols
-sym src/lib/plugins/queryjs/kb-ui.ts:84 class KBUI L997 | UI render helpers for QueryJS.
+sym src/lib/plugins/queryjs/kb-ui.ts:84 class KBUI L998 | UI render helpers for QueryJS.
 by src/lib/plugins/queryjs/kb-ui.ts:KBUI <- src/lib/plugins/queryjs/kb-api.ts:152 in KBAPI.ui new
 ## calls
 call src/lib/plugins/queryjs/kb-ui.ts:115 in KBUI.cards -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.resolveCardColor call
 call src/lib/plugins/queryjs/kb-ui.ts:158 in KBUI.progressBar -> src/lib/utils/clamp.ts:clamp call
-call src/lib/plugins/queryjs/kb-ui.ts:576 in KBUI.chart -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.isSquareChart call
-call src/lib/plugins/queryjs/kb-ui.ts:595 in KBUI.chart -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.loadChartJS call
-call src/lib/plugins/queryjs/kb-ui.ts:617 in KBUI.chart -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.expandDataset call
-call src/lib/plugins/queryjs/kb-ui.ts:683 in KBUI.chart -> src/lib/plugins/queryjs/queryjs-charts.ts:trackChart call
-call src/lib/plugins/queryjs/kb-ui.ts:698 in KBUI.heatmapCalendar -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.calendarPreamble call
-call src/lib/plugins/queryjs/kb-ui.ts:704 in KBUI.heatmapCalendar -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.getDayOfYear call +1
-call src/lib/plugins/queryjs/kb-ui.ts:712 in KBUI.heatmapCalendar -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.getDayOfYearLocal call
-call src/lib/plugins/queryjs/kb-ui.ts:741 in KBUI.heatmapCalendar -> src/lib/utils/clamp.ts:clamp call
-call src/lib/plugins/queryjs/kb-ui.ts:829 in KBUI.yearlyCalendar -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.calendarPreamble call
-call src/lib/plugins/queryjs/kb-ui.ts:886 in KBUI.yearlyCalendar -> src/lib/utils/clamp.ts:clamp call
-call src/lib/plugins/queryjs/kb-ui.ts:1006 in KBUI.calendarPreamble -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.mapRange call
-call src/lib/plugins/queryjs/kb-ui.ts:1032 in KBUI.mapRange -> src/lib/utils/clamp.ts:clamp call
+call src/lib/plugins/queryjs/kb-ui.ts:577 in KBUI.chart -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.isSquareChart call
+call src/lib/plugins/queryjs/kb-ui.ts:596 in KBUI.chart -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.loadChartJS call
+call src/lib/plugins/queryjs/kb-ui.ts:618 in KBUI.chart -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.expandDataset call
+call src/lib/plugins/queryjs/kb-ui.ts:684 in KBUI.chart -> src/lib/plugins/queryjs/queryjs-charts.ts:trackChart call
+call src/lib/plugins/queryjs/kb-ui.ts:699 in KBUI.heatmapCalendar -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.calendarPreamble call
+call src/lib/plugins/queryjs/kb-ui.ts:705 in KBUI.heatmapCalendar -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.getDayOfYear call +1
+call src/lib/plugins/queryjs/kb-ui.ts:713 in KBUI.heatmapCalendar -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.getDayOfYearLocal call
+call src/lib/plugins/queryjs/kb-ui.ts:742 in KBUI.heatmapCalendar -> src/lib/utils/clamp.ts:clamp call
+call src/lib/plugins/queryjs/kb-ui.ts:830 in KBUI.yearlyCalendar -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.calendarPreamble call
+call src/lib/plugins/queryjs/kb-ui.ts:887 in KBUI.yearlyCalendar -> src/lib/utils/clamp.ts:clamp call
+call src/lib/plugins/queryjs/kb-ui.ts:1007 in KBUI.calendarPreamble -> src/lib/plugins/queryjs/kb-ui.ts:KBUI.mapRange call
+call src/lib/plugins/queryjs/kb-ui.ts:1033 in KBUI.mapRange -> src/lib/utils/clamp.ts:clamp call
 ## effects
-fx src/lib/plugins/queryjs/kb-ui.ts:524 dom.mousedown prev in KBUI.table
-fx src/lib/plugins/queryjs/kb-ui.ts:525 dom.mousedown next in KBUI.table
+fx src/lib/plugins/queryjs/kb-ui.ts:525 dom.mousedown prev in KBUI.table
+fx src/lib/plugins/queryjs/kb-ui.ts:526 dom.mousedown next in KBUI.table

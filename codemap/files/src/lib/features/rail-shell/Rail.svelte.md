@@ -1,6 +1,6 @@
 # file card src/lib/features/rail-shell/Rail.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/rail-shell/Rail.svelte ' codemap/files
-file src/lib/features/rail-shell/Rail.svelte component L403 module src/lib/features/rail-shell in1 t3
+file src/lib/features/rail-shell/Rail.svelte component L404 module src/lib/features/rail-shell in1 t3
 ## imports
 imp src/lib/features/rail-shell/Rail.svelte:17 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/rail-shell/Rail.svelte:18 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
@@ -15,7 +15,7 @@ imp src/lib/features/rail-shell/Rail.svelte:26 -> src/lib/features/type-definiti
 imp src/lib/features/rail-shell/Rail.svelte:27 -> src/lib/features/type-definitions/type-sidebar.logic.ts excludeSystemFolder
 imp src/lib/features/rail-shell/Rail.svelte:28 -> src/lib/features/type-definitions/inbox-workflow.logic.ts getInboxCount
 imp src/lib/features/rail-shell/Rail.svelte:29 -> src/lib/features/rail-shell/lens.logic.ts pinnedRailItems
-imp src/lib/features/rail-shell/Rail.svelte:30 -> src/lib/features/rail-shell/rail-items.logic.ts parseRailCollapsed,parseRailHidden,parseRailInboxBadge,parseRailOrder,parseRailStyle,parseRailWidth,GRAPH_TAB_RAIL_ITEM,RAIL_PIN_COLOR,RAIL_WIDTH,railActionColor,railBadgeTextColor,railFormWidth,railItemColor,railItems,TAGS_TAB_RAIL_ITEM,TASKS_TAB_RAIL_ITEM,type:RailItem
+imp src/lib/features/rail-shell/Rail.svelte:30 -> src/lib/features/rail-shell/rail-items.logic.ts parseRailCollapsed,parseRailHidden,parseRailInboxBadge,parseRailOrder,parseRailStyle,parseRailWidth,GRAPH_TAB_RAIL_ITEM,RAIL_PIN_COLOR,RAIL_WIDTH,railActionColor,railBadgeColors,railFormWidth,railItemColor,railItems,TAGS_TAB_RAIL_ITEM,TASKS_TAB_RAIL_ITEM,type:RailItem
 imp src/lib/features/rail-shell/Rail.svelte:49 -> src/lib/features/rail-shell/rail-registry.store.svelte.ts railRegistryStore
 imp src/lib/features/rail-shell/Rail.svelte:50 -> src/lib/features/rail-shell/rail-shell.types.ts type:RailAction,type:RailPin
 ## imported-by
@@ -28,7 +28,7 @@ test src/tests/lib/features/rail-shell/Rail.test.ts imports src/lib/features/rai
 test src/tests/lib/features/rail-shell/LayoutSection.test.ts imports src/lib/features/rail-shell/Rail.svelte
 test src/tests/lib/plugins/mods/mod-rail-icon.test.ts imports src/lib/features/rail-shell/Rail.svelte
 ## symbols
-sym src/lib/features/rail-shell/Rail.svelte:1 component Rail props:activeItem,onSelect L403
+sym src/lib/features/rail-shell/Rail.svelte:1 component Rail props:activeItem,onSelect L404
 by src/lib/features/rail-shell/Rail.svelte:default <- src/lib/app/AppShell.svelte:203 in (markup) mount
 ## locals
 local src/lib/features/rail-shell/Rail.svelte:163 fn itemRow(item: RailItem): Row L12
@@ -77,6 +77,6 @@ call src/lib/features/rail-shell/Rail.svelte:344 in (markup) -> src/lib/features
 call src/lib/features/rail-shell/Rail.svelte:345 in (markup) -> src/lib/features/rail-shell/Rail.svelte:endResize markup +1
 call src/lib/features/rail-shell/Rail.svelte:359 in (markup) -> src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath markup
 call src/lib/features/rail-shell/Rail.svelte:361 in (markup) -> src/lib/features/rail-shell/Rail.svelte:actionIcon markup
-call src/lib/features/rail-shell/Rail.svelte:397 in (markup) -> src/lib/features/rail-shell/rail-items.logic.ts:railBadgeTextColor markup
+call src/lib/features/rail-shell/Rail.svelte:397 in (markup) -> src/lib/features/rail-shell/rail-items.logic.ts:railBadgeColors markup
 ## effects
 fx src/lib/features/rail-shell/Rail.svelte:256 dom.dragstart svelte:window in (markup)
