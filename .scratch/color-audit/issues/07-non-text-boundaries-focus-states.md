@@ -16,7 +16,7 @@ Not in this ticket: graph view controls (Issue 11), canvas (Issue 09).
 
 **Size:** L. Split point: items 1 and 3 (tokens and shared controls) first, items 2, 4 and 5 second.
 
-**Blocked by:** 06
+**Blocked by:** none
 
 **Status:** ready-for-agent
 
@@ -26,6 +26,10 @@ Not in this ticket: graph view controls (Issue 11), canvas (Issue 09).
 - [ ] A source scan: no `ring-ring/` alpha in `src/lib` outside an allow-list with reasons.
 - [ ] Component tests for the switch off state and the Settings active section cue.
 - [ ] Snapshot updated on purpose; frontend gate passes.
+
+## Sequence with
+
+- Runs before 05 and 06 (owner order, 2026-11-19); the old "Blocked by 06" only kept builder edits serial. It adds its 3:1 pairs to `READABILITY_PAIRS` on its own; 05 and 06 rebase over it and keep them. The hard palettes fixture (`src/tests/fixtures/`) may not exist yet: create it here as Issue 05 describes.
 
 ## Findings covered
 

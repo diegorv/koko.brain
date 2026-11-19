@@ -76,7 +76,7 @@ Not in this ticket: tinted editor surfaces (callouts, blockquote, highlight, cod
 
 ## Sequence with
 
-- Issues 06, 07 and 12 edit the same builder and its tests: run after this one, never in parallel.
+- Issues 06, 07 and 12 edit the same builder and its tests: never in parallel. 07 and 12 run before this one (owner order, 2026-11-19): keep their pairs and re-measure them after the lift.
 - Issue 03 tokens are measured against the lifted `primary`: if 03 lands first, re-measure its shares here.
 
 ## Comments

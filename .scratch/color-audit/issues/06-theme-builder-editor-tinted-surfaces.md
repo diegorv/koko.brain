@@ -21,7 +21,7 @@ Read `docs/agents/live-preview-rules.md` before changing `styles.ts` or any widg
 
 **Size:** M. Split point: items 1 to 5 (live-preview text) first, items 6 to 8 second.
 
-**Blocked by:** 05
+**Blocked by:** 05, 07
 
 **Status:** ready-for-agent
 
