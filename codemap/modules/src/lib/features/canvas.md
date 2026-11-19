@@ -22,7 +22,7 @@ file src/lib/features/canvas/CanvasLinkInput.svelte component L163 module src/li
 file src/lib/features/canvas/CanvasToolbar.svelte component L78 module src/lib/features/canvas in1 t0
 file src/lib/features/canvas/CanvasView.svelte component L19 module src/lib/features/canvas in1 t0
 file src/lib/features/canvas/ColorPicker.svelte component L72 module src/lib/features/canvas in1 t0
-file src/lib/features/canvas/FileNode.svelte component L188 module src/lib/features/canvas in1 t0
+file src/lib/features/canvas/FileNode.svelte component L187 module src/lib/features/canvas in1 t0
 file src/lib/features/canvas/GroupNode.svelte component L45 module src/lib/features/canvas in1 t0
 file src/lib/features/canvas/ImageNode.svelte component L102 module src/lib/features/canvas in1 t0
 file src/lib/features/canvas/LinkNode.svelte component L216 module src/lib/features/canvas in1 t0

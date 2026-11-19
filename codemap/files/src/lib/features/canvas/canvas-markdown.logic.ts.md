@@ -13,7 +13,7 @@ out2 src/lib/features/canvas/canvas-markdown.logic.ts 0 files in 0 modules: -
 test src/tests/lib/features/canvas/canvas-markdown.logic.test.ts imports src/lib/features/canvas/canvas-markdown.logic.ts mirror
 ## symbols
 sym src/lib/features/canvas/canvas-markdown.logic.ts:14 fn renderCanvasMarkdown(text: string | undefined | null): string L5 | Renders markdown text to sanitized HTML for canvas card display.
-by src/lib/features/canvas/canvas-markdown.logic.ts:renderCanvasMarkdown <- src/lib/features/canvas/FileNode.svelte:83 in (markup) markup
+by src/lib/features/canvas/canvas-markdown.logic.ts:renderCanvasMarkdown <- src/lib/features/canvas/FileNode.svelte:82 in (markup) markup
 by src/lib/features/canvas/canvas-markdown.logic.ts:renderCanvasMarkdown <- src/lib/features/canvas/TextNode.svelte:74 in (markup) markup
 ## calls
 call src/lib/features/canvas/canvas-markdown.logic.ts:17 in renderCanvasMarkdown -> src/lib/utils/sanitize.ts:sanitizeHtml call

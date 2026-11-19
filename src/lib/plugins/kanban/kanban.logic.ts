@@ -415,8 +415,20 @@ export function toggleItem(board: KanbanBoard, laneId: string, itemId: string): 
 }
 
 /**
+ * Maps a drop slot counted over the rendered list, the dragged element still in it,
+ * to the index `moveItem` and `moveLane` insert at, which they count after taking
+ * the element out. A slot past the source shifts down by one.
+ * `sourceSlot` is the dragged element's position in that list, or -1 when it is not in it
+ * (a card dragged in from another lane), which leaves the slot as is.
+ */
+export function dropSlotToIndex(slot: number, sourceSlot: number): number {
+	return sourceSlot >= 0 && sourceSlot < slot ? slot - 1 : slot;
+}
+
+/**
  * Moves an item from one lane to another (or within the same lane).
- * The item is inserted at `toIndex` in the target lane.
+ * The item is inserted at `toIndex` in the target lane, counted after the item
+ * leaves its source lane (see dropSlotToIndex for a slot over the rendered cards).
  * If `autoCheck` is true, the item's checked state is set to true.
  * Only the card's indented continuation lines move with it (see takeItem).
  */

@@ -23,6 +23,7 @@
 		updateItem,
 		toggleItem,
 		moveItem,
+		dropSlotToIndex,
 		addLane,
 		removeLane,
 		renameLane,
@@ -462,16 +463,21 @@
 		// Calculate drop index from mouse position
 		const laneEl = (e.currentTarget as HTMLElement);
 		const cards = laneEl.querySelectorAll('[data-item-id]');
-		let toIndex = cards.length;
+		let slot = cards.length;
 
 		for (let i = 0; i < cards.length; i++) {
 			const rect = cards[i].getBoundingClientRect();
 			const midY = rect.top + rect.height / 2;
 			if (e.clientY < midY) {
-				toIndex = i;
+				slot = i;
 				break;
 			}
 		}
+		// The slot counts the dragged card when it is in this lane; moveItem counts without it.
+		const sourceSlot = dragFromLaneId === toLaneId
+			? [...cards].findIndex((c) => (c as HTMLElement).dataset.itemId === dragItemId)
+			: -1;
+		const toIndex = dropSlotToIndex(slot, sourceSlot);
 
 		// Check if target lane has auto-complete enabled
 		const targetLane = board.lanes.find((l) => l.id === toLaneId);
@@ -511,18 +517,20 @@
 		e.preventDefault();
 
 		const container = e.currentTarget as HTMLElement;
-		const laneEls = container.querySelectorAll('[data-lane-id]');
+		// Lane roots only: cards carry data-lane-id too, but sit deeper inside their lane.
+		const laneEls = container.querySelectorAll(':scope > [data-lane-id]');
 		const fromIndex = board.lanes.findIndex((l) => l.id === dragLaneId);
-		let toIndex = laneEls.length - 1;
+		let slot = laneEls.length;
 
 		for (let i = 0; i < laneEls.length; i++) {
 			const rect = laneEls[i].getBoundingClientRect();
 			const midX = rect.left + rect.width / 2;
 			if (e.clientX < midX) {
-				toIndex = i;
+				slot = i;
 				break;
 			}
 		}
+		const toIndex = dropSlotToIndex(slot, fromIndex);
 
 		if (fromIndex >= 0 && fromIndex !== toIndex) {
 			applyChange(moveLane(board, fromIndex, toIndex));

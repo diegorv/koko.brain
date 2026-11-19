@@ -1,0 +1,29 @@
+VERDICT: APPROVED
+
+## Acceptance criteria
+
+- [met] Failing test first, in src/tests/lib/plugins/kanban/KanbanView.test.ts: mount the harness with lanes 'To Do' [A,B,C] and 'Done' [D], stub getBoundingClientRect on the cards, dispatch dragstart on card A and drop on the To Do card list with clientY just above C's midpoint; the persisted markdown lists To Do as B, A, C. It fails today (B, C, A). — Test "a downward drop just above the third card lands between the second and the third" (KanbanView.test.ts, `drop slot inside one lane`) stubs rects 0-20/20-40/40-60, drops alpha at clientY 49 and asserts To Do = bravo, alpha, charlie. Probe: with main's KanbanView.svelte swapped in, this test fails; with the branch it passes.
+- [met] A drop on the lower half of the dragged card itself leaves the lane order unchanged. — Test "a drop on the lower half of the dragged card itself leaves the lane unchanged" drops alpha at clientY 15 (alpha midpoint 10) and asserts both the lane order and byte-identical markdown. Fails against main's view, passes on the branch. Code: `dropSlotToIndex(1, 0)` = 0 = source index (KanbanView.svelte handleItemDrop).
+- [met] Failing test first, same file: board with three lanes that each hold cards, stub lane rects, dragstart on lane 1's grip and drop with clientX past the last lane's midpoint; the persisted lane order is lane 2, lane 3, lane 1. It fails today (no change). — Test "a drop past the last lane's midpoint moves the first lane to the end" (`lane drag`): three lanes with cards, lane rects stubbed, dragstart on the "Drag to reorder lane" grip, drop on the board region at clientX 300, asserts Two, Three, One. Fails against main's view (no change), passes on the branch. Fix: `:scope > [data-lane-id]` counts lane roots only (lanes are direct children of the region, KanbanView.svelte:635-642; cards carry data-lane-id at KanbanCard.svelte:209 but are nested), fallback slot `laneEls.length`, then `dropSlotToIndex`.
+- [met] Dropping a lane before the lane to its right's right neighbour lands it between those two lanes, matching the drop position. — Test "a drop before the third lane lands the first lane between the second and the third" drops lane One at clientX 200 (between midpoints 160 and 270) and asserts Two, One, Three. Fails against main's view, passes on the branch.
+- [met] Upward card moves, cross-lane card moves and auto-complete on cross-lane drop behave as today (existing moveItem tests stay green). — Upward move covered by the new "an upward drop above the first card moves the card to the top" (C, A, B; passes on main and branch). Cross-lane: `sourceSlot` is -1 when `dragFromLaneId !== toLaneId`, so `toIndex` equals the raw slot as before; existing "a drop into another lane moves the card" (KanbanView.test.ts:1641) passes. `autoCheck` computation untouched; moveItem autoCheck tests in kanban.logic.test.ts pass. `moveItem`/`moveLane` bodies unchanged (only JSDoc edited).
+- [met] Frontend gate: pnpm check and pnpm vitest run pass. — `pnpm check`: exit 0, 0 errors, 0 warnings (run by me). Targeted tests pass (below). The full `pnpm vitest run` is deliver's to run.
+
+## Checks run by the reviewer
+
+- `pnpm check` at the worktree root: exit 0, 237 files, 0 errors, 0 warnings.
+- `pnpm vitest run src/tests/lib/plugins/kanban/KanbanView.test.ts src/tests/lib/plugins/kanban/kanban.logic.test.ts`: exit 0, 2 files, 348 tests passed. The test verdict rests on these two files (the test files of both changed source files, and the files the diff changes).
+- Red probe: replaced src/lib/plugins/kanban/KanbanView.svelte with `git show main:` and ran `pnpm vitest run src/tests/lib/plugins/kanban/KanbanView.test.ts -t 'drop|lane drag'`: exit 1, the four new card-in-lane and lane tests fail, the upward-move and cross-lane tests pass. File restored with `git checkout HEAD --`; worktree clean afterwards.
+- Scope: diff touches only kanban.logic.ts, KanbanView.svelte, their two test files and the workflow's discovery.md. No layer-baseline change, no new composition root. No `.scratch/open-itens/spec.md` exists.
+
+## Findings
+
+1. nit, src/tests/lib/plugins/kanban/KanbanView.test.ts:1718 (`lane drag`): no view-level test for a leftward lane move (e.g. lane Three dropped before lane One). The old code broke leftward moves too (it counted cards), and the new path for them is `dropSlotToIndex(slot < source)` = slot, covered only by the unit test. Fix: add one leftward drop asserting Three, One, Two.
+2. nit, src/tests/lib/plugins/kanban/KanbanView.test.ts:1641: auto-complete on a cross-lane drag drop has no view-level test (the existing auto-complete tests go through Move to, :1547). The branch leaves that path unchanged, so this is not a regression risk from this diff. Fix (optional): a drag into an auto-complete lane asserting the card is checked.
+3. nit, src/lib/plugins/kanban/KanbanView.svelte:521: `:scope > [data-lane-id]` depends on lane roots staying direct children of the board region; a future wrapper around `KanbanLane` would make the lane drop silently count nothing (slot 0) again. The lane drop tests would catch that, so no change is required; a dedicated attribute only the lane root carries (e.g. `data-lane-root`) would remove the structural coupling.
+
+## Resolution
+
+1. Fixed: `lane drag` helper takes the lane title (`dragLane`); new test "a drop before the first lane's midpoint moves the last lane to the start" drags Three to clientX 20 and asserts Three, One, Two.
+2. Fixed: new `card drag` test "a drop into an auto-complete lane checks the card" drags first card into Done with auto-complete on and asserts it lands last and checked.
+3. Rejected: the reviewer marks it as no change required, the lane drop tests fail if a wrapper breaks `:scope > [data-lane-id]`, and a new lane-root attribute would touch KanbanLane.svelte beyond this Issue's scope.

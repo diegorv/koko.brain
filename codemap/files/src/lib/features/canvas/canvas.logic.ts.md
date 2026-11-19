@@ -6,7 +6,7 @@ imp src/lib/features/canvas/canvas.logic.ts:1 -> src/lib/features/canvas/canvas.
 imp src/lib/features/canvas/canvas.logic.ts:10 -> src/lib/features/canvas/canvas.types.ts CANVAS_COLOR_MAP
 ## imported-by
 imp src/lib/features/canvas/CanvasInner.svelte:27 -> src/lib/features/canvas/canvas.logic.ts parseCanvas,serializeCanvas,canvasToFlow,flowToCanvas,createTextNode,createFileNode,createLinkNode,createGroupNode,createImageNode,canvasNodeToFlowNode,duplicateNode,resolveColor,generateId,toVaultRelativePath
-imp src/lib/features/canvas/FileNode.svelte:7 -> src/lib/features/canvas/canvas.logic.ts resolveColor
+imp src/lib/features/canvas/FileNode.svelte:7 -> src/lib/features/canvas/canvas.logic.ts resolveCanvasFilePath,resolveColor
 imp src/lib/features/canvas/GroupNode.svelte:3 -> src/lib/features/canvas/canvas.logic.ts resolveColor
 imp src/lib/features/canvas/ImageNode.svelte:4 -> src/lib/features/canvas/canvas.logic.ts resolveColor
 imp src/lib/features/canvas/LinkNode.svelte:5 -> src/lib/features/canvas/canvas.logic.ts resolveColor
@@ -58,9 +58,10 @@ by src/lib/features/canvas/canvas.logic.ts:createGroupNode <- src/lib/features/c
 sym src/lib/features/canvas/canvas.logic.ts:370 fn createImageNode(x: number, y: number, file: string): CanvasNode L3 | Creates a new image node referencing a file or URL
 by src/lib/features/canvas/canvas.logic.ts:createImageNode <- src/lib/features/canvas/CanvasInner.svelte:507 in handleImageSelected call +1
 sym src/lib/features/canvas/canvas.logic.ts:379 fn resolveCanvasFilePath(file: string, vaultPath: string | null): string L4 | Resolves a node's `file` to a path the filesystem can read.
+by src/lib/features/canvas/canvas.logic.ts:resolveCanvasFilePath <- src/lib/features/canvas/FileNode.svelte:40 in $effect@31 call +1
 by src/lib/features/canvas/canvas.logic.ts:resolveCanvasFilePath <- src/lib/features/canvas/canvas-image.service.ts:34 in resolveImageSrc call
 sym src/lib/features/canvas/canvas.logic.ts:389 fn toVaultRelativePath(path: string, vaultPath: string | null): string L4 | Strips the vault prefix from a path inside the vault, so new nodes store vault-relative paths.
-by src/lib/features/canvas/canvas.logic.ts:toVaultRelativePath <- src/lib/features/canvas/CanvasInner.svelte:507 in handleImageSelected call +1
+by src/lib/features/canvas/canvas.logic.ts:toVaultRelativePath <- src/lib/features/canvas/CanvasInner.svelte:498 in handleFileSelected call +3
 sym src/lib/features/canvas/canvas.logic.ts:395 fn duplicateNode(node: CanvasNode, offsetX = 20, offsetY = 20): CanvasNode L3 | Duplicates a node with a new ID and offset position
 by src/lib/features/canvas/canvas.logic.ts:duplicateNode <- src/lib/features/canvas/CanvasInner.svelte:381 in handleDuplicateNode call
 ## locals
