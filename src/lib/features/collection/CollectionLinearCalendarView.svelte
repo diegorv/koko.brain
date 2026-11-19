@@ -4,7 +4,7 @@
 		buildLinearYearLayout,
 		buildColorMapping,
 		getColorForValue,
-		barTextColor,
+		barColors,
 		type MonthRow,
 		type ColorMapping,
 	} from './linear-calendar.logic';
@@ -130,7 +130,7 @@
 				<div class="flex items-center gap-1.5">
 					<span
 						class="inline-block size-3 rounded-sm"
-						style="background: {getColorForValue(value, colorMapping)}"
+						style="background: {barColors(getColorForValue(value, colorMapping) ?? '').fill}"
 					></span>
 					<span class="text-xs text-muted-foreground">{value}</span>
 				</div>
@@ -203,8 +203,8 @@
 										width: {getBarWidth(startDay, endDay, row.daysInMonth)};
 										top: {getBarTop(event.lane)};
 										height: {BAR_HEIGHT}px;
-										background: {getBarColor(event.colorValue)};
-										color: {barTextColor(getBarColor(event.colorValue))};
+										background: {barColors(getBarColor(event.colorValue)).fill};
+										color: {barColors(getBarColor(event.colorValue)).text};
 									"
 									onclick={() => onClickRecord?.(event.record)}
 									title={event.record.basename}

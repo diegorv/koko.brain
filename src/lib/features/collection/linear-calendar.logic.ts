@@ -1,4 +1,4 @@
-import { contrastRatio } from '#lib/utils/color.js';
+import { labelColors } from '#lib/utils/color.js';
 import type { PropertyIndexRecord } from './collection.types';
 import { extractDateFromRecord } from './calendar.logic';
 import { getPropertyValue } from './collection.logic';
@@ -295,14 +295,14 @@ export function getColorForValue(value: string | null, mapping: ColorMapping): s
 }
 
 /**
- * Text color for an event bar title: black or white, whichever contrasts more
- * with a `COLOR_PALETTE` bar. The `var(--primary)` fallback bar, and any color
- * that is not an `hsl()`, gets the theme's `--primary-foreground`.
+ * Fill and title color for an event bar on a `COLOR_PALETTE` color, from
+ * `labelColors`; the legend swatch uses the same fill. The `var(--primary)`
+ * fallback bar, and any color that is not an `hsl()`, keeps its color with the
+ * theme's `--primary-foreground`.
  */
-export function barTextColor(barColor: string): string {
+export function barColors(barColor: string): { fill: string; text: string } {
 	const hex = hslToHex(barColor);
-	if (!hex) return 'var(--primary-foreground)';
-	return contrastRatio('#000000', hex)! >= contrastRatio('#ffffff', hex)! ? '#000000' : '#ffffff';
+	return (hex && labelColors(hex)) || { fill: barColor, text: 'var(--primary-foreground)' };
 }
 
 /** `hsl(h, s%, l%)` to a 6-digit hex (CSS Color 4 conversion); null for anything else. */

@@ -8,10 +8,10 @@ import {
 	buildLinearYearLayout,
 	buildColorMapping,
 	getColorForValue,
-	barTextColor,
+	barColors,
 	COLOR_PALETTE,
 } from '#lib/features/collection/linear-calendar.logic.js';
-import { contrastRatio } from '#lib/utils/color.js';
+import { colorDistance, contrastRatio } from '#lib/utils/color.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 
 function makeRecord(
@@ -499,24 +499,31 @@ describe('getColorForValue', () => {
 	});
 });
 
-describe('barTextColor', () => {
-	it.each(COLOR_PALETTE)('picks the black or white text with the higher contrast on %s', (color) => {
-		const text = barTextColor(color);
+describe('barColors', () => {
+	it.each(COLOR_PALETTE)('gives %s black or white text at 4.5:1 or more on its fill', (color) => {
+		const { fill, text } = barColors(color);
 		expect(['#000000', '#ffffff']).toContain(text);
-		const hex = hslHex(color);
-		const other = text === '#000000' ? '#ffffff' : '#000000';
-		expect(contrastRatio(text, hex)!).toBeGreaterThanOrEqual(contrastRatio(other, hex)!);
-		expect(contrastRatio(text, hex)!).toBeGreaterThanOrEqual(4.5);
+		expect(contrastRatio(text, fill)!).toBeGreaterThanOrEqual(4.5);
+		expect(colorDistance(fill, hslHex(color))!).toBeLessThan(25);
 	});
 
-	it('uses dark text on a light bar and light text on a dark bar', () => {
-		expect(barTextColor('hsl(60, 65%, 55%)')).toBe('#000000');
-		expect(barTextColor('hsl(240, 60%, 25%)')).toBe('#ffffff');
+	it('gives white text on the blue, pink, purple and red slots, on a darker fill', () => {
+		for (const color of ['hsl(210, 70%, 60%)', 'hsl(340, 65%, 60%)', 'hsl(280, 55%, 60%)', 'hsl(0, 60%, 60%)']) {
+			const { fill, text } = barColors(color);
+			expect(text).toBe('#ffffff');
+			expect(contrastRatio('#000000', fill)!).toBeLessThan(contrastRatio('#000000', hslHex(color))!);
+		}
 	});
 
-	it('uses the theme pair for the accent fallback and for any color it cannot parse', () => {
-		expect(barTextColor('var(--primary)')).toBe('var(--primary-foreground)');
-		expect(barTextColor('')).toBe('var(--primary-foreground)');
+	it('gives black text on the yellow, amber and lime slots, fill unchanged', () => {
+		for (const color of ['hsl(60, 65%, 55%)', 'hsl(45, 75%, 60%)', 'hsl(90, 50%, 55%)']) {
+			expect(barColors(color)).toEqual({ fill: hslHex(color), text: '#000000' });
+		}
+	});
+
+	it('keeps the accent fallback, and any color it cannot parse, with the theme pair', () => {
+		expect(barColors('var(--primary)')).toEqual({ fill: 'var(--primary)', text: 'var(--primary-foreground)' });
+		expect(barColors('')).toEqual({ fill: '', text: 'var(--primary-foreground)' });
 	});
 });
 
