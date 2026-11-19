@@ -34,7 +34,7 @@ imp src/lib/core/settings/settings-persistence.svelte.ts:1 -> src/lib/core/setti
 imp src/lib/core/settings/settings.service.ts:4 -> src/lib/core/settings/settings.store.svelte.ts settingsStore,DEFAULT_SETTINGS
 imp src/lib/core/settings/theme.service.ts:5 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/core/settings/update-check.service.ts:3 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
-imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:27 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
+imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:29 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:9 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/features/auto-organize/auto-organize.service.ts:15 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/features/deep-link/deep-link.service.ts:11 -> src/lib/core/settings/settings.store.svelte.ts settingsStore

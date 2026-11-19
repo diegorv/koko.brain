@@ -3,7 +3,7 @@ cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t
 file src/lib/features/file-icons/file-icons.types.ts types L44 module src/lib/features/file-icons in14 t0
 ## imported-by
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:13 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId
-imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:30 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId
+imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:32 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId
 imp src/lib/features/auto-organize/auto-organize.types.ts:4 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId
 imp src/lib/features/file-icons/IconPicker.svelte:3 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId,type:NormalizedIcon
 imp src/lib/features/file-icons/IconRenderer.svelte:2 -> src/lib/features/file-icons/file-icons.types.ts type:NormalizedIcon
@@ -26,7 +26,7 @@ test src/tests/lib/features/file-icons/icon-resolver.test.ts imports-type src/li
 ## symbols
 sym src/lib/features/file-icons/file-icons.types.ts:2 type IconPackId L13 | Supported icon pack identifiers
 by src/lib/features/file-icons/file-icons.types.ts:IconPackId <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:13 in (script) import
-by src/lib/features/file-icons/file-icons.types.ts:IconPackId <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:30 in (script) import
+by src/lib/features/file-icons/file-icons.types.ts:IconPackId <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:32 in (script) import
 by src/lib/features/file-icons/file-icons.types.ts:IconPackId <- src/lib/features/file-icons/IconPicker.svelte:3 in (script) import
 by src/lib/features/file-icons/file-icons.types.ts:IconPackId <- src/lib/features/file-icons/file-icons.icon-data.ts:1 in (module) import
 by src/lib/features/file-icons/file-icons.types.ts:IconPackId <- src/lib/features/file-icons/file-icons.logic.ts:2 in (module) import

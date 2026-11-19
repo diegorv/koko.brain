@@ -21,13 +21,13 @@ imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:19 -> src/lib
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:20 -> src/lib/features/auto-organize/auto-organize.types.ts type:RuleProperty
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:21 -> src/lib/features/auto-organize/auto-organize.logic.ts computeRuleValue,exprProblem,isBooleanOnlyKey,isRefusedKey,parseRuleItems,ruleRecordStats,ruleValueEditor
 ## imported-by
-imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:48 -> src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte default
+imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:50 -> src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte default
 ## reach
 in2 src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte 1 files in 1 modules: src/lib/features/auto-organize(1)
 out2 src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte 34 files in 9 modules: src/lib/components(16) src/lib/features/collection(6) src/lib/utils(3) src/lib/core/editor(2) src/lib/core/filesystem(2) +4 modules
 ## symbols
 sym src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:1 component AutoOrganizeRuleProperty props:property,listId,allowRemove=,onchange,onremove L396
-by src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:587 in (markup) mount +1
+by src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:601 in (markup) mount +1
 ## locals
 local src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:96 fn fitted(key: string, value: RuleProperty['value'], mode: RuleProperty['mode'], from: RuleProperty['mode'], expr?: string): Rul… L26
 local src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:124 fn save(next: RuleProperty) L12
@@ -53,8 +53,8 @@ mount src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:330 Input -
 mount src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:360 Button -> src/lib/components/ui/button/button.svelte
 mount src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:385 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 ## mounted-at
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:587 AutoOrganizeRuleProperty -> src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:631 AutoOrganizeRuleProperty -> src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:601 AutoOrganizeRuleProperty -> src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:645 AutoOrganizeRuleProperty -> src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte
 ## calls
 call src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:63 in editor=$derived -> src/lib/features/auto-organize/auto-organize.logic.ts:ruleValueEditor call
 call src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:65 in showTypeChooser=$derived -> src/lib/features/auto-organize/auto-organize.logic.ts:isBooleanOnlyKey call

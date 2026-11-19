@@ -6,7 +6,7 @@ imp src/lib/features/collection/collection.store.svelte.ts:1 -> src/lib/features
 ## imported-by
 imp src/lib/app/boot.ts:8 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:18 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
-imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:16 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
+imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:17 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/auto-organize/auto-organize.service.ts:45 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/collection/CollectionView.svelte:16 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/collection/collection-block-widget.ts:7 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
@@ -66,7 +66,7 @@ more tests 5 not shown: src/tests/lib/plugins/queryjs(3) src/tests/lib/plugins/m
 sym src/lib/features/collection/collection.store.svelte.ts:28 store collectionStore L56 | Reactive store for the collection property index
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/app/boot.ts:79 in registerAppPorts member
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:184 in preview=$derived member
-by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:92 in availableProperties=$derived member +4
+by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:94 in availableProperties=$derived member +5
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/auto-organize/auto-organize.service.ts:293 in evaluateAndMove member
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/collection/CollectionView.svelte:148 in restoreViewIndex mcall +7
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/collection/collection-block-widget.ts:85 in CollectionBlockWidget.constructor member +5
@@ -75,8 +75,8 @@ by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src
 more by 5 not shown: src/lib/plugins/mods(2) src/lib/features/rail-shell(1) src/lib/features/type-definitions(1) src/lib/plugins/queryjs(1): q importers src/lib/features/collection/collection.store.svelte.ts:collectionStore
 ## store
 store src/lib/features/collection/collection.store.svelte.ts:28 collectionStore esc:0
-mem src/lib/features/collection/collection.store.svelte.ts:29 get collectionStore.propertyIndex r:28 w-via:setPropertyIndex,updateRecord,removeRecord,reset
-more r 28 not shown: src/lib/features/collection(8) src/lib/features/auto-organize(7) src/lib/features/rail-shell(6) src/lib/plugins/mods(3) src/lib/features/type-definitions(2) src/lib/app(1) src/lib/plugins/queryjs(1): q store src/lib/features/collection/collection.store.svelte.ts:collectionStore.propertyIndex
+mem src/lib/features/collection/collection.store.svelte.ts:29 get collectionStore.propertyIndex r:29 w-via:setPropertyIndex,updateRecord,removeRecord,reset
+more r 29 not shown: src/lib/features/auto-organize(8) src/lib/features/collection(8) src/lib/features/rail-shell(6) src/lib/plugins/mods(3) src/lib/features/type-definitions(2) src/lib/app(1) src/lib/plugins/queryjs(1): q store src/lib/features/collection/collection.store.svelte.ts:collectionStore.propertyIndex
 mem src/lib/features/collection/collection.store.svelte.ts:30 get collectionStore.isIndexReady r:12 w-via:setPropertyIndex,reset
 more r 12 not shown: src/lib/features/collection(5) src/lib/features/rail-shell(3) src/lib/plugins/queryjs(3) src/lib/plugins/mods(1): q store src/lib/features/collection/collection.store.svelte.ts:collectionStore.isIndexReady
 mem src/lib/features/collection/collection.store.svelte.ts:31 get collectionStore.version r:src/lib/features/collection/collection-block-widget.ts:86,src/lib/features/collection/collection-block-widget.ts:461,src/lib/plugins/mods/mod-app.service.ts:88,src/lib/plugins/queryjs/queryjs-block-widget.ts:258 w-via:setPropertyIndex,updateRecord,removeRecord

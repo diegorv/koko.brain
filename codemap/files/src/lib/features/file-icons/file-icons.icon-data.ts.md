@@ -5,7 +5,7 @@ file src/lib/features/file-icons/file-icons.icon-data.ts other L320 module src/l
 imp src/lib/features/file-icons/file-icons.icon-data.ts:1 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId,type:IconPackMeta,type:NormalizedIcon
 ## imported-by
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:10 -> src/lib/features/file-icons/file-icons.icon-data.ts getIconSync
-imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:14 -> src/lib/features/file-icons/file-icons.icon-data.ts getIconSync
+imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:15 -> src/lib/features/file-icons/file-icons.icon-data.ts getIconSync
 imp src/lib/features/file-icons/IconPicker.svelte:4 -> src/lib/features/file-icons/file-icons.icon-data.ts getAllIconPacks,getIconsForPack,getIconSync
 imp src/lib/features/file-icons/file-icons.service.ts:16 -> src/lib/features/file-icons/file-icons.icon-data.ts preloadPacks,setOnPacksLoaded
 imp src/lib/features/file-icons/icon-resolver.ts:2 -> src/lib/features/file-icons/file-icons.icon-data.ts getIconSync
@@ -55,7 +55,7 @@ sym src/lib/features/file-icons/file-icons.icon-data.ts:274 fn getIconsForPack(p
 by src/lib/features/file-icons/file-icons.icon-data.ts:getIconsForPack <- src/lib/features/file-icons/IconPicker.svelte:90 in loadIcons call +1
 sym src/lib/features/file-icons/file-icons.icon-data.ts:306 fn getIconSync(pack: IconPackId, name: string): NormalizedIcon | undefined L8 | Looks up a single icon by pack and name (for rendering in file tree).
 by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:225 in resolvedIcon call
-by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:397 in getResolvedIcon call
+by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:404 in getResolvedIcon call
 by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/file-icons/IconPicker.svelte:74 in recentNormalized=$derived call +1
 by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/file-icons/icon-resolver.ts:50 in resolveRef call
 by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/rail-shell/Rail.svelte:215 in actionIcon call

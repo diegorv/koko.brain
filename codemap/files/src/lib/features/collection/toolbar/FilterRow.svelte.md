@@ -18,7 +18,7 @@ out2 src/lib/features/collection/toolbar/FilterRow.svelte 28 files in 5 modules:
 test src/tests/lib/features/collection/toolbar/FilterRow.svelte.test.ts imports src/lib/features/collection/toolbar/FilterRow.svelte mirror
 ## symbols
 sym src/lib/features/collection/toolbar/FilterRow.svelte:1 component FilterRow props:row,availableProperties,propertyIndex,onUpdate,onRemove L205
-by src/lib/features/collection/toolbar/FilterRow.svelte:default <- src/lib/features/collection/toolbar/FilterPanel.svelte:135 in (markup) mount +1
+by src/lib/features/collection/toolbar/FilterRow.svelte:default <- src/lib/features/collection/toolbar/FilterPanel.svelte:128 in (markup) mount +1
 ## locals
 local src/lib/features/collection/toolbar/FilterRow.svelte:73 fn handlePropertyChange(property: string) L5
 local src/lib/features/collection/toolbar/FilterRow.svelte:79 fn handleOperatorChange(operator: FilterOperator) L3
@@ -43,8 +43,8 @@ mount src/lib/features/collection/toolbar/FilterRow.svelte:174 DropdownMenuConte
 mount src/lib/features/collection/toolbar/FilterRow.svelte:176 DropdownMenuItem -> src/lib/components/ui/dropdown-menu/dropdown-menu-item.svelte
 mount src/lib/features/collection/toolbar/FilterRow.svelte:194 Button -> src/lib/components/ui/button/button.svelte
 ## mounted-at
-mount src/lib/features/collection/toolbar/FilterPanel.svelte:135 FilterRow -> src/lib/features/collection/toolbar/FilterRow.svelte
-mount src/lib/features/collection/toolbar/FilterPanel.svelte:200 FilterRow -> src/lib/features/collection/toolbar/FilterRow.svelte
+mount src/lib/features/collection/toolbar/FilterPanel.svelte:128 FilterRow -> src/lib/features/collection/toolbar/FilterRow.svelte
+mount src/lib/features/collection/toolbar/FilterPanel.svelte:195 FilterRow -> src/lib/features/collection/toolbar/FilterRow.svelte
 ## calls
 call src/lib/features/collection/toolbar/FilterRow.svelte:36 in propertyType=$derived -> src/lib/features/collection/toolbar/filter.logic.ts:inferPropertyType call
 call src/lib/features/collection/toolbar/FilterRow.svelte:44 in rawError=$derived -> src/lib/features/collection/expression/evaluator.ts:validateExpression call

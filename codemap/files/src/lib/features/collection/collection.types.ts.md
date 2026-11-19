@@ -5,7 +5,7 @@ file src/lib/features/collection/collection.types.ts types L117 module src/lib/f
 ## imports
 imp src/lib/features/collection/collection.types.ts:1 -> src/lib/features/collection/yaml-parser.ts type:ViewType
 ## imported-by
-imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:24 -> src/lib/features/collection/collection.types.ts type:FilterItem
+imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:26 -> src/lib/features/collection/collection.types.ts type:FilterItem
 imp src/lib/features/auto-organize/auto-organize.logic.ts:12 -> src/lib/features/collection/collection.types.ts type:FilterItem,type:PropertyIndexRecord
 imp src/lib/features/auto-organize/auto-organize.service.ts:46 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
 imp src/lib/features/auto-organize/auto-organize.types.ts:81 -> src/lib/features/collection/collection.types.ts type:FilterItem
@@ -90,7 +90,7 @@ test src/tests/lib/plugins/mods/mod-query.service.test.ts imports-type src/lib/f
 more tests 5 not shown: src/tests/lib/plugins/queryjs(5): q tests src/lib/features/collection/collection.types.ts
 ## symbols
 sym src/lib/features/collection/collection.types.ts:4 type FilterItem L1 | Recursive filter type: an object with conjunctions or a string expression
-by src/lib/features/collection/collection.types.ts:FilterItem <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:24 in (script) import
+by src/lib/features/collection/collection.types.ts:FilterItem <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:26 in (script) import
 by src/lib/features/collection/collection.types.ts:FilterItem <- src/lib/features/auto-organize/auto-organize.logic.ts:12 in (module) import
 by src/lib/features/collection/collection.types.ts:FilterItem <- src/lib/features/collection/collection.logic.ts:5 in (module) import
 by src/lib/features/collection/collection.types.ts:FilterItem <- src/lib/features/collection/toolbar/filter.logic.ts:1 in (module) import
