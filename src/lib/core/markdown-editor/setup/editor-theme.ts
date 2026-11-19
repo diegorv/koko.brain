@@ -66,8 +66,10 @@ export function buildEditorTheme(
 				color: 'var(--muted-foreground)',
 				borderRight: '1px solid var(--border)',
 			},
+			// Muted gutter text falls under 4.5:1 on the gutter fill; the builder pairs editor-fg with it
 			'.cm-activeLineGutter': {
 				backgroundColor: 'var(--syntax-active-line-gutter)',
+				color: 'var(--editor-fg)',
 			},
 			'.cm-tooltip': {
 				backgroundColor: 'var(--popover)',

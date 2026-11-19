@@ -406,22 +406,22 @@
  * Event calendar colors. Declared once, outside .dark: themes (light ones
  * included) only set inline variables on the root, so the hues are mixed
  * with the active --editor-bg / --editor-fg and follow every preset.
- * 25% bg / 30% fg keeps every pair at 4.5:1 or more on KokoBrain Default
- * and Sakura.
+ * 20% bg / 20% fg keeps every pair at 4.5:1 and |Lc| 45 on the light
+ * Zettlr editors, the hardest (editor-surface-mixes.test.ts).
  */
 :root {
-	--event-green-bg: color-mix(in oklab, #10b981 25%, var(--editor-bg));
-	--event-green-fg: color-mix(in oklab, #10b981 30%, var(--editor-fg));
-	--event-purple-bg: color-mix(in oklab, #8b5cf6 25%, var(--editor-bg));
-	--event-purple-fg: color-mix(in oklab, #8b5cf6 30%, var(--editor-fg));
-	--event-cyan-bg: color-mix(in oklab, #06b6d4 25%, var(--editor-bg));
-	--event-cyan-fg: color-mix(in oklab, #06b6d4 30%, var(--editor-fg));
-	--event-orange-bg: color-mix(in oklab, #f97316 25%, var(--editor-bg));
-	--event-orange-fg: color-mix(in oklab, #f97316 30%, var(--editor-fg));
-	--event-pink-bg: color-mix(in oklab, #ec4899 25%, var(--editor-bg));
-	--event-pink-fg: color-mix(in oklab, #ec4899 30%, var(--editor-fg));
-	--event-blue-bg: color-mix(in oklab, #3b82f6 25%, var(--editor-bg));
-	--event-blue-fg: color-mix(in oklab, #3b82f6 30%, var(--editor-fg));
+	--event-green-bg: color-mix(in oklab, #10b981 20%, var(--editor-bg));
+	--event-green-fg: color-mix(in oklab, #10b981 20%, var(--editor-fg));
+	--event-purple-bg: color-mix(in oklab, #8b5cf6 20%, var(--editor-bg));
+	--event-purple-fg: color-mix(in oklab, #8b5cf6 20%, var(--editor-fg));
+	--event-cyan-bg: color-mix(in oklab, #06b6d4 20%, var(--editor-bg));
+	--event-cyan-fg: color-mix(in oklab, #06b6d4 20%, var(--editor-fg));
+	--event-orange-bg: color-mix(in oklab, #f97316 20%, var(--editor-bg));
+	--event-orange-fg: color-mix(in oklab, #f97316 20%, var(--editor-fg));
+	--event-pink-bg: color-mix(in oklab, #ec4899 20%, var(--editor-bg));
+	--event-pink-fg: color-mix(in oklab, #ec4899 20%, var(--editor-fg));
+	--event-blue-bg: color-mix(in oklab, #3b82f6 20%, var(--editor-bg));
+	--event-blue-fg: color-mix(in oklab, #3b82f6 20%, var(--editor-fg));
 }
 
 /*
@@ -454,8 +454,9 @@
 :root {
 	--lp-codeblock-border: var(--lp-table-border);
 	--lp-codeblock-header-bg: color-mix(in oklab, var(--lp-codeblock-bg) 92%, var(--editor-fg));
-	--lp-codeblock-lang: var(--muted-foreground);
-	--lp-codeblock-copy: var(--muted-foreground);
+	/* Muted text is measured on the plain surfaces, not on the tinted header: moved toward the text color */
+	--lp-codeblock-lang: color-mix(in oklab, var(--muted-foreground) 70%, var(--editor-fg));
+	--lp-codeblock-copy: color-mix(in oklab, var(--muted-foreground) 70%, var(--editor-fg));
 	--lp-codeblock-copy-hover: var(--lp-collection-table-hover);
 	--lp-codeblock-text: var(--editor-fg);
 	--lp-syntax-keyword: color-mix(in oklab, var(--callout-important) 45%, var(--editor-fg));
@@ -471,7 +472,7 @@
 	--lp-syntax-attr: color-mix(in oklab, var(--lp-link) 45%, var(--editor-fg));
 	--lp-syntax-property: color-mix(in oklab, var(--lp-link) 45%, var(--editor-fg));
 	--lp-syntax-tag: color-mix(in oklab, var(--callout-caution) 45%, var(--editor-fg));
-	--lp-syntax-punctuation: color-mix(in oklab, var(--editor-fg) 65%, var(--lp-codeblock-bg));
+	--lp-syntax-punctuation: color-mix(in oklab, var(--editor-fg) 80%, var(--lp-codeblock-bg));
 	--lp-syntax-operator: color-mix(in oklab, var(--lp-link) 45%, var(--editor-fg));
 	--lp-meta-bind-select-bg: var(--input-bg);
 	--lp-meta-bind-select-text: var(--editor-fg);
@@ -514,10 +515,12 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 /*
  * Search snippet match highlight. Tailwind preflight does not reset `mark`,
  * so without this WebKit paints it yellow with black text in every theme.
+ * The match takes the sidebar text color, which the theme builder keeps
+ * readable on the highlight; the snippet's muted text is not.
  */
 [data-search-result] mark {
 	background-color: var(--lp-highlight-bg);
-	color: inherit;
+	color: var(--file-explorer-fg);
 }
 
 @layer base {

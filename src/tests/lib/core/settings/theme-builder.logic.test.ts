@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTheme, alpha, coreFromColors, minLcOf, READABILITY_PAIRS, TYPE_PALETTE_TOKENS, readabilityFailures, withReadableContrast, type CorePalette } from '#lib/core/settings/theme-builder.logic.js';
+import { buildTheme, alpha, coreFromColors, HIGHLIGHT_FLOOR, minLcOf, READABILITY_PAIRS, TYPE_PALETTE_TOKENS, readabilityFailures, withReadableContrast, type CorePalette } from '#lib/core/settings/theme-builder.logic.js';
 import { apcaContrast, colorDistance, contrastRatio, flatten, mixColors, tint } from '#lib/utils/color.js';
 import { BUILTIN_THEMES, mergeThemeWithDefaults } from '#lib/core/settings/theme.logic.js';
 import { KOKOBRAIN_DEFAULT_THEME, LAVENDER_HAZE_THEME } from '#lib/core/settings/theme.logic.js';
@@ -61,12 +61,12 @@ describe('buildTheme', () => {
 	});
 
 	it('derives the type palette and warning from the core hues', () => {
-		const { ui, callout } = buildTheme('T', CORE).colors;
+		const { ui } = buildTheme('T', CORE).colors;
 		expect(ui.typeRed).toBe(CORE.error);
 		expect(ui.typeGreen).toBe(CORE.green);
 		expect(ui.typeBlue).toBe(CORE.blue);
 		expect(ui.typePurple).toBe(CORE.purple);
-		expect(ui.typeYellow).toBe(callout.warning);
+		expect(ui.typeYellow).toBe(CORE.yellow);
 		expect(ui.typeGray).toBe(ui.mutedForeground);
 		expect(ui.typeOrange).toBe(mixColors(CORE.error, CORE.yellow));
 		expect(ui.typeTeal).toBe(mixColors(CORE.green, CORE.blue));
@@ -92,13 +92,13 @@ describe('buildTheme', () => {
 
 	it('uses optional core fields when given', () => {
 		const { syntax, preview, wikilink } = buildTheme('T', {
-			...CORE, inlineFg: '#333333', linkFg: '#0000ff', meta: '#777777', blockquoteAccent: '#008800',
+			...CORE, inlineFg: '#333333', linkFg: '#0000ff', meta: '#666666', blockquoteAccent: '#008800',
 		}).colors;
 		expect(syntax.emphasis).toBe('#333333');
 		expect(syntax.link).toBe('#0000ff');
 		expect(wikilink.display).toBe('#0000ff');
-		expect(syntax.meta).toBe('#777777');
-		expect(wikilink.bracket).toBe('#777777');
+		expect(syntax.meta).toBe('#666666');
+		expect(wikilink.bracket).toBe('#666666');
 		expect(preview.blockquoteBorder).toBe('#008800');
 		expect(preview.blockquoteBg).toBe('#00880012');
 	});
@@ -137,12 +137,30 @@ describe('buildTheme', () => {
 
 describe('coreFromColors', () => {
 	it('reads back the core palette a built theme came from', () => {
-		// Edges dark enough that the builder does not lift them (3:1 on the panel, sidebar and editor)
+		// Edges dark enough that the builder does not lift them (3:1 on the panel, sidebar and editor),
+		// and callout hues that already read as text on the callout tint
 		const full: CorePalette = {
-			...CORE, borderStrong: '#888888', faintFg: '#8c8c8c',
-			inlineFg: '#333333', linkFg: '#0000ff', meta: '#777777', blockquoteAccent: '#008800',
+			...CORE, borderStrong: '#888888', faintFg: '#8c8c8c', green: '#1a6b28', yellow: '#7a6200',
+			inlineFg: '#333333', linkFg: '#0000ff', meta: '#666666', blockquoteAccent: '#008800',
 		};
 		expect(coreFromColors(buildTheme('T', full).colors)).toEqual(full);
+	});
+
+	it('reads back a callout hue the callout tint lifted, while the type palette keeps the typed hue', () => {
+		const colors = buildTheme('T', CORE).colors;
+		const back = coreFromColors(colors);
+		// CORE green and yellow pass 3:1 on the editor but not 4.5:1 on the callout tint
+		expect(back.green).toBe(colors.callout.tip);
+		expect(back.green).not.toBe(CORE.green);
+		expect(back.yellow).toBe(colors.callout.warning);
+		expect(back.yellow).not.toBe(CORE.yellow);
+		expect(colors.ui.typeGreen).toBe(CORE.green);
+		expect(colors.ui.typeYellow).toBe(CORE.yellow);
+		// Hues that already read on the tint come back as typed
+		expect(back.blue).toBe(CORE.blue);
+		expect(back.purple).toBe(CORE.purple);
+		// Building again from the read-back palette keeps the callouts
+		expect(buildTheme('T', back).colors.callout).toEqual(colors.callout);
 	});
 });
 
@@ -285,11 +303,13 @@ describe('readable contrast', () => {
 		const skipped: string[] = [];
 		for (const theme of [...BUILTIN_THEMES, ...HARD_PALETTE_THEMES, ...HARD_DARK_PALETTE_THEMES]) {
 			const ui = theme.colors.ui as unknown as Record<string, string>;
-			for (const [group, key, bgGroup, bgKey, min, base = 'editorBg'] of READABILITY_PAIRS) {
+			const preview = theme.colors.preview as unknown as Record<string, string>;
+			for (const [group, key, bgGroup, bgKey, min, base = 'editorBg', share] of READABILITY_PAIRS) {
 				const tokens: Record<string, string> = { ...theme.colors[group] };
 				const bgTokens: Record<string, string> = { ...theme.colors[bgGroup] };
-				const under = flatten(ui[base], ui.editorBg) ?? ui[base];
-				const bg = flatten(bgTokens[bgKey], under) ?? bgTokens[bgKey];
+				const baseColor = base.startsWith('preview.') ? preview[base.slice('preview.'.length)] : ui[base];
+				const under = flatten(baseColor, ui.editorBg) ?? baseColor;
+				const bg = (share === undefined ? flatten(bgTokens[bgKey], under) : tint(bgTokens[bgKey], share, under)) ?? bgTokens[bgKey];
 				const ratio = contrastRatio(tokens[key], bg);
 				const lc = apcaContrast(tokens[key], bg);
 				if (ratio === null || lc === null) skipped.push(`${theme.name} ${group}.${key}`);
@@ -333,10 +353,10 @@ describe('readabilityFailures', () => {
 
 	it('measures the colors as given, not lifted, and leaves them untouched', () => {
 		const colors = buildTheme('T', CORE).colors;
-		const failing = { ...colors, syntax: { ...colors.syntax, link: '#eeeeee' } };
-		const failure = readabilityFailures(failing).get('syntax.link')!;
+		const failing = { ...colors, syntax: { ...colors.syntax, url: '#eeeeee' } };
+		const failure = readabilityFailures(failing).get('syntax.url')!;
 		expect(failure.ratio).toBe(contrastRatio('#eeeeee', colors.ui.editorBg));
-		expect(failing.syntax.link).toBe('#eeeeee');
+		expect(failing.syntax.url).toBe('#eeeeee');
 	});
 
 	it('warns on a label that passes on the typed fill but the app changes on the lifted fill', () => {
@@ -504,6 +524,131 @@ describe('text on the hover and selected surfaces of every built-in and hard-pal
 			}
 		}
 		expect(failures).toEqual([]);
+	});
+});
+
+describe('text on the editor\'s tinted surfaces of every built-in and hard-palette theme', () => {
+	const THEMES = [...BUILTIN_THEMES, ...HARD_PALETTE_THEMES, ...HARD_DARK_PALETTE_THEMES];
+	const CALLOUT_KEYS = ['note', 'tip', 'important', 'warning', 'caution', 'quote'] as const;
+
+	/** [what, text color, opaque surface]: small text, 4.5:1 and |Lc| 45 */
+	function textOnTints({ ui, syntax, preview, wikilink, callout }: ThemeColors): [string, string, string][] {
+		const editor = ui.editorBg;
+		// `.cm-lp-callout`: color-mix(in srgb, var(--callout-note) 7%, transparent) over the editor
+		const calloutTint = tint(callout.note, 0.07, editor)!;
+		const highlight = flatten(preview.highlightBg, editor)!;
+		const collection = flatten(preview.collectionBg, editor)!;
+		// `.cm-lp-collection-table tr:nth-child(even)`: the zebra row over the block
+		const zebra = flatten(preview.collectionTableAlt, collection)!;
+		return [
+			...CALLOUT_KEYS.map((k): [string, string, string] => [`callout.${k} type label on the callout tint`, callout[k], calloutTint]),
+			['callout title and body on the callout tint', syntax.quote, calloutTint],
+			['quote on blockquoteBg', syntax.quote, flatten(preview.blockquoteBg, editor)!],
+			['quote on blockquoteBg3', syntax.quote, flatten(preview.blockquoteBg3, editor)!],
+			['editorFg on highlightBg', ui.editorFg, highlight],
+			['strong on highlightBg', syntax.strong, highlight],
+			['emphasis on highlightBg', syntax.emphasis, highlight],
+			['syntax.link on highlightBg', syntax.link, highlight],
+			['preview.link on highlightBg', preview.link, highlight],
+			['preview.wikilink on highlightBg', preview.wikilink, highlight],
+			['collectionError on collectionBg', preview.collectionError, collection],
+			['collectionNull on collectionBg', preview.collectionNull, collection],
+			['collectionEmpty on collectionBg', preview.collectionEmpty, collection],
+			['preview.wikilink on collectionBg', preview.wikilink, collection],
+			['cell text on the zebra row', ui.editorFg, zebra],
+			['collectionNull on the zebra row', preview.collectionNull, zebra],
+			['preview.link on the zebra row', preview.link, zebra],
+			['preview.wikilink on the zebra row', preview.wikilink, zebra],
+			['collectionError on codeblockBg (Mermaid error)', preview.collectionError, flatten(preview.codeblockBg, editor)!],
+			['meta on editorBg', syntax.meta, editor],
+			['wikilink.bracket on editorBg', wikilink.bracket, editor],
+			['olMarker on editorBg', preview.olMarker, editor],
+			['editorFg on the active-line gutter', ui.editorFg, flatten(syntax.activeLineGutter, editor)!],
+		];
+	}
+
+	it('reads each text at 4.5:1 and |Lc| 45 on its tinted surface', () => {
+		const failures: string[] = [];
+		for (const { name, colors } of THEMES) {
+			for (const [what, fg, bg] of textOnTints(colors)) {
+				const ratio = contrastRatio(fg, bg);
+				const lc = apcaContrast(fg, bg);
+				if (ratio === null || lc === null || ratio < 4.5 - 0.005 || Math.abs(lc) < 45 - 0.05) {
+					failures.push(`${name} ${what} ${ratio?.toFixed(2)} Lc ${lc?.toFixed(1)}`);
+				}
+			}
+		}
+		expect(failures).toEqual([]);
+	});
+
+	it('draws the collection table zebra rows apart from the block background', () => {
+		for (const { name, colors } of THEMES) {
+			const block = flatten(colors.preview.collectionBg, colors.ui.editorBg)!;
+			expect(flatten(colors.preview.collectionTableAlt, block), name).not.toBe(block);
+			expect(contrastRatio(colors.preview.collectionTableAlt, block)!, name).toBeGreaterThanOrEqual(1.05 - 0.005);
+		}
+	});
+
+	it('keeps ==highlight== visible on the editor in every theme, and leaves a highlight that hides nothing alone', () => {
+		expect(buildTheme('T', { ...CORE, highlight: '#ffee0080' }).colors.preview.highlightBg).toBe('#ffee0080');
+		for (const { name, colors } of THEMES) {
+			const highlight = flatten(colors.preview.highlightBg, colors.ui.editorBg)!;
+			// Tolaria Light's own highlight is fainter than the floor and is not faded
+			const floor = name === 'Tolaria Light' ? 3 : HIGHLIGHT_FLOOR;
+			expect(colorDistance(highlight, colors.ui.editorBg)!, name).toBeGreaterThanOrEqual(floor);
+		}
+	});
+});
+
+describe('highlight background of a user theme', () => {
+	/** Zettlr Karl-Marx-Stadt Dark with its palette highlight, `#ffff0060`, which hides its text and links. */
+	function zettlrHighlight(): ThemeColors {
+		const colors = HARD_DARK_PALETTE_THEMES.find((t) => t.name === 'Zettlr Karl-Marx-Stadt Dark')!.colors;
+		return { ...colors, preview: { ...colors.preview, highlightBg: '#ffff0060' } };
+	}
+
+	it('fades the highlight, not the text, when fading is enough', () => {
+		const typed = zettlrHighlight();
+		expect(contrastRatio(typed.syntax.link, flatten('#ffff0060', typed.ui.editorBg)!)!).toBeLessThan(4.5);
+		const { ui, syntax, preview } = withReadableContrast(typed);
+		expect(preview.highlightBg).toMatch(/^#ffff00[0-9a-f]{2}$/);
+		expect(parseInt(preview.highlightBg.slice(7), 16)).toBeLessThan(0x60);
+		const highlight = flatten(preview.highlightBg, ui.editorBg)!;
+		expect(colorDistance(highlight, ui.editorBg)!).toBeGreaterThanOrEqual(HIGHLIGHT_FLOOR);
+		for (const fg of [ui.editorFg, syntax.link]) {
+			expect(contrastRatio(fg, highlight)!).toBeGreaterThanOrEqual(4.5);
+			expect(Math.abs(apcaContrast(fg, highlight)!)).toBeGreaterThanOrEqual(45);
+		}
+		expect(syntax.link).toBe(typed.syntax.link);
+		expect(ui.editorFg).toBe(typed.ui.editorFg);
+	});
+
+	it('stops fading where the highlight would stop showing, and moves the text that still fails', () => {
+		const colors = KOKOBRAIN_DEFAULT_THEME.colors;
+		// The default theme's link as typed, before the builder lifted it for its own highlight
+		const typed = { ...colors, syntax: { ...colors.syntax, link: '#60a5fa' }, preview: { ...colors.preview, highlightBg: '#ffff0080' } };
+		const { ui, syntax, preview } = withReadableContrast(typed);
+		const highlight = flatten(preview.highlightBg, ui.editorBg)!;
+		expect(colorDistance(highlight, ui.editorBg)!).toBeGreaterThanOrEqual(HIGHLIGHT_FLOOR);
+		expect(colorDistance(highlight, ui.editorBg)!).toBeLessThan(HIGHLIGHT_FLOOR + 1);
+		expect(syntax.link).not.toBe(typed.syntax.link);
+		expect(contrastRatio(syntax.link, highlight)!).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it('reports the highlight as the one token the app changes when fading is enough', () => {
+		const failures = readabilityFailures(zettlrHighlight());
+		expect([...failures.keys()]).toEqual(['preview.highlightBg']);
+		const failure = failures.get('preview.highlightBg')!;
+		expect(failure.ratio).toBeLessThan(4.5);
+		expect(failure.min).toBe(4.5);
+		expect(failure.minLc).toBe(45);
+	});
+
+	it('leaves a highlight it cannot parse as it is', () => {
+		const colors = KOKOBRAIN_DEFAULT_THEME.colors;
+		const typed = { ...colors, preview: { ...colors.preview, highlightBg: 'var(--x)' } };
+		expect(withReadableContrast(typed).preview.highlightBg).toBe('var(--x)');
+		expect(readabilityFailures(typed).has('preview.highlightBg')).toBe(false);
 	});
 });
 

@@ -1,0 +1,53 @@
+VERDICT: CHANGES_REQUESTED
+
+## Acceptance criteria
+
+- [met] Failing test first, `theme-builder.logic.test.ts` over `BUILTIN_THEMES` and the hard palettes fixture: callout label and title on the callout tint, quote on the blockquote tint, text and link on `highlightBg`, `collectionError`, `collectionNull` and `collectionEmpty` on `collectionBg`, `meta` on `editorBg` at 4.5:1; `collectionTableAlt` differs from `collectionBg`. It fails today. — The new describe "text on the editor's tinted surfaces..." (theme-builder.logic.test.ts:511-575) runs over `BUILTIN_THEMES` + `HARD_PALETTE_THEMES` + `HARD_DARK_PALETTE_THEMES` and checks every listed pair at 4.5:1 and |Lc| 45 (callout.* and syntax.quote on `tint(callout.note, 0.07, editorBg)`, quote on blockquoteBg/Bg3, editorFg/strong/emphasis/links on highlightBg, collectionError/Null/Empty on collectionBg, meta on editorBg), plus the zebra test that `collectionTableAlt` flattened differs from the block. It fails on main: it imports `HIGHLIGHT_FLOOR`, which main lacks, and main's values fail it anyway (the snapshot shows main's `--lp-collection-null` `#585b70` on `#1e1e2e`, about 2.3:1). The test and the builder change land together in 7aa73da6f; the build report's 68 failures before the change were not rerun here.
+- [met] A test for each `app.css` mix that changes (code header, snippet highlight, event pills), resolving the mix with `mixColors` per theme. — The new src/tests/lib/editor-surface-mixes.test.ts reads `--lp-codeblock-lang`, `--lp-codeblock-copy`, `--lp-codeblock-header-bg`, `--lp-syntax-punctuation`, `--lp-syntax-comment`, the six `--event-*-bg/fg` and the `[data-search-result] mark` rule from app.css, resolves each `color-mix` with `mixColors` over `themeColorsToCssVars` for every gate theme, and asserts 4.5:1 and |Lc| 45. It passes.
+- [met] Snapshot updated on purpose; frontend gate passes. — `theme-snapshot.test.ts.snap` moves only the expected tokens (callout hues, collection null/empty/table-alt, highlight, links, meta, bracket, quote, ol marker, emphasis on Lavender Haze), and commit 7aa73da6f records it. `pnpm check` exits 0 (237 files, 0 errors, 0 warnings). The targeted vitest files pass (list below). The full suite is deliver's to run.
+
+## Findings
+
+1. **blocker** src/lib/core/settings/theme-builder.logic.ts:249 (with :241-244). The branch adds a zebra pair that moves `collectionTableAlt` away from `collectionBg`. On light themes that makes every even row of a collection or QueryJS table darker. The new text pairs (`collectionNull`, `collectionEmpty`, `preview.link`, `preview.wikilink`) are measured only on `collectionBg`, so on the even rows the text this Issue lifts is again under 4.5:1 on gate themes. Probe output (flattened alt row over the flattened block):
+   - Lavender Haze (built-in): collectionNull/Empty 4.37:1, wikilink 4.28:1, link 4.34:1.
+   - Zettlr Bielefeld Light: collectionNull/Empty 4.33:1.
+   - Tolaria Light: collectionNull/Empty 4.35:1.
+   - Zettlr Bordeaux and Karl-Marx-Stadt Dark: collectionNull/Empty reach Lc 43 against TEXT_LC 45.
+
+   So item 7 (null/empty placeholders and wikilinks readable in the collection block) holds on odd rows only. Fix: also measure these tokens, and the cell text, on the zebra row (`collectionTableAlt` flattened over the flattened `collectionBg`). `ReadabilityPair.base` only takes a `ui` key, so this needs a base that can name a preview surface, or a pass that flattens alt over the block. Add the row cases to the tinted-surfaces describe in theme-builder.logic.test.ts. The other option is to keep the zebra on the side that does not lower text contrast, but the pair as written cannot express that.
+2. **minor** src/tests/lib/core/settings/theme-builder.logic.test.ts:143. The `coreFromColors` round-trip test now uses green and yellow hues that already pass on the callout tint, so it no longer covers the default `CORE` palette. `coreFromColors` (theme-builder.logic.ts:663) reads blue, green, purple and yellow back from the callout tokens. Those are now lifted to 4.5:1 on the tint, while `ui.type*`, `warning` and `success` keep the 3:1 core lift. A palette read back from a built theme therefore differs from the one typed. Today the effect stays small: `packageFromColors` turns the gap into overrides, and `mergeThemeWithDefaults` derives only missing tokens from it. Fix: either keep a round-trip test on `CORE` that states which hues drift, or derive the callout hues on the tint without feeding the lift back into the palette fields. Say which in the Issue.
+3. **nit** src/tests/lib/editor-surface-mixes.test.ts:124. The search-match test stands in for `--list-bg` with an OKLab midpoint (`mixColors`), but app.css:395 mixes it `in oklch`. It also skips the row hover fill (`hover:bg-file-explorer-accent/60`, SearchResult.svelte:140) that a match sits on while hovered. Fix: resolve the oklch mix, or note why the OKLab midpoint is close enough, and add the hovered row surface.
+4. **nit** src/tests/lib/core/markdown-editor/setup/editor-theme.test.ts:51. The gutter contrast loop leaves out `HARD_DARK_PALETTE_THEMES` and APCA. The builder describe covers both, so this test only adds a weaker copy of the same check. Fix: extend it to the full gate set, or drop the measurement and keep the rule assertion.
+5. **nit** src/lib/core/settings/theme-builder.logic.ts:124,245. The highlight pairs and the gutter pair can move `editorFg` and `fileExplorerFg` themselves: all body text in the editor or the sidebar, moved for the sake of a highlight or a gutter number. Nothing moved on the gate set (probe: editorFg on the highlight is 7.1:1 or more everywhere). But a user theme whose highlight cannot fade further, or whose hover fill is close to the text, would change body text across the app with no warning naming the real surface. Fix: no change needed now. Consider a dedicated token if this ever fires.
+
+## Checks run (the test verdict rests on these)
+
+- `pnpm check`: exit 0, 0 errors, 0 warnings.
+- `pnpm vitest run` on 66 files, exit 0, 1798 tests:
+  - src/tests/lib/utils/color.test.ts
+  - every file in src/tests/lib/core/settings/ (theme-builder.logic, theme.logic, theme-snapshot, theme-package.logic, theme-editor.logic, ThemeEditor, theme-css-contract, theme-surfaces.logic and the rest)
+  - live-preview styles.test.ts, code-block-in-containers.test.ts, parsers/callout.test.ts and widgets/code-block-widget.test.ts
+  - source-frontmatter.test.ts and setup/editor-theme.test.ts
+  - src/tests/lib/editor-surface-mixes.test.ts and src/tests/lib/tint-text-tokens.test.ts
+  - EventTimeGrid.test.ts, collection evaluator.test.ts and src/tests/lib/features/search
+- `pnpm vitest run` on 10 more app.css readers, exit 0, 109 tests: chrome-type-scale, event-color-tokens, PropertyField, focus-ring-styles, pane-toolbar, mod-theme, radius-scale, reduced-motion-css, font-stacks, text-roles.
+- Probes (a temporary test file, deleted, not committed):
+  - `withReadableContrast` is idempotent on every gate theme. A highlight faded with an opaque, 0xcc or 0x80 start settles at `#fbbf2418`/`19` and stays put over three passes and four palette round trips.
+  - Zebra rows flatten to 1.05 to 1.19:1 against the block.
+  - The text-on-zebra numbers in finding 1.
+- No E2E spec asserts the changed opacities, colors or mixes (searched e2e/specs), so no E2E run is needed. No src-tauri changes.
+
+## Notes (not findings)
+
+- Fading `==highlight==` instead of moving its text follows the validator's fix in research/workflow-result.json ("adjusting the highlight rather than the text"). It is visible to the owner: on the default theme the highlight goes from `#fbbf2444` to `#fbbf2418`, and a user's opaque highlight is faded to about 10% alpha.
+- The tag pill, Run button and meta-bind hovers and the code comment color are locked by tests only. The probe and tests agree they pass on the gate set.
+
+## Resolution
+
+1. **Fixed** in 4c1b68b56. A pair's base surface may now name a preview block (`SurfaceBase`, `preview.collectionBg`), so a translucent zebra row is flattened over the flattened block. `collectionNull`, `preview.link`, `preview.wikilink` and `editorFg` (cell text) are paired on `collectionTableAlt` over `collectionBg`, listed after the zebra pair so they see the final row color. The tinted-surfaces describe gained the four zebra row cases; it failed first with the reviewer's numbers (Lavender Haze 4.37 / 4.34 / 4.28, Zettlr Bielefeld Light 4.33, Tolaria Light 4.35, Zettlr Bordeaux and Karl-Marx-Stadt Dark Lc 43.2) and passes after. The every-pair test resolves preview bases too. Snapshot: Lavender Haze `--lp-collection-null` `#615d6a` to `#5e5a67`, `--lp-link` `#335fa2` to `#315c9e`, `--lp-wikilink` `#7647b6` to `#7144af` (and their decorations). Part rejected: `collectionEmpty` is not paired on the zebra row, because it is never drawn on a table row: `cm-lp-collection-empty` is used only for empty states (collection-block-widget.ts:179, :197, :221, :314) and `--lp-collection-empty` for the footer (styles.ts:676-680). Regarding finding 5 for the new `editorFg` row pair: cell text already passed on every gate theme before the pair existed (the failing run listed no "cell text on the zebra row" entry), so it moves nothing there.
+2. **Fixed** in ea95a3350, by the first option: a CORE round-trip test that states the drift. CORE green and yellow come back as the lifted `callout.tip` / `callout.warning`, `ui.typeGreen` / `ui.typeYellow` keep the typed hues, blue and purple come back as typed, and rebuilding from the read-back palette keeps the callouts. The reading source is left as is: `mergeThemeWithDefaults` (theme.logic.ts:114) and `packageFromColors` (theme-package.logic.ts:342) read through `coreFromColors`, and reading the hues from `ui.type*` instead would change what user themes derive.
+3. **Fixed** in 905af7b8e. Each list surface is measured at rest and under `hover:bg-file-explorer-accent/60` (SearchResult.svelte:140). The oklch mix is not resolved exactly; a comment says why the OKLab midpoint is close: both interpolate L linearly, so the midpoints share their lightness and differ only in chroma and hue, and both ends are measured. theme-surfaces.logic.ts `themeSurface` makes the same documented approximation.
+4. **Fixed** in 600c1b11e: the gutter loop runs over BUILTIN, HARD_PALETTE and HARD_DARK_PALETTE themes and asserts |Lc| 45 next to 4.5:1.
+5. **No change**, as the finding says.
+
+Checks after the fixes: `pnpm check` exit 0 (237 files, 0 errors, 0 warnings); `pnpm vitest run` on src/tests/lib/core/settings/, editor-surface-mixes, setup/editor-theme, live-preview styles, utils/color and rail-shell RailNoteList: exit 0, 50 files, 1186 tests.

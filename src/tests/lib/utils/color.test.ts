@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isDarkColor, contrastRatio, colorDistance, apcaContrast, ensureContrast, ensureContrastOn, flatten, labelColors, mixColors, shiftLightness, tint } from '#lib/utils/color.js';
+import { isDarkColor, contrastRatio, colorDistance, apcaContrast, ensureContrast, ensureContrastOn, fade, flatten, labelColors, mixColors, shiftLightness, tint } from '#lib/utils/color.js';
 
 describe('isDarkColor', () => {
 	it('detects dark hex backgrounds', () => {
@@ -275,6 +275,23 @@ describe('tint', () => {
 	it('returns null when either color is unparseable', () => {
 		expect(tint('hwb(200 20% 30%)', 0.25, '#ffffff')).toBeNull();
 		expect(tint('#000000', 0.25, '')).toBeNull();
+	});
+});
+
+describe('fade', () => {
+	it('scales the alpha of a color by a share, as an 8-digit hex', () => {
+		expect(fade('#ffff0080', 0.5)).toBe('#ffff0040');
+		expect(fade('#123456', 1)).toBe('#123456ff');
+		expect(fade('rgba(255, 0, 0, 0.5)', 1)).toBe('#ff000080');
+		expect(fade('#ffff00', 0)).toBe('#ffff0000');
+	});
+
+	it('flattens to what tint paints at the same share', () => {
+		expect(flatten(fade('#fbbf2444', 0.5)!, '#2a2e3d')).toBe(tint('#fbbf2444', 0.5, '#2a2e3d'));
+	});
+
+	it('returns null for an unparseable color', () => {
+		expect(fade('color-mix(in srgb, #fff 50%, transparent)', 0.5)).toBeNull();
 	});
 });
 

@@ -23,13 +23,13 @@ Read `docs/agents/live-preview-rules.md` before changing `styles.ts` or any widg
 
 **Blocked by:** 05, 07
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes.
 
-- [ ] Failing test first, `theme-builder.logic.test.ts` over `BUILTIN_THEMES` and the hard palettes fixture: callout label and title on the callout tint, quote on the blockquote tint, text and link on `highlightBg`, `collectionError`, `collectionNull` and `collectionEmpty` on `collectionBg`, `meta` on `editorBg` at 4.5:1; `collectionTableAlt` differs from `collectionBg`. It fails today.
-- [ ] A test for each `app.css` mix that changes (code header, snippet highlight, event pills), resolving the mix with `mixColors` per theme.
-- [ ] Snapshot updated on purpose; frontend gate passes.
+- [x] Failing test first, `theme-builder.logic.test.ts` over `BUILTIN_THEMES` and the hard palettes fixture: callout label and title on the callout tint, quote on the blockquote tint, text and link on `highlightBg`, `collectionError`, `collectionNull` and `collectionEmpty` on `collectionBg`, `meta` on `editorBg` at 4.5:1; `collectionTableAlt` differs from `collectionBg`. It fails today.
+- [x] A test for each `app.css` mix that changes (code header, snippet highlight, event pills), resolving the mix with `mixColors` per theme.
+- [x] Snapshot updated on purpose; frontend gate passes.
 
 ## Findings covered
 
@@ -64,3 +64,4 @@ Read `docs/agents/live-preview-rules.md` before changing `styles.ts` or any widg
 ## Comments
 
 - 2026-11-19, triage: ready-for-agent. Decided by the owner: builder lifts tokens for every theme (WCAG + APCA), user themes are corrected by the builder and the editor warns, rail icons keep their hue and are darkened per theme (ADR-0033 amendment), Issues run through relay one at a time, the themes repo is fixed with version bumps.
+- 2026-11-19, deliver (branch issue/06-theme-builder-editor-tinted-surfaces): builder lifts callout, blockquote, highlight, meta and collection text to 4.5:1 on their tinted surfaces, collection zebra rows differ from the block background, app.css mixes for code headers, event pills and search matches stay readable. Full suite 685 files, 18319 passed, 56 skipped. Review round 1 CHANGES_REQUESTED, fix round ran, round 2 APPROVED with no findings.

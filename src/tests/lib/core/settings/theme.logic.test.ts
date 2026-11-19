@@ -50,7 +50,8 @@ describe('themeColorsToCssVars', () => {
 
 	it('maps preview colors with lp- prefix', () => {
 		const vars = themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors);
-		expect(vars['--lp-link']).toBe('#60a5fa');
+		// Lifted from the typed #60a5fa so links read on the theme's ==highlight==
+		expect(vars['--lp-link']).toBe('#67a9fb');
 		expect(vars['--lp-codeblock-bg']).toBe('#1e1e2e');
 		expect(vars['--lp-frontmatter-label']).toBeUndefined();
 	});

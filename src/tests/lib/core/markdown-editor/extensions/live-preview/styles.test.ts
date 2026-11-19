@@ -3,9 +3,14 @@ import { describe, it, expect } from 'vitest';
 import {
 	CODE_BLOCK_FONT_SIZE,
 	TABLE_FONT_SIZE,
+	livePreviewActiveLineTheme,
 	livePreviewStyles,
 } from '#lib/core/markdown-editor/extensions/live-preview/styles.js';
+import { BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
+import { CALLOUT_TINT } from '#lib/core/settings/theme-builder.logic.js';
+import { apcaContrast, contrastRatio, mixColors, tint } from '#lib/utils/color.js';
 import { MONO_FONT_STACK } from '#lib/utils/font-stacks.js';
+import { HARD_DARK_PALETTE_THEMES, HARD_PALETTE_THEMES } from '../../../../../fixtures/hard-palette-themes.fixture';
 
 /** Every CSS rule string the live-preview base theme emits. */
 function themeRules(): string[] {
@@ -205,6 +210,48 @@ describe('livePreviewStyles callout type menu', () => {
 		expect(rule).toContain('text-transform: capitalize;');
 		expect(rule).toContain('color: var(--cm-lp-callout-accent, inherit);');
 		expect(rule).not.toContain('text-transform: lowercase;');
+	});
+
+	it('draws the type label at full strength, as the builder measures the callout hues', () => {
+		expect(exactRule('.cm-lp-callout-type-label')).not.toContain('opacity');
+		expect(exactRule('.cm-lp-callout-type-label:hover')).not.toContain('opacity');
+	});
+});
+
+describe('livePreviewStyles callout tint', () => {
+	it('tints callout lines with the note hue at the share the builder measures text on', () => {
+		const tint = `color-mix(in srgb, var(--callout-note) ${Math.round(CALLOUT_TINT * 100)}%, transparent)`;
+		expect(exactRule('.cm-lp-callout')).toContain(`background: ${tint};`);
+		const activeLine = JSON.stringify(livePreviewActiveLineTheme);
+		expect(activeLine).toContain(`background-color: ${tint} !important;`);
+	});
+
+	it('rests the fold chevron at 3:1 or more on the callout tint of every theme', () => {
+		const opacity = Number(exactRule('.cm-lp-callout-fold')?.match(/opacity: ([\d.]+);/)?.[1]);
+		expect(opacity).toBeGreaterThan(0);
+		for (const { name, colors } of [...BUILTIN_THEMES, ...HARD_PALETTE_THEMES, ...HARD_DARK_PALETTE_THEMES]) {
+			const surface = tint(colors.callout.note, CALLOUT_TINT, colors.ui.editorBg)!;
+			// The chevron inherits the line's editor text color; opacity composites it over the tint
+			const chevron = tint(colors.ui.editorFg, opacity, surface)!;
+			expect(contrastRatio(chevron, surface)!, name).toBeGreaterThanOrEqual(3);
+		}
+	});
+});
+
+describe('livePreviewStyles tag pill', () => {
+	it('reads the tag text at 4.5:1 and |Lc| 45 on the pill in every theme', () => {
+		const rule = exactRule('.cm-lp-tag')!;
+		const bgShare = Number(rule.match(/background-color: color-mix\(in oklab, var\(--primary\) (\d+)%, var\(--editor-bg\)\);/)?.[1]) / 100;
+		const fgShare = Number(rule.match(/color: color-mix\(in oklab, var\(--primary\) (\d+)%, var\(--editor-fg\)\);/)?.[1]) / 100;
+		expect(bgShare).toBeGreaterThan(0);
+		expect(fgShare).toBeGreaterThan(0);
+		for (const { name, colors } of [...BUILTIN_THEMES, ...HARD_PALETTE_THEMES, ...HARD_DARK_PALETTE_THEMES]) {
+			const { primary, editorBg, editorFg } = colors.ui;
+			const pill = mixColors(primary, editorBg, 1 - bgShare)!;
+			const text = mixColors(primary, editorFg, 1 - fgShare)!;
+			expect(contrastRatio(text, pill)!, name).toBeGreaterThanOrEqual(4.5);
+			expect(Math.abs(apcaContrast(text, pill)!), name).toBeGreaterThanOrEqual(45);
+		}
 	});
 });
 
