@@ -72,7 +72,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 35 | [Appearance settings: theme rows ignore keys from their buttons, one catalog error with its reason, Install and apply, a theme editor that confirms discards and restores the theme on close](issues/35-appearance-settings-theme-rows-ignore-keys.md) | none | todo | | |
 | 36 | [Periodic Notes and 1:1: live path examples and missing-template marks](issues/36-periodic-notes-11-live-path-examples.md) | 22 | done | issue/36-periodic-notes-11-live-path-examples (632893c70) | 2026-11-18 |
 | 37 | [Mods: each mod says what it does; the run view shows status and progress clearly](issues/37-mods-each-mod-run-view-shows.md) | none | done | issue/37-mods-each-mod-run-view-shows (a52bc3d78) | 2026-11-18 |
-| 38 | [Settings: text you can select, the Todoist root row fits, the update button says it downloads](issues/38-settings-text-you-can-select-todoist.md) | none | in-progress | | |
+| 38 | [Settings: text you can select, the Todoist root row fits, the update button says it downloads](issues/38-settings-text-you-can-select-todoist.md) | none | done | issue/38-settings-text-you-can-select-todoist (4f5991c94) | 2026-11-19 |
 | 39 | [Readable text on coloured fills: kanban tag chips, linear-calendar bars, the rail badge](issues/39-readable-chips-faded-text.md) | 12 | done | issue/39-readable-chips-faded-text (f6ef510a0) | 2026-11-18 |
 | 40 | [Default theme: a darker tab strip with a visible tab hover](issues/40-default-theme-darker-tab-strip-visible.md) | 20, 39 | done | issue/40-default-theme-darker-tab-strip-visible (7742f0a81) | 2026-11-18 |
 | 41 | [Word count and graph stats read correctly for 0 and 1; graph mode buttons show their state](issues/41-word-count-graph-stats-read-correctly.md) | none | todo | | |
@@ -171,3 +171,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 23:46 — 19 — start — launched by /relay-lite:run — 6c73106bc
 - 2026-11-18 23:56 — 19 — deliver — merged after review 1 APPROVED with one major (manual light/dark toast check, left for owner) and two nits, no code change (claude); full vitest suite passed (17852 tests), copy-block-link E2E passed — ab8c7c476
 - 2026-11-18 23:56 — 38 — start — launched by /relay-lite:run — dff1f05d3
+- 2026-11-19 00:07 — 38 — deliver — merged after review 1 APPROVED with two nits, fix round (dead formatBytes branch removed, unknown-size test scoped to the row), re-review 2 APPROVED (claude); full vitest suite passed (17861 tests); manual check in tauri dev still open — 4f5991c94
