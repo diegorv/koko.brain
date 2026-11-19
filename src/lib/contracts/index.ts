@@ -4,6 +4,11 @@
  * and it imports nothing from `#lib` (ADR-0003).
  */
 export type { CachedScanResult } from './generated/CachedScanResult.js';
+export type { ClaudeChatEntry } from './generated/ClaudeChatEntry.js';
+export type { ClaudeEvent } from './generated/ClaudeEvent.js';
+export type { ClaudeEventPayload } from './generated/ClaudeEventPayload.js';
+export type { ClaudeStatus } from './generated/ClaudeStatus.js';
+export type { ClaudeTurnRequest } from './generated/ClaudeTurnRequest.js';
 export type { ComposerCaptureResult } from './generated/ComposerCaptureResult.js';
 export type { DebugLogPayload } from './generated/DebugLogPayload.js';
 export type { DiffLine } from './generated/DiffLine.js';
@@ -26,6 +31,7 @@ export type { SemanticPhase } from './generated/SemanticPhase.js';
 export type { SemanticProgress } from './generated/SemanticProgress.js';
 export type { SemanticResult } from './generated/SemanticResult.js';
 export type { SemanticStats } from './generated/SemanticStats.js';
+export type { SlashCommandInfo } from './generated/SlashCommandInfo.js';
 export type { SnapshotInfo } from './generated/SnapshotInfo.js';
 export type { TagAggregate } from './generated/TagAggregate.js';
 export type { Task } from './generated/Task.js';

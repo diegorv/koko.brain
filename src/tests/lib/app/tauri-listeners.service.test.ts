@@ -122,7 +122,9 @@ import { startSettingsPersistence, stopSettingsPersistence } from '#lib/core/set
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { registerWriteBarrier } from '#lib/core/vault/write-barrier.service.js';
 import type { NoteEntryV2, NoteRecordV2 } from '#lib/types/vault-v2.types.js';
-import { registerMenuSettingsListener, registerCloseHandler, registerExitRequestListener, registerFocusListener, registerVaultIndexUpdatedListener } from '#lib/app/tauri-listeners.service.js';
+import { claudeStore } from '#lib/features/claude-code/claude.store.svelte.js';
+import { resetClaude, sendPrompt } from '#lib/features/claude-code/claude.service.js';
+import { registerMenuSettingsListener, registerCloseHandler, registerExitRequestListener, registerFocusListener, registerVaultIndexUpdatedListener, registerClaudeEventListener } from '#lib/app/tauri-listeners.service.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
 // --- Tests ---
@@ -1333,3 +1335,93 @@ describe('registerFocusListener', () => {
 	});
 });
 
+describe('registerClaudeEventListener', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		capturedEventHandler = undefined;
+		claudeStore.reset();
+	});
+
+	it('listens on claude-event and hands each payload to the real chat store', async () => {
+		registerClaudeEventListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+		expect(listen).toHaveBeenCalledWith('claude-event', expect.any(Function));
+
+		claudeStore.beginTurn('hi');
+		claudeStore.startRun('r1');
+		capturedEventHandler!({ payload: { runId: 'r1', event: { type: 'TextDelta', text: 'Hello' } } });
+		capturedEventHandler!({ payload: { runId: 'old', event: { type: 'TextDelta', text: 'stale' } } });
+
+		expect(claudeStore.messages.at(-1)).toEqual({ role: 'assistant', parts: [{ kind: 'text', text: 'Hello' }] });
+	});
+
+	it('buffers events that arrive before the turn knows its run id', async () => {
+		registerClaudeEventListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		claudeStore.beginTurn('hi');
+		capturedEventHandler!({ payload: { runId: 'r1', event: { type: 'Error', message: 'spawn failed' } } });
+		claudeStore.startRun('r1');
+
+		expect(claudeStore.error).toBe('spawn failed');
+	});
+
+	it("saves the chat after the store applied the turn's Done, and not for other events", async () => {
+		registerClaudeEventListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		vi.mocked(saveAllDirtyTabs).mockResolvedValue([]);
+		vi.mocked(invoke).mockImplementation((async (cmd: string) => (cmd === 'claude_run_turn' ? 'r1' : null)) as unknown as typeof invoke);
+		await sendPrompt('hi');
+		vi.mocked(invoke).mockClear();
+		const writes = () => vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'claude_chat_write');
+
+		capturedEventHandler!({ payload: { runId: 'r1', event: { type: 'TextDelta', text: 'Hello' } } });
+		await Promise.resolve();
+		expect(writes()).toEqual([]);
+
+		capturedEventHandler!({ payload: { runId: 'r1', event: { type: 'Done', exitCode: 0 } } });
+		await vi.waitFor(() => expect(writes()).toHaveLength(1));
+		const { content } = writes()[0][1] as { content: string };
+		expect(JSON.parse(content).messages).toEqual([{ role: 'user', text: 'hi' }, { role: 'assistant', parts: [{ kind: 'text', text: 'Hello' }] }]);
+	});
+
+	it("asks claude for the slash commands again after a turn whose Init brought an unknown name", async () => {
+		registerClaudeEventListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		resetClaude();
+		vi.mocked(invoke).mockImplementation((async (cmd: string) =>
+			cmd === 'claude_slash_commands' ? [{ name: 'new-skill', description: 'Does a thing', argumentHint: '', aliases: [] }] : null) as unknown as typeof invoke);
+		const slashCalls = () => vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'claude_slash_commands');
+
+		capturedEventHandler!({ payload: { runId: 'r1', event: { type: 'Init', sessionId: 's', model: 'm', slashCommands: ['new-skill'], skills: [] } } });
+		await Promise.resolve();
+		expect(slashCalls()).toEqual([]);
+
+		capturedEventHandler!({ payload: { runId: 'r1', event: { type: 'Done', exitCode: 0 } } });
+		await vi.waitFor(() => expect(claudeStore.slashCommandDetails.get('new-skill')?.description).toBe('Does a thing'));
+		expect(slashCalls()).toEqual([['claude_slash_commands', { binaryPath: '', vaultPath: '/vault' }]]);
+	});
+
+	it('returns a cleanup function that unsubscribes', async () => {
+		const cleanup = registerClaudeEventListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		cleanup();
+		expect(mockUnlistenEvent).toHaveBeenCalledTimes(1);
+	});
+
+	it('logs a listener that cannot be registered', async () => {
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(listen).mockRejectedValueOnce(new Error('no window'));
+		registerClaudeEventListener();
+
+		await vi.waitFor(() =>
+			expect(consoleError).toHaveBeenCalledWith(expect.any(String), 'Failed to listen for claude-event:', expect.any(Error)),
+		);
+		consoleError.mockRestore();
+	});
+});

@@ -41,6 +41,7 @@ import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { FILES_RAIL_ITEM, SEARCH_RAIL_ITEM, TYPES_RAIL_ITEM } from '#lib/features/rail-shell/lens.logic.js';
+import { claudeStore } from '#lib/features/claude-code/claude.store.svelte.js';
 import { createView } from '#lib/features/type-definitions/type-definitions.service.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -289,6 +290,70 @@ describe('AppShell right sidebar', () => {
 			const separators = [...target.querySelectorAll('[data-right-sidebar] [data-slot="separator"]')];
 			expect(separators.filter((s) => s.closest('[data-sidebar-section]') === null)).toEqual([]);
 		});
+	});
+});
+
+describe('AppShell Claude panel', () => {
+	const titles = () => [...target.querySelectorAll('[data-right-sidebar] h2')].map((h) => h.textContent?.trim());
+
+	beforeEach(() => {
+		claudeStore.reset();
+		editorStore.reset();
+		editorStore.addTab({ path: '/vault/alpha.md', name: 'alpha.md', content: 'body', savedContent: 'body' });
+		settingsStore.updateLayout({
+			rightSidebarVisible: true,
+			propertiesVisible: true,
+			tableOfContentsVisible: true,
+			backlinksVisible: true,
+			outgoingLinksVisible: true,
+		});
+	});
+
+	afterEach(() => editorStore.reset());
+
+	it('is the only right sidebar section while shown, and hiding it brings the others back', async () => {
+		settingsStore.updateClaudeCode({ enabled: true });
+		settingsStore.updateLayout({ claudeVisible: true });
+		await mountShell();
+
+		expect(target.querySelector('[data-right-sidebar] [data-claude-panel]')).not.toBeNull();
+		expect(titles()).toEqual(['Claude']);
+		expect(target.querySelector('[data-right-sidebar] [data-claude-chip="alpha.md"]')).not.toBeNull();
+
+		settingsStore.updateLayout({ claudeVisible: false });
+		await settle();
+		expect(target.querySelector('[data-claude-panel]')).toBeNull();
+		expect(titles()).toEqual(['Properties', 'Table of contents', 'Backlinks', 'Outgoing links', 'Info']);
+	});
+
+	it('attaches the active note when the panel opens, and a canvas tab does not bring back a removed chip', async () => {
+		settingsStore.updateClaudeCode({ enabled: true });
+		await mountShell();
+		expect(claudeStore.contextNotes).toEqual([]);
+
+		settingsStore.updateLayout({ claudeVisible: true });
+		await settle();
+		expect(claudeStore.contextNotes).toEqual(['alpha.md']);
+
+		target.querySelector<HTMLButtonElement>('[aria-label="Remove alpha"]')!.click();
+		await settle();
+		editorStore.addTab({ path: '/vault/board.canvas', name: 'board.canvas', content: '{}', savedContent: '{}' });
+		await settle();
+		expect(target.querySelector('[data-claude-panel]')).toBeNull();
+		editorStore.setActiveIndex(0);
+		await settle();
+
+		expect(target.querySelector('[data-claude-panel]')).not.toBeNull();
+		expect(claudeStore.contextNotes).toEqual([]);
+		expect(target.querySelector('[data-claude-chip]')).toBeNull();
+	});
+
+	it('stays hidden while Claude Code is off, even with its flag set', async () => {
+		settingsStore.updateLayout({ claudeVisible: true });
+		await mountShell();
+
+		expect(target.querySelector('[data-claude-panel]')).toBeNull();
+		expect(titles()).toContain('Backlinks');
 	});
 });
 

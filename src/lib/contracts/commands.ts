@@ -6,6 +6,9 @@
 
 import type {
 	CachedScanResult,
+	ClaudeChatEntry,
+	ClaudeStatus,
+	ClaudeTurnRequest,
 	DiffLine,
 	FileNode,
 	FileReadResult,
@@ -21,6 +24,7 @@ import type {
 	SemanticFileStatus,
 	SemanticResult,
 	SemanticStats,
+	SlashCommandInfo,
 	SnapshotInfo,
 	TagAggregate,
 	TaskLineEdits,
@@ -216,6 +220,25 @@ export interface CommandMap {
 		args: { channel: string; allowDowngrades?: boolean };
 		result: UpdateMetadata | null;
 	};
+	/**
+	 * Finds the `claude` CLI the way a turn does (blank `binaryPath` = auto lookup) and reports its
+	 * version; `refreshEnv` recaptures the login shell env first (`commands/claude.rs`).
+	 */
+	claude_status: { args: { binaryPath: string; refreshEnv: boolean }; result: ClaudeStatus };
+	/** Starts an agent turn; returns its run id, events follow on `claude-event` (`commands/claude.rs`). */
+	claude_run_turn: { args: { request: ClaudeTurnRequest }; result: string };
+	/** Kills a running agent turn; no-op for an unknown or finished run (`commands/claude.rs`). */
+	claude_cancel_turn: { args: { runId: string }; result: null };
+	/** The installed `claude`'s slash commands with descriptions, asked in the vault; the user's SessionStart hooks run first (`commands/claude/slash.rs`). */
+	claude_slash_commands: { args: { binaryPath: string; vaultPath: string }; result: SlashCommandInfo[] };
+	/** Writes `<vaultPath>/.kokobrain/claude/chats/<chatId>.json` atomically, creating missing folders; `chatId` must be a canonical UUID (`commands/claude/chats.rs`). */
+	claude_chat_write: { args: { vaultPath: string; chatId: string; content: string }; result: null };
+	/** The text of a chat file; null only when the file is not there (`commands/claude/chats.rs`). */
+	claude_chat_read: { args: { vaultPath: string; chatId: string }; result: string | null };
+	/** The vault's saved chats, newest modification first; empty when the folder is missing (`commands/claude/chats.rs`). */
+	claude_chat_list: { args: { vaultPath: string }; result: ClaudeChatEntry[] };
+	/** Deletes a chat file; a missing file is not an error, and CLI transcripts are never touched (`commands/claude/chats.rs`). */
+	claude_chat_delete: { args: { vaultPath: string; chatId: string }; result: null };
 	/** Rust-only: registered but not invoked from TS (`quick_capture/commands.rs`). */
 	capture_clipboard_now: { args: NoArgs; result: null };
 	/** Rust-only: registered but not invoked from TS. */
@@ -321,6 +344,14 @@ export const COMMAND_ARGS = {
 	configure_sentry: ['enabled', 'dsn', 'release'],
 	list_system_fonts: [],
 	check_for_update_on_channel: ['channel', 'allowDowngrades?'],
+	claude_status: ['binaryPath', 'refreshEnv'],
+	claude_run_turn: ['request'],
+	claude_cancel_turn: ['runId'],
+	claude_slash_commands: ['binaryPath', 'vaultPath'],
+	claude_chat_write: ['vaultPath', 'chatId', 'content'],
+	claude_chat_read: ['vaultPath', 'chatId'],
+	claude_chat_list: ['vaultPath'],
+	claude_chat_delete: ['vaultPath', 'chatId'],
 	capture_clipboard_now: [],
 	open_composer: [],
 	dismiss_composer: [],

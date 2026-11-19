@@ -34,20 +34,49 @@ export function toggleRightSidebar(): void {
 	settingsStore.updateLayout({ rightSidebarVisible: !current });
 }
 
+/** Whether the Claude panel shows now: the feature is on, its flag is set and the right sidebar is open. */
+function claudePanelOpen(): boolean {
+	const { claudeVisible, rightSidebarVisible } = settingsStore.layout;
+	return settingsStore.claudeCode.enabled && claudeVisible && rightSidebarVisible;
+}
+
+/**
+ * Shows the Claude panel, opening the right sidebar it fills. No-op while
+ * Claude Code is off.
+ */
+export function showClaudePanel(): void {
+	if (!settingsStore.claudeCode.enabled) return;
+	settingsStore.updateLayout({ claudeVisible: true, rightSidebarVisible: true });
+}
+
+/**
+ * Shows the Claude panel, or hides it when it shows, which brings back the
+ * other right sidebar panels. Shared by its command and keybinding. No-op
+ * while Claude Code is off, and on the tabs `hidesRightSidebar` covers, like
+ * `toggleRightSidebar`.
+ */
+export function toggleClaudePanel(): void {
+	if (!settingsStore.claudeCode.enabled || hidesRightSidebar(editorStore.activeTabPath)) return;
+	if (claudePanelOpen()) settingsStore.updateLayout({ claudeVisible: false });
+	else showClaudePanel();
+}
+
 /** A right sidebar panel with its own `<panel>Visible` layout flag. */
 export type RightPanel = 'properties' | 'backlinks' | 'outgoingLinks' | 'tableOfContents';
 
 /**
  * Shows or hides one right sidebar panel. Showing it also shows a hidden
  * sidebar, so the panel turned on is on screen, except on the tabs
- * `hidesRightSidebar` covers, where the sidebar never shows. Hiding it leaves
- * the sidebar alone.
+ * `hidesRightSidebar` covers, where the sidebar never shows. Showing it also
+ * closes the Claude panel, which would otherwise cover it. Hiding it leaves
+ * the sidebar and the Claude panel alone.
  * @param panel - the panel whose layout flag is written
  * @param visible - the panel's new visibility
  */
 export function setRightPanelVisible(panel: RightPanel, visible: boolean): void {
 	const patch: Partial<LayoutSettings> = {};
 	patch[`${panel}Visible`] = visible;
+	if (visible && settingsStore.layout.claudeVisible) patch.claudeVisible = false;
 	if (visible && !hidesRightSidebar(editorStore.activeTabPath)) patch.rightSidebarVisible = true;
 	settingsStore.updateLayout(patch);
 }

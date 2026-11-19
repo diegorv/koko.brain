@@ -4,23 +4,32 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Files:** src/,e2e/,src-tauri/src/commands/claude/turn.rs,src-tauri/tests/commands/claude_turn_test.rs
 
-**Gate:** `pnpm check` + `pnpm vitest run`
+**Status:** resolved
 
-- [ ] `claude.store.svelte.ts`: messages (user, assistant with text and tool cards), `runId`, `sessionId`, `status` (`idle`, `running`, `error`), `contextNotes` (vault-relative paths), `slashCommands`. Getters tested. The reducer that applies each `ClaudeEvent` lives in `claude.logic.ts`, pure, tested for every event type and for events of a stale `runId` (ignored).
-- [ ] Note context: opening the panel attaches the active note when there is one; the user can remove any chip, attach more notes (a note picker reusing the quick switcher's search, and the "Add to Claude context" command on the active note) or send with no notes to work on the vault as a whole. Chips persist for the chat until removed or "New chat".
-- [ ] `claude.service.ts`: `sendPrompt(text)` awaits `saveAllDirtyTabs()` before `invoke('claude_run_turn')`, passes the text unchanged, `context_note_paths` and `resume_session_id` from the last `Result`; `stop()` calls `claude_cancel_turn`; `newChat()` clears the session and the chips back to the active note. Errors propagate and show inline in the panel. Tests mock only `invoke` and `listen` and use the real store.
-- [ ] Slash commands: typing `/` at the start of the prompt opens an autocomplete of `slashCommands`, filtered by what follows; picking one inserts `/name `. The list comes from the `Init` event and is kept in the store for the app session; before the first turn the menu is empty and says so. Filtering is a pure function, tested.
-- [ ] One `claude-event` listener registered for the app lifetime next to the others in `src/lib/app/tauri-listeners.service.ts`.
-- [ ] When the panel is visible it is the only right-sidebar section rendered (the chat needs the height); hiding it restores the other panels. Rendered in `src/lib/app/AppShell.svelte` beside the existing panels.
-- [ ] Panel hidden and command disabled when `claudeCode.enabled` is false; shows the Issue 01 status with a link to Settings when the binary is missing.
-- [ ] While running: Stop button, prompt box disabled, and a line saying that editing a note Claude is changing can overwrite its edit.
-- [ ] Assistant text renders as Markdown (reuse the app's existing Markdown-to-HTML path used by read-only renders; find it with `node scripts/codemap.mjs q sym --match render` before adding anything). Wikilinks in the reply open notes.
-- [ ] Component tests assert rendered content: a streamed reply, a tool card with its name and target, chips add and remove, the slash menu filtered, the error state, the disabled state.
+**Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` (for the `--` change in `build_args`), `pnpm check`, `pnpm vitest run`.
+
+- [x] `claude.store.svelte.ts`: messages (user, assistant with text and tool cards), `runId`, `sessionId`, `status` (`idle`, `running`, `error`), `contextNotes` (vault-relative paths), `slashCommands`. Getters tested. The reducer that applies each `ClaudeEvent` lives in `claude.logic.ts`, pure, tested for every event type and for events of a stale `runId` (ignored).
+- [x] Note context: opening the panel attaches the active note when there is one; the user can remove any chip, attach more notes (a note picker reusing the quick switcher's search, and the "Add to Claude context" command on the active note) or send with no notes to work on the vault as a whole. Chips persist for the chat until removed or "New chat".
+- [x] `claude.service.ts`: `sendPrompt(text)` awaits `saveAllDirtyTabs()` before `invoke('claude_run_turn')`, passes the text unchanged, `context_note_paths` and `resume_session_id` from the last `Result`; `stop()` calls `claude_cancel_turn`; `newChat()` clears the session and the chips back to the active note. Errors propagate and show inline in the panel. Tests mock only `invoke` and `listen` and use the real store.
+- [x] Events for a `runId` the store has not seen yet are buffered, not dropped, until `claude_run_turn` resolves with that id: on a spawn failure Issue 02's runner emits `Error` and `Done` before the call returns (Issue 02 review, finding 3). Tested.
+- [x] A prompt that starts with `-` (a `- [ ] ...` list item, `--help`) reaches claude as the prompt, not as a CLI option: Issue 02 passes the prompt right after the boolean `-p`, so the CLI parses a leading `-` as a flag. Owner decision recorded in Notes: move the prompt to the end after `--` in `build_args` (Rust, with a unit test) (Issue 02 review, finding 2). Tested.
+- [x] Slash commands: typing `/` at the start of the prompt opens an autocomplete of `slashCommands`, filtered by what follows; picking one inserts `/name `. The list comes from the `Init` event and is kept in the store for the app session; before the first turn the menu is empty and says so. Filtering is a pure function, tested.
+- [x] One `claude-event` listener registered for the app lifetime next to the others in `src/lib/app/tauri-listeners.service.ts`.
+- [x] When the panel is visible it is the only right-sidebar section rendered (the chat needs the height); hiding it restores the other panels. Rendered in `src/lib/app/AppShell.svelte` beside the existing panels.
+- [x] Panel hidden and command disabled when `claudeCode.enabled` is false; shows the Issue 01 status with a link to Settings when the binary is missing.
+- [x] While running: Stop button, prompt box disabled, and a line saying that editing a note Claude is changing can overwrite its edit.
+- [x] Assistant text renders as Markdown (reuse the app's existing Markdown-to-HTML path used by read-only renders; find it with `node scripts/codemap.mjs q sym --match render` before adding anything). Wikilinks in the reply open notes.
+- [x] Component tests assert rendered content: a streamed reply, a tool card with its name and target, chips add and remove, the slash menu filtered, the error state, the disabled state.
 
 ## Notes
 
+- Owner decision (2026-11-14), prompts starting with `-`: `build_args` (`src-tauri/src/commands/claude/turn.rs`) ends the argument list with `--` and then the prompt; the panel sends the text unchanged, no escaping or refusing. Probed on claude 2.1.325: `claude -p "- [ ] ..."` fails with `error: unknown option`, while `claude -p <flags> -- "- [ ] reply with exactly: DASH-OK"` answered `DASH-OK` and `-- "/hello world"` still ran the vault command (`HELLO-CMD world`). Add a Rust unit test for a prompt starting with `-` and one starting with `/`. Issue 05 also edits `turn.rs`; this Issue resumes after 05 is delivered and rebases on it.
 - The session lives only in memory; a restart starts a new chat.
 - Right sidebar `maxSize` is 30 in `AppShell.svelte`; do not change it in this Issue.
 - The CLI expands only a leading `/name`. A `/name` typed mid-text is sent as plain text; the autocomplete opens only at the start.
+- Issue 02's stream fixture (`src-tauri/tests/fixtures/claude/stream.ndjson`) is hand-written. Capture a real `claude -p ... --output-format stream-json --verbose --include-partial-messages` run during this Issue's manual check and replace it, so CLI field-name drift is caught (Issue 02 review, finding 6).
+- The runner's one-run-per-vault check compares `vault_path` as a raw string; always send it in one form (no trailing slash variants) (Issue 02 review, finding 5).
+
+- 2026-11-14, branch issue/03-claude-chat-panel: agent panel (chat store/reducer, note context chips, slash autocomplete, Markdown replies with wikilinks, Stop/disabled state), prompt after `--` in build_args. Fix round: chat closes on vault switch, turn stays running until Done, chip remove button uses `rounded-sm`. Tests: pnpm check 0 errors; full suite 17069 passed, 54 skipped, 1 todo, exit=0 (03-deliver-2.log). Reviews: round 1 APPROVED, round 2 APPROVED (one minor and one nit left open, see review-2.md).

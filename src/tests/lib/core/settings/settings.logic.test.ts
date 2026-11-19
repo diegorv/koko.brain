@@ -372,7 +372,7 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 
 	it('contains all expected sections in order', () => {
 		const ids = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
-		expect(ids).toEqual(['appearance', 'editor', 'layout', 'types', 'periodic-notes', 'quick-capture', 'one-on-one', 'event-calendar', 'files', 'file-history', 'auto-organize', 'trash', 'search', 'queryjs', 'todoist', 'labs', 'sentry', 'troubleshooting', 'update']);
+		expect(ids).toEqual(['appearance', 'editor', 'layout', 'types', 'periodic-notes', 'quick-capture', 'one-on-one', 'event-calendar', 'files', 'file-history', 'auto-organize', 'trash', 'search', 'queryjs', 'todoist', 'claude-code', 'labs', 'sentry', 'troubleshooting', 'update']);
 	});
 
 	it('lists Labs first in the Advanced group', () => {
@@ -403,8 +403,13 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 
 	it('moves Sentry out of Integrations and into Advanced', () => {
 		const sections = (name: string) => SETTINGS_SECTION_GROUPS.find((g) => g.group === name)?.sections.map((s) => s.id);
-		expect(sections('Integrations')).toEqual(['todoist']);
+		expect(sections('Integrations')).toEqual(['todoist', 'claude-code']);
 		expect(sections('Advanced')).toEqual(['labs', 'sentry', 'troubleshooting', 'update']);
+	});
+
+	it('lists Claude Code in Integrations', () => {
+		const integrations = SETTINGS_SECTION_GROUPS.find((g) => g.group === 'Integrations');
+		expect(integrations?.sections).toContainEqual({ id: 'claude-code', label: 'Claude Code' });
 	});
 
 	it('lists Calendar in the Notes group', () => {

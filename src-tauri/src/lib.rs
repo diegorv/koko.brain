@@ -322,6 +322,8 @@ pub fn run() {
         .manage(PrevFrontmostPid::new())
         .manage(LastCaptureSignature::default())
         .manage(ExitFlushState::default())
+        .manage(commands::claude::turn::ClaudeRuns::default())
+        .manage(commands::claude::shell_env::ShellEnv::default())
         .invoke_handler(tauri::generate_handler![
             commands::db::open_vault_db,
             commands::db::close_vault_db,
@@ -388,6 +390,14 @@ pub fn run() {
             commands::sentry::configure_sentry,
             commands::fonts::list_system_fonts,
             commands::update_channel::check_for_update_on_channel,
+            commands::claude::claude_status,
+            commands::claude::claude_run_turn,
+            commands::claude::claude_cancel_turn,
+            commands::claude::claude_slash_commands,
+            commands::claude::chats::claude_chat_write,
+            commands::claude::chats::claude_chat_read,
+            commands::claude::chats::claude_chat_list,
+            commands::claude::chats::claude_chat_delete,
             quick_capture::commands::capture_clipboard_now,
             quick_capture::commands::open_composer,
             quick_capture::commands::dismiss_composer,
@@ -398,9 +408,20 @@ pub fn run() {
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|app, event| {
-            if let RunEvent::ExitRequested { code, api, .. } = event {
-                on_exit_requested(app, code, &api);
-            }
+        .run(|app, event| match event {
+            RunEvent::ExitRequested { code, api, .. } => on_exit_requested(app, code, &api),
+            // A turn leads its own process group and macOS has no parent-death
+            // signal, so its claude and tools outlive the app unless killed here.
+            // Every exit reaches `Exit` (tao `LoopDestroyed`, tauri-runtime-wry
+            // 2.12.3 lib.rs:4131-4132), after any `ExitRequested` was allowed:
+            // - Cmd+Q, last window closed: the loop stops, then tao 0.37.2
+            //   macos/event_loop.rs:234-240 calls `AppState::exit`.
+            // - Dock Quit, logout: `applicationWillTerminate`, tao
+            //   macos/app_delegate.rs:130-133, with no `ExitRequested`.
+            // - Restart to update: `relaunch` -> `request_restart`
+            //   (tauri-plugin-process 2.4.0 commands.rs:12-15), and tauri 2.12.5
+            //   app.rs:1449-1455 calls this before `process::restart`.
+            RunEvent::Exit => app.state::<commands::claude::turn::ClaudeRuns>().cancel_all(),
+            _ => {}
         });
 }

@@ -5,6 +5,7 @@
  */
 
 import type {
+	ClaudeEventPayload,
 	ComposerCaptureResult,
 	DebugLogPayload,
 	SemanticProgress,
@@ -23,6 +24,7 @@ export const EVENT_NAMES = {
 	QC_CAPTURE_DETECTED: 'qc:capture-detected',
 	QC_OPEN_COMPOSER: 'qc:open-composer',
 	QC_COMPOSER_CAPTURE_RESULT: 'qc:composer-capture-result',
+	CLAUDE: 'claude-event',
 } as const;
 
 /** A Rust-emitted event name. */
@@ -54,4 +56,6 @@ export interface EventMap {
 	'qc:open-composer': string;
 	/** Whether the main window wrote one composer capture (`quick_capture/commands.rs`). */
 	'qc:composer-capture-result': ComposerCaptureResult;
+	/** One event of an agent turn, ending with `Done` (`commands/claude/turn.rs`). */
+	'claude-event': ClaudeEventPayload;
 }

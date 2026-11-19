@@ -139,10 +139,10 @@ describe('registerGlobalKeybindings', () => {
 		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
 	});
 
-	it('registers all 25 fixed global keybindings via registerKeybinding', () => {
+	it('registers all 26 fixed global keybindings via registerKeybinding', () => {
 		registerGlobalKeybindings();
 
-		expect(registerKeybinding).toHaveBeenCalledTimes(25);
+		expect(registerKeybinding).toHaveBeenCalledTimes(26);
 	});
 
 	it('registers Cmd+P for command palette', () => {
@@ -326,7 +326,7 @@ describe('registerGlobalKeybindings', () => {
 	});
 
 	it('returns a cleanup function that calls all individual cleanups', () => {
-		const cleanupFns = Array.from({ length: 25 }, () => vi.fn());
+		const cleanupFns = Array.from({ length: 26 }, () => vi.fn());
 		cleanupFns.forEach((fn) => {
 			vi.mocked(registerKeybinding).mockReturnValueOnce(fn);
 		});
@@ -340,6 +340,24 @@ describe('registerGlobalKeybindings', () => {
 	});
 
 	describe('handler behavior', () => {
+		it('Cmd+Shift+A shows the Claude panel and hides it again while Claude Code is on', () => {
+			settingsStore.updateClaudeCode({ enabled: true });
+			registerGlobalKeybindings();
+			const handler = findHandler({ key: 'a', meta: true, shift: true });
+
+			handler();
+			expect(settingsStore.layout.claudeVisible).toBe(true);
+			expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+			handler();
+			expect(settingsStore.layout.claudeVisible).toBe(false);
+		});
+
+		it('Cmd+Shift+A does nothing while Claude Code is off', () => {
+			registerGlobalKeybindings();
+			findHandler({ key: 'a', meta: true, shift: true })();
+			expect(settingsStore.layout.claudeVisible).toBe(false);
+		});
+
 		it('Cmd+D toggles favorite and Cmd+E toggles organized on the active note', () => {
 			registerGlobalKeybindings();
 

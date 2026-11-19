@@ -1,6 +1,6 @@
 # Sidebar Panels
 
-Learn about the right sidebar panels: Backlinks, Outgoing Links and Properties.
+Learn about the right sidebar panels: Backlinks, Outgoing Links, Properties and Claude.
 
 "Sidebar" in Kokobrain always means the right sidebar. The left side of the window is the rail with its navigators and note list, described in [Getting Started > The Rail](01-getting-started.md#the-rail). **Settings > Layout** sets up both.
 
@@ -11,7 +11,7 @@ The right sidebar provides contextual information about the note you are current
 ## Opening and Closing the Sidebar
 
 - Press **Cmd+B** to toggle the entire right sidebar on or off.
-- Each individual panel can be shown or hidden in **Settings > Layout**, or from the palette (`Cmd+P`): **Toggle Properties Panel**, **Toggle Backlinks Panel**, **Toggle Outgoing Links Panel** and **Toggle Table of Contents**. Turning a panel on from the palette also shows the sidebar if it was hidden, except on tabs where the sidebar never shows (canvas, kanban, views and virtual tabs).
+- Each individual panel can be shown or hidden in **Settings > Layout**, or from the palette (`Cmd+P`): **Toggle Properties Panel**, **Toggle Backlinks Panel**, **Toggle Outgoing Links Panel** and **Toggle Table of Contents**. Turning a panel on from the palette also shows the sidebar if it was hidden, except on tabs where the sidebar never shows (canvas, kanban, views and virtual tabs), and closes the Claude panel so the panel you turned on is what shows.
 - The sidebar updates automatically as you switch between notes, always reflecting the note you are currently editing.
 
 ---
@@ -156,6 +156,21 @@ panel. The `#tags` written in a note body are not tinted.
 
 > [!TIP]
 > Use nested tags for organization: `#project/alpha`, `#project/beta`. The Tags tab groups them into a collapsible tree, keeping your tag list tidy even as it grows.
+
+---
+
+## Claude
+
+With Claude Code turned on in **Settings > Claude Code** (see [Settings](19-settings.md#claude-code)), the right sidebar can show a Claude panel for chatting with Claude Code about your vault.
+
+- Press **Cmd+Shift+A**, or run **Toggle Claude Panel** from the Command Palette, to show or hide it. While it shows, it is the only panel in the right sidebar; hiding it brings the other panels back.
+- Showing the panel with **Cmd+Shift+A** or the command attaches the active note as context. When the note open in the editor is not attached, for example after you switch notes, it shows as a dashed chip with a +: click it to attach it. Remove a note with the x on its chip, add more with **Add note** or the **Add to Claude context** command, or send with no notes to work on the vault as a whole.
+- Type `/` in an empty prompt to pick a Claude Code slash command or skill. Each entry shows its arguments after the name and what it does below it. Kokobrain asks `claude` for this list when the panel opens in a vault, so your Claude Code SessionStart hooks run then. A hook that takes longer than 30 seconds is stopped, and the list then appears after your first message, with names only unless a later request succeeds.
+- **Stop** ends the running turn. **New chat** (not available while a turn runs) starts a new session with only the active note attached.
+- Chats are kept in the vault, in its `.kokobrain` folder, so they travel with it. When you open the vault, the last chat comes back with the line "Restored last chat. New chat starts over."; your next message continues it. Attached notes are not kept with a chat.
+- The clock button next to **New chat** (not available while a turn runs) shows the vault's saved chats in place of the messages, newest first, each with its first message and when it was last active. The open chat is highlighted. Click a chat to continue it, or press the button again or **Escape** to go back. The trash button on a chat deletes Kokobrain's copy of it; Claude Code's own session files are left alone. Deleting the open chat starts a new one. While a turn runs, the list can be viewed but not used.
+
+Claude can edit notes while a turn runs. Kokobrain saves your open notes before each turn, and the turn does not start if a note cannot be saved. An edit you type into a note Claude is changing can overwrite Claude's change.
 
 ---
 

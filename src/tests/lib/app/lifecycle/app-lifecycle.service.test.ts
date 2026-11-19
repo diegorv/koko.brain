@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupLocalStorage } from '../../../fixtures/localStorage.fixture';
 setupLocalStorage();
 
@@ -308,6 +308,7 @@ import { startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service
 import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
 import { startAutoSync, stopAutoSync } from '#lib/features/todoist-sync/sync-scheduler.service.js';
 import { todoistSyncStore } from '#lib/features/todoist-sync/todoist-sync.store.svelte.js';
+import { claudeStore } from '#lib/features/claude-code/claude.store.svelte.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { CompletionContext } from '@codemirror/autocomplete';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -460,6 +461,100 @@ describe('initializeVault', () => {
 			// test in this file that awaits a real setTimeout.
 			vi.useRealTimers();
 		}
+	});
+
+	describe('the last Claude chat', () => {
+		const CHAT_A = '0f8fad5b-d9cb-469f-a165-70867728950e';
+		const CHAT_B = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+		/** A CLI session id per chat title, as `chatFromStored` accepts. */
+		const sessionFor = (text: string) => (text === 'hello' ? '0c9a3f0e-5b1d-4e2a-9f6c-1d2e3f4a5b6c' : '7f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f');
+		const chatFile = (chatId: string, text: string) => JSON.stringify({
+			version: 1,
+			chatId,
+			sessionId: sessionFor(text),
+			createdAt: '2026-11-16T10:00:00.000Z',
+			updatedAt: '2026-11-16T10:05:00.000Z',
+			title: text,
+			messages: [{ role: 'user', text }],
+		});
+
+		/** Answers the chat commands per vault: `files` maps a vault path to its newest chat file, or none. */
+		function answerChats(files: Record<string, [string, string] | null>) {
+			vi.mocked(invoke).mockImplementation(((cmd: string, args?: { vaultPath: string }) => {
+				const newest = args ? files[args.vaultPath] : null;
+				if (cmd === 'claude_chat_list') return Promise.resolve(newest ? [{ chatId: newest[0], modifiedMs: 1 }] : []);
+				if (cmd === 'claude_chat_read') return Promise.resolve(newest?.[1] ?? null);
+				return Promise.resolve();
+			}) as unknown as typeof invoke);
+		}
+
+		beforeEach(() => {
+			teardownVault();
+			vi.clearAllMocks();
+			claudeStore.reset();
+		});
+
+		afterEach(() => {
+			vi.mocked(invoke).mockImplementation((() => Promise.resolve()) as unknown as typeof invoke);
+		});
+
+		it('comes back when the vault opens', async () => {
+			answerChats({ '/vault': [CHAT_A, chatFile(CHAT_A, 'hello')] });
+			vaultStore.open('/vault');
+			claudeStore.addContextNote('a.md');
+
+			await initializeVault('/vault');
+			await vi.waitFor(() => expect(claudeStore.chatId).toBe(CHAT_A));
+			expect(invoke).toHaveBeenCalledWith('claude_chat_list', { vaultPath: '/vault' });
+			expect(claudeStore.messages).toEqual([{ role: 'user', text: 'hello' }]);
+			expect(claudeStore.sessionId).toBe(sessionFor('hello'));
+			expect(claudeStore.restored).toBe(true);
+			expect(claudeStore.contextNotes).toEqual(['a.md']);
+		});
+
+		it('a superseded init does not restore its vault\'s chat', async () => {
+			vi.useFakeTimers();
+			try {
+				answerChats({ '/vault-a': [CHAT_A, chatFile(CHAT_A, 'from a')], '/vault-b': [CHAT_B, chatFile(CHAT_B, 'from b')] });
+				vaultStore.open('/vault-a');
+				await initializeVault('/vault-a');
+				teardownVault();
+				vaultStore.open('/vault-b');
+				await vi.advanceTimersByTimeAsync(100);
+				expect(invoke).not.toHaveBeenCalledWith('claude_chat_list', { vaultPath: '/vault-a' });
+				expect(claudeStore.chatId).toBeNull();
+
+				await initializeVault('/vault-b');
+				await vi.advanceTimersByTimeAsync(100);
+				expect(claudeStore.chatId).toBe(CHAT_B);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('a vault with no chat clears the previous vault\'s chat even when no teardown ran', async () => {
+			answerChats({ '/vault-a': [CHAT_A, chatFile(CHAT_A, 'from a')], '/vault-b': null });
+			vaultStore.open('/vault-a');
+			await initializeVault('/vault-a');
+			await vi.waitFor(() => expect(claudeStore.chatId).toBe(CHAT_A));
+
+			// A switch whose teardown was skipped: initializeVault B straight after A.
+			vaultStore.open('/vault-b');
+			await initializeVault('/vault-b');
+			await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('claude_chat_list', { vaultPath: '/vault-b' }));
+			await vi.waitFor(() => expect(claudeStore.chatId).toBeNull());
+			expect(claudeStore.messages).toEqual([]);
+		});
+
+		it('a corrupt chat file gives an empty chat and does not reject the open', async () => {
+			answerChats({ '/vault': [CHAT_A, '{ broken'] });
+			vaultStore.open('/vault');
+			claudeStore.restore(JSON.parse(chatFile(CHAT_B, 'old')));
+
+			await expect(initializeVault('/vault')).resolves.toBeUndefined();
+			await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('claude_chat_read', { vaultPath: '/vault', chatId: CHAT_A }));
+			await vi.waitFor(() => expect(claudeStore.chatId).toBeNull());
+		});
 	});
 
 	it('still rejects when settings fail to load, and skips the post-open side effects', async () => {
@@ -1026,6 +1121,21 @@ describe('teardownVault', () => {
 		teardownVault();
 
 		expect(invoke).toHaveBeenCalledWith('close_vault_db');
+	});
+
+	it('cancels the running Claude turn and clears its chat, session and notes', () => {
+		claudeStore.addContextNote('a.md');
+		claudeStore.beginTurn('hi');
+		claudeStore.startRun('r1');
+		claudeStore.receive({ runId: 'r1', event: { type: 'Result', sessionId: 's1', text: 'ok', isError: false, costUsd: null, numTurns: 1 } });
+
+		teardownVault();
+
+		expect(invoke).toHaveBeenCalledWith('claude_cancel_turn', { runId: 'r1' });
+		expect(claudeStore.messages).toEqual([]);
+		expect(claudeStore.sessionId).toBeNull();
+		expect(claudeStore.contextNotes).toEqual([]);
+		expect(claudeStore.isRunning).toBe(false);
 	});
 
 	it('clears editor hooks before resetting stores', () => {

@@ -18,6 +18,8 @@ import type { CommandArgs, CommandMap, CommandResult } from '../../src/lib/contr
 import type { EventMap } from '../../src/lib/contracts/events';
 import type {
 	CachedScanResult,
+	ClaudeChatEntry,
+	ClaudeStatus,
 	FileNode,
 	FileReadResult,
 	FileTaskGroup,
@@ -32,6 +34,7 @@ import type {
 	SemanticFileStatus,
 	SemanticResult,
 	SemanticStats,
+	SlashCommandInfo,
 	SnapshotInfo,
 	DiffLine,
 	TagAggregate,
@@ -450,6 +453,43 @@ function handleCheckForUpdateOnChannel(): null {
 	return null;
 }
 
+/** The browser build has no `claude` CLI: report it as not installed. */
+function handleClaudeStatus(): ClaudeStatus {
+	return { installed: false, path: null, version: null, error: 'claude is not available in the browser build' };
+}
+
+/** No `claude` CLI in the browser build, so no turn can start. */
+function handleClaudeRunTurn(): never {
+	throw new Error('claude is not available in the browser build');
+}
+
+/** No `claude` CLI in the browser build: the slash menu gets no descriptions. */
+function handleClaudeSlashCommands(): SlashCommandInfo[] {
+	return [];
+}
+
+/** Cancel is a no-op for an unknown run, and no run ever starts here. */
+function handleClaudeCancelTurn(): null {
+	return null;
+}
+
+/** Panel chats are not kept in the browser build: a write is dropped and the vault has none. */
+function handleClaudeChatWrite(): null {
+	return null;
+}
+
+function handleClaudeChatRead(): string | null {
+	return null;
+}
+
+function handleClaudeChatList(): ClaudeChatEntry[] {
+	return [];
+}
+
+function handleClaudeChatDelete(): null {
+	return null;
+}
+
 function handleQuickCaptureNoop(): null {
 	return null;
 }
@@ -552,6 +592,16 @@ const HANDLERS: Handlers = {
 
 	// Updater
 	check_for_update_on_channel: handleCheckForUpdateOnChannel,
+
+	// Claude Code
+	claude_status: handleClaudeStatus,
+	claude_run_turn: handleClaudeRunTurn,
+	claude_cancel_turn: handleClaudeCancelTurn,
+	claude_slash_commands: handleClaudeSlashCommands,
+	claude_chat_write: handleClaudeChatWrite,
+	claude_chat_read: handleClaudeChatRead,
+	claude_chat_list: handleClaudeChatList,
+	claude_chat_delete: handleClaudeChatDelete,
 
 	// Quick capture
 	capture_clipboard_now: handleQuickCaptureNoop,

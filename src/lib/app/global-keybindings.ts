@@ -21,6 +21,7 @@ import { openFileHistory } from '#lib/features/file-history/file-history.service
 import {
 	hideRailPanels,
 	showRailPanels,
+	toggleClaudePanel,
 	toggleLeftSidebar,
 	toggleRightSidebar,
 } from '#lib/core/layout/layout.service.js';
@@ -144,6 +145,14 @@ const GLOBAL_KEYBINDINGS: readonly GlobalKeybinding[] = [
 		key: 'b',
 		meta: true,
 		handler: toggleRightSidebar,
+	},
+	// Free in the app and in CodeMirror's default keymaps; a no-op while Claude Code is off.
+	{
+		command: 'claude:toggle-panel',
+		key: 'a',
+		meta: true,
+		shift: true,
+		handler: toggleClaudePanel,
 	},
 	{
 		command: 'quick-capture:create-note',

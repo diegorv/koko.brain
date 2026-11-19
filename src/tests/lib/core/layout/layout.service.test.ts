@@ -24,8 +24,10 @@ import {
 } from '#lib/core/settings/settings-persistence.svelte.js';
 import {
 	hideRailPanels,
+	showClaudePanel,
 	setRightPanelVisible,
 	showRailPanels,
+	toggleClaudePanel,
 	toggleLeftSidebar,
 	toggleRightPanel,
 	toggleRightSidebar,
@@ -239,6 +241,61 @@ describe('toggleRightSidebar', () => {
 	});
 });
 
+describe('toggleClaudePanel / showClaudePanel', () => {
+	beforeEach(() => {
+		resetAll();
+		settingsStore.updateClaudeCode({ enabled: true });
+	});
+	afterEach(teardownAll);
+
+	it('is hidden by default', () => {
+		expect(settingsStore.layout.claudeVisible).toBe(false);
+	});
+
+	it('shows the panel and opens the right sidebar, then hides only the panel, and persists', async () => {
+		vaultStore.open('/vault');
+		startSettingsPersistence('/vault');
+
+		toggleClaudePanel();
+		await settle();
+		expect(settingsStore.layout.claudeVisible).toBe(true);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+		expect(persisted().layout.claudeVisible).toBe(true);
+
+		toggleClaudePanel();
+		expect(settingsStore.layout.claudeVisible).toBe(false);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+	});
+
+	it('shows the panel again when its flag is set but the right sidebar was closed', () => {
+		settingsStore.updateLayout({ claudeVisible: true, rightSidebarVisible: false });
+		toggleClaudePanel();
+		expect(settingsStore.layout.claudeVisible).toBe(true);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+	});
+
+	it('does nothing while Claude Code is off', () => {
+		settingsStore.updateClaudeCode({ enabled: false });
+		toggleClaudePanel();
+		showClaudePanel();
+		expect(settingsStore.layout.claudeVisible).toBe(false);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(false);
+	});
+
+	it('does nothing on a tab that always hides the right sidebar', () => {
+		editorStore.addTab({ path: TASKS_VIRTUAL_PATH, name: 'Tasks', content: '', savedContent: '' });
+		toggleClaudePanel();
+		expect(settingsStore.layout.claudeVisible).toBe(false);
+	});
+
+	it('showClaudePanel keeps a shown panel shown', () => {
+		showClaudePanel();
+		showClaudePanel();
+		expect(settingsStore.layout.claudeVisible).toBe(true);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+	});
+});
+
 describe('toggleRightPanel / setRightPanelVisible', () => {
 	beforeEach(resetAll);
 	afterEach(teardownAll);
@@ -253,6 +310,29 @@ describe('toggleRightPanel / setRightPanelVisible', () => {
 	function openNoteTab(): void {
 		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: '', savedContent: '' });
 	}
+
+	it('turning a panel on closes the Claude panel, so the panel is what shows', () => {
+		settingsStore.updateClaudeCode({ enabled: true });
+		settingsStore.updateLayout({ rightSidebarVisible: true, claudeVisible: true, backlinksVisible: false });
+		openNoteTab();
+
+		toggleRightPanel('backlinks');
+
+		expect(settingsStore.layout.backlinksVisible).toBe(true);
+		expect(settingsStore.layout.claudeVisible).toBe(false);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+	});
+
+	it('turning a panel off leaves the Claude panel as it was', () => {
+		settingsStore.updateClaudeCode({ enabled: true });
+		settingsStore.updateLayout({ rightSidebarVisible: true, claudeVisible: true, backlinksVisible: true });
+		openNoteTab();
+
+		setRightPanelVisible('backlinks', false);
+
+		expect(settingsStore.layout.backlinksVisible).toBe(false);
+		expect(settingsStore.layout.claudeVisible).toBe(true);
+	});
 
 	it('toggleRightPanel flips only that panel flag, and twice returns it', () => {
 		settingsStore.updateLayout({ rightSidebarVisible: true });
