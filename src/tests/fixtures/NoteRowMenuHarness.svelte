@@ -19,9 +19,13 @@
 		icons?: Record<string, ResolvedIcon>;
 		/** Passed to every row as its Mark organized check; no check without it */
 		onOrganize?: (note: NoteRowNote) => void;
+		/** Passed to every row: marks it archived */
+		archived?: boolean;
+		/** Passed to every row as its type pill */
+		typeName?: string | null;
 	}
 
-	let { notes, extraItems = [], activePath = null, listProperties = [], allPaths = [], subtitle, icons = {}, onOrganize }: Props = $props();
+	let { notes, extraItems = [], activePath = null, listProperties = [], allPaths = [], subtitle, icons = {}, onOrganize, archived = false, typeName = null }: Props = $props();
 
 	/** Replaces the `notes` prop, as a list refresh does */
 	let replaced = $state<NoteRowNote[] | null>(null);
@@ -44,6 +48,8 @@
 			{listProperties}
 			{allPaths}
 			{subtitle}
+			{archived}
+			{typeName}
 			onOrganize={onOrganize ? () => onOrganize(note) : undefined}
 		/>
 	{/each}
