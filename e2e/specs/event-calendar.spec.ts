@@ -415,17 +415,17 @@ test.describe('Event calendar popover', () => {
 		await expect(popover).toBeVisible();
 		await expect(popover.locator('[data-popover-title]')).toHaveText('Standup');
 		await expect(popover.locator('[data-popover-time]')).toHaveText('09:00 – 10:00 · 1h');
-		await expect(block).toHaveClass(/ring-primary\/70/);
+		await expect(block).toHaveClass(/(^|\s)ring-primary(\s|$)/);
 
 		// A second event's click retargets the open popover, then back to the block.
 		const holiday = page.locator(`[data-all-day-cell] [data-event-path="${HOLIDAY}"]`);
 		await holiday.click();
 		await expect(popover.locator('[data-popover-title]')).toHaveText('Holiday');
-		await expect(holiday).toHaveClass(/ring-primary\/70/);
-		await expect(block).not.toHaveClass(/ring-primary\/70/);
+		await expect(holiday).toHaveClass(/(^|\s)ring-primary(\s|$)/);
+		await expect(block).not.toHaveClass(/(^|\s)ring-primary(\s|$)/);
 		await block.click();
 		await expect(popover.locator('[data-popover-title]')).toHaveText('Standup');
-		await expect(block).toHaveClass(/ring-primary\/70/);
+		await expect(block).toHaveClass(/(^|\s)ring-primary(\s|$)/);
 
 		await popover.getByRole('button', { name: 'Open note' }).click();
 		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('Standup');
@@ -435,7 +435,7 @@ test.describe('Event calendar popover', () => {
 		await expect(page.locator('[data-event-calendar]')).toBeVisible();
 		await expect(block).toBeVisible();
 		await expect(page.locator('[data-event-popover]')).toHaveCount(0);
-		await expect(block).not.toHaveClass(/ring-primary\/70/);
+		await expect(block).not.toHaveClass(/(^|\s)ring-primary(\s|$)/);
 	});
 });
 
