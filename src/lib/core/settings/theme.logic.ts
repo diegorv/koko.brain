@@ -9,7 +9,7 @@ import type {
 	AppearanceSettings,
 } from './theme.types';
 import { isDarkColor } from '#lib/utils/color.js';
-import { alpha, buildTheme, coreFromColors } from './theme-builder.logic';
+import { alpha, buildTheme, coreFromColors, withReadableContrast } from './theme-builder.logic';
 
 /** Converts a camelCase string to kebab-case */
 export function camelToKebab(s: string): string {
@@ -33,7 +33,7 @@ const GROUP_PREFIX: Record<keyof ThemeColors, string> = {
  * Shadow, ring and scrim colors for floating surfaces, read by the `--shadow-*`
  * overrides and `bg-scrim` in `app.css`. Derived here rather than stored as
  * theme tokens, so themes, validation and export do not carry them. A dark
- * editor background (or one `isDarkColor` cannot parse, such as hsl()) gets
+ * editor background (or one `isDarkColor` cannot parse, such as a `color-mix()`) gets
  * deep black shadows and a faint light ring; a light one gets soft shadows
  * tinted from the theme's own foreground.
  */
@@ -56,8 +56,8 @@ function elevationVars(ui: UIColors): Record<string, string> {
 	};
 }
 
-/** Converts a ThemeColors object into a flat map of CSS variable name → value, plus the derived `--elev-*` variables */
-export function themeColorsToCssVars(colors: ThemeColors): Record<string, string> {
+/** Flat map of CSS variable name → value of every token in `colors`. */
+function tokenVars(colors: ThemeColors): Record<string, string> {
 	const vars: Record<string, string> = {};
 
 	for (const [group, tokens] of Object.entries(colors) as [keyof ThemeColors, Record<string, string>][]) {
@@ -67,11 +67,23 @@ export function themeColorsToCssVars(colors: ThemeColors): Record<string, string
 			vars[varName] = value;
 		}
 	}
+	return vars;
+}
 
+/**
+ * Converts a ThemeColors object into the flat map of CSS variable name → value
+ * the app applies, plus the derived `--elev-*` variables. Every foreground
+ * that fails its `READABILITY_PAIRS` minimum is lifted here, so a theme saved,
+ * edited or imported as a full token set (which skips `buildTheme`) is shown
+ * readable; `colors` itself, and so the saved theme, stays as typed.
+ */
+export function themeColorsToCssVars(colors: ThemeColors): Record<string, string> {
 	// Real themes are complete (they pass through `mergeThemeWithDefaults`); only cast
 	// partial colors, as in the applyTheme edge-case tests, lack an editor background,
-	// and then the stylesheet's `--elev-*` fallbacks stay in place.
-	return colors.ui?.editorBg ? { ...vars, ...elevationVars(colors.ui) } : vars;
+	// and then they are emitted as is and the stylesheet's `--elev-*` fallbacks stay in place.
+	if (!colors.ui?.editorBg) return tokenVars(colors);
+	const applied = withReadableContrast(colors);
+	return { ...tokenVars(applied), ...elevationVars(applied.ui) };
 }
 
 /** Keeps exactly the keys of `template`, taking each from `source` when present there, else from `fallback`. */
@@ -235,8 +247,8 @@ export const LAVENDER_HAZE_THEME: Theme = buildTheme('Lavender Haze', {
 	popoverBg: '#FFFFFF',
 	fg: '#302840',
 	heading: '#6848A8',
-	// Already clears readableCore's 4.5:1 lift on every surface, so the lift
-	// leaves it as is; it sets muted text and the H6 end of the heading ramp.
+	// readableCore darkens it slightly to reach 4.5:1 on the Settings hover
+	// surface; it sets muted text and the H6 end of the heading ramp.
 	mutedFg: '#645c74',
 	faintFg: '#C0B8D0',
 	border: '#D5D0E2',

@@ -1,5 +1,5 @@
-import type { Theme, ThemeColors } from './theme.types';
-import { ensureContrast, flatten, mixColors } from '#lib/utils/color.js';
+import type { Theme, ThemeColors, UIColors } from './theme.types';
+import { contrastRatio, ensureContrast, flatten, mixColors } from '#lib/utils/color.js';
 
 /**
  * Names of the categorical type palette. A `_color` set to one of them renders
@@ -118,6 +118,19 @@ export const READABILITY_PAIRS: ReadabilityPair[] = [
 	['ui', 'tabTextActive', 'ui', 'tabBar', 4.5],
 	['ui', 'tabTextInactive', 'ui', 'tabBar', 4.5],
 	['ui', 'settingsText', 'ui', 'settingsDialogBg', 4.5],
+	['ui', 'settingsText', 'ui', 'settingsHoverBg', 4.5],
+	['ui', 'settingsText', 'ui', 'settingItemBg', 4.5],
+	['ui', 'settingsText', 'ui', 'settingsSidebarBg', 4.5],
+	['ui', 'mutedForeground', 'ui', 'settingsDialogBg', 4.5],
+	['ui', 'mutedForeground', 'ui', 'settingsHoverBg', 4.5],
+	['ui', 'mutedForeground', 'ui', 'settingItemBg', 4.5],
+	// Primary and destructive are also drawn as text in Settings. These come
+	// before the label-on-fill pairs, so each label is measured on the lifted fill.
+	['ui', 'primary', 'ui', 'settingsDialogBg', 4.5],
+	['ui', 'primary', 'ui', 'settingsHoverBg', 4.5],
+	['ui', 'primary', 'ui', 'settingItemBg', 4.5],
+	['ui', 'destructive', 'ui', 'settingsDialogBg', 4.5],
+	['ui', 'destructive', 'ui', 'settingItemBg', 4.5],
 	['ui', 'primaryForeground', 'ui', 'primary', 4.5],
 	['ui', 'destructiveForeground', 'ui', 'destructive', 4.5],
 	...TYPE_PALETTE_TOKENS.map((k): ReadabilityPair => ['ui', k, 'ui', 'fileExplorerBg', 3]),
@@ -169,15 +182,26 @@ export const READABILITY_PAIRS: ReadabilityPair[] = [
 	['preview', 'blockquoteBorder', 'ui', 'editorBg', 3],
 ];
 
-/** Moves each failing foreground of `READABILITY_PAIRS` to its minimum contrast; backgrounds are never changed. */
-function withReadableContrast(colors: ThemeColors): ThemeColors {
-	const out = {
+/** A copy of every token group, typed so each group reads as a plain token map. */
+function copyGroups(colors: ThemeColors) {
+	return {
 		ui: { ...colors.ui }, syntax: { ...colors.syntax }, preview: { ...colors.preview },
 		wikilink: { ...colors.wikilink }, callout: { ...colors.callout },
 	};
+}
+
+/**
+ * Moves each failing foreground of `READABILITY_PAIRS` to its minimum contrast
+ * and returns the result as a copy; backgrounds are never changed. A no-op on a
+ * theme that already passes every pair.
+ */
+export function withReadableContrast(colors: ThemeColors): ThemeColors {
+	const out = copyGroups(colors);
 	for (const [group, key, bgGroup, bgKey, min] of READABILITY_PAIRS) {
 		const tokens: Record<string, string> = out[group];
 		const bgTokens: Record<string, string> = out[bgGroup];
+		// A theme saved before a token existed lacks it until `mergeThemeWithDefaults` fills it in
+		if (tokens[key] === undefined || bgTokens[bgKey] === undefined) continue;
 		const bg = flatten(bgTokens[bgKey], out.ui.editorBg) ?? bgTokens[bgKey];
 		const before = tokens[key];
 		tokens[key] = ensureContrast(before, bg, min);
@@ -189,23 +213,73 @@ function withReadableContrast(colors: ThemeColors): ThemeColors {
 	return out;
 }
 
+/** A `READABILITY_PAIRS` pair that a theme's own foreground fails. */
+export interface ReadabilityFailure {
+	/** Group of the surface token the foreground is read on */
+	bgGroup: keyof ThemeColors;
+	/** Surface token the foreground is read on */
+	bgKey: string;
+	/** Measured WCAG contrast, below `min` */
+	ratio: number;
+	/** Minimum contrast of the pair */
+	min: number;
+}
+
+/**
+ * The pairs a theme's own colors fail, keyed by foreground token
+ * (`ui.mutedForeground`); a token failing several surfaces keeps its worst one
+ * (lowest share of its minimum). Each typed foreground is measured on its
+ * surface as `withReadableContrast` leaves it, so a label whose fill the app
+ * lifts is reported too: the reported tokens are the ones the app changes. A
+ * pair with a missing or unparseable color is skipped.
+ */
+export function readabilityFailures(colors: ThemeColors): Map<string, ReadabilityFailure> {
+	const out = new Map<string, ReadabilityFailure>();
+	const typedGroups = copyGroups(colors);
+	const lifted = copyGroups(colors);
+	for (const [group, key, bgGroup, bgKey, min] of READABILITY_PAIRS) {
+		const typed: Record<string, string> = typedGroups[group];
+		const tokens: Record<string, string> = lifted[group];
+		const bgTokens: Record<string, string> = lifted[bgGroup];
+		const fg = typed[key];
+		const surface = bgTokens[bgKey];
+		if (fg === undefined || surface === undefined) continue;
+		const bg = flatten(surface, lifted.ui.editorBg) ?? surface;
+		tokens[key] = ensureContrast(tokens[key], bg, min);
+		const ratio = contrastRatio(fg, bg);
+		if (ratio === null || ratio >= min) continue;
+		const id = `${group}.${key}`;
+		const worst = out.get(id);
+		if (!worst || ratio / min < worst.ratio / worst.min) out.set(id, { bgGroup, bgKey, ratio, min });
+	}
+	return out;
+}
+
 /**
  * Lifts the core colors that are read as text or accents to their minimum
  * contrast on every surface they appear on, before derivation, so every token
  * derived from one source (link, hover, underline tint) stays the same color.
+ * `ui` holds the theme's UI overrides: a Settings surface it overrides is the
+ * one the text is read on.
  */
-function readableCore(p: CorePalette): CorePalette {
+function readableCore(p: CorePalette, ui: Partial<UIColors> = {}): CorePalette {
 	const surfaces = [p.editorBg, p.sidebarBg, p.panelBg, p.popoverBg];
 	const lift = (color: string, min: number, on: string[] = [p.editorBg]) =>
 		on.reduce((c, bg) => ensureContrast(c, bg, min), color);
+	// The Settings surfaces as `buildTheme` derives them; the hover fill may be translucent.
+	const [dialog, hover, item, settingsSidebar] = [
+		ui.settingsDialogBg ?? p.panelBg, ui.settingsHoverBg ?? p.hover,
+		ui.settingItemBg ?? p.sidebarBg, ui.settingsSidebarBg ?? p.sidebarBg,
+	].map((bg) => flatten(bg, p.editorBg) ?? bg);
 	// Primary is also the focus ring and the selected-state cue on every surface (3:1, non-text).
-	const primary = lift(lift(p.primary, 4.5), 3, surfaces);
-	const error = lift(p.error, 3);
+	const primary = lift(lift(p.primary, 4.5, [p.editorBg, dialog, hover, item]), 3, surfaces);
+	// Destructive is also small text in Settings (4.5:1), besides the fill of destructive buttons.
+	const error = lift(lift(p.error, 3), 4.5, [dialog, item]);
 	return {
 		...p,
-		fg: lift(lift(p.fg, 7), 4.5, surfaces),
+		fg: lift(lift(p.fg, 7), 4.5, [...surfaces, dialog, hover, item, settingsSidebar]),
 		heading: lift(p.heading, 3),
-		mutedFg: lift(p.mutedFg, 4.5, surfaces),
+		mutedFg: lift(p.mutedFg, 4.5, [...surfaces, dialog, hover, item]),
 		primary,
 		primaryFg: ensureContrast(p.primaryFg, primary, 4.5),
 		secondary: lift(p.secondary, 4.5),
@@ -233,7 +307,7 @@ export type ThemeOverrides = { [G in keyof ThemeColors]?: Partial<ThemeColors[G]
  * over `READABILITY_PAIRS` catches overrides that still fall short.
  */
 export function buildTheme(name: string, core: CorePalette, overrides: ThemeOverrides = {}): Theme {
-	const p = readableCore(core);
+	const p = readableCore(core, overrides.ui);
 	const inlineFg = p.inlineFg ?? p.fg;
 	const linkFg = p.linkFg ?? p.primary;
 	const meta = p.meta ?? p.mutedFg;

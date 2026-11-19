@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { buildTheme, alpha, coreFromColors, READABILITY_PAIRS, TYPE_PALETTE_TOKENS, type CorePalette } from '#lib/core/settings/theme-builder.logic.js';
+import { buildTheme, alpha, coreFromColors, READABILITY_PAIRS, TYPE_PALETTE_TOKENS, readabilityFailures, withReadableContrast, type CorePalette } from '#lib/core/settings/theme-builder.logic.js';
 import { colorDistance, contrastRatio, flatten, mixColors } from '#lib/utils/color.js';
 import { BUILTIN_THEMES, mergeThemeWithDefaults } from '#lib/core/settings/theme.logic.js';
-import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
+import { KOKOBRAIN_DEFAULT_THEME, LAVENDER_HAZE_THEME } from '#lib/core/settings/theme.logic.js';
 import type { SyntaxColors, ThemeColors } from '#lib/core/settings/theme.types.js';
 import { HARD_PALETTE_THEMES } from '../../../fixtures/hard-palette-themes.fixture';
 
@@ -75,7 +75,7 @@ describe('buildTheme', () => {
 	});
 
 	it('falls back to the first hue when a palette mix cannot be computed', () => {
-		const { ui } = buildTheme('T', { ...CORE, yellow: 'hsl(45 90% 50%)' }).colors;
+		const { ui } = buildTheme('T', { ...CORE, yellow: 'var(--yellow)' }).colors;
 		expect(ui.typeOrange).toBe(CORE.error);
 	});
 
@@ -250,6 +250,36 @@ describe('readable contrast', () => {
 		expect(contrastRatio(ui.success, ui.editorBg)!).toBeGreaterThanOrEqual(4.5);
 	});
 
+	it('lifts a full token set as a copy, and skips a pair whose token a theme saved before it existed lacks', () => {
+		const colors = buildTheme('T', CORE).colors;
+		const failing: ThemeColors = { ...colors, ui: { ...colors.ui, mutedForeground: '#dddddd' } };
+		const { success: _success, ...uiWithoutSuccess } = failing.ui;
+		const old = { ...failing, ui: uiWithoutSuccess } as unknown as ThemeColors;
+		const lifted = withReadableContrast(old);
+		expect(contrastRatio(lifted.ui.mutedForeground, lifted.ui.editorBg)!).toBeGreaterThanOrEqual(4.5);
+		expect(lifted.ui.success).toBeUndefined();
+		expect(old.ui.mutedForeground).toBe('#dddddd');
+		expect(withReadableContrast(colors)).toEqual(colors);
+	});
+
+	it('pairs Settings text, muted text, primary and destructive with the Settings surfaces at 4.5:1', () => {
+		const text = ['settingsText', 'mutedForeground', 'primary', 'destructive'];
+		const pairs = READABILITY_PAIRS.filter(([g, k, bg, bgKey]) => g === 'ui' && text.includes(k) && bg === 'ui' && bgKey.startsWith('setting'));
+		expect(pairs.map(([, k, , bgKey, min]) => `${k}@${bgKey}:${min}`).sort()).toEqual([
+			'destructive@settingItemBg:4.5', 'destructive@settingsDialogBg:4.5',
+			'mutedForeground@settingItemBg:4.5', 'mutedForeground@settingsDialogBg:4.5', 'mutedForeground@settingsHoverBg:4.5',
+			'primary@settingItemBg:4.5', 'primary@settingsDialogBg:4.5', 'primary@settingsHoverBg:4.5',
+			'settingsText@settingItemBg:4.5', 'settingsText@settingsDialogBg:4.5', 'settingsText@settingsHoverBg:4.5', 'settingsText@settingsSidebarBg:4.5',
+		]);
+		const { ui } = buildTheme('T', { ...CORE, hover: '#c8c8c8', error: '#ff6666' }).colors;
+		expect(contrastRatio(ui.mutedForeground, ui.settingsHoverBg)!).toBeGreaterThanOrEqual(4.5);
+		expect(contrastRatio(ui.destructive, ui.settingsDialogBg)!).toBeGreaterThanOrEqual(4.5);
+		const dark = buildTheme('T', CORE, { ui: { settingsDialogBg: '#2a2a2a', settingsHoverBg: '#2a2a2a', settingItemBg: '#2a2a2a' } }).colors.ui;
+		expect(contrastRatio(dark.primary, '#2a2a2a')!).toBeGreaterThanOrEqual(4.5);
+		// The fill is lifted before its label is measured on it
+		expect(contrastRatio(ui.destructiveForeground, ui.destructive)!).toBeGreaterThanOrEqual(4.5);
+	});
+
 	it('holds for every pair in every built-in theme', () => {
 		const failures: string[] = [];
 		const skipped: string[] = [];
@@ -278,6 +308,69 @@ describe('readable contrast', () => {
 			expect(fg).toMatch(/^#[0-9a-f]{6}$/);
 			expect(contrastRatio(fg, bg)!).toBeGreaterThanOrEqual(4.5);
 		}
+	});
+});
+
+describe('readabilityFailures', () => {
+	it('reports nothing for a theme that passes every pair', () => {
+		for (const theme of BUILTIN_THEMES) expect(readabilityFailures(theme.colors).size, theme.name).toBe(0);
+	});
+
+	it('reports each failing token once, at its worst pair, with the measured ratio and the minimum', () => {
+		const colors = buildTheme('T', CORE).colors;
+		const ui = { ...colors.ui, mutedForeground: '#bbbbbb', settingsHoverBg: '#dddddd' };
+		const failures = readabilityFailures({ ...colors, ui });
+		expect([...failures.keys()]).toEqual(['ui.mutedForeground']);
+		expect(failures.get('ui.mutedForeground')).toEqual({
+			bgGroup: 'ui', bgKey: 'settingsHoverBg', ratio: contrastRatio('#bbbbbb', '#dddddd'), min: 4.5,
+		});
+	});
+
+	it('measures the colors as given, not lifted, and leaves them untouched', () => {
+		const colors = buildTheme('T', CORE).colors;
+		const failing = { ...colors, syntax: { ...colors.syntax, link: '#eeeeee' } };
+		const failure = readabilityFailures(failing).get('syntax.link')!;
+		expect(failure.ratio).toBe(contrastRatio('#eeeeee', colors.ui.editorBg));
+		expect(failing.syntax.link).toBe('#eeeeee');
+	});
+
+	it('warns on a label that passes on the typed fill but the app changes on the lifted fill', () => {
+		const colors = LAVENDER_HAZE_THEME.colors;
+		const ui = { ...colors.ui, primary: '#b09ad8', primaryForeground: '#000000' };
+		const typed = { ...colors, ui };
+		expect(contrastRatio('#000000', '#b09ad8')!).toBeGreaterThanOrEqual(4.5);
+		const lifted = withReadableContrast(typed);
+		expect(lifted.ui.primaryForeground).not.toBe('#000000');
+		const failure = readabilityFailures(typed).get('ui.primaryForeground')!;
+		expect(failure).toEqual({
+			bgGroup: 'ui', bgKey: 'primary', ratio: contrastRatio('#000000', lifted.ui.primary), min: 4.5,
+		});
+		expect(typed.ui.primary).toBe('#b09ad8');
+	});
+
+	it('reports exactly the tokens the lift changes', () => {
+		const colors = LAVENDER_HAZE_THEME.colors;
+		const typed = { ...colors, ui: { ...colors.ui, primary: '#b09ad8', primaryForeground: '#000000', mutedForeground: '#d0d0d0' } };
+		const lifted = withReadableContrast(typed);
+		const changed = (Object.keys(typed) as (keyof ThemeColors)[]).flatMap((g) =>
+			Object.entries(typed[g]).filter(([k, v]) => (lifted[g] as unknown as Record<string, string>)[k] !== v && !k.endsWith('Decoration')).map(([k]) => `${g}.${k}`),
+		);
+		expect([...readabilityFailures(typed).keys()].sort()).toEqual(changed.sort());
+	});
+
+	it('warns on primary that fails on the Settings dialog and lifts it there', () => {
+		const colors = buildTheme('T', CORE).colors;
+		const ui = { ...colors.ui, settingsDialogBg: '#2a2a2a', settingsHoverBg: '#2a2a2a', settingItemBg: '#2a2a2a' };
+		const typed = { ...colors, ui };
+		expect(readabilityFailures(typed).get('ui.primary')?.bgKey).toBe('settingsDialogBg');
+		expect(contrastRatio(withReadableContrast(typed).ui.primary, '#2a2a2a')!).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it('skips a pair whose colors it cannot parse or that a theme lacks', () => {
+		const colors = buildTheme('T', CORE).colors;
+		// An unparseable muted text, and a theme saved before `success` existed
+		const { success: _success, ...ui } = { ...colors.ui, mutedForeground: 'var(--x)' };
+		expect(readabilityFailures({ ...colors, ui: ui as ThemeColors['ui'] }).size).toBe(0);
 	});
 });
 

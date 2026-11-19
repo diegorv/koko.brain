@@ -35,6 +35,49 @@ describe('isDarkColor', () => {
 	});
 });
 
+describe('hsl(), 4-digit hex and space-separated rgb() parsing', () => {
+	it('reads hsl() and hsla() in comma and space syntax', () => {
+		expect(flatten('hsl(0 100% 50%)', '#000000')).toBe('#ff0000');
+		expect(flatten('hsl(120, 100%, 25%)', '#000000')).toBe('#008000');
+		expect(flatten('HSL(240deg 100% 50%)', '#000000')).toBe('#0000ff');
+		expect(isDarkColor('hsl(270 20% 95%)')).toBe(false);
+	});
+
+	it('reads an hsl() alpha as a number or a percentage', () => {
+		expect(flatten('hsla(0, 0%, 0%, 0.5)', '#ffffff')).toBe('#808080');
+		expect(flatten('hsl(0 0% 0% / 50%)', '#ffffff')).toBe('#808080');
+	});
+
+	it('reads a 4-digit hex with its alpha digit', () => {
+		expect(flatten('#f00f', '#000000')).toBe('#ff0000');
+		expect(flatten('#0008', '#ffffff')).toBe('#777777');
+	});
+
+	it('reads space-separated rgb() with a / alpha and percentage channels', () => {
+		expect(flatten('rgb(255 0 0 / 0.5)', '#ffffff')).toBe('#ff8080');
+		expect(flatten('rgb(0 0 0 / 50%)', '#ffffff')).toBe('#808080');
+		expect(flatten('rgb(100% 0% 0%)', '#000000')).toBe('#ff0000');
+		expect(isDarkColor('rgb(30 30 30)')).toBe(true);
+	});
+
+	it('still returns null for colors it cannot parse', () => {
+		expect(isDarkColor('hsl(200 50%)')).toBeNull();
+		expect(isDarkColor('rgb(1 2)')).toBeNull();
+		expect(isDarkColor('#12345')).toBeNull();
+		expect(isDarkColor('hwb(200 20% 30%)')).toBeNull();
+	});
+
+	it('returns null for rgb() and hsl() that mix the comma and space forms', () => {
+		expect(isDarkColor('rgb(255, 0 0)')).toBeNull();
+		expect(isDarkColor('rgb(255 0 0, 0.5)')).toBeNull();
+		expect(isDarkColor('rgb(255,0,0/0.5)')).toBeNull();
+		expect(isDarkColor('hsl(0, 100% 50%)')).toBeNull();
+		expect(isDarkColor('hsl(0 100% 50%, 0.5)')).toBeNull();
+		expect(isDarkColor('rgba(255, 0, 0, 0.5)')).toBe(false);
+		expect(isDarkColor('hsl(0 100% 50% / 50%)')).toBe(false);
+	});
+});
+
 describe('oklch parsing', () => {
 	it('converts through OKLab to the sRGB hex it names', () => {
 		expect(flatten('oklch(1 0 0)', '#000000')).toBe('#ffffff');
@@ -85,7 +128,7 @@ describe('contrastRatio', () => {
 	});
 
 	it('returns null when a color cannot be parsed', () => {
-		expect(contrastRatio('hsl(200 50% 50%)', '#ffffff')).toBeNull();
+		expect(contrastRatio('hwb(200 20% 30%)', '#ffffff')).toBeNull();
 	});
 });
 
@@ -142,7 +185,7 @@ describe('ensureContrast', () => {
 	});
 
 	it('leaves colors it cannot parse untouched', () => {
-		expect(ensureContrast('hsl(200 50% 50%)', '#ffffff', 4.5)).toBe('hsl(200 50% 50%)');
+		expect(ensureContrast('hwb(200 20% 30%)', '#ffffff', 4.5)).toBe('hwb(200 20% 30%)');
 	});
 });
 
@@ -156,7 +199,7 @@ describe('flatten', () => {
 	});
 
 	it('returns null for unparseable input', () => {
-		expect(flatten('hsl(200 50% 50%)', '#ffffff')).toBeNull();
+		expect(flatten('hwb(200 20% 30%)', '#ffffff')).toBeNull();
 	});
 });
 
@@ -186,7 +229,7 @@ describe('tint', () => {
 	});
 
 	it('returns null when either color is unparseable', () => {
-		expect(tint('hsl(200 50% 50%)', 0.25, '#ffffff')).toBeNull();
+		expect(tint('hwb(200 20% 30%)', 0.25, '#ffffff')).toBeNull();
 		expect(tint('#000000', 0.25, '')).toBeNull();
 	});
 });
@@ -205,7 +248,7 @@ describe('shiftLightness', () => {
 	});
 
 	it('returns null for an unparseable color', () => {
-		expect(shiftLightness('hsl(200 50% 50%)', -0.06)).toBeNull();
+		expect(shiftLightness('hwb(200 20% 30%)', -0.06)).toBeNull();
 	});
 });
 
@@ -223,7 +266,7 @@ describe('ensureContrastOn', () => {
 	});
 
 	it('leaves colors it cannot parse untouched', () => {
-		expect(ensureContrastOn('hsl(200 50% 50%)', ['#ffffff'], 3)).toBe('hsl(200 50% 50%)');
+		expect(ensureContrastOn('hwb(200 20% 30%)', ['#ffffff'], 3)).toBe('hwb(200 20% 30%)');
 	});
 });
 
@@ -249,7 +292,7 @@ describe('mixColors', () => {
 	});
 
 	it('returns null when either color is unparseable', () => {
-		expect(mixColors('hsl(200 50% 50%)', '#ffffff')).toBeNull();
+		expect(mixColors('hwb(200 20% 30%)', '#ffffff')).toBeNull();
 		expect(mixColors('#ffffff', '')).toBeNull();
 	});
 });
@@ -267,7 +310,7 @@ describe('colorDistance', () => {
 	});
 
 	it('returns null when either color is unparseable', () => {
-		expect(colorDistance('hsl(200 50% 50%)', '#ffffff')).toBeNull();
+		expect(colorDistance('hwb(200 20% 30%)', '#ffffff')).toBeNull();
 		expect(colorDistance('#ffffff', '')).toBeNull();
 	});
 });

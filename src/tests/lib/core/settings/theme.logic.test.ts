@@ -94,7 +94,7 @@ describe('themeColorsToCssVars', () => {
 	it('treats an editor background it cannot parse as dark', () => {
 		const colors = {
 			...LAVENDER_HAZE_THEME.colors,
-			ui: { ...LAVENDER_HAZE_THEME.colors.ui, editorBg: 'hsl(270 20% 95%)' },
+			ui: { ...LAVENDER_HAZE_THEME.colors.ui, editorBg: 'color-mix(in srgb, #f3f0f8 90%, transparent)' },
 		};
 		expect(elevVars(themeColorsToCssVars(colors))).toEqual(ELEV_DARK);
 	});
@@ -102,6 +102,22 @@ describe('themeColorsToCssVars', () => {
 	it('leaves the elevation values to the stylesheet for colors without an editor background', () => {
 		expect(themeColorsToCssVars({ ui: { background: '#111111' } } as unknown as ThemeColors)).toEqual({ '--background': '#111111' });
 		expect(themeColorsToCssVars({} as ThemeColors)).toEqual({});
+	});
+
+	it('applies a user theme with its failing tokens lifted and leaves the saved colors as typed', () => {
+		const colors: ThemeColors = {
+			...LAVENDER_HAZE_THEME.colors,
+			ui: { ...LAVENDER_HAZE_THEME.colors.ui, mutedForeground: '#c8c0d8' },
+			syntax: { ...LAVENDER_HAZE_THEME.colors.syntax, link: '#d0c8e0' },
+		};
+		const saved = structuredClone(colors);
+		const vars = themeColorsToCssVars(colors);
+		expect(vars['--muted-foreground']).not.toBe('#c8c0d8');
+		expect(contrastRatio(vars['--muted-foreground'], vars['--editor-bg'])!).toBeGreaterThanOrEqual(4.5);
+		expect(contrastRatio(vars['--syntax-link'], vars['--editor-bg'])!).toBeGreaterThanOrEqual(4.5);
+		// Backgrounds are never moved
+		expect(vars['--editor-bg']).toBe(colors.ui.editorBg);
+		expect(colors).toEqual(saved);
 	});
 
 	it('emits every theme token unchanged besides the elevation values', () => {
@@ -318,7 +334,7 @@ describe('KOKOBRAIN_DEFAULT_THEME', () => {
 
 	it('has valid heading colors', () => {
 		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading1).toBe('#E8A5FF');
-		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading6).toBe('#95a0b9');
+		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading6).toBe('#9fa9c0');
 	});
 
 	it.each(BUILTIN_THEMES.map((t) => [t.name, t] as const))('%s colors H1 apart from its error red', (_name, theme) => {
