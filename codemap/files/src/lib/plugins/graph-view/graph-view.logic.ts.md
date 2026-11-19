@@ -1,6 +1,6 @@
 # file card src/lib/plugins/graph-view/graph-view.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/plugins/graph-view/graph-view.logic.ts ' codemap/files
-file src/lib/plugins/graph-view/graph-view.logic.ts logic L303 module src/lib/plugins/graph-view in3 t1
+file src/lib/plugins/graph-view/graph-view.logic.ts logic L310 module src/lib/plugins/graph-view in3 t1
 ## imports
 imp src/lib/plugins/graph-view/graph-view.logic.ts:1 -> src/lib/core/filesystem/fs.logic.ts isViewFile
 imp src/lib/plugins/graph-view/graph-view.logic.ts:2 -> src/lib/core/filesystem/wikilink-resolution.logic.ts buildResolutionCache,resolveWikilinkCached
@@ -9,7 +9,7 @@ imp src/lib/plugins/graph-view/graph-view.logic.ts:4 -> src/lib/plugins/graph-vi
 imp src/lib/plugins/graph-view/graph-view.logic.ts:5 -> src/lib/types/vault-v2.types.ts type:NoteEntryV2
 ## imported-by
 imp src/lib/plugins/graph-view/GraphControls.svelte:13 -> src/lib/plugins/graph-view/graph-view.logic.ts getUniqueFolders,getUniqueTags
-imp src/lib/plugins/graph-view/GraphView.svelte:19 -> src/lib/plugins/graph-view/graph-view.logic.ts filterGraphData,getLocalGraph,getNodeRadius,graphPalette,selectLabels,FALLBACK_GRAPH_PALETTE,type:GraphPalette,type:LabelCandidate
+imp src/lib/plugins/graph-view/GraphView.svelte:19 -> src/lib/plugins/graph-view/graph-view.logic.ts filterGraphData,formatGraphStats,getLocalGraph,getNodeRadius,graphPalette,selectLabels,FALLBACK_GRAPH_PALETTE,type:GraphPalette,type:LabelCandidate
 imp src/lib/plugins/graph-view/graph-view.service.ts:5 -> src/lib/plugins/graph-view/graph-view.logic.ts buildGraphData
 ## reach
 in2 src/lib/plugins/graph-view/graph-view.logic.ts 5 files in 1 modules: src/lib/app(5)
@@ -41,6 +41,8 @@ sym src/lib/plugins/graph-view/graph-view.logic.ts:267 const FALLBACK_GRAPH_PALE
 by src/lib/plugins/graph-view/graph-view.logic.ts:FALLBACK_GRAPH_PALETTE <- src/lib/plugins/graph-view/GraphView.svelte:70 in palette ref
 sym src/lib/plugins/graph-view/graph-view.logic.ts:284 fn graphPalette(tokens: GraphThemeTokens): GraphPalette L20 | Derives the graph palette from the active theme's tokens: the editor background, muted nodes, a primary active node, and dimmed colors and edges mixed toward t…
 by src/lib/plugins/graph-view/graph-view.logic.ts:graphPalette <- src/lib/plugins/graph-view/GraphView.svelte:76 in readPalette call
+sym src/lib/plugins/graph-view/graph-view.logic.ts:306 fn formatGraphStats(noteCount: number, linkCount: number): string L5 | Footer text for the graph, e.g. "1 note · 1 link" or "2 notes · 3 links".
+by src/lib/plugins/graph-view/graph-view.logic.ts:formatGraphStats <- src/lib/plugins/graph-view/GraphView.svelte:556 in (markup) markup
 ## locals
 local src/lib/plugins/graph-view/graph-view.logic.ts:158 fn labelsOverlap(a: LabelCandidate, b: LabelCandidate): boolean L3
 ## calls

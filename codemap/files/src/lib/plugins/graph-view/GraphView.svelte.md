@@ -4,7 +4,7 @@ file src/lib/plugins/graph-view/GraphView.svelte component L558 module src/lib/p
 ## imports
 imp src/lib/plugins/graph-view/GraphView.svelte:17 -> src/lib/plugins/graph-view/graph-view.store.svelte.ts graphViewStore
 imp src/lib/plugins/graph-view/GraphView.svelte:18 -> src/lib/plugins/graph-view/graph-view.service.ts buildGraph
-imp src/lib/plugins/graph-view/GraphView.svelte:19 -> src/lib/plugins/graph-view/graph-view.logic.ts filterGraphData,getLocalGraph,getNodeRadius,graphPalette,selectLabels,FALLBACK_GRAPH_PALETTE,type:GraphPalette,type:LabelCandidate
+imp src/lib/plugins/graph-view/GraphView.svelte:19 -> src/lib/plugins/graph-view/graph-view.logic.ts filterGraphData,formatGraphStats,getLocalGraph,getNodeRadius,graphPalette,selectLabels,FALLBACK_GRAPH_PALETTE,type:GraphPalette,type:LabelCandidate
 imp src/lib/plugins/graph-view/GraphView.svelte:20 -> src/lib/plugins/graph-view/graph-view.types.ts type:GraphNode,type:GraphLink,type:GraphData
 imp src/lib/plugins/graph-view/GraphView.svelte:21 -> src/lib/components/ui/button/index.ts Button
 imp src/lib/plugins/graph-view/GraphView.svelte:22 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
@@ -79,6 +79,7 @@ call src/lib/plugins/graph-view/GraphView.svelte:518 in (script) -> src/lib/plug
 call src/lib/plugins/graph-view/GraphView.svelte:530 in (markup) -> src/lib/plugins/graph-view/GraphView.svelte:loadAndRebuild markup
 call src/lib/plugins/graph-view/GraphView.svelte:552 in (markup) -> src/lib/plugins/graph-view/GraphView.svelte:handleZoomIn markup
 call src/lib/plugins/graph-view/GraphView.svelte:553 in (markup) -> src/lib/plugins/graph-view/GraphView.svelte:handleZoomOut markup
+call src/lib/plugins/graph-view/GraphView.svelte:556 in (markup) -> src/lib/plugins/graph-view/graph-view.logic.ts:formatGraphStats markup
 ## effects
 fx src/lib/plugins/graph-view/GraphView.svelte:422 dom.click canvasEl in setupInteractions
 fx src/lib/plugins/graph-view/GraphView.svelte:423 dom.mousemove canvasEl in setupInteractions
