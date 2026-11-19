@@ -3,7 +3,7 @@ cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t
 file src/lib/plugins/kanban/KanbanCard.svelte component L364 module src/lib/plugins/kanban in1 t0
 ## imports
 imp src/lib/plugins/kanban/KanbanCard.svelte:11 -> src/lib/plugins/kanban/kanban.types.ts type:KanbanItem
-imp src/lib/plugins/kanban/KanbanCard.svelte:12 -> src/lib/plugins/kanban/kanban.logic.ts extractCardDate,setCardDate,removeCardDate,cardProximity,PROXIMITY_CLASSES,extractCardWikilinks,extractCardColor,setCardColor,removeCardColor,stripCardMetadata,extractCardTags
+imp src/lib/plugins/kanban/KanbanCard.svelte:12 -> src/lib/plugins/kanban/kanban.logic.ts extractCardDate,setCardDate,removeCardDate,cardProximity,PROXIMITY_CLASSES,secondaryTextClass,extractCardWikilinks,extractCardColor,setCardColor,removeCardColor,stripCardMetadata,extractCardTags
 imp src/lib/plugins/kanban/KanbanCard.svelte:13 -> src/lib/plugins/kanban/kanban.service.ts loadLinkedFileContent
 imp src/lib/plugins/kanban/KanbanCard.svelte:14 -> src/lib/utils/date.ts formatNow
 imp src/lib/plugins/kanban/KanbanCard.svelte:15 -> src/lib/utils/color-presets.ts COLOR_PRESET_BG,COLOR_PRESET_TEXT
@@ -56,6 +56,7 @@ call src/lib/plugins/kanban/KanbanCard.svelte:228 in (markup) -> src/lib/plugins
 call src/lib/plugins/kanban/KanbanCard.svelte:229 in (markup) -> src/lib/plugins/kanban/KanbanCard.svelte:updateCursorPos markup +1
 call src/lib/plugins/kanban/KanbanCard.svelte:231 in (markup) -> src/lib/plugins/kanban/KanbanCard.svelte:commitEdit markup
 call src/lib/plugins/kanban/KanbanCard.svelte:239 in (markup) -> src/lib/plugins/kanban/KanbanCard.svelte:handleWikilinkSelect markup
+call src/lib/plugins/kanban/KanbanCard.svelte:247 in (markup) -> src/lib/plugins/kanban/kanban.logic.ts:secondaryTextClass markup +1
 call src/lib/plugins/kanban/KanbanCard.svelte:255 in (markup) -> src/lib/plugins/kanban/KanbanCard.svelte:handleDateChange markup +1
 call src/lib/plugins/kanban/KanbanCard.svelte:313 in (markup) -> src/lib/plugins/kanban/KanbanCard.svelte:handleColorChange markup
 call src/lib/plugins/kanban/KanbanCard.svelte:321 in (markup) -> src/lib/plugins/kanban/KanbanCard.svelte:handleColorRemove markup

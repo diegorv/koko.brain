@@ -1,7 +1,7 @@
 # module card src/lib/utils
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/utils ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 93/115 ipc 3/0 card ~10.2k
+module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 95/117 ipc 3/0 card ~10.4k
 ## neighbors
 dep src/lib/app -> src/lib/utils 17
 dep src/lib/core/editor -> src/lib/utils 7
@@ -85,8 +85,8 @@ file src/lib/utils/app-channel.ts other L17 module src/lib/utils in1 t1
 file src/lib/utils/build-info.js other L167 module src/lib/utils in1 t1
 file src/lib/utils/capture-path.ts other L14 module src/lib/utils in3 t1
 file src/lib/utils/clamp.ts other L9 module src/lib/utils in10 t1
-file src/lib/utils/color-presets.ts other L39 module src/lib/utils in6 t1
-file src/lib/utils/color.ts other L244 module src/lib/utils in9 t22
+file src/lib/utils/color-presets.ts other L61 module src/lib/utils in6 t4
+file src/lib/utils/color.ts other L244 module src/lib/utils in9 t23
 file src/lib/utils/date.ts other L170 module src/lib/utils in17 t3
 file src/lib/utils/debounce.ts other L55 module src/lib/utils in4 t4
 file src/lib/utils/debug.ts other L166 module src/lib/utils in74 t53
@@ -117,8 +117,10 @@ sym src/lib/utils/app-channel.ts:15 fn getBuildChannel(): ReleaseChannel L3 | Re
 sym src/lib/utils/capture-path.ts:9 fn buildCaptureFolder(vaultPath: string, baseFolder: string, folderFormat: string, date: dayjs.Dayjs): string L6 | The folder a quick note (Cmd+N) lands in: vaultPath / baseFolder / folderFormat(date).
 sym src/lib/utils/clamp.ts:7 fn clamp(value: number, min: number, max: number): number L3 | Clamps `value` into the inclusive range `[min, max]`.
 sym src/lib/utils/color-presets.ts:23 const COLOR_PRESET_BG: Record<string, string> L3 | Named color presets with background (low opacity) variant.
-sym src/lib/utils/color-presets.ts:28 const COLOR_PRESET_TEXT: Record<string, string> L3 | Named color presets with full opacity for text/bars.
-sym src/lib/utils/color-presets.ts:37 const COLOR_PRESET_CHIP_TEXT: Record<string, string> L3 | Named color presets for text on a `COLOR_PRESET_BG` chip: the preset moved 70% toward `--editor-fg`, so it keeps its hue and stays readable on the chip tint.
+sym src/lib/utils/color-presets.ts:28 const COLOR_PRESET_TEXT: Record<string, string> L3 | Named color presets with full opacity: the kanban color swatches, and the hue the text and bar mixes start from.
+sym src/lib/utils/color-presets.ts:39 const COLOR_PRESET_CHIP_TEXT: Record<string, string> L3 | Named color presets for text on a `COLOR_PRESET_BG` chip (kanban tags, the collection `badge()`): the preset mixed toward `--editor-fg`, so it keeps a hue cast…
+sym src/lib/utils/color-presets.ts:49 const COLOR_PRESET_PLAIN_TEXT: Record<string, string> L3 | Named color presets for text on the bare collection surface (`color()`): no tint sits under it, so it keeps more of the preset than chip text and the colors st…
+sym src/lib/utils/color-presets.ts:59 const COLOR_PRESET_BAR: Record<string, string> L3 | Named color presets for a bar (the collection `progress()` fill and track outline): the preset moved toward `--editor-fg` until it reaches 3:1, the non-text mi…
 sym src/lib/utils/color.ts:48 fn flatten(color: string, base: string): string | null L7 | Composites `color` (alpha honored) over the opaque `base` into a 6-digit hex; null when either is unparseable.
 sym src/lib/utils/color.ts:61 fn tint(color: string, share: number, base: string): string | null L7 | Composites `color` at `share` of its own alpha over the opaque `base` into a 6-digit hex: what Tailwind's `bg-x/25` or `color-mix(in oklch, x 18%, transparent)…
 sym src/lib/utils/color.ts:84 fn isDarkColor(color: string): boolean | null L4 | True when a background color is dark (WCAG relative luminance below 0.2), false when light, null when the value is not a hex, rgb() or oklch() color.

@@ -15,6 +15,7 @@ out2 src/lib/features/collection/expression/expression.types.ts 0 files in 0 mod
 ## tests
 test src/tests/lib/features/collection/expression/methods.test.ts imports src/lib/features/collection/expression/expression.types.ts
 test src/tests/lib/features/collection/collection-block-widget.test.ts imports-type src/lib/features/collection/expression/expression.types.ts
+test src/tests/lib/features/collection/expression/evaluator.test.ts imports-type src/lib/features/collection/expression/expression.types.ts
 ## symbols
 sym src/lib/features/collection/expression/expression.types.ts:2 interface NumberLiteral L4 | Number literal node
 sym src/lib/features/collection/expression/expression.types.ts:8 interface StringLiteral L4 | String literal node

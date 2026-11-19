@@ -26,6 +26,7 @@ test src/tests/lib/core/settings/theme-editor.logic.test.ts imports-type src/lib
 test src/tests/lib/core/settings/theme-package.logic.test.ts imports-type src/lib/core/settings/theme.types.ts
 test src/tests/lib/core/settings/theme.logic.test.ts imports-type src/lib/core/settings/theme.types.ts
 test src/tests/lib/core/settings/theme.service.test.ts imports-type src/lib/core/settings/theme.types.ts
+test src/tests/lib/features/collection/expression/evaluator.test.ts imports-type src/lib/core/settings/theme.types.ts
 test src/tests/lib/features/rail-shell/rail-items.logic.test.ts imports-type src/lib/core/settings/theme.types.ts
 test src/tests/lib/tint-text-tokens.test.ts imports-type src/lib/core/settings/theme.types.ts
 ## symbols

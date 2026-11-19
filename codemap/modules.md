@@ -48,7 +48,7 @@ module src/lib/features/todoist-sync features files 27 in-modules 1 out-modules 
 module src/lib/features/type-definitions features files 9 in-modules 13 out-modules 12 pub 63/100 ipc 3/0 card ~7.1k
 module src/lib/plugins/calendar plugins files 7 in-modules 1 out-modules 7 pub 2/21 ipc 0/0 card ~0.9k
 module src/lib/plugins/graph-view plugins files 6 in-modules 1 out-modules 8 pub 4/30 ipc 1/0 card ~0.9k
-module src/lib/plugins/kanban plugins files 12 in-modules 1 out-modules 7 pub 5/76 ipc 0/0 card ~1.2k
+module src/lib/plugins/kanban plugins files 12 in-modules 1 out-modules 7 pub 5/77 ipc 0/0 card ~1.2k
 module src/lib/plugins/mods plugins files 18 in-modules 1 out-modules 17 pub 9/65 ipc 4/0 card ~2.2k
 module src/lib/plugins/one-on-one plugins files 6 in-modules 2 out-modules 14 pub 5/23 ipc 0/0 card ~1.3k
 module src/lib/plugins/periodic-notes plugins files 3 in-modules 5 out-modules 7 pub 10/20 ipc 0/0 card ~1.5k
@@ -58,7 +58,7 @@ module src/lib/plugins/table-of-contents plugins files 5 in-modules 1 out-module
 module src/lib/plugins/templates plugins files 4 in-modules 1 out-modules 7 pub 4/14 ipc 1/0 card ~0.8k
 module src/lib/plugins/word-count plugins files 2 in-modules 1 out-modules 1 pub 1/4 ipc 0/0 card ~0.4k
 module src/lib/types types files 1 in-modules 17 out-modules 1 pub 8/17 ipc 0/0 card ~1k
-module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 93/115 ipc 3/0 card ~10.2k
+module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 95/117 ipc 3/0 card ~10.4k
 module src/lib/utils.ts lib-root files 1 in-modules 1 out-modules 1 pub 4/4 ipc 0/0 card ~0.4k
 module src/routes routes files 5 in-modules 0 out-modules 14 pub 0/5 ipc 2/0 card ~0.6k
 ## layers (distinct file pairs)
