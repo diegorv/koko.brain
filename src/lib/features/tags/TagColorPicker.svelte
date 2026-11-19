@@ -57,7 +57,8 @@
 			<label
 				class="color-dot custom"
 				class:active={currentColor != null && !TAG_COLOR_PRESET_ENTRIES.some(([, hex]) => hex === currentColor)}
-				style:background-color={currentColor ?? 'rgba(255, 255, 255, 0.1)'}
+				class:empty={currentColor == null}
+				style:background-color={currentColor}
 				title="Custom color"
 			>
 				<input
@@ -90,10 +91,12 @@
 		justify-content: center;
 		transition: border-color 0.15s;
 		padding: 0;
+		/* The fill stops inside the border, so the ring is drawn on the popover and not on the swatch it encloses. */
+		background-clip: padding-box;
 	}
 
 	.color-dot:hover {
-		border-color: rgba(255, 255, 255, 0.5);
+		border-color: color-mix(in oklch, var(--foreground) 50%, transparent);
 	}
 
 	.color-dot.active {
@@ -101,8 +104,13 @@
 	}
 
 	.color-dot.none {
-		background: rgba(255, 255, 255, 0.1);
 		color: var(--muted-foreground);
+	}
+
+	/* No fill of their own: an outline in the muted text color shows them on any popover. */
+	.color-dot.none,
+	.color-dot.custom.empty {
+		box-shadow: inset 0 0 0 1px var(--muted-foreground);
 	}
 
 	.color-dot.custom {

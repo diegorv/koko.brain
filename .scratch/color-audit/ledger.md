@@ -35,9 +35,9 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Faded text and icons use full-strength tokens](issues/01-faded-text-icons-full-strength-tokens.md) | none | in-progress | | |
+| 01 | [Faded text and icons use full-strength tokens](issues/01-faded-text-icons-full-strength-tokens.md) | none | done | issue/01-faded-text-icons-full-strength-tokens (4d99ae1d1) | 2026-11-19 |
 | 02 | [Rail, tag and icon palettes stay visible on every theme](issues/02-rail-tag-icon-palettes-follow-theme.md) | none | in-progress | | |
-| 03 | [Accent and status text on its own tint: rows, search, menus](issues/03-accent-text-own-tint-rows-search-menus.md) | none | todo | | |
+| 03 | [Accent and status text on its own tint: rows, search, menus](issues/03-accent-text-own-tint-rows-search-menus.md) | none | in-progress | | |
 | 04 | [Accent and status text on its own tint: kanban, collection functions, file history](issues/04-accent-text-own-tint-kanban-collection-diff.md) | 03 | todo | | |
 | 05 | [Theme builder keeps text readable on every surface it derives, by WCAG and APCA](issues/05-theme-builder-text-every-surface-apca.md) | none | todo | | |
 | 06 | [Editor text on tinted surfaces: callouts, blockquote, highlight, code, collection](issues/06-theme-builder-editor-tinted-surfaces.md) | 05, 07 | todo | | |
@@ -55,3 +55,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 16:09 — 01 — start — launched by /relay-lite:run — 7bfdaddb8
 - 2026-11-19 16:12 — ledger updated (blocked by of 06, 07)
 - 2026-11-19 16:13 — 02 — start — launched by /relay-lite:run (parallel with 01, owner approved) — 586718cc1
+- 2026-11-19 16:36 — 01 — deliver — merged; review APPROVED (round 1 findings fixed: welcome page icons and paths, read-only lock opacity, guard scans src/routes), round 2 APPROVED; full suite 674 files passed — 4d99ae1d1
+- 2026-11-19 16:36 — 03 — start — launched by /relay-lite:run (parallel with 02, owner approved) — b002bcc77

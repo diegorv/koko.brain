@@ -3,6 +3,9 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { EditorSelection, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { compositionAwareBracketMatching } from '#lib/core/markdown-editor/extensions/composition-aware-bracket-matching.js';
+import { BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
+import { contrastRatio, tint } from '#lib/utils/color.js';
+import { HARD_PALETTE_THEMES } from '../../../../fixtures/hard-palette-themes.fixture';
 
 let view: EditorView | null = null;
 
@@ -49,5 +52,30 @@ describe('compositionAwareBracketMatching', () => {
 	it('marks nothing away from brackets', () => {
 		const v = mount('(a) text', EditorSelection.single(6));
 		expect(marked(v, 'cm-matchingBracket')).toEqual([]);
+	});
+});
+
+describe('matching bracket highlight color', () => {
+	/** The CSS CodeMirror mounted for the editor's themes. */
+	function editorCss(): string {
+		const sheets = [...(document.adoptedStyleSheets ?? []), ...[...document.querySelectorAll('style')].map((el) => el.sheet!)];
+		return sheets.flatMap((sheet) => [...(sheet?.cssRules ?? [])].map((r) => r.cssText)).join('\n');
+	}
+
+	it('falls back to a share of the editor text color, not a fixed pale blue', () => {
+		mount('(a)', EditorSelection.single(0));
+		const css = editorCss();
+		expect(css).toContain('--bracket-match-bg');
+		expect(css).toContain('color-mix(in oklch, var(--editor-fg) 25%, transparent)');
+		expect(css).not.toMatch(/#bad0f8/i);
+	});
+
+	it('shows against the editor background and keeps the editor text readable on it, on every theme', () => {
+		for (const { name, colors } of [...BUILTIN_THEMES, ...HARD_PALETTE_THEMES]) {
+			const { editorBg, editorFg } = colors.ui;
+			const fill = tint(editorFg, 0.25, editorBg)!;
+			expect(contrastRatio(fill, editorBg)!, name).toBeGreaterThanOrEqual(1.4);
+			expect(contrastRatio(editorFg, fill)!, name).toBeGreaterThanOrEqual(4.5);
+		}
 	});
 });

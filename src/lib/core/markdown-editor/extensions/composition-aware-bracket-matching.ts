@@ -161,7 +161,9 @@ export function compositionAwareBracketMatching(): Extension {
 			{ decorations: (v) => v.decorations },
 		),
 		EditorView.baseTheme({
-			'.cm-matchingBracket': { backgroundColor: 'var(--bracket-match-bg, #bad0f847)', color: 'var(--bracket-match-fg, inherit)' },
+			// A share of the editor text color shows on light and dark themes alike and keeps the
+			// editor text readable on it; a fixed tint vanished on light editor backgrounds.
+			'.cm-matchingBracket': { backgroundColor: 'var(--bracket-match-bg, color-mix(in oklch, var(--editor-fg) 25%, transparent))', color: 'var(--bracket-match-fg, inherit)' },
 			'.cm-nonmatchingBracket': { backgroundColor: 'var(--bracket-nonmatch-bg, #ff000033)', color: 'var(--bracket-nonmatch-fg, inherit)' },
 		}),
 	];

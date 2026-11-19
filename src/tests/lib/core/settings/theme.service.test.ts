@@ -323,6 +323,18 @@ describe('every apply bumps the applied theme revision', () => {
 		expect(appliedThemeStore.revision).toBeGreaterThan(0);
 	});
 
+	it('every apply records the applied CSS variables for code that measures theme colors', () => {
+		applyTheme(LAVENDER_HAZE_THEME);
+		expect(appliedThemeStore.vars).toEqual(themeColorsToCssVars(LAVENDER_HAZE_THEME.colors));
+
+		localStorage.setItem(THEME_VARS_STORAGE_KEY, JSON.stringify(themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors)));
+		applyStoredTheme();
+		expect(appliedThemeStore.vars['--editor-bg']).toBe(KOKOBRAIN_DEFAULT_THEME.colors.ui.editorBg);
+
+		applyActiveTheme();
+		expect(appliedThemeStore.vars).toEqual(themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors));
+	});
+
 	// The bump must not track `revision`, or an effect that applies a theme
 	// re-runs itself until Svelte throws effect_update_depth_exceeded.
 	it('applyTheme inside an $effect bumps it once and does not re-run the effect', () => {

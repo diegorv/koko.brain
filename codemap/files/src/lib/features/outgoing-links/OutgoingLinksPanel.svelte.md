@@ -1,6 +1,6 @@
 # file card src/lib/features/outgoing-links/OutgoingLinksPanel.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/outgoing-links/OutgoingLinksPanel.svelte ' codemap/files
-file src/lib/features/outgoing-links/OutgoingLinksPanel.svelte component L87 module src/lib/features/outgoing-links in1 t1
+file src/lib/features/outgoing-links/OutgoingLinksPanel.svelte component L88 module src/lib/features/outgoing-links in1 t1
 ## imports
 imp src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:6 -> src/lib/components/ui/separator/index.ts Separator
 imp src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:7 -> src/lib/core/editor/editor.store.svelte.ts editorStore
@@ -17,7 +17,7 @@ out2 src/lib/features/outgoing-links/OutgoingLinksPanel.svelte 15 files in 9 mod
 ## tests
 test src/tests/lib/features/outgoing-links/OutgoingLinksPanel.test.ts imports src/lib/features/outgoing-links/OutgoingLinksPanel.svelte mirror
 ## symbols
-sym src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:1 component OutgoingLinksPanel L87
+sym src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:1 component OutgoingLinksPanel L88
 by src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:default <- src/lib/app/AppShell.svelte:290 in (markup) mount
 ## locals
 local src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:17 fn handleOpenChange(open: boolean) L3

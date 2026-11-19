@@ -53,6 +53,19 @@ export function flatten(color: string, base: string): string | null {
 	return toHex([0, 1, 2].map((i) => fg[i] * a + bg[i] * (1 - a)));
 }
 
+/**
+ * Composites `color` at `share` of its own alpha over the opaque `base` into a
+ * 6-digit hex: what Tailwind's `bg-x/25` or `color-mix(in oklch, x 18%, transparent)`
+ * paints over a surface. Null when either is unparseable.
+ */
+export function tint(color: string, share: number, base: string): string | null {
+	const fg = parseRgba(color);
+	const bg = parseRgb(base);
+	if (!fg || !bg) return null;
+	const a = fg[3] * share;
+	return toHex([0, 1, 2].map((i) => fg[i] * a + bg[i] * (1 - a)));
+}
+
 /** sRGB channel (0-255) to linear light (0-1). */
 function toLinear(c: number): number {
 	const s = c / 255;
@@ -143,6 +156,34 @@ export function ensureContrast(fg: string, bg: string, min: number): string {
 		if ((contrastRatio(out + suffix, bg) ?? 0) >= min) break;
 	}
 	return out + suffix;
+}
+
+/**
+ * `ensureContrast` against several backgrounds at once (a row and its hover or
+ * selected tint): lifts `fg` until it reaches `min` on each of `bgs`. Backgrounds
+ * on both sides of `fg` can pull it apart, so the passes are bounded.
+ * Returns `fg` itself when it already passes everywhere or cannot be parsed.
+ */
+export function ensureContrastOn(fg: string, bgs: string[], min: number): string {
+	let out = fg;
+	for (let pass = 0; pass < 4; pass++) {
+		const before = out;
+		for (const bg of bgs) out = ensureContrast(out, bg, min);
+		if (out === before) break;
+	}
+	return out;
+}
+
+/**
+ * Moves a color's OKLab lightness by `delta` (-1 to 1) keeping a and b, the TS
+ * twin of CSS `oklch(from x calc(l + delta) c h)`, as a 6-digit hex clamped to
+ * the sRGB gamut. Alpha is dropped. Null when the color is unparseable.
+ */
+export function shiftLightness(color: string, delta: number): string | null {
+	const rgb = parseRgb(color);
+	if (!rgb) return null;
+	const [L, A, B] = toOklab(rgb.map(toLinear));
+	return oklabToHex([Math.min(1, Math.max(0, L + delta)), A, B]);
 }
 
 /**

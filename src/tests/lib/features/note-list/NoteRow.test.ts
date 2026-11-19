@@ -23,6 +23,11 @@ import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import type { NoteRowNote } from '#lib/features/note-list/note-row.types.js';
+import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+import { LAVENDER_HAZE_THEME } from '#lib/core/settings/theme.logic.js';
+import { applyTheme } from '#lib/core/settings/theme.service.js';
+import { rowSurfaces, themeSurface } from '#lib/core/settings/theme-surfaces.logic.js';
+import { contrastRatio } from '#lib/utils/color.js';
 
 const ALPHA = '/vault/notes/alpha.md';
 
@@ -202,5 +207,53 @@ describe('NoteRow rename input', () => {
 
 		expect(fsStore.renamingPath).toBeNull();
 		expect(document.activeElement).toBe(target.querySelector('[data-note-row]'));
+	});
+
+});
+
+describe('NoteRow colors on a light theme', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+	const ICON = { name: 'rocket', pack: 'lucide' as const, svgContent: '<path d="M1 1"/>', viewBox: '0 0 24 24', keywords: [] };
+
+	function mountRow(props: Record<string, unknown> = {}) {
+		component = mount(NoteRowMenuHarness, { target, props: { notes: [note], ...props } });
+		flushSync();
+	}
+
+	beforeEach(() => {
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		fsStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+		applyTheme(LAVENDER_HAZE_THEME);
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.replaceChildren();
+		appliedThemeStore._reset();
+		document.documentElement.removeAttribute('style');
+		document.documentElement.classList.remove('dark');
+	});
+
+	it('lifts an IconPicker preset icon to 3:1 and title to 4.5:1 on the list, keeping the stored values', () => {
+		const icon = { icon: ICON, color: '#eab308', titleColor: '#eab308' };
+		mountRow({ icons: { [ALPHA]: icon } });
+		const list = themeSurface(appliedThemeStore, 'list-bg')!;
+		expect(contrastRatio('#eab308', list)!).toBeLessThan(3);
+		const svg = target.querySelector<SVGElement>('[data-note-row] svg')!;
+		expect(contrastRatio(svg.style.color, list)!).toBeGreaterThanOrEqual(3);
+		expect(contrastRatio(target.querySelector<HTMLElement>('[data-note-row-title]')!.style.color, list)!).toBeGreaterThanOrEqual(4.5);
+		expect(icon).toMatchObject({ color: '#eab308', titleColor: '#eab308' });
+	});
+
+	it('keeps a type palette icon at 3:1 on the active row and drops the title color there', () => {
+		mountRow({ icons: { [ALPHA]: { icon: ICON, color: 'yellow', titleColor: '#eab308' } }, activePath: ALPHA });
+		const active = rowSurfaces(appliedThemeStore, 'list-bg', 'primary')[2]!;
+		const svg = target.querySelector<SVGElement>('[data-note-row] svg')!;
+		expect(contrastRatio(svg.style.color, active)!).toBeGreaterThanOrEqual(3);
+		expect(target.querySelector<HTMLElement>('[data-note-row-title]')!.style.color).toBe('');
 	});
 });

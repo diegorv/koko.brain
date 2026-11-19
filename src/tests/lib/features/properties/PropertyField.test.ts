@@ -5,6 +5,13 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import PropertyField from '#lib/features/properties/PropertyField.svelte';
 import type { Property } from '#lib/core/frontmatter/properties.types.js';
+import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { LAVENDER_HAZE_THEME } from '#lib/core/settings/theme.logic.js';
+import { applyTheme } from '#lib/core/settings/theme.service.js';
+import { themeSurface } from '#lib/core/settings/theme-surfaces.logic.js';
+import { contrastRatio } from '#lib/utils/color.js';
+import { TAG_COLOR_PRESETS } from '#lib/utils/tag-colors.js';
 
 describe('PropertyField value input', () => {
 	let component: Record<string, unknown> | null = null;
@@ -189,5 +196,23 @@ describe('PropertyField list items', () => {
 
 		expect(items()).toEqual([]);
 		expect(target.querySelector('.flex-wrap')).toBeNull();
+	});
+
+	it('lifts a preset tag color on the tag icon to 3:1 on its chip in a light theme, keeping the saved color', () => {
+		try {
+			applyTheme(LAVENDER_HAZE_THEME);
+			settingsStore.updateTagColors({ colors: { design: TAG_COLOR_PRESETS.yellow } });
+			render(['design']);
+			const chip = themeSurface(appliedThemeStore, 'input-bg')!;
+			const icon = items()[0].querySelector<SVGElement>('svg')!.style.color;
+			expect(contrastRatio(TAG_COLOR_PRESETS.yellow, chip)!).toBeLessThan(3);
+			expect(contrastRatio(icon, chip)!).toBeGreaterThanOrEqual(3);
+			expect(settingsStore.tagColors.colors.design).toBe(TAG_COLOR_PRESETS.yellow);
+		} finally {
+			settingsStore.reset();
+			appliedThemeStore._reset();
+			document.documentElement.removeAttribute('style');
+			document.documentElement.classList.remove('dark');
+		}
 	});
 });

@@ -25,7 +25,8 @@ function setRootVars(vars: Record<string, string>): void {
  * `dark:` utilities (`@custom-variant` in `app.css`), `color-scheme` drives the
  * native controls and scrollbars. An editor background `isDarkColor` cannot read
  * (or none at all) counts as dark, the same fallback as `mermaid-widget.ts`.
- * Also bumps `appliedThemeStore.revision` for code that paints theme colors itself.
+ * Also records `vars` and bumps `appliedThemeStore.revision` for code that paints
+ * or measures theme colors itself.
  */
 function applyMode(vars: Record<string, string>): void {
 	const dark = isDarkColor(vars['--editor-bg'] ?? '') !== false;
@@ -33,6 +34,7 @@ function applyMode(vars: Record<string, string>): void {
 	el.classList.toggle('dark', dark);
 	el.style.colorScheme = dark ? 'dark' : 'light';
 	appliedThemeStore.setDark(dark);
+	appliedThemeStore.setVars(vars);
 	appliedThemeStore.bumpRevision();
 }
 

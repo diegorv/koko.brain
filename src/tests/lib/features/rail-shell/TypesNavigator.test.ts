@@ -49,6 +49,11 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+import { LAVENDER_HAZE_THEME } from '#lib/core/settings/theme.logic.js';
+import { applyTheme } from '#lib/core/settings/theme.service.js';
+import { rowSurfaces, themeSurface } from '#lib/core/settings/theme-surfaces.logic.js';
+import { contrastRatio } from '#lib/utils/color.js';
 import { setIconColors } from '#lib/features/file-icons/file-icons.service.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { deleteItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
@@ -242,6 +247,24 @@ describe('TypesNavigator', () => {
 		const row = rowEl('Project');
 		expect(row.querySelector<HTMLElement>('span.truncate')!.style.color).toBe('rgb(59, 130, 246)');
 		expect(row.querySelector('svg.lucide-file-text')).not.toBeNull();
+	});
+
+	it('lifts a preset title color to 4.5:1 and a type palette icon to 3:1, picked row included, on a light theme', async () => {
+		try {
+			applyTheme(LAVENDER_HAZE_THEME);
+			fileIconsStore.setFrontmatterIcons(new Map([['/vault/Project.md', { color: 'yellow', titleColor: '#eab308' }]]));
+			await mountNavigator({ kind: 'untyped' });
+			const nav = themeSurface(appliedThemeStore, 'nav-bg')!;
+			const picked = rowSurfaces(appliedThemeStore, 'nav-bg', 'file-explorer-primary')[2]!;
+			expect(contrastRatio('#eab308', nav)!).toBeLessThan(4.5);
+			expect(contrastRatio(rowEl('Project').querySelector<HTMLElement>('span.truncate')!.style.color, nav)!).toBeGreaterThanOrEqual(4.5);
+			// The icon keeps 3:1 on the picked row's tint too, where the type palette alone fell short.
+			expect(contrastRatio(rowEl('Project').querySelector<SVGElement>('svg')!.style.color, picked)!).toBeGreaterThanOrEqual(3);
+		} finally {
+			appliedThemeStore._reset();
+			document.documentElement.removeAttribute('style');
+			document.documentElement.classList.remove('dark');
+		}
 	});
 
 	it('saves a text color picked for a type with no icon, without asking for an icon', async () => {

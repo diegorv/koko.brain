@@ -86,7 +86,7 @@ file src/lib/utils/build-info.js other L167 module src/lib/utils in1 t1
 file src/lib/utils/capture-path.ts other L14 module src/lib/utils in3 t1
 file src/lib/utils/clamp.ts other L9 module src/lib/utils in10 t1
 file src/lib/utils/color-presets.ts other L39 module src/lib/utils in6 t1
-file src/lib/utils/color.ts other L203 module src/lib/utils in8 t9
+file src/lib/utils/color.ts other L203 module src/lib/utils in8 t10
 file src/lib/utils/date.ts other L170 module src/lib/utils in17 t3
 file src/lib/utils/debounce.ts other L55 module src/lib/utils in4 t4
 file src/lib/utils/debug.ts other L166 module src/lib/utils in74 t53

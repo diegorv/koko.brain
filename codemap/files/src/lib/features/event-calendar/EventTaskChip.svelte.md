@@ -13,10 +13,10 @@ in2 src/lib/features/event-calendar/EventTaskChip.svelte 2 files in 1 modules: s
 out2 src/lib/features/event-calendar/EventTaskChip.svelte 8 files in 5 modules: src/lib/core/editor(3) src/lib/features/event-calendar(2) src/lib/features/tasks(1) src/lib/types(1) src/lib/utils(1)
 ## symbols
 sym src/lib/features/event-calendar/EventTaskChip.svelte:1 component EventTaskChip props:task,class= L43
-by src/lib/features/event-calendar/EventTaskChip.svelte:default <- src/lib/features/event-calendar/EventMonthGrid.svelte:150 in (markup) mount
+by src/lib/features/event-calendar/EventTaskChip.svelte:default <- src/lib/features/event-calendar/EventMonthGrid.svelte:149 in (markup) mount
 by src/lib/features/event-calendar/EventTaskChip.svelte:default <- src/lib/features/event-calendar/EventTaskLane.svelte:51 in (markup) mount
 ## mounted-at
-mount src/lib/features/event-calendar/EventMonthGrid.svelte:150 EventTaskChip -> src/lib/features/event-calendar/EventTaskChip.svelte
+mount src/lib/features/event-calendar/EventMonthGrid.svelte:149 EventTaskChip -> src/lib/features/event-calendar/EventTaskChip.svelte
 mount src/lib/features/event-calendar/EventTaskLane.svelte:51 EventTaskChip -> src/lib/features/event-calendar/EventTaskChip.svelte
 ## calls
 call src/lib/features/event-calendar/EventTaskChip.svelte:18 in closed=$derived -> src/lib/features/tasks/task-status.logic.ts:isTaskOpen call

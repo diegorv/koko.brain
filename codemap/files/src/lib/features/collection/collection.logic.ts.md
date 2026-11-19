@@ -83,7 +83,7 @@ by src/lib/features/collection/collection.logic.ts:columnLabel <- src/lib/featur
 by src/lib/features/collection/collection.logic.ts:columnLabel <- src/lib/features/collection/toolbar/SortPanel.svelte:49 in getDisplayName call
 sym src/lib/features/collection/collection.logic.ts:443 fn formatColumnCell(key: string, value: unknown): string L7 | Formats a table cell's text.
 by src/lib/features/collection/collection.logic.ts:formatColumnCell <- src/lib/features/collection/CollectionTableView.svelte:87 in (markup) markup
-by src/lib/features/collection/collection.logic.ts:formatColumnCell <- src/lib/features/collection/collection-block-widget.ts:513 in buildCollectionTable call +2
+by src/lib/features/collection/collection.logic.ts:formatColumnCell <- src/lib/features/collection/collection-block-widget.ts:511 in buildCollectionTable call +2
 sym src/lib/features/collection/collection.logic.ts:452 fn getPropertyValue(record: PropertyIndexRecord, column: string): unknown L19 | Retrieves a property value from a PropertyIndexRecord by column name
 by src/lib/features/collection/collection.logic.ts:getPropertyValue <- src/lib/features/collection/CollectionTableView.svelte:70 in (markup) markup
 by src/lib/features/collection/collection.logic.ts:getPropertyValue <- src/lib/features/collection/calendar.logic.ts:69 in extractDateFromRecord call

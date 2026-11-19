@@ -24,6 +24,8 @@
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+	import { readableOn, rowSurfaces } from '#lib/core/settings/theme-surfaces.logic.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import {
 		createFile,
@@ -46,7 +48,7 @@
 	import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
 	import { createCollectionFile } from '#lib/features/collection/collection.service.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
-	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
+	import { iconColorStyle, readableIconColor } from '#lib/features/file-icons/file-icons.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
@@ -341,6 +343,9 @@
 		if (moved && isFolder && dir !== vaultRoot && !expandedSet.has(dir)) onToggle(dir);
 	}
 
+	/** What a row's colored icon and title sit on: the column, a hovered row and the picked row. */
+	let rowBgs = $derived(rowSurfaces(appliedThemeStore, 'nav-bg', 'file-explorer-primary'));
+
 	/** Same look as the Types navigator rows: region tokens only. */
 	function rowClass(active: boolean, dropTarget = false): string {
 		// The drop background replaces the picked one: two bg utilities on one row leave CSS order to pick.
@@ -501,7 +506,9 @@
 	{@const open = expandedSet.has(node.path)}
 	{@const active = !rootPicked && picked.target === node.path}
 	{@const resolved = resolveIconForPath(node.path)}
-	{@const titleColor = !active && resolved?.titleColor ? resolved.titleColor : undefined}
+	<!-- The title is colored only when not picked, so it sits on the column or a hovered row. -->
+	{@const titleColor = !active && resolved?.titleColor ? readableOn(appliedThemeStore, resolved.titleColor, rowBgs.slice(0, 2), 4.5) : undefined}
+	{@const iconColor = readableIconColor(appliedThemeStore, resolved?.color, rowBgs)}
 	{@const muted = !active && !titleColor && isSystem(node.path)}
 	{@const fileCount = folderFiles(node.children).length}
 	<!-- The div never takes focus, so its buttons light the row; scoped to button so the rename input does not. -->
@@ -557,11 +564,11 @@
 				data-files-navigator-folder={node.path}
 			>
 				{#if resolved?.icon}
-					<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
+					<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={iconColor} />
 				{:else if open}
-					<FolderOpen class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" style={iconColorStyle(resolved?.color)} />
+					<FolderOpen class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" style={iconColorStyle(iconColor)} />
 				{:else}
-					<Folder class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" style={iconColorStyle(resolved?.color)} />
+					<Folder class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" style={iconColorStyle(iconColor)} />
 				{/if}
 				<span class="truncate {muted ? 'text-file-explorer-muted-fg' : ''}" style:color={titleColor}>{node.name}</span>
 				{#if fileCount > 0}

@@ -28,6 +28,7 @@ test src/tests/lib/features/auto-organize/auto-organize.logic.test.ts imports-ty
 test src/tests/lib/features/collection/toolbar/FilterPanel.svelte.test.ts imports-type src/lib/features/collection/toolbar/toolbar.types.ts
 test src/tests/lib/features/collection/toolbar/FilterRow.svelte.test.ts imports-type src/lib/features/collection/toolbar/toolbar.types.ts
 test src/tests/lib/features/collection/toolbar/FormulaRow.svelte.test.ts imports-type src/lib/features/collection/toolbar/toolbar.types.ts
+test src/tests/lib/features/collection/toolbar/PropertiesPanel.svelte.test.ts imports-type src/lib/features/collection/toolbar/toolbar.types.ts
 test src/tests/lib/features/collection/toolbar/filter-logic.test.ts imports-type src/lib/features/collection/toolbar/toolbar.types.ts
 test src/tests/lib/features/collection/toolbar/formula-logic.test.ts imports-type src/lib/features/collection/toolbar/toolbar.types.ts
 test src/tests/lib/features/type-definitions/type-definitions.service.test.ts imports-type src/lib/features/collection/toolbar/toolbar.types.ts

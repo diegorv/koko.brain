@@ -20,6 +20,11 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+import { LAVENDER_HAZE_THEME } from '#lib/core/settings/theme.logic.js';
+import { applyTheme } from '#lib/core/settings/theme.service.js';
+import { themeSurface } from '#lib/core/settings/theme-surfaces.logic.js';
+import { contrastRatio } from '#lib/utils/color.js';
 
 const VAULT = '/vault';
 const WORK = `${VAULT}/Work`;
@@ -84,6 +89,25 @@ describe('FilesNavigator', () => {
 
 		mountNavigator(FILES_LENS, [WORK]);
 		expect(folder(WORK).querySelector('svg')!.getAttribute('style')).toContain('rgb(239, 68, 68)');
+	});
+
+	describe('on a light theme', () => {
+		afterEach(() => {
+			appliedThemeStore._reset();
+			document.documentElement.removeAttribute('style');
+			document.documentElement.classList.remove('dark');
+		});
+
+		it('lifts an IconPicker preset folder color to 3:1 and its title color to 4.5:1, keeping the stored values', () => {
+			applyTheme(LAVENDER_HAZE_THEME);
+			fileIconsStore.updateFrontmatterIcon(WORK, { color: '#eab308', titleColor: '#eab308' });
+			mountNavigator();
+			const nav = themeSurface(appliedThemeStore, 'nav-bg')!;
+			expect(contrastRatio('#eab308', nav)!).toBeLessThan(3);
+			expect(contrastRatio(folder(WORK).querySelector<SVGElement>('svg')!.style.color, nav)!).toBeGreaterThanOrEqual(3);
+			expect(contrastRatio(folder(WORK).querySelector<HTMLElement>('.truncate')!.style.color, nav)!).toBeGreaterThanOrEqual(4.5);
+			expect(fileIconsStore.getFrontmatterIcon(WORK)).toMatchObject({ color: '#eab308', titleColor: '#eab308' });
+		});
 	});
 
 	it('paints the navigator column tone', () => {

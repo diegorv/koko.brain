@@ -21,14 +21,14 @@ Not in this ticket: the badge (done in aede19baa), canvas presets (Issue 09).
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes.
 
-- [ ] Failing test first, `rail-items.logic.test.ts`: for every rail item hue, the helper's color is at least 3:1 on the rail surface of every `BUILTIN_THEMES` entry and of the hard palettes fixture (`Zettlr Bielefeld Light`, `Tolaria Light`; add a small fixture under `src/tests/fixtures/` built with `buildTheme` from their palettes, copied from the themes repo with a source comment), and the raw hue fails on at least one (Favorites yellow on Lavender Haze). An unparseable surface returns the hue unchanged.
-- [ ] `Rail.test.ts`: `--rail-c` on the Favorites row is the lifted color, not `#eab308`, on a light applied theme; the active item has the second cue.
-- [ ] Tests for the tag/icon preset lift and the destructive button foreground (`button` test or a scan).
-- [ ] ADR-0033 amended in the same commit set; the frontend gate passes.
+- [x] Failing test first, `rail-items.logic.test.ts`: for every rail item hue, the helper's color is at least 3:1 on the rail surface of every `BUILTIN_THEMES` entry and of the hard palettes fixture (`Zettlr Bielefeld Light`, `Tolaria Light`; add a small fixture under `src/tests/fixtures/` built with `buildTheme` from their palettes, copied from the themes repo with a source comment), and the raw hue fails on at least one (Favorites yellow on Lavender Haze). An unparseable surface returns the hue unchanged.
+- [x] `Rail.test.ts`: `--rail-c` on the Favorites row is the lifted color, not `#eab308`, on a light applied theme; the active item has the second cue.
+- [x] Tests for the tag/icon preset lift and the destructive button foreground (`button` test or a scan).
+- [x] ADR-0033 amended in the same commit set; the frontend gate passes.
 
 ## Findings covered
 
@@ -50,3 +50,5 @@ Not in this ticket: the badge (done in aede19baa), canvas presets (Issue 09).
 ## Comments
 
 - 2026-11-19, triage: ready-for-agent. Decided by the owner: builder lifts tokens for every theme (WCAG + APCA), user themes are corrected by the builder and the editor warns, rail icons keep their hue and are darkened per theme (ADR-0033 amendment), Issues run through relay one at a time, the themes repo is fixed with version bumps.
+
+- 2026-11-19, branch issue/02-rail-tag-icon-palettes-follow-theme: rail item hues, tag/icon presets and the destructive button foreground are lifted to 3:1 on each theme's surface; ADR-0033 amended. Review round 1 APPROVED, round 2 APPROVED (a fix round ran between them). Targeted checks passed; full suite 675/675 files, 18084 passed, 56 skipped (02-deliver-2.log, after fixing a codemap-query line pin that failed the first run).

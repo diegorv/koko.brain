@@ -39,4 +39,18 @@ describe('appliedThemeStore', () => {
 		appliedThemeStore._reset();
 		expect(appliedThemeStore.revision).toBe(0);
 	});
+
+	it('vars starts empty and setVars() replaces it', () => {
+		expect(appliedThemeStore.vars).toEqual({});
+		appliedThemeStore.setVars({ '--editor-bg': '#ffffff' });
+		expect(appliedThemeStore.vars).toEqual({ '--editor-bg': '#ffffff' });
+		appliedThemeStore.setVars({ '--rail-x': '#000000' });
+		expect(appliedThemeStore.vars).toEqual({ '--rail-x': '#000000' });
+	});
+
+	it('_reset() restores empty vars', () => {
+		appliedThemeStore.setVars({ '--editor-bg': '#ffffff' });
+		appliedThemeStore._reset();
+		expect(appliedThemeStore.vars).toEqual({});
+	});
 });

@@ -10,7 +10,10 @@ import {
 	parseIconValuePermissive,
 	iconColorCss,
 	iconColorStyle,
+	readableIconColor,
 } from '#lib/features/file-icons/file-icons.logic.js';
+import { LAVENDER_HAZE_THEME, themeColorsToCssVars } from '#lib/core/settings/theme.logic.js';
+import { contrastRatio } from '#lib/utils/color.js';
 import type { NormalizedIcon, RecentIcon } from '#lib/features/file-icons/file-icons.types.js';
 import type { FrontmatterValue } from '#lib/types/vault-v2.types.js';
 
@@ -648,6 +651,28 @@ describe('iconColorStyle', () => {
 
 	it('is undefined for an unsafe value', () => {
 		expect(iconColorStyle('red; background-image: url(https://example.com/x)')).toBeUndefined();
+	});
+});
+
+describe('readableIconColor', () => {
+	const LIGHT = { vars: themeColorsToCssVars(LAVENDER_HAZE_THEME.colors), isDark: false };
+	const editor = LAVENDER_HAZE_THEME.colors.ui.editorBg;
+
+	it('lifts an IconPicker preset to 3:1 on the surfaces, leaving the stored value alone', () => {
+		const stored = '#eab308';
+		expect(contrastRatio(stored, editor)!).toBeLessThan(3);
+		const out = readableIconColor(LIGHT, stored, [editor])!;
+		expect(contrastRatio(out, editor)!).toBeGreaterThanOrEqual(3);
+		expect(stored).toBe('#eab308');
+	});
+
+	it('resolves a palette name through the theme, and keeps its token when it passes', () => {
+		expect(readableIconColor(LIGHT, 'blue', [editor])).toBe('var(--type-blue)');
+	});
+
+	it('is undefined without a color and unchanged without a surface', () => {
+		expect(readableIconColor(LIGHT, undefined, [editor])).toBeUndefined();
+		expect(readableIconColor(LIGHT, '#eab308', [null])).toBe('#eab308');
 	});
 });
 

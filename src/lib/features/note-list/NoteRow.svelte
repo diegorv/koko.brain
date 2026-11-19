@@ -6,8 +6,10 @@
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+	import { readableOn, rowSurfaces } from '#lib/core/settings/theme-surfaces.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
-	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
+	import { iconColorStyle, readableIconColor } from '#lib/features/file-icons/file-icons.logic.js';
 	import type { ResolvedIcon } from '#lib/features/file-icons/icon-resolver.js';
 	import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 	import { splitPropertyIntoPills } from '#lib/features/type-definitions/type-sidebar.logic.js';
@@ -44,6 +46,12 @@
 	}
 
 	let { note, icon, isActive, listProperties, allPaths, typeName = null, subtitle, italic = false, archived = false, fallbackIcon = FileText, draggable = false, onOrganize, tabindex }: Props = $props();
+
+	/** What the row's colored icon and title sit on: the list, a hovered row and the active row. */
+	let rowBgs = $derived(rowSurfaces(appliedThemeStore, 'list-bg', 'primary'));
+	let iconColor = $derived(readableIconColor(appliedThemeStore, icon?.color, rowBgs));
+	/** Only an inactive row shows the title color, on the list or a hovered row. */
+	let titleColor = $derived(!isActive && icon?.titleColor ? readableOn(appliedThemeStore, icon.titleColor, rowBgs.slice(0, 2), 4.5) : undefined);
 	let FallbackIcon = $derived(fallbackIcon);
 
 	const menu = useNoteRowMenuContext();
@@ -65,9 +73,9 @@
 		oncontextmenu={(e) => { e.stopPropagation(); e.preventDefault(); }}
 	>
 		{#if icon?.icon}
-			<IconRenderer icon={icon.icon} class="size-4 shrink-0" color={icon.color} />
+			<IconRenderer icon={icon.icon} class="size-4 shrink-0" color={iconColor} />
 		{:else}
-			<FallbackIcon class="size-4 shrink-0 text-muted-foreground" style={iconColorStyle(icon?.color)} />
+			<FallbackIcon class="size-4 shrink-0 text-muted-foreground" style={iconColorStyle(iconColor)} />
 		{/if}
 		<input
 			bind:this={menu.rename.input}
@@ -119,12 +127,12 @@
 	>
 		<div class="flex w-full items-start gap-2">
 			{#if icon?.icon}
-				<IconRenderer icon={icon.icon} class="size-4 shrink-0 mt-0.5" color={icon.color} />
+				<IconRenderer icon={icon.icon} class="size-4 shrink-0 mt-0.5" color={iconColor} />
 			{:else}
-				<FallbackIcon class="size-4 shrink-0 mt-0.5 text-muted-foreground" style={iconColorStyle(icon?.color)} data-note-row-fallback-icon />
+				<FallbackIcon class="size-4 shrink-0 mt-0.5 text-muted-foreground" style={iconColorStyle(iconColor)} data-note-row-fallback-icon />
 			{/if}
 			<div class="min-w-0 flex-1">
-				<div data-note-row-title class="truncate text-row font-medium {isActive ? 'text-primary' : ''} {italic ? 'italic' : ''}" style:color={!isActive && icon?.titleColor ? icon.titleColor : undefined}>
+				<div data-note-row-title class="truncate text-row font-medium {isActive ? 'text-primary' : ''} {italic ? 'italic' : ''}" style:color={titleColor}>
 					{note.title}
 				</div>
 				{#if subtitle}

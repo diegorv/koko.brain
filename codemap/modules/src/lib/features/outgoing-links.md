@@ -18,13 +18,13 @@ entry src/lib/features/outgoing-links/OutgoingLinksPanel.svelte ext-in1 src/lib/
 entry src/lib/features/outgoing-links/outgoing-links.service.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 entry src/lib/features/outgoing-links/outgoing-links.store.svelte.ts ext-in1 src/routes/(app)/+layout.svelte
 ## files
-file src/lib/features/outgoing-links/OutgoingLinksPanel.svelte component L87 module src/lib/features/outgoing-links in1 t1
+file src/lib/features/outgoing-links/OutgoingLinksPanel.svelte component L88 module src/lib/features/outgoing-links in1 t1
 file src/lib/features/outgoing-links/outgoing-links.logic.ts logic L13 module src/lib/features/outgoing-links in0 t1
 file src/lib/features/outgoing-links/outgoing-links.service.ts service L99 module src/lib/features/outgoing-links in2 t3
 file src/lib/features/outgoing-links/outgoing-links.store.svelte.ts store L17 module src/lib/features/outgoing-links in3 t3
 file src/lib/features/outgoing-links/outgoing-links.types.ts types L1 module src/lib/features/outgoing-links in2 t0
 ## public
-sym src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:1 component OutgoingLinksPanel L87
+sym src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:1 component OutgoingLinksPanel L88
 sym src/lib/features/outgoing-links/outgoing-links.service.ts:96 fn resetOutgoingLinks() L4
 sym src/lib/features/outgoing-links/outgoing-links.store.svelte.ts:6 store outgoingLinksStore L12
 ## stores
