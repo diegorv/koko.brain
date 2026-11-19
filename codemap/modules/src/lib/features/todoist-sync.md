@@ -23,7 +23,7 @@ entry src/lib/features/todoist-sync/sync-log.service.ts ext-in1 src/lib/app/comm
 entry src/lib/features/todoist-sync/todoist-sync.service.ts ext-in1 src/lib/app/commands.ts
 entry src/lib/features/todoist-sync/todoist-sync.store.svelte.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 ## files
-file src/lib/features/todoist-sync/TodoistSection.svelte component L208 module src/lib/features/todoist-sync in1 t1
+file src/lib/features/todoist-sync/TodoistSection.svelte component L209 module src/lib/features/todoist-sync in1 t1
 file src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte component L66 module src/lib/features/todoist-sync in1 t1
 file src/lib/features/todoist-sync/TodoistSyncStatus.svelte component L31 module src/lib/features/todoist-sync in1 t1
 file src/lib/features/todoist-sync/anchor.logic.ts logic L110 module src/lib/features/todoist-sync in8 t1 | `🆔 td-…` anchors that tie a task line to a Todoist task, and the path scope the sync reads lines from.
@@ -51,7 +51,7 @@ file src/lib/features/todoist-sync/todoist-sync.service.ts service L72 module sr
 file src/lib/features/todoist-sync/todoist-sync.store.svelte.ts store L96 module src/lib/features/todoist-sync in6 t9
 file src/lib/features/todoist-sync/vault-scan.service.ts service L112 module src/lib/features/todoist-sync in1 t0
 ## public
-sym src/lib/features/todoist-sync/TodoistSection.svelte:1 component TodoistSection L208
+sym src/lib/features/todoist-sync/TodoistSection.svelte:1 component TodoistSection L209
 sym src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:1 component TodoistSyncLogDialog L66
 sym src/lib/features/todoist-sync/TodoistSyncStatus.svelte:1 component TodoistSyncStatus L31
 sym src/lib/features/todoist-sync/sync-log.service.ts:17 fn showSyncLog(): Promise<void> L13 | Palette "Todoist: Show sync log": reads the newest sync log rows of the open vault (cycle rows, conflict losers, detaches, frozen anchors, skipped lines, termi…

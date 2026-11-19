@@ -1,7 +1,7 @@
 # file card src/lib/core/settings/settings.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/settings/settings.store.svelte.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, store
-file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in85 t134
+file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in85 t135
 ## imports
 imp src/lib/core/settings/settings.store.svelte.ts:1 -> src/lib/core/settings/settings.types.ts type:AppSettings,type:PeriodicNotesUpdate,type:QuickCaptureUpdate,type:OneOnOneSettings,type:LayoutSettings,type:FolderNotesSettings,type:EditorSettings,type:TemplatesSettings,type:HistorySettings,type:SearchSettings,type:TodoistSettings,type:SentrySettings,type:AutoOrganizeSettings,type:TagColorSettings,type:QueryjsSettings,type:UpdateSettings,type:EventCalendarSettings
 imp src/lib/core/settings/settings.store.svelte.ts:2 -> src/lib/core/settings/theme.types.ts type:AppearanceSettings
@@ -92,7 +92,7 @@ test src/tests/lib/core/settings/FileHistorySection.test.ts imports src/lib/core
 test src/tests/lib/core/settings/FilesSection.test.ts imports src/lib/core/settings/settings.store.svelte.ts
 test src/tests/lib/core/settings/HeadingTypographyEditor.test.ts imports src/lib/core/settings/settings.store.svelte.ts
 test src/tests/lib/core/settings/OneOnOneSection.test.ts imports src/lib/core/settings/settings.store.svelte.ts
-more tests 94 not shown: src/tests/lib/features/rail-shell(16) src/tests/lib/core/settings(13) src/tests/lib/features/event-calendar(12) src/tests/lib/features/tasks(6) src/tests/lib/features/todoist-sync(5) src/tests/lib/features/search(4) src/tests/lib/plugins/mods(4) src/tests/lib/features/auto-organize(3) +18 modules: q tests src/lib/core/settings/settings.store.svelte.ts
+more tests 95 not shown: src/tests/lib/features/rail-shell(16) src/tests/lib/core/settings(14) src/tests/lib/features/event-calendar(12) src/tests/lib/features/tasks(6) src/tests/lib/features/todoist-sync(5) src/tests/lib/features/search(4) src/tests/lib/plugins/mods(4) src/tests/lib/features/auto-organize(3) +18 modules: q tests src/lib/core/settings/settings.store.svelte.ts
 ## symbols
 sym src/lib/core/settings/settings.store.svelte.ts:6 const DEFAULT_SETTINGS: AppSettings L157 | Fallback values used when no settings file exists or when it fails to parse
 by src/lib/core/settings/settings.store.svelte.ts:DEFAULT_SETTINGS <- src/lib/core/settings/settings.service.ts:95 in parseSettings member +40
@@ -184,6 +184,6 @@ mem src/lib/core/settings/settings.store.svelte.ts:368 do settingsStore.updateLi
 mem src/lib/core/settings/settings.store.svelte.ts:373 do settingsStore.toggleDecorator w:src/lib/core/settings/sections/TroubleshootingSection.svelte:143 | Toggles a specific live preview decorator on/off
 mem src/lib/core/settings/settings.store.svelte.ts:379 do settingsStore.updateTagColors w:src/lib/features/tags/TagsView.svelte:25 | Partially updates tag color settings, merging with existing values
 mem src/lib/core/settings/settings.store.svelte.ts:387 do settingsStore.updateQueryjs w:src/lib/plugins/queryjs/QueryjsSection.svelte:36 | Partially updates QueryJS plugin settings, merging with existing values
-mem src/lib/core/settings/settings.store.svelte.ts:398 do settingsStore.updateUpdates w:src/lib/core/settings/sections/UpdateSection.svelte:80,src/lib/core/settings/sections/UpdateSection.svelte:91,src/lib/core/settings/sections/UpdateSection.svelte:182,src/lib/core/settings/update-check.service.ts:27 | Partially updates the auto-updater settings (channel / autoCheck / lastCheckedAt), shallow-merging with the existing values.
+mem src/lib/core/settings/settings.store.svelte.ts:398 do settingsStore.updateUpdates w:src/lib/core/settings/sections/UpdateSection.svelte:80,src/lib/core/settings/sections/UpdateSection.svelte:91,src/lib/core/settings/sections/UpdateSection.svelte:181,src/lib/core/settings/update-check.service.ts:27 | Partially updates the auto-updater settings (channel / autoCheck / lastCheckedAt), shallow-merging with the existing values.
 mem src/lib/core/settings/settings.store.svelte.ts:406 do settingsStore.updateTasksView w:src/lib/features/tasks/tasks.service.ts:119 | Replaces the Tasks view's saved state; the store never inspects it
 mem src/lib/core/settings/settings.store.svelte.ts:412 do settingsStore.reset w:src/lib/core/settings/settings.service.ts:296 | Restores all settings to their defaults

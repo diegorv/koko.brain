@@ -19,5 +19,5 @@ by src-tauri/src/commands/update_channel.rs:check_for_update_on_channel <- src-t
 ## calls
 call src-tauri/src/commands/update_channel.rs:100 in check_for_update_on_channel -> src-tauri/src/commands/update_channel.rs:endpoint_for_channel call
 ## ipc-in
-ipc-call src/lib/core/settings/sections/UpdateSection.svelte:175 in checkForUpdates -> ipc:check_for_update_on_channel -> src-tauri/src/commands/update_channel.rs:95
+ipc-call src/lib/core/settings/sections/UpdateSection.svelte:174 in checkForUpdates -> ipc:check_for_update_on_channel -> src-tauri/src/commands/update_channel.rs:95
 ipc-call src/lib/core/settings/update-check.service.ts:24 in maybeAutoCheckForUpdates -> ipc:check_for_update_on_channel -> src-tauri/src/commands/update_channel.rs:95
