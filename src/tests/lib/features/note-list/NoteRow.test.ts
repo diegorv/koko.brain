@@ -152,22 +152,55 @@ describe('NoteRow archived mark and pills', () => {
 		expect(row.querySelector('[data-note-row-archived-icon]')).toBeNull();
 	});
 
-	it('draws the type and property pills in the full primary color', () => {
-		mountRow({
-			notes: [{ ...note, frontmatter: { status: 'draft', owner: '[[beta]]' } }],
-			typeName: 'Project',
-			listProperties: ['status', 'owner'],
-			allPaths: ['/vault/notes/beta.md'],
-		});
+	const PILL_PROPS = {
+		notes: [{ ...note, frontmatter: { status: 'draft', owner: '[[beta]]' } }],
+		typeName: 'Project',
+		listProperties: ['status', 'owner'],
+		allPaths: ['/vault/notes/beta.md'],
+	};
+
+	it('draws the type and property pills in the text-on-tint primary on their tint', () => {
+		mountRow(PILL_PROPS);
 
 		const typePill = target.querySelector<HTMLElement>('[data-note-row-type]')!;
 		expect(typePill.textContent?.trim()).toBe('Project');
-		const pills = [...target.querySelectorAll<HTMLElement>('[data-note-row] .bg-primary\\/10')];
+		const pills = [...target.querySelectorAll<HTMLElement>('[data-note-row-pill]')];
 		expect(pills.map((p) => p.textContent?.trim())).toEqual(['Project', 'draft', 'beta']);
 		for (const pill of pills) {
-			expect(pill.classList).toContain('text-primary');
-			expect(pill.className).not.toMatch(/(^|\s)text-primary\/\d+/);
+			expect(pill.classList).toContain('bg-primary/10');
+			expect(pill.classList).toContain('text-primary-tint-fg');
+			expect(pill.classList).not.toContain('text-primary');
 		}
+	});
+
+	it('draws the selected row title, subtitle and pills in the text-on-tint primary, pills off the row tint', () => {
+		mountRow({ ...PILL_PROPS, activePath: ALPHA, subtitle: 'notes' });
+
+		const row = target.querySelector<HTMLElement>('[data-note-row]')!;
+		expect(row.classList).toContain('bg-primary/25');
+		const title = row.querySelector<HTMLElement>('[data-note-row-title]')!;
+		expect(title.classList).toContain('text-primary-tint-fg');
+		expect(title.classList).not.toContain('text-primary');
+		const sub = row.querySelector<HTMLElement>('[data-note-row-subtitle]')!;
+		expect(sub.textContent).toBe('notes');
+		expect(sub.classList).toContain('text-primary-tint-fg');
+		expect(sub.classList).not.toContain('text-muted-foreground');
+		const pills = [...row.querySelectorAll<HTMLElement>('[data-note-row-pill]')];
+		expect(pills).toHaveLength(3);
+		for (const pill of pills) {
+			// A pill tint stacked on the row tint fails 4.5:1 even in pure foreground: the chip takes the list surface.
+			expect(pill.classList).toContain('bg-list-bg');
+			expect(pill.classList).not.toContain('bg-primary/10');
+			expect(pill.classList).toContain('text-primary-tint-fg');
+		}
+	});
+
+	it('keeps an idle row subtitle muted', () => {
+		mountRow({ subtitle: 'notes' });
+
+		const sub = target.querySelector<HTMLElement>('[data-note-row-subtitle]')!;
+		expect(sub.classList).toContain('text-muted-foreground');
+		expect(sub.classList).not.toContain('text-primary-tint-fg');
 	});
 });
 

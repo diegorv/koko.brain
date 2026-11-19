@@ -182,11 +182,11 @@ describe('ModActionPicker', () => {
 			flushSync();
 			expect(status()).toBe('Done');
 			expect(statusClasses()).toContain('text-success');
-			expect(statusClasses()).not.toContain('text-destructive');
+			expect(statusClasses()).not.toContain('text-destructive-tint-fg');
 			expect(statusClasses()).not.toContain('text-muted-foreground');
 		});
 
-		it('is the destructive colour on Failed, with the same text', async () => {
+		it('is the text-on-tint destructive on Failed, with the same text', async () => {
 			clickRailButton();
 			row('boom').click();
 			flushSync();
@@ -194,7 +194,9 @@ describe('ModActionPicker', () => {
 			await vi.waitFor(() => expect(modsRunsStore.runFor(runKey('boom'))?.status).toBe('failed'));
 			flushSync();
 			expect(status()).toBe('Failed');
-			expect(statusClasses()).toContain('text-destructive');
+			// Raw destructive on the popover is 2.96:1 on Zettlr Bordeaux Dark.
+			expect(statusClasses()).toContain('text-destructive-tint-fg');
+			expect(statusClasses()).not.toContain('text-destructive');
 			expect(statusClasses()).not.toContain('text-success');
 			expect(statusClasses()).not.toContain('text-muted-foreground');
 		});
@@ -211,7 +213,7 @@ describe('ModActionPicker', () => {
 			expect(status()).toBe('Cancelled');
 			expect(statusClasses()).toContain('text-muted-foreground');
 			expect(statusClasses()).not.toContain('text-success');
-			expect(statusClasses()).not.toContain('text-destructive');
+			expect(statusClasses()).not.toContain('text-destructive-tint-fg');
 		});
 	});
 

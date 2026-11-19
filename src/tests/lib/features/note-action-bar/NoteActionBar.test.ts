@@ -384,8 +384,16 @@ describe('NoteActionBar', () => {
 		render();
 
 		const content = (await moreItem('Copy deeplink')).parentElement!;
-		const red = [...content.querySelectorAll('[data-slot="dropdown-menu-item"][data-variant="destructive"]')].map(itemLabel);
-		expect(red).toEqual(['Move to Trash']);
+		const redItems = [...content.querySelectorAll<HTMLElement>('[data-slot="dropdown-menu-item"][data-variant="destructive"]')];
+		expect(redItems.map(itemLabel)).toEqual(['Move to Trash']);
+		// Raw destructive on its highlight tint is 2.56:1 on Zettlr Bordeaux Dark: text and icon take the text-on-tint token.
+		const classes = redItems[0].className.split(/\s+/);
+		expect(classes).toEqual(expect.arrayContaining([
+			'data-[variant=destructive]:text-destructive-tint-fg',
+			'data-[variant=destructive]:data-highlighted:text-destructive-tint-fg',
+			'data-[variant=destructive]:*:[svg]:!text-destructive-tint-fg',
+		]));
+		expect(classes.filter((c) => c.endsWith('text-destructive'))).toEqual([]);
 	});
 
 	it('More > Move to Trash, confirmed, moves the note to the trash and closes its tab', async () => {

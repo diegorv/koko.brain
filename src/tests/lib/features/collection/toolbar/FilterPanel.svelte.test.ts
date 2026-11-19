@@ -78,6 +78,23 @@ describe('FilterPanel', () => {
 		expect(buttons('Add filter')).toHaveLength(2);
 	});
 
+	it('counts the filters of each section in a pill drawn in the text-on-tint primary', () => {
+		render({
+			globalFilters: [{ conjunction: 'and', rows: [
+				{ id: 'g1', property: 'status', operator: 'is', value: 'done' },
+				{ id: 'g2', property: 'file.name', operator: 'contains', value: 'a' },
+			] }],
+			viewFilters: [{ conjunction: 'and', rows: [{ id: 'v1', property: 'status', operator: 'is', value: 'done' }] }],
+		});
+		for (const [section, count] of [['global', '2'], ['view', '1']]) {
+			const pill = target.querySelector<HTMLElement>(`[data-filter-panel-count="${section}"]`)!;
+			expect(pill.textContent?.trim(), section).toBe(count);
+			expect(pill.classList).toContain('bg-primary/15');
+			expect(pill.classList).toContain('text-primary-tint-fg');
+			expect(pill.classList).not.toContain('text-primary');
+		}
+	});
+
 	it('renders only This view with showGlobal false', () => {
 		render({ showGlobal: false });
 		expect(target.textContent).not.toContain('All views');

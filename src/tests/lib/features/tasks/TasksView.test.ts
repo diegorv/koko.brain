@@ -694,6 +694,19 @@ describe('TasksView: a failed refresh says so', () => {
 		expect(paragraph('No tasks in this vault yet')).toBeUndefined();
 	});
 
+	it('draws the alert text and Retry in the text-on-tint destructive on the destructive tint', async () => {
+		mockTaskFetch(async () => {
+			throw new Error('boom');
+		});
+		({ component } = await mountTasksView());
+
+		expect(alertText()).toBe(MESSAGE);
+		expect(alert()!.classList).toContain('bg-destructive/10');
+		expect(alert()!.classList).toContain('text-destructive-tint-fg');
+		expect(alert()!.classList).not.toContain('text-destructive');
+		expect(retry().className).not.toMatch(/(^|\s)text-/);
+	});
+
 	it('keeps the old rows under the new rule sentence when the fetch after a tag change fails', async () => {
 		tasksStore.setSources(headingSources(['#a']));
 		let calls = 0;

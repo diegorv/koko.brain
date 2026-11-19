@@ -164,8 +164,9 @@ describe('FilesNavigator', () => {
 		expect(folder(WORK).getAttribute('aria-current')).toBe('true');
 		expect(folder(VAULT).getAttribute('aria-current')).toBeNull();
 		const row = target.querySelector<HTMLElement>(`[data-files-navigator-row="${WORK}"]`)!;
-		expect(row.className).toContain('bg-file-explorer-primary/25');
-		expect(row.className).toContain('text-file-explorer-primary');
+		expect(row.classList).toContain('bg-file-explorer-primary/25');
+		expect(row.classList).toContain('text-file-explorer-primary-tint-fg');
+		expect(row.classList).not.toContain('text-file-explorer-primary');
 		expect(target.innerHTML).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
 	});
 
@@ -296,7 +297,7 @@ describe('FilesNavigator', () => {
 		it('shows a picked system folder in the primary color, not muted', () => {
 			mountNavigator({ kind: FOLDER_LENS_KIND, target: SYSTEM });
 			const row = target.querySelector<HTMLElement>(`[data-files-navigator-row="${SYSTEM}"]`)!;
-			expect(row.classList).toContain('text-file-explorer-primary');
+			expect(row.classList).toContain('text-file-explorer-primary-tint-fg');
 			expect(nameOf(SYSTEM).classList).not.toContain(MUTED);
 		});
 	});
@@ -332,6 +333,14 @@ describe('FilesNavigator', () => {
 			expect(count.classList).toContain('ml-auto');
 			// Hidden from the folder button's accessible name.
 			expect(count.getAttribute('aria-hidden')).toBe('true');
+		});
+
+		it('draws the picked folder count in the text-on-tint primary, not muted', () => {
+			mountNavigator({ kind: FOLDER_LENS_KIND, target: MIXED });
+			const count = target.querySelector<HTMLElement>(`[data-files-navigator-row="${MIXED}"] [data-files-navigator-count]`)!;
+			expect(count.textContent?.trim()).toBe('3');
+			expect(count.classList).toContain('text-file-explorer-primary-tint-fg');
+			expect(count.classList).not.toContain('text-file-explorer-muted-fg');
 		});
 
 		it('picks the folder when the number is clicked', () => {

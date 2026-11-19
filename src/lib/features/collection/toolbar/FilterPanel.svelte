@@ -93,7 +93,7 @@
 				<ChevronRight class="size-3.5 transition-transform {globalOpen ? 'rotate-90' : ''}" />
 				All views
 				{#if globalCount > 0}
-					<span class="rounded-full bg-primary/15 px-1.5 text-label font-semibold text-primary">
+					<span class="rounded-full bg-primary/15 px-1.5 text-label font-semibold text-primary-tint-fg" data-filter-panel-count="global">
 						{globalCount}
 					</span>
 				{/if}
@@ -159,7 +159,7 @@
 				<ChevronRight class="size-3.5 transition-transform {viewOpen ? 'rotate-90' : ''}" />
 				This view
 				{#if viewCount > 0}
-					<span class="rounded-full bg-primary/15 px-1.5 text-label font-semibold text-primary">
+					<span class="rounded-full bg-primary/15 px-1.5 text-label font-semibold text-primary-tint-fg" data-filter-panel-count="view">
 						{viewCount}
 					</span>
 				{/if}

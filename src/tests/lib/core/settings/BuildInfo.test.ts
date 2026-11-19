@@ -59,6 +59,19 @@ describe('BuildInfo chip', () => {
 		}
 	});
 
+	it.each([
+		['stable', false, 'bg-success/20', 'text-success-tint-fg', 'text-success'],
+		['nightly', false, 'bg-warning/20', 'text-warning-tint-fg', 'text-warning'],
+		['preview', false, 'bg-type-purple/20', 'text-type-purple-tint-fg', 'text-type-purple'],
+		['dev', true, 'bg-primary/20', 'text-primary-tint-fg', 'text-primary'],
+	] as const)('draws the %s chip label in its text-on-tint color on its tint', (channel, dev, bg, text, raw) => {
+		const chip = renderChip({ dev, channel: channel === 'dev' ? 'stable' : channel });
+
+		expect(chip.classList).toContain(bg);
+		expect(chip.classList).toContain(text);
+		expect(chip.classList).not.toContain(raw);
+	});
+
 	it('does not style the stable chip as muted', () => {
 		const chip = renderChip({ dev: false, channel: 'stable' });
 

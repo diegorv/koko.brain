@@ -351,7 +351,7 @@
 		// The drop background replaces the picked one: two bg utilities on one row leave CSS order to pick.
 		const activeBg = dropTarget ? '' : 'bg-file-explorer-primary/25 ';
 		return `flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-row cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset ${active
-			? `${activeBg}text-file-explorer-primary`
+			? `${activeBg}text-file-explorer-primary-tint-fg`
 			: 'hover:bg-file-explorer-primary/10'} ${dropTarget ? 'bg-file-explorer-accent/50 outline-dashed outline-1 outline-ring' : ''}`;
 	}
 </script>
@@ -573,7 +573,7 @@
 				<span class="truncate {muted ? 'text-file-explorer-muted-fg' : ''}" style:color={titleColor}>{node.name}</span>
 				{#if fileCount > 0}
 					<!-- Inside the button so clicking the number picks the folder; aria-hidden keeps the accessible name the folder name. -->
-					<span class="ml-auto shrink-0 text-meta tabular-nums text-file-explorer-muted-fg" aria-hidden="true" data-files-navigator-count>{fileCount}</span>
+					<span class="ml-auto shrink-0 text-meta tabular-nums {active ? 'text-file-explorer-primary-tint-fg' : 'text-file-explorer-muted-fg'}" aria-hidden="true" data-files-navigator-count>{fileCount}</span>
 				{/if}
 			</button>
 		{/if}

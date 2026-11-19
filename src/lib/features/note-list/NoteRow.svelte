@@ -53,6 +53,10 @@
 	/** Only an inactive row shows the title color, on the list or a hovered row. */
 	let titleColor = $derived(!isActive && icon?.titleColor ? readableOn(appliedThemeStore, icon.titleColor, rowBgs.slice(0, 2), 4.5) : undefined);
 	let FallbackIcon = $derived(fallbackIcon);
+	/** A pill tint stacked on the selected row's tint fails 4.5:1 even in pure foreground, so there the chip takes the list surface. */
+	const pillClass = $derived(
+		`inline-flex items-center rounded-xs ${isActive ? 'bg-list-bg' : 'bg-primary/10'} px-1.5 py-0.5 text-[11px] text-primary-tint-fg truncate max-w-[140px]`,
+	);
 
 	const menu = useNoteRowMenuContext();
 
@@ -132,11 +136,11 @@
 				<FallbackIcon class="size-4 shrink-0 mt-0.5 text-muted-foreground" style={iconColorStyle(iconColor)} data-note-row-fallback-icon />
 			{/if}
 			<div class="min-w-0 flex-1">
-				<div data-note-row-title class="truncate text-row font-medium {isActive ? 'text-primary' : ''} {italic ? 'italic' : ''}" style:color={titleColor}>
+				<div data-note-row-title class="truncate text-row font-medium {isActive ? 'text-primary-tint-fg' : ''} {italic ? 'italic' : ''}" style:color={titleColor}>
 					{note.title}
 				</div>
 				{#if subtitle}
-					<div class="truncate text-[11px] text-muted-foreground" data-note-row-subtitle>{subtitle}</div>
+					<div class="truncate text-[11px] {isActive ? 'text-primary-tint-fg' : 'text-muted-foreground'}" data-note-row-subtitle>{subtitle}</div>
 				{/if}
 			</div>
 			{#if archived}
@@ -146,7 +150,7 @@
 		{#if typeName || listProperties.length > 0}
 			<div class="flex flex-wrap gap-1 mt-1">
 				{#if typeName}
-					<span class="inline-flex items-center rounded-xs bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary truncate max-w-[140px]" data-note-row-type>
+					<span class={pillClass} data-note-row-pill data-note-row-type>
 						{typeName}
 					</span>
 				{/if}
@@ -157,7 +161,8 @@
 							{@const resolved = resolveWikilink(pill.wikilink, allPaths, vaultStore.path)}
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<span
-								class="inline-flex items-center rounded-xs bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary truncate max-w-[140px] hover:bg-primary/20 hover:underline cursor-pointer"
+								class="{pillClass} {isActive ? '' : 'hover:bg-primary/15'} hover:underline cursor-pointer"
+								data-note-row-pill
 								role="link"
 								tabindex="-1"
 								onclick={(e: MouseEvent) => { e.stopPropagation(); if (resolved) openFileInEditor(resolved); }}
@@ -167,7 +172,7 @@
 								{pill.text}
 							</span>
 						{:else}
-							<span class="inline-flex items-center rounded-xs bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary truncate max-w-[140px]">
+							<span class={pillClass} data-note-row-pill>
 								{pill.text}
 							</span>
 						{/if}
