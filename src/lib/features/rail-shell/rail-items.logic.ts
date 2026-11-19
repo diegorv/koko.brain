@@ -1,5 +1,5 @@
 import { clamp } from '#lib/utils/clamp.js';
-import { contrastRatio } from '#lib/utils/color.js';
+import { labelColors } from '#lib/utils/color.js';
 import { GRAPH_VIRTUAL_PATH, TAGS_VIRTUAL_PATH, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { FILES_RAIL_ITEM, SEARCH_RAIL_ITEM, TODAY_RAIL_ITEM, TYPES_RAIL_ITEM } from './lens.logic';
 import type { RailAction, RailNavigator, RailPin } from './rail-shell.types';
@@ -210,14 +210,11 @@ export function railItemColor(key: string): string {
 }
 
 /**
- * Text color for a count badge filled with a rail item's `color`: black or white,
- * whichever contrasts more; `var(--primary-foreground)` for a color it cannot parse.
+ * Fill and text for a count badge on a rail item's `color` (`labelColors`);
+ * the color itself with `var(--primary-foreground)` when it cannot be parsed.
  */
-export function railBadgeTextColor(color: string): string {
-	const black = contrastRatio('#000000', color);
-	const white = contrastRatio('#ffffff', color);
-	if (black === null || white === null) return 'var(--primary-foreground)';
-	return black >= white ? '#000000' : '#ffffff';
+export function railBadgeColors(color: string): { fill: string; text: string } {
+	return labelColors(color) ?? { fill: color, text: 'var(--primary-foreground)' };
 }
 
 /**

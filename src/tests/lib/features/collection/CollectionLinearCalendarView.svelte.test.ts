@@ -3,6 +3,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import CollectionLinearCalendarView from '#lib/features/collection/CollectionLinearCalendarView.svelte';
 import type { PropertyIndexRecord, QueryResult } from '#lib/features/collection/collection.types.js';
+import { barColors, COLOR_PALETTE } from '#lib/features/collection/linear-calendar.logic.js';
 
 const YEAR = new Date().getFullYear();
 
@@ -43,13 +44,18 @@ describe('CollectionLinearCalendarView', () => {
 		return el;
 	}
 
-	it('gives a light palette bar black text instead of white', () => {
+	it('gives the blue first palette bar white text on a darker fill, matched by its legend swatch', () => {
 		const target = render([makeRecord('Trip', { date: `${YEAR}-03-15`, status: 'planned' })], 'status');
 		const trip = bar(target, 'Trip');
+		const { fill } = barColors(COLOR_PALETTE[0]);
+		// jsdom normalizes inline colors to rgb(), so compare through a probe
+		const probe = document.createElement('span');
+		probe.style.background = fill;
 
-		// jsdom normalizes the inline `color: #000000` to rgb()
-		expect(trip.style.color).toBe('rgb(0, 0, 0)');
+		expect(trip.style.color).toBe('rgb(255, 255, 255)');
+		expect(trip.style.background).toBe(probe.style.background);
 		expect(trip.classList).not.toContain('text-white');
+		expect(target.querySelector<HTMLElement>('span.size-3')!.style.background).toBe(probe.style.background);
 	});
 
 	it('gives the var(--primary) fallback bar the theme primary foreground', () => {

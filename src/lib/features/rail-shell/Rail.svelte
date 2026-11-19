@@ -38,7 +38,7 @@
 		RAIL_PIN_COLOR,
 		RAIL_WIDTH,
 		railActionColor,
-		railBadgeTextColor,
+		railBadgeColors,
 		railFormWidth,
 		railItemColor,
 		railItems,
@@ -394,7 +394,8 @@
 			<span class="{classes.title} text-rail {row.active ? 'font-medium' : ''}" data-rail-title>{row.label}</span>
 		{/if}
 		{#if row.count > 0}
-			<span class="{classes.badge} text-label tabular-nums" style:background-color="var(--rail-c)" style:color={railBadgeTextColor(row.color)} data-rail-badge>{row.count}</span>
+			{@const badge = railBadgeColors(row.color)}
+			<span class="{classes.badge} text-label tabular-nums" style:background-color={badge.fill} style:color={badge.text} data-rail-badge>{row.count}</span>
 		{/if}
 		{#if busy}
 			<span class="absolute top-1 right-1 size-1.5 animate-pulse rounded-full bg-file-explorer-primary" aria-hidden="true" data-rail-busy></span>

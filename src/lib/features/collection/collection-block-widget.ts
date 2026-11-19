@@ -21,7 +21,7 @@ import {
 	buildLinearYearLayout,
 	buildColorMapping,
 	getColorForValue,
-	barTextColor,
+	barColors,
 } from '#lib/features/collection/linear-calendar.logic.js';
 
 /** Cached query data for one collection block. */
@@ -414,8 +414,8 @@ export class CollectionBlockWidget extends WidgetType {
 					const startDay = event.startDate.getDate();
 					const endDay = event.endDate.getDate();
 					const bar = document.createElement('div');
-					const color = colorMapping ? (getColorForValue(event.colorValue, colorMapping) ?? 'var(--primary)') : 'var(--primary)';
-					bar.style.cssText = `position: absolute; left: 0; right: 0; top: calc(${event.lane} * (${BAR_HEIGHT_EM}em + ${BAR_GAP_PX}px) + ${BAR_GAP_PX}px); height: ${BAR_HEIGHT_EM}em; background: ${color}; border-radius: 2px; font-size: ${BAR_FONT}; color: ${barTextColor(color)}; padding: 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; display: flex; align-items: center;`;
+					const color = barColors(colorMapping ? (getColorForValue(event.colorValue, colorMapping) ?? 'var(--primary)') : 'var(--primary)');
+					bar.style.cssText = `position: absolute; left: 0; right: 0; top: calc(${event.lane} * (${BAR_HEIGHT_EM}em + ${BAR_GAP_PX}px) + ${BAR_GAP_PX}px); height: ${BAR_HEIGHT_EM}em; background: ${color.fill}; border-radius: 2px; font-size: ${BAR_FONT}; color: ${color.text}; padding: 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; display: flex; align-items: center;`;
 					bar.textContent = event.record.basename;
 					bar.title = event.record.basename;
 					stopEditorMousedown(bar);

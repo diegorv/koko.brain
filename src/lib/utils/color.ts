@@ -170,3 +170,34 @@ export function colorDistance(a: string, b: string): number | null {
 	const q = toOklab(y.map(toLinear));
 	return Math.hypot(...p.map((v, i) => v - q[i])) * 100;
 }
+
+/**
+ * APCA screen luminance of 0-255 channels: a plain 2.4 gamma and a soft clamp
+ * near black (APCA-W3 0.0.98G constants, https://github.com/Myndex/apca-w3).
+ */
+function apcaLuminance([r, g, b]: [number, number, number]): number {
+	const y = 0.2126729 * (r / 255) ** 2.4 + 0.7151522 * (g / 255) ** 2.4 + 0.072175 * (b / 255) ** 2.4;
+	return y < 0.022 ? y + (0.022 - y) ** 1.414 : y;
+}
+
+/** APCA lightness contrast |Lc| (0 to about 108) of `text` on `bg`, both opaque. */
+function apcaContrast(text: [number, number, number], bg: [number, number, number]): number {
+	const t = apcaLuminance(text);
+	const b = apcaLuminance(bg);
+	const sapc = b > t ? (b ** 0.56 - t ** 0.57) * 1.14 : (b ** 0.65 - t ** 0.62) * 1.14;
+	return Math.abs(sapc) < 0.1 ? 0 : (Math.abs(sapc) - 0.027) * 100;
+}
+
+/**
+ * Fill and text for a label drawn on `color` (a badge, an event bar). The text
+ * is black or white, whichever APCA rates more legible: WCAG 2's ratio prefers
+ * black on mid blues, purples and reds, where black reads poorly. The fill then
+ * moves in OKLab (darker under white, lighter under black) only as far as WCAG 2
+ * AA needs, 4.5:1. Null when `color` is unparseable.
+ */
+export function labelColors(color: string): { fill: string; text: '#000000' | '#ffffff' } | null {
+	const rgb = parseRgb(color);
+	if (!rgb) return null;
+	const text = apcaContrast([255, 255, 255], rgb) > apcaContrast([0, 0, 0], rgb) ? '#ffffff' : '#000000';
+	return { fill: ensureContrast(color, text, 4.5), text };
+}

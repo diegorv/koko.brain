@@ -11,7 +11,7 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn()
 import { mount, unmount, flushSync } from 'svelte';
 import CalendarDays from '@lucide/svelte/icons/calendar-days';
 import Rail from '#lib/features/rail-shell/Rail.svelte';
-import { RAIL_WIDTH } from '#lib/features/rail-shell/rail-items.logic.js';
+import { RAIL_WIDTH, railBadgeColors, railItemColor } from '#lib/features/rail-shell/rail-items.logic.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { ARCHIVE_LENS, FAVORITES_LENS, FILES_LENS, INBOX_LENS, SEARCH_LENS, TODAY_LENS, TYPES_LENS, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -447,7 +447,7 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 		expect(sectionTitles()).toEqual(['Workspace', 'Tabs']);
 	});
 
-	it('draws the Inbox count as a pill on the item color, with black text on its blue', () => {
+	it('draws the Inbox count as a pill on a darker shade of its blue, with white text', () => {
 		typeDefinitionsStore.setEntries([entryV2('/vault/a.md')]);
 		mountRail();
 		const pill = badge() as HTMLElement;
@@ -455,8 +455,10 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 			expect(pill.classList).toContain(name);
 		}
 		expect(pill.classList).not.toContain('text-white');
-		expect(pill.style.backgroundColor).toBe('var(--rail-c)');
-		expect(pill.style.color).toBe('rgb(0, 0, 0)');
+		const probe = document.createElement('span');
+		probe.style.backgroundColor = railBadgeColors(railItemColor('inbox')).fill;
+		expect(pill.style.backgroundColor).toBe(probe.style.backgroundColor);
+		expect(pill.style.color).toBe('rgb(255, 255, 255)');
 	});
 
 	it.runIf(labeled)('keeps the Inbox count in the row, and offers the resize handle', () => {

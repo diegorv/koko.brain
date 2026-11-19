@@ -20,7 +20,7 @@ import {
 } from '#lib/features/collection/collection-block-widget.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { barTextColor, COLOR_PALETTE } from '#lib/features/collection/linear-calendar.logic.js';
+import { barColors, COLOR_PALETTE } from '#lib/features/collection/linear-calendar.logic.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 
 import { BLOCK_TEXT_FLOOR, resolveFontSize, resolvedFontPx } from '../../../fixtures/font-size.fixture.js';
@@ -810,12 +810,12 @@ describe('CollectionBlockWidget — text scales with the editor font', () => {
 			// kinds k0..k2 sort to palette slots 0..2; jsdom normalizes colors, so compare through a probe
 			const slot = Number(bar.title.slice(1));
 			const probe = document.createElement('div');
-			probe.style.color = barTextColor(COLOR_PALETTE[slot]);
-			probe.style.background = COLOR_PALETTE[slot];
+			probe.style.color = barColors(COLOR_PALETTE[slot]).text;
+			probe.style.background = barColors(COLOR_PALETTE[slot]).fill;
 			expect(bar.style.background).toBe(probe.style.background);
 			expect(bar.style.color).toBe(probe.style.color);
 		}
-		// The blue first slot needs dark text.
-		expect(barTextColor(COLOR_PALETTE[0])).toBe('#000000');
+		// The blue first slot gets white text on a darker blue.
+		expect(bars.find((b) => Number(b.title.slice(1)) === 0)!.style.color).toBe('rgb(255, 255, 255)');
 	});
 });

@@ -14,7 +14,7 @@ import {
 	RAIL_STYLES,
 	RAIL_WIDTH,
 	railActionColor,
-	railBadgeTextColor,
+	railBadgeColors,
 	railFormWidth,
 	railHeaderPad,
 	railItemColor,
@@ -22,6 +22,7 @@ import {
 } from '#lib/features/rail-shell/rail-items.logic.js';
 import { GRAPH_VIRTUAL_PATH, TAGS_VIRTUAL_PATH, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import type { RailNavigator, RailPin } from '#lib/features/rail-shell/rail-shell.types.js';
+import { contrastRatio } from '#lib/utils/color.js';
 
 const CALENDAR: RailNavigator = {
 	id: 'calendar',
@@ -225,19 +226,25 @@ describe('railItemColor', () => {
 	});
 });
 
-describe('railBadgeTextColor', () => {
-	it('gives black text on the Inbox blue, where black contrasts more than white', () => {
-		expect(railBadgeTextColor('#3b82f6')).toBe('#000000');
-		expect(railBadgeTextColor(railItemColor('inbox'))).toBe('#000000');
+describe('railBadgeColors', () => {
+	it('gives the Inbox blue white text on a fill darkened to 4.5:1', () => {
+		const { fill, text } = railBadgeColors(railItemColor('inbox'));
+		expect(text).toBe('#ffffff');
+		expect(fill).not.toBe(railItemColor('inbox'));
+		expect(contrastRatio(text, fill)!).toBeGreaterThanOrEqual(4.5);
 	});
 
-	it('gives white text on a dark navy', () => {
-		expect(railBadgeTextColor('#1e293b')).toBe('#ffffff');
+	it('keeps a dark navy fill with white text', () => {
+		expect(railBadgeColors('#1e293b')).toEqual({ fill: '#1e293b', text: '#ffffff' });
 	});
 
-	it('gives the theme primary foreground for a color it cannot parse', () => {
-		expect(railBadgeTextColor('var(--primary)')).toBe('var(--primary-foreground)');
-		expect(railBadgeTextColor('')).toBe('var(--primary-foreground)');
+	it('gives black text on the Favorites yellow', () => {
+		expect(railBadgeColors(railItemColor('favorites'))).toEqual({ fill: '#eab308', text: '#000000' });
+	});
+
+	it('keeps a color it cannot parse with the theme primary foreground', () => {
+		expect(railBadgeColors('var(--primary)')).toEqual({ fill: 'var(--primary)', text: 'var(--primary-foreground)' });
+		expect(railBadgeColors('')).toEqual({ fill: '', text: 'var(--primary-foreground)' });
 	});
 });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isDarkColor, contrastRatio, colorDistance, ensureContrast, flatten, mixColors } from '#lib/utils/color.js';
+import { isDarkColor, contrastRatio, colorDistance, ensureContrast, flatten, labelColors, mixColors } from '#lib/utils/color.js';
 
 describe('isDarkColor', () => {
 	it('detects dark hex backgrounds', () => {
@@ -215,5 +215,43 @@ describe('colorDistance', () => {
 	it('returns null when either color is unparseable', () => {
 		expect(colorDistance('hsl(200 50% 50%)', '#ffffff')).toBeNull();
 		expect(colorDistance('#ffffff', '')).toBeNull();
+	});
+});
+
+describe('labelColors', () => {
+	it('gives white text on mid blues, purples and reds, where WCAG 2 alone would pick black', () => {
+		for (const color of ['#3b82f6', '#8b5cf6', '#f43f5e', '#d946ef']) {
+			expect(contrastRatio('#000000', color)!).toBeGreaterThan(contrastRatio('#ffffff', color)!);
+			expect(labelColors(color)!.text).toBe('#ffffff');
+		}
+	});
+
+	it('darkens a mid fill only until white text reaches 4.5:1, keeping its hue', () => {
+		const { fill, text } = labelColors('#3b82f6')!;
+		expect(text).toBe('#ffffff');
+		expect(contrastRatio('#ffffff', fill)!).toBeGreaterThanOrEqual(4.5);
+		expect(contrastRatio('#ffffff', fill)!).toBeLessThan(5.5);
+		expect(colorDistance(fill, '#3b82f6')!).toBeLessThan(15);
+	});
+
+	it('gives black text on light fills such as yellow and lime, fill unchanged', () => {
+		expect(labelColors('#eab308')).toEqual({ fill: '#eab308', text: '#000000' });
+		expect(labelColors('#a3e635')).toEqual({ fill: '#a3e635', text: '#000000' });
+	});
+
+	it('keeps a dark fill that already passes with white text', () => {
+		expect(labelColors('#1e293b')).toEqual({ fill: '#1e293b', text: '#ffffff' });
+	});
+
+	it('meets 4.5:1 between text and fill for any parseable color', () => {
+		for (const color of ['#f97316', '#14b8a6', '#0ea5e9', '#22c55e', '#64748b', '#ffffff', '#000000']) {
+			const { fill, text } = labelColors(color)!;
+			expect(contrastRatio(text, fill)!).toBeGreaterThanOrEqual(4.5);
+		}
+	});
+
+	it('returns null for a color it cannot parse', () => {
+		expect(labelColors('var(--primary)')).toBeNull();
+		expect(labelColors('')).toBeNull();
 	});
 });
