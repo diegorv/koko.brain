@@ -32,7 +32,7 @@ entry src/lib/plugins/mods/mods-enabled.store.svelte.ts ext-in1 src/lib/app/Labs
 entry src/lib/plugins/mods/mods-runs.store.svelte.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 entry src/lib/plugins/mods/mods.logic.ts ext-in1 src/lib/app/lifecycle/watcher-handler.service.ts
 ## files
-file src/lib/plugins/mods/ModActionPicker.svelte component L202 module src/lib/plugins/mods in1 t2
+file src/lib/plugins/mods/ModActionPicker.svelte component L208 module src/lib/plugins/mods in1 t2
 file src/lib/plugins/mods/ModDialogHost.svelte component L210 module src/lib/plugins/mods in1 t2
 file src/lib/plugins/mods/ModsStatusList.svelte component L176 module src/lib/plugins/mods in1 t1
 file src/lib/plugins/mods/contract/mod-api.v1.ts other L2 module src/lib/plugins/mods in5 t0
@@ -51,7 +51,7 @@ file src/lib/plugins/mods/mods-runs.store.svelte.ts store L124 module src/lib/pl
 file src/lib/plugins/mods/mods.logic.ts logic L324 module src/lib/plugins/mods in8 t3
 file src/lib/plugins/mods/mods.store.svelte.ts store L97 module src/lib/plugins/mods in2 t10
 ## public
-sym src/lib/plugins/mods/ModActionPicker.svelte:1 component ModActionPicker L202
+sym src/lib/plugins/mods/ModActionPicker.svelte:1 component ModActionPicker L208
 sym src/lib/plugins/mods/ModDialogHost.svelte:1 component ModDialogHost L210
 sym src/lib/plugins/mods/ModsStatusList.svelte:1 component ModsStatusList L176
 sym src/lib/plugins/mods/mod-commands.store.svelte.ts:19 store modCommandsStore L34 | Live mod action registry, independent of the command palette UI.
