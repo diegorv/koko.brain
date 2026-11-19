@@ -294,7 +294,8 @@ export class KBUI implements KBUIV1 {
 	 */
 	tags(tags: string[], options?: KBTagsOptions): HTMLElement {
 		const bg = options?.color ?? 'rgba(124,58,237,0.15)';
-		const text = options?.textColor ?? 'rgba(186,197,238,0.9)';
+		// The violet moved toward the theme text, so it reads on light and dark themes
+		const text = options?.textColor ?? 'color-mix(in oklab, rgb(124,58,237) 30%, var(--editor-fg))';
 		// An explicit size from the script is px; the default is em of the block (11px at 16px)
 		const size = options?.fontSize !== undefined ? `${options.fontSize}px` : '0.6875em';
 		const gap = options?.gap ?? 4;
@@ -343,7 +344,7 @@ export class KBUI implements KBUIV1 {
 
 			const badge = document.createElement('span');
 			badge.textContent = item.status;
-			badge.style.cssText = `padding: 2px 10px; border-radius: 12px; font-size: 0.875em; color: #fff; background: ${c.border};`;
+			badge.style.cssText = `padding: 2px 10px; border-radius: 12px; font-size: 0.875em; color: var(--editor-fg); background: ${c.border};`;
 			card.appendChild(badge);
 
 			wrapper.appendChild(card);
@@ -597,7 +598,7 @@ export class KBUI implements KBUIV1 {
 		} catch (err) {
 			const errorEl = document.createElement('div');
 			errorEl.style.cssText =
-				'padding: 12px; border-radius: 8px; color: rgba(239,68,68,0.9); font-size: 0.8125em; background: rgba(239,68,68,0.1);';
+				'padding: 12px; border-radius: 8px; color: color-mix(in oklab, rgb(239,68,68) 30%, var(--editor-fg)); font-size: 0.8125em; background: rgba(239,68,68,0.1);';
 			errorEl.textContent = `Chart error: ${err instanceof Error ? err.message : String(err)}`;
 			inner.replaceChild(errorEl, canvas);
 			return wrapper;

@@ -809,7 +809,7 @@ kb.ui.tags(['urgent', 'bug'], {
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `color` | `string` | `'rgba(124,58,237,0.15)'` | Chip background color |
-| `textColor` | `string` | `'rgba(186,197,238,0.9)'` | Chip text color |
+| `textColor` | `string` | violet mixed toward the theme text | Chip text color |
 | `fontSize` | `number` | `0.6875em` of the block (11px at the default editor font) | Font size in px |
 | `gap` | `number` | `4` | Gap between chips in px |
 

@@ -437,7 +437,7 @@ export interface KBHeatmapOptionsV1<T> {
 export interface KBTagsOptionsV1 {
 	/** Background color for tag chips (default: 'rgba(124,58,237,0.15)') */
 	color?: string;
-	/** Text color for tag chips (default: 'rgba(186,197,238,0.9)') */
+	/** Text color for tag chips (default: the violet mixed 70% toward the theme's `--editor-fg`) */
 	textColor?: string;
 	/** Font size in px (default: 0.6875em of the block, 11px at the default editor font) */
 	fontSize?: number;
