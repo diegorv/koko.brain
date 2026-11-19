@@ -69,7 +69,7 @@ file src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.t
 file src/lib/core/markdown-editor/extensions/live-preview/core/effects.ts other L42 module src/lib/core/markdown-editor in6 t8
 file src/lib/core/markdown-editor/extensions/live-preview/core/expanded-ranges.ts other L16 module src/lib/core/markdown-editor in5 t1
 file src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts other L43 module src/lib/core/markdown-editor in7 t12
-file src/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.ts other L32 module src/lib/core/markdown-editor in2 t1
+file src/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.ts other L38 module src/lib/core/markdown-editor in2 t1
 file src/lib/core/markdown-editor/extensions/live-preview/core/frontmatter-slice.ts other L19 module src/lib/core/markdown-editor in3 t1
 file src/lib/core/markdown-editor/extensions/live-preview/core/get-all-lines.ts other L10 module src/lib/core/markdown-editor in5 t1
 file src/lib/core/markdown-editor/extensions/live-preview/core/hide-lines.ts other L20 module src/lib/core/markdown-editor in11 t1
@@ -79,9 +79,9 @@ file src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts othe
 file src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts other L77 module src/lib/core/markdown-editor in17 t4
 file src/lib/core/markdown-editor/extensions/live-preview/core/scroll-debounce-plugin.ts other L48 module src/lib/core/markdown-editor in1 t0
 file src/lib/core/markdown-editor/extensions/live-preview/embed-resolver.logic.ts logic L75 module src/lib/core/markdown-editor in2 t1
-file src/lib/core/markdown-editor/extensions/live-preview/handlers/paste-html-link-handler.ts other L46 module src/lib/core/markdown-editor in1 t0
+file src/lib/core/markdown-editor/extensions/live-preview/handlers/paste-html-link-handler.ts other L46 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/extensions/live-preview/handlers/paste-html-link.logic.ts logic L112 module src/lib/core/markdown-editor in1 t1 | Pure converter: clipboard HTML with `<a href>` anchors → plain text with markdown links.
-file src/lib/core/markdown-editor/extensions/live-preview/handlers/paste-tsv-handler.ts other L41 module src/lib/core/markdown-editor in1 t0
+file src/lib/core/markdown-editor/extensions/live-preview/handlers/paste-tsv-handler.ts other L41 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/extensions/live-preview/handlers/paste-tsv.logic.ts logic L152 module src/lib/core/markdown-editor in1 t2 | Pure parser: TSV / Excel-clipboard text → markdown table.
 file src/lib/core/markdown-editor/extensions/live-preview/index.ts other L1 module src/lib/core/markdown-editor in2 t1
 file src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/autolink-handlers.ts other L49 module src/lib/core/markdown-editor in1 t1
