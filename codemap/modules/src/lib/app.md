@@ -65,7 +65,7 @@ file src/lib/app/AppOverlays.svelte component L44 module src/lib/app in1 t1
 file src/lib/app/AppShell.svelte component L316 module src/lib/app in1 t2
 file src/lib/app/EditorView.svelte component L159 module src/lib/app in1 t3
 file src/lib/app/LabsSection.svelte component L62 module src/lib/app in1 t1
-file src/lib/app/SettingsPanel.svelte component L162 module src/lib/app in1 t1
+file src/lib/app/SettingsPanel.svelte component L166 module src/lib/app in1 t1
 file src/lib/app/boot.ts other L97 module src/lib/app in1 t15
 file src/lib/app/commands.ts other L478 module src/lib/app in1 t5
 file src/lib/app/deep-link-actions.ts other L240 module src/lib/app in1 t2

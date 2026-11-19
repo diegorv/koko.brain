@@ -11,12 +11,12 @@ in2 src/lib/features/rail-shell/RailArchivedMenu.svelte 1 files in 1 modules: sr
 out2 src/lib/features/rail-shell/RailArchivedMenu.svelte 8 files in 6 modules: src/lib/core/filesystem(2) src/lib/features/collection(2) src/lib/components(1) src/lib/features/file-icons(1) src/lib/features/type-definitions(1) +1 modules
 ## symbols
 sym src/lib/features/rail-shell/RailArchivedMenu.svelte:1 component RailArchivedMenu props:value,onChange L67
-by src/lib/features/rail-shell/RailArchivedMenu.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:954 in (markup) mount
+by src/lib/features/rail-shell/RailArchivedMenu.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:957 in (markup) mount
 ## locals
 local src/lib/features/rail-shell/RailArchivedMenu.svelte:26 fn pick(next: ArchivedFilter) L4
 ## mounts
 mount src/lib/features/rail-shell/RailArchivedMenu.svelte:45 PopoverContent -> src/lib/components/ui/popover/popover-content.svelte
 ## mounted-at
-mount src/lib/features/rail-shell/RailNoteList.svelte:954 RailArchivedMenu -> src/lib/features/rail-shell/RailArchivedMenu.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:957 RailArchivedMenu -> src/lib/features/rail-shell/RailArchivedMenu.svelte
 ## calls
 call src/lib/features/rail-shell/RailArchivedMenu.svelte:56 in (markup) -> src/lib/features/rail-shell/RailArchivedMenu.svelte:pick markup

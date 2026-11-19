@@ -37,7 +37,7 @@ store src/lib/core/settings/settings-panel.store.svelte.ts:7 settingsPanelStore 
 mem src/lib/core/settings/settings-panel.store.svelte.ts:8 get settingsPanelStore.isOpen r:src/lib/app/SettingsPanel.svelte:106,src/lib/app/SettingsPanel.svelte:114 w-via:open,close,toggle,_reset
 mem src/lib/core/settings/settings-panel.store.svelte.ts:9 get settingsPanelStore.activeSection r:src/lib/app/SettingsPanel.svelte:103,src/lib/app/SettingsPanel.svelte:135 w-via:open,setSection,_reset
 mem src/lib/core/settings/settings-panel.store.svelte.ts:11 do settingsPanelStore.open w:src/lib/app/commands.ts:455,src/lib/features/search/SearchPanel.svelte:266,src/lib/plugins/one-on-one/MyPeopleSection.svelte:42
-mem src/lib/core/settings/settings-panel.store.svelte.ts:15 do settingsPanelStore.close w:src/lib/app/SettingsPanel.svelte:107,src/lib/app/SettingsPanel.svelte:151,src/lib/features/event-calendar/EventCalendarSection.svelte:77,src/lib/features/event-calendar/EventCalendarSection.svelte:103
+mem src/lib/core/settings/settings-panel.store.svelte.ts:15 do settingsPanelStore.close w:src/lib/app/SettingsPanel.svelte:107,src/lib/app/SettingsPanel.svelte:155,src/lib/features/event-calendar/EventCalendarSection.svelte:77,src/lib/features/event-calendar/EventCalendarSection.svelte:103
 mem src/lib/core/settings/settings-panel.store.svelte.ts:16 do settingsPanelStore.toggle w:src/lib/app/commands.ts:446,src/lib/app/global-keybindings.ts:165,src/lib/app/tauri-listeners.service.ts:29
 mem src/lib/core/settings/settings-panel.store.svelte.ts:17 do settingsPanelStore.setSection w:src/lib/app/SettingsPanel.svelte:139
 mem src/lib/core/settings/settings-panel.store.svelte.ts:20 do settingsPanelStore._reset w:-

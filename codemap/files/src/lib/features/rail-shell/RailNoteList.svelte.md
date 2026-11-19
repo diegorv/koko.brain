@@ -1,7 +1,7 @@
 # file card src/lib/features/rail-shell/RailNoteList.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/rail-shell/RailNoteList.svelte ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, mounts, mounted-at, calls, effects
-file src/lib/features/rail-shell/RailNoteList.svelte component L1162 module src/lib/features/rail-shell in1 t8
+file src/lib/features/rail-shell/RailNoteList.svelte component L1173 module src/lib/features/rail-shell in1 t8
 ## imports
 imp src/lib/features/rail-shell/RailNoteList.svelte:18 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/rail-shell/RailNoteList.svelte:19 -> src/lib/core/editor/editor.service.ts openFileInEditor
@@ -71,7 +71,7 @@ test src/tests/lib/features/rail-shell/RailNoteList.test.ts imports src/lib/feat
 test src/tests/lib/features/rail-shell/RailNoteList.toolbar.test.ts imports src/lib/features/rail-shell/RailNoteList.svelte mirror
 test src/tests/lib/features/rail-shell/RailNoteList.view.test.ts imports src/lib/features/rail-shell/RailNoteList.svelte mirror
 ## symbols
-sym src/lib/features/rail-shell/RailNoteList.svelte:1 component RailNoteList props:lens,firstPane= L1162
+sym src/lib/features/rail-shell/RailNoteList.svelte:1 component RailNoteList props:lens,firstPane= L1173
 by src/lib/features/rail-shell/RailNoteList.svelte:default <- src/lib/app/AppShell.svelte:250 in (markup) mount
 ## locals
 local src/lib/features/rail-shell/RailNoteList.svelte:140 fn lensContext(): LensContext L12
@@ -107,18 +107,18 @@ local src/lib/features/rail-shell/RailNoteList.svelte:846 fn handleRowsKeydown(e
 local src/lib/features/rail-shell/RailNoteList.svelte:907 fn listPropertiesFor(note: LensNote): string[] L5
 ## mounts
 mount src/lib/features/rail-shell/RailNoteList.svelte:927 RailSortMenu -> src/lib/features/rail-shell/RailSortMenu.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:952 RailPropertiesPicker -> src/lib/features/rail-shell/RailPropertiesPicker.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:954 RailArchivedMenu -> src/lib/features/rail-shell/RailArchivedMenu.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:960 PopoverContent -> src/lib/components/ui/popover/popover-content.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:961 SortPanel -> src/lib/features/collection/toolbar/SortPanel.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:983 PopoverContent -> src/lib/components/ui/popover/popover-content.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:984 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:1023 RailListSearch -> src/lib/features/rail-shell/RailListSearch.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:1038 NoteRowMenu -> src/lib/features/note-list/NoteRowMenu.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:1087 EmptyState -> src/lib/components/EmptyState.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:1089 EmptyState -> src/lib/components/EmptyState.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:1114 EmptyState -> src/lib/components/EmptyState.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:1146 NoteRow -> src/lib/features/note-list/NoteRow.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:955 RailPropertiesPicker -> src/lib/features/rail-shell/RailPropertiesPicker.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:957 RailArchivedMenu -> src/lib/features/rail-shell/RailArchivedMenu.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:963 PopoverContent -> src/lib/components/ui/popover/popover-content.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:964 SortPanel -> src/lib/features/collection/toolbar/SortPanel.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:989 PopoverContent -> src/lib/components/ui/popover/popover-content.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:990 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:1029 RailListSearch -> src/lib/features/rail-shell/RailListSearch.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:1044 NoteRowMenu -> src/lib/features/note-list/NoteRowMenu.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:1093 EmptyState -> src/lib/components/EmptyState.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:1095 EmptyState -> src/lib/components/EmptyState.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:1120 EmptyState -> src/lib/components/EmptyState.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:1157 NoteRow -> src/lib/features/note-list/NoteRow.svelte
 ## mounted-at
 mount src/lib/app/AppShell.svelte:250 RailNoteList -> src/lib/features/rail-shell/RailNoteList.svelte
 ## calls
@@ -228,23 +228,23 @@ call src/lib/features/rail-shell/RailNoteList.svelte:910 in listPropertiesFor ->
 call src/lib/features/rail-shell/RailNoteList.svelte:932 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleSortSelect markup
 call src/lib/features/rail-shell/RailNoteList.svelte:934 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleSortReset markup
 call src/lib/features/rail-shell/RailNoteList.svelte:945 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:closeSearch markup +1
-call src/lib/features/rail-shell/RailNoteList.svelte:952 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handlePropertiesChange markup
-call src/lib/features/rail-shell/RailNoteList.svelte:966 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleSortsChange markup
-call src/lib/features/rail-shell/RailNoteList.svelte:967 in (markup) -> src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore.getEntryByPath markup
-call src/lib/features/rail-shell/RailNoteList.svelte:967 in (markup) -> src/lib/features/type-definitions/type-sidebar.logic.ts:effectiveViewSortLabel markup
-call src/lib/features/rail-shell/RailNoteList.svelte:989 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleGlobalFiltersChange markup
-call src/lib/features/rail-shell/RailNoteList.svelte:990 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleViewFiltersChange markup
-call src/lib/features/rail-shell/RailNoteList.svelte:1002 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleHeaderAction markup
-call src/lib/features/rail-shell/RailNoteList.svelte:1014 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleNewHere markup
-call src/lib/features/rail-shell/RailNoteList.svelte:1028 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleSearchArrowDown markup
-call src/lib/features/rail-shell/RailNoteList.svelte:1056 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleRowsFocusin markup +1
-call src/lib/features/rail-shell/RailNoteList.svelte:1057 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleRowsKeydown markup +1
-call src/lib/features/rail-shell/RailNoteList.svelte:1103 in (markup) -> src/lib/core/editor/editor.service.ts:openFileInEditor markup
-call src/lib/features/rail-shell/RailNoteList.svelte:1118 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:runEmptyAction markup
-call src/lib/features/rail-shell/RailNoteList.svelte:1149 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:resolveNoteIcon markup
-call src/lib/features/rail-shell/RailNoteList.svelte:1151 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:listPropertiesFor markup
-call src/lib/features/rail-shell/RailNoteList.svelte:1153 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:typeChipFor markup
-call src/lib/features/rail-shell/RailNoteList.svelte:1159 in (markup) -> src/lib/features/properties/lifecycle.service.ts:setOrganizedForPath markup
+call src/lib/features/rail-shell/RailNoteList.svelte:955 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handlePropertiesChange markup
+call src/lib/features/rail-shell/RailNoteList.svelte:969 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleSortsChange markup
+call src/lib/features/rail-shell/RailNoteList.svelte:970 in (markup) -> src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore.getEntryByPath markup
+call src/lib/features/rail-shell/RailNoteList.svelte:970 in (markup) -> src/lib/features/type-definitions/type-sidebar.logic.ts:effectiveViewSortLabel markup
+call src/lib/features/rail-shell/RailNoteList.svelte:995 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleGlobalFiltersChange markup
+call src/lib/features/rail-shell/RailNoteList.svelte:996 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleViewFiltersChange markup
+call src/lib/features/rail-shell/RailNoteList.svelte:1008 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleHeaderAction markup
+call src/lib/features/rail-shell/RailNoteList.svelte:1020 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleNewHere markup
+call src/lib/features/rail-shell/RailNoteList.svelte:1034 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleSearchArrowDown markup
+call src/lib/features/rail-shell/RailNoteList.svelte:1062 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleRowsFocusin markup +1
+call src/lib/features/rail-shell/RailNoteList.svelte:1063 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:handleRowsKeydown markup +1
+call src/lib/features/rail-shell/RailNoteList.svelte:1109 in (markup) -> src/lib/core/editor/editor.service.ts:openFileInEditor markup
+call src/lib/features/rail-shell/RailNoteList.svelte:1124 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:runEmptyAction markup
+call src/lib/features/rail-shell/RailNoteList.svelte:1160 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:resolveNoteIcon markup
+call src/lib/features/rail-shell/RailNoteList.svelte:1162 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:listPropertiesFor markup
+call src/lib/features/rail-shell/RailNoteList.svelte:1164 in (markup) -> src/lib/features/rail-shell/RailNoteList.svelte:typeChipFor markup
+call src/lib/features/rail-shell/RailNoteList.svelte:1170 in (markup) -> src/lib/features/properties/lifecycle.service.ts:setOrganizedForPath markup
 ## effects
 fx src/lib/features/rail-shell/RailNoteList.svelte:129 svelte.$effect in (script)
 reg src/lib/features/rail-shell/RailNoteList.svelte:131 src/lib/features/event-calendar/event-calendar.service.ts:acquireCalendarClock in $effect@129

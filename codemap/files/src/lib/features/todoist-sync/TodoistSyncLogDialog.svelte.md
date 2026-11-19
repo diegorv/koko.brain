@@ -1,6 +1,6 @@
 # file card src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte ' codemap/files
-file src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte component L66 module src/lib/features/todoist-sync in1 t1
+file src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte component L67 module src/lib/features/todoist-sync in1 t1
 ## imports
 imp src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:2 -> src/lib/components/ui/button/index.ts Button
 imp src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:3 -> src/lib/components/ui/dialog/index.ts *
@@ -15,7 +15,7 @@ out2 src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte 14 files in 3 mod
 ## tests
 test src/tests/lib/features/todoist-sync/TodoistSyncLogDialog.test.ts imports src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte mirror
 ## symbols
-sym src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:1 component TodoistSyncLogDialog L66
+sym src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:1 component TodoistSyncLogDialog L67
 by src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:default <- src/lib/app/AppOverlays.svelte:43 in (markup) mount
 ## locals
 local src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:18 fn handleOpenChange(next: boolean) L3

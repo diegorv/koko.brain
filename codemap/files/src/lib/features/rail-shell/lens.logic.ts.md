@@ -81,7 +81,7 @@ test src/tests/lib/plugins/calendar/day-lens.logic.test.ts imports src/lib/featu
 test src/tests/lib/plugins/mods/mod-query.service.test.ts imports src/lib/features/rail-shell/lens.logic.ts
 ## symbols
 sym src/lib/features/rail-shell/lens.logic.ts:63 const INBOX_LENS: Lens L1 | The Inbox rail item's lens.
-by src/lib/features/rail-shell/lens.logic.ts:INBOX_LENS <- src/lib/features/rail-shell/RailNoteList.svelte:1159 in (markup) markup
+by src/lib/features/rail-shell/lens.logic.ts:INBOX_LENS <- src/lib/features/rail-shell/RailNoteList.svelte:1170 in (markup) markup
 by src/lib/features/rail-shell/lens.logic.ts:INBOX_LENS <- src/lib/features/rail-shell/list-empty.logic.ts:132 in explainEmptyList member
 sym src/lib/features/rail-shell/lens.logic.ts:66 const TODAY_LENS_KIND L1 | The lens kind of the Today rail item; its target is the day it lists, as a `YYYY-MM-DD` key.
 by src/lib/features/rail-shell/lens.logic.ts:TODAY_LENS_KIND <- src/lib/features/rail-shell/RailNoteList.svelte:126 in isToday=$derived ref

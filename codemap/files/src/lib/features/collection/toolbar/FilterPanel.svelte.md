@@ -25,7 +25,7 @@ test src/tests/lib/features/collection/toolbar/FilterPanel.svelte.test.ts import
 sym src/lib/features/collection/toolbar/FilterPanel.svelte:1 component FilterPanel props:globalFilters,viewFilters,availableProperties,propertyIndex,onGlobalFiltersChange,onViewFiltersChange,showGlobal=,embedded= L220
 by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:488 in (markup) mount
 by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/collection/CollectionView.svelte:680 in (markup) mount
-by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:984 in (markup) mount
+by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:990 in (markup) mount
 by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/type-definitions/ViewDialog.svelte:202 in (markup) mount
 ## locals
 local src/lib/features/collection/toolbar/FilterPanel.svelte:65 fn updateRow(groups: FilterGroup[], groupIdx: number, rowIdx: number, row: FilterRowType): FilterGroup[] L7
@@ -54,7 +54,7 @@ mount src/lib/features/collection/toolbar/FilterPanel.svelte:207 Button -> src/l
 ## mounted-at
 mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:488 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
 mount src/lib/features/collection/CollectionView.svelte:680 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:984 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:990 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
 mount src/lib/features/type-definitions/ViewDialog.svelte:202 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
 ## calls
 call src/lib/features/collection/toolbar/FilterPanel.svelte:118 in (markup) -> src/lib/features/collection/toolbar/FilterPanel.svelte:changeConjunction markup +1

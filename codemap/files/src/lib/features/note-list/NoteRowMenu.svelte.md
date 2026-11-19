@@ -39,7 +39,7 @@ test src/tests/lib/features/note-list/NoteRowMenu.test.ts harness src/lib/featur
 test src/tests/lib/features/note-list/NoteRow.test.ts harness src/lib/features/note-list/NoteRowMenu.svelte via src/tests/fixtures/NoteRowMenuHarness.svelte
 ## symbols
 sym src/lib/features/note-list/NoteRowMenu.svelte:1 component NoteRowMenu props:notes,extraItems=,class=,children,ref=$bindable,onRename,onRenameFailed L331
-by src/lib/features/note-list/NoteRowMenu.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:1038 in (markup) mount
+by src/lib/features/note-list/NoteRowMenu.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:1044 in (markup) mount
 ## locals
 local src/lib/features/note-list/NoteRowMenu.svelte:87 fn runOrToast(verb: string, note: NoteRowNote, op: () => Promise<unknown>): Promise<boolean> L11
 local src/lib/features/note-list/NoteRowMenu.svelte:99 fn handleDuplicate(note: NoteRowNote) L3
@@ -59,7 +59,7 @@ local src/lib/features/note-list/NoteRowMenu.svelte:218 fn handleIconPickerClose
 ## mounts
 mount src/lib/features/note-list/NoteRowMenu.svelte:320 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 ## mounted-at
-mount src/lib/features/rail-shell/RailNoteList.svelte:1038 NoteRowMenu -> src/lib/features/note-list/NoteRowMenu.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:1044 NoteRowMenu -> src/lib/features/note-list/NoteRowMenu.svelte
 ## calls
 call src/lib/features/note-list/NoteRowMenu.svelte:68 in iconPickerRef=$derived -> src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore.getFrontmatterIcon mcall
 call src/lib/features/note-list/NoteRowMenu.svelte:71 in (script) -> src/lib/features/note-list/note-row-menu.context.ts:setNoteRowMenuContext call

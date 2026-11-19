@@ -24,7 +24,7 @@ entry src/lib/features/todoist-sync/todoist-sync.service.ts ext-in1 src/lib/app/
 entry src/lib/features/todoist-sync/todoist-sync.store.svelte.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 ## files
 file src/lib/features/todoist-sync/TodoistSection.svelte component L209 module src/lib/features/todoist-sync in1 t1
-file src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte component L66 module src/lib/features/todoist-sync in1 t1
+file src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte component L67 module src/lib/features/todoist-sync in1 t1
 file src/lib/features/todoist-sync/TodoistSyncStatus.svelte component L31 module src/lib/features/todoist-sync in1 t1
 file src/lib/features/todoist-sync/anchor.logic.ts logic L110 module src/lib/features/todoist-sync in8 t1 | `🆔 td-…` anchors that tie a task line to a Todoist task, and the path scope the sync reads lines from.
 file src/lib/features/todoist-sync/closed-note-writer.service.ts service L81 module src/lib/features/todoist-sync in2 t1
@@ -52,7 +52,7 @@ file src/lib/features/todoist-sync/todoist-sync.store.svelte.ts store L96 module
 file src/lib/features/todoist-sync/vault-scan.service.ts service L112 module src/lib/features/todoist-sync in1 t0
 ## public
 sym src/lib/features/todoist-sync/TodoistSection.svelte:1 component TodoistSection L209
-sym src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:1 component TodoistSyncLogDialog L66
+sym src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:1 component TodoistSyncLogDialog L67
 sym src/lib/features/todoist-sync/TodoistSyncStatus.svelte:1 component TodoistSyncStatus L31
 sym src/lib/features/todoist-sync/sync-log.service.ts:17 fn showSyncLog(): Promise<void> L13 | Palette "Todoist: Show sync log": reads the newest sync log rows of the open vault (cycle rows, conflict losers, detaches, frozen anchors, skipped lines, termi…
 sym src/lib/features/todoist-sync/sync-scheduler.service.ts:86 fn startAutoSync(vaultPath: string): void L18 | Starts the automatic sync for the vault at `vaultPath`: a cycle now (the vault-open trigger), then every `syncIntervalMinutes`, when the window regains focus, …
