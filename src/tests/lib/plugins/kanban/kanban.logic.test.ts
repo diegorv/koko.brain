@@ -49,6 +49,7 @@ import {
 	setViewMode,
 	canReorderItems,
 	uniqueLaneTitle,
+	dropSlotToIndex,
 } from '#lib/plugins/kanban/kanban.logic.js';
 import type { KanbanBoard, KanbanSettings } from '#lib/plugins/kanban/kanban.types.js';
 
@@ -517,6 +518,31 @@ describe('moveItem', () => {
 		expect(result).toBe(board);
 	});
 
+});
+
+// ── dropSlotToIndex ─────────────────────────────────────────────────
+
+describe('dropSlotToIndex', () => {
+	it('shifts a slot past the source down by one', () => {
+		// [A,B,C], A dropped before C (slot 2) lands at index 1 once A is out: [B,A,C].
+		expect(dropSlotToIndex(2, 0)).toBe(1);
+		// Past the last element (slot 3) lands at the end of the shorter list.
+		expect(dropSlotToIndex(3, 0)).toBe(2);
+	});
+
+	it('maps both slots around the source to the source index', () => {
+		expect(dropSlotToIndex(1, 1)).toBe(1);
+		expect(dropSlotToIndex(2, 1)).toBe(1);
+	});
+
+	it('keeps a slot before the source', () => {
+		expect(dropSlotToIndex(0, 2)).toBe(0);
+	});
+
+	it('keeps the slot when the source is not in the list', () => {
+		expect(dropSlotToIndex(0, -1)).toBe(0);
+		expect(dropSlotToIndex(3, -1)).toBe(3);
+	});
 });
 
 // ── addLane ─────────────────────────────────────────────────────────

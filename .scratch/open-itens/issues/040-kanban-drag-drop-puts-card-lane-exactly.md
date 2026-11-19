@@ -6,18 +6,18 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, in src/tests/lib/plugins/kanban/KanbanView.test.ts: mount the harness with lanes 'To Do' [A,B,C] and 'Done' [D], stub getBoundingClientRect on the cards, dispatch dragstart on card A and drop on the To Do card list with clientY just above C's midpoint; the persisted markdown lists To Do as B, A, C. It fails today (B, C, A).
-- [ ] A drop on the lower half of the dragged card itself leaves the lane order unchanged.
-- [ ] Failing test first, same file: board with three lanes that each hold cards, stub lane rects, dragstart on lane 1's grip and drop with clientX past the last lane's midpoint; the persisted lane order is lane 2, lane 3, lane 1. It fails today (no change).
-- [ ] Dropping a lane before the lane to its right's right neighbour lands it between those two lanes, matching the drop position.
-- [ ] Upward card moves, cross-lane card moves and auto-complete on cross-lane drop behave as today (existing moveItem tests stay green).
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, in src/tests/lib/plugins/kanban/KanbanView.test.ts: mount the harness with lanes 'To Do' [A,B,C] and 'Done' [D], stub getBoundingClientRect on the cards, dispatch dragstart on card A and drop on the To Do card list with clientY just above C's midpoint; the persisted markdown lists To Do as B, A, C. It fails today (B, C, A).
+- [x] A drop on the lower half of the dragged card itself leaves the lane order unchanged.
+- [x] Failing test first, same file: board with three lanes that each hold cards, stub lane rects, dragstart on lane 1's grip and drop with clientX past the last lane's midpoint; the persisted lane order is lane 2, lane 3, lane 1. It fails today (no change).
+- [x] Dropping a lane before the lane to its right's right neighbour lands it between those two lanes, matching the drop position.
+- [x] Upward card moves, cross-lane card moves and auto-complete on cross-lane drop behave as today (existing moveItem tests stay green).
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Notes
 
@@ -31,3 +31,4 @@
 
 - 2026-11-06: Blocked by 09 added after the order review (`raw/first-wave-order-review.json`): the two edit the same code.
 - 2026-11-19, owner decision: Blocked by 006 removed. The block was only "the two edit the same code" (2026-11-06), with no code dependency; 040 goes into the last batch of the year without 006. Rebase and re-read KanbanView.svelte before building.
+- 2026-11-19, delivered from issue/040-kanban-drag-drop-puts-card-lane-exactly: card drops count slots without the dragged card and lane drops index only lane roots, so cards and lanes land where the indicator shows; KanbanView tests cover downward card moves, self-drops, rightward and leftward lane moves and auto-complete. Tests: pnpm check exit 0; kanban test files 350 passed; full suite exit 0 (672 files, 17973 passed). Reviews: round 1 APPROVED (nits fixed, one rejected), round 2 APPROVED (one optional nit, not applied).

@@ -1655,6 +1655,17 @@ describe('KanbanView: Move to and the manual order chip', () => {
 			});
 		});
 
+		it('a drop into an auto-complete lane checks the card', () => {
+			mountBoard(SOURCE, (b) => setLaneAutoComplete(b, 'Done', true));
+			card('first card').dispatchEvent(new MouseEvent('dragstart', { bubbles: true }));
+			flushSync();
+			laneList('Done').dispatchEvent(new MouseEvent('drop', { bubbles: true, cancelable: true, clientY: 100 }));
+			flushSync();
+
+			const done = parseKanbanBoard(api!.getMarkdown()).lanes.find((l) => l.title === 'Done')!;
+			expect(done.items.at(-1)).toMatchObject({ text: 'first card', checked: true });
+		});
+
 		it('cards are not draggable while sorted or filtered', () => {
 			mountBoard(SOURCE, (b) => setSortMode(b, 'text-asc'));
 			expect(card('first card').getAttribute('draggable')).toBe('false');
@@ -1666,6 +1677,107 @@ describe('KanbanView: Move to and the manual order chip', () => {
 			kanbanStore.setFilterQuery('#x');
 			flushSync();
 			expect(card('second card').getAttribute('draggable')).toBe('false');
+		});
+
+		describe('drop slot inside one lane', () => {
+			const ABC = '## To Do\n\n- [ ] alpha\n- [ ] bravo\n- [ ] charlie\n\n## Done\n\n- [ ] delta\n\n';
+
+			/** Lays the To Do cards out 20px tall, stacked from y=0, so each has a distinct midpoint. */
+			function layOutToDo(): void {
+				['alpha', 'bravo', 'charlie'].forEach((text, i) => {
+					card(text).getBoundingClientRect = () => ({ top: i * 20, height: 20, left: 0, width: 100 }) as DOMRect;
+				});
+			}
+
+			function dragWithinToDo(text: string, clientY: number): void {
+				card(text).dispatchEvent(new MouseEvent('dragstart', { bubbles: true }));
+				flushSync();
+				laneList('To Do').dispatchEvent(new MouseEvent('drop', { bubbles: true, cancelable: true, clientY }));
+				flushSync();
+			}
+
+			it('a downward drop just above the third card lands between the second and the third', () => {
+				mountBoard(ABC);
+				layOutToDo();
+				// charlie spans 40-60, midpoint 50.
+				dragWithinToDo('alpha', 49);
+
+				expect(persistedLanes()).toEqual({ 'To Do': ['bravo', 'alpha', 'charlie'], Done: ['delta'] });
+			});
+
+			it('a drop on the lower half of the dragged card itself leaves the lane unchanged', () => {
+				mountBoard(ABC);
+				layOutToDo();
+				const before = api!.getMarkdown();
+				// alpha spans 0-20, midpoint 10.
+				dragWithinToDo('alpha', 15);
+
+				expect(parseKanbanBoard(api!.getMarkdown()).lanes[0].items.map((i) => i.text)).toEqual(['alpha', 'bravo', 'charlie']);
+				expect(api!.getMarkdown()).toBe(before);
+			});
+
+			it('an upward drop above the first card moves the card to the top', () => {
+				mountBoard(ABC);
+				layOutToDo();
+				dragWithinToDo('charlie', 5);
+
+				expect(persistedLanes()).toEqual({ 'To Do': ['charlie', 'alpha', 'bravo'], Done: ['delta'] });
+			});
+		});
+	});
+
+	describe('lane drag', () => {
+		const THREE_LANES = '## One\n\n- [ ] one card\n- [ ] one more\n\n## Two\n\n- [ ] two card\n\n## Three\n\n- [ ] three card\n\n';
+
+		function laneRoot(title: string): HTMLElement {
+			const lane = target.querySelector<HTMLElement>(`[role="group"][data-lane-id][aria-label="${title}"]`);
+			if (!lane) throw new Error(`no lane "${title}"`);
+			return lane;
+		}
+
+		/** Lays the lanes out 100px wide with a 10px gap, so their midpoints are 50, 160 and 270. */
+		function layOutLanes(): void {
+			['One', 'Two', 'Three'].forEach((title, i) => {
+				laneRoot(title).getBoundingClientRect = () => ({ top: 0, height: 400, left: i * 110, width: 100 }) as DOMRect;
+			});
+		}
+
+		function dragLane(title: string, clientX: number): void {
+			const grip = laneRoot(title).querySelector<HTMLElement>('[aria-label="Drag to reorder lane"]');
+			if (!grip) throw new Error(`lane ${title} has no grip`);
+			grip.dispatchEvent(new MouseEvent('dragstart', { bubbles: true }));
+			flushSync();
+			const region = target.querySelector<HTMLElement>('[role="region"][aria-label="Kanban board"]');
+			region!.dispatchEvent(new MouseEvent('drop', { bubbles: true, cancelable: true, clientX }));
+			flushSync();
+		}
+
+		function persistedLaneTitles(): string[] {
+			return parseKanbanBoard(api!.getMarkdown()).lanes.map((l) => l.title);
+		}
+
+		it('a drop past the last lane\'s midpoint moves the first lane to the end', () => {
+			mountBoard(THREE_LANES);
+			layOutLanes();
+			dragLane('One', 300);
+
+			expect(persistedLaneTitles()).toEqual(['Two', 'Three', 'One']);
+		});
+
+		it('a drop before the third lane lands the first lane between the second and the third', () => {
+			mountBoard(THREE_LANES);
+			layOutLanes();
+			dragLane('One', 200);
+
+			expect(persistedLaneTitles()).toEqual(['Two', 'One', 'Three']);
+		});
+
+		it('a drop before the first lane\'s midpoint moves the last lane to the start', () => {
+			mountBoard(THREE_LANES);
+			layOutLanes();
+			dragLane('Three', 20);
+
+			expect(persistedLaneTitles()).toEqual(['Three', 'One', 'Two']);
 		});
 	});
 });
