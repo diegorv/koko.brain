@@ -13,13 +13,13 @@ Not in this ticket: the Rename and Move to folder warnings (their wording was re
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first: with Create note path `Meetings/{yaer}.md`, the warning names the path and does not say a folder would be created.
-- [ ] Failing test first: typing a refused path that contains `{yaer}` shows the warning for the typed text, not for the saved path.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first: with Create note path `Meetings/{yaer}.md`, the warning names the path and does not say a folder would be created.
+- [x] Failing test first: typing a refused path that contains `{yaer}` shows the warning for the typed text, not for the saved path.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Evidence
 
@@ -29,3 +29,4 @@ Not in this ticket: the Rename and Move to folder warnings (their wording was re
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Accepted by the owner as written.
+- 2026-11-19, delivered from branch issue/51-auto-organize-create-path-warning-reads-draft. The Create note path warning now names the path (`{yaer} is not a variable, so the path would contain {yaer}`) instead of saying a folder would be created, and reads the typed draft, so a refused path still gets its warning. Review fix round: a refused draft is dropped when the stored path changes from outside the field, and a test pins the live warning while typing. Tests: `pnpm check` 0 errors; AutoOrganizeRuleRow and AutoOrganizeSection tests 147/147; full suite at c92c64259 passed (665 files, 17868 tests, exit=0). Reviews: round 1 APPROVED (2 findings, fixed), round 2 APPROVED (no findings).

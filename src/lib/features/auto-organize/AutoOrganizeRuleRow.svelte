@@ -251,6 +251,20 @@
 	 */
 	let pathRefused = $state(false);
 	let templateRefused = $state(false);
+	/** The path field's text since the last save, which the rule does not hold yet; null when it shows the rule's */
+	let pathDraft = $state<string | null>(null);
+	/** The path field's text: the unsaved draft, else the stored path */
+	let createPathText = $derived(pathDraft ?? rule.createNote?.path ?? '');
+	/** A derived, so a new `rule` object with the same path does not rerun the effect below */
+	let storedCreatePath = $derived(rule.createNote?.path);
+	// A stored path changed from outside the field (a config reload) replaces the field's text, so drop the draft and its refusal.
+	$effect(() => {
+		void storedCreatePath;
+		untrack(() => {
+			pathDraft = null;
+			pathRefused = false;
+		});
+	});
 	/** True when the path field shows a path a run would refuse */
 	let pathInvalid = $derived(pathRefused || (rule.createNote !== undefined && !isValidCreatePath(rule.createNote.path)));
 	/** True when the template field shows a template a run would refuse */
@@ -281,7 +295,9 @@
 		const stored = path === (rule.createNote?.path ?? '');
 		// The stored path, even an invalid one, is saved already: not a refusal.
 		pathRefused = !stored && path !== '' && !isValidCreatePath(path);
-		if (pathRefused || stored) return;
+		if (pathRefused) return;
+		pathDraft = null;
+		if (stored) return;
 		onupdate(rule.id, { createNote: path ? { ...rule.createNote, path } : undefined });
 	}
 
@@ -340,17 +356,18 @@
 	/** "Variables: {folder} {parent} ..." under Move to folder */
 	const VARIABLES_LINE = `Variables: ${TEMPLATE_VARIABLES.map((name) => `{${name}}`).join(' ')}`;
 
-	/** One warning per unknown `{name}` in `template`: a run keeps it literally, in a folder or in the new name. */
-	function variableWarnings(template: string, into: 'folder' | 'name'): string[] {
+	/** One warning per unknown `{name}` in `template`: a run keeps it literally, in a folder, the new name or the path. */
+	function variableWarnings(template: string, into: 'folder' | 'name' | 'path'): string[] {
 		return unknownTemplateVariables(template).map((name) => {
 			const token = `{${name}}`;
-			return into === 'folder'
-				? `${token} is not a variable, so a folder named ${token} would be created`
-				: `${token} is not a variable, so the new name would contain ${token}`;
+			if (into === 'folder') return `${token} is not a variable, so a folder named ${token} would be created`;
+			if (into === 'name') return `${token} is not a variable, so the new name would contain ${token}`;
+			return `${token} is not a variable, so the path would contain ${token}`;
 		});
 	}
 	let destinationWarnings = $derived(variableWarnings(rule.destination, 'folder'));
-	let createPathWarnings = $derived(variableWarnings(rule.createNote?.path ?? '', 'folder'));
+	/** The path can hold the variable in a folder or in the file name, so the warning names the path */
+	let createPathWarnings = $derived(variableWarnings(createPathText, 'path'));
 	/** Only a name template has variables; an expression has none */
 	let renameWarnings = $derived(renameSource === 'name' ? variableWarnings(renameText, 'name') : []);
 
@@ -621,6 +638,7 @@
 				aria-describedby={pathInvalid ? pathErrorId : undefined}
 				value={rule.createNote?.path ?? ''}
 				placeholder={'Empty: do not create, e.g. {folder}/{basename} follow-up.md'}
+				oninput={(e) => (pathDraft = (e.currentTarget as HTMLInputElement).value)}
 				onchange={(e) => commitCreatePath((e.currentTarget as HTMLInputElement).value)}
 			/>
 			{#if pathInvalid}

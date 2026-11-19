@@ -83,9 +83,9 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 46 | [Frontmatter reads as metadata in source mode](issues/46-frontmatter-reads-as-metadata-source-mode.md) | none | done | issue/46-frontmatter-reads-as-metadata-source-mode (9d897ac41) | 2026-11-18 |
 | 47 | [Calendars count undated notes; view tabs show their type](issues/47-calendars-count-undated-notes-view-tabs.md) | 09, 14 | done | issue/47-calendars-count-undated-notes-view-tabs (a2a1e1997) | 2026-11-18 |
 | 48 | [New File from Template keeps a typed name inside the vault](issues/48-template-file-name-stays-inside-vault.md) | none | done | issue/48-template-file-name-stays-inside-vault (f0654735a) | 2026-11-18 |
-| 49 | [The mod run log is a live region before its first line arrives](issues/49-mod-run-log-live-region-mounts-early.md) | none | in-progress | | |
+| 49 | [The mod run log is a live region before its first line arrives](issues/49-mod-run-log-live-region-mounts-early.md) | none | done | issue/49-mod-run-log-live-region-mounts-early (0c4692315) | 2026-11-19 |
 | 50 | [The Kanban card menu opens from the keyboard](issues/50-kanban-card-menu-opens-from-keyboard.md) | none | todo | | |
-| 51 | [The Create note path warning names a path and follows the typed text](issues/51-auto-organize-create-path-warning-reads-draft.md) | none | todo | | |
+| 51 | [The Create note path warning names a path and follows the typed text](issues/51-auto-organize-create-path-warning-reads-draft.md) | none | in-progress | | |
 | 52 | [Readable note list chips, archived rows and search snippet](issues/52-note-list-chips-archived-rows-search-snippet.md) | none | todo | | |
 | 53 | [Default theme: bold and italic off the link blue](issues/53-default-bold-italic-off-link-blue.md) | 40 | todo | | |
 
@@ -173,3 +173,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 23:56 — 38 — start — launched by /relay-lite:run — dff1f05d3
 - 2026-11-19 00:07 — 38 — deliver — merged after review 1 APPROVED with two nits, fix round (dead formatBytes branch removed, unknown-size test scoped to the row), re-review 2 APPROVED (claude); full vitest suite passed (17861 tests); manual check in tauri dev still open — 4f5991c94
 - 2026-11-19 00:07 — 49 — start — launched by /relay-lite:run — 3f1ce101f
+- 2026-11-19 00:17 — 49 — deliver — merged after review 1 APPROVED with two findings, fix round (sr-only comment reworded; layout E2E not added), re-review 2 APPROVED (claude); full vitest suite passed (17863 tests) — 0c4692315
+- 2026-11-19 00:17 — 51 — start — launched by /relay-lite:run — cc071a7c6

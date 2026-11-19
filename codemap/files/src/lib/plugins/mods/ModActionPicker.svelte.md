@@ -1,6 +1,6 @@
 # file card src/lib/plugins/mods/ModActionPicker.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/plugins/mods/ModActionPicker.svelte ' codemap/files
-file src/lib/plugins/mods/ModActionPicker.svelte component L202 module src/lib/plugins/mods in1 t2
+file src/lib/plugins/mods/ModActionPicker.svelte component L208 module src/lib/plugins/mods in1 t2
 ## imports
 imp src/lib/plugins/mods/ModActionPicker.svelte:3 -> src/lib/components/ui/button/index.ts Button
 imp src/lib/plugins/mods/ModActionPicker.svelte:4 -> src/lib/components/ui/command/index.ts *
@@ -16,7 +16,7 @@ out2 src/lib/plugins/mods/ModActionPicker.svelte 13 files in 2 modules: src/lib/
 test src/tests/lib/plugins/mods/ModActionPicker.test.ts imports src/lib/plugins/mods/ModActionPicker.svelte mirror
 test src/tests/lib/plugins/mods/ModDialogHost.test.ts imports src/lib/plugins/mods/ModActionPicker.svelte
 ## symbols
-sym src/lib/plugins/mods/ModActionPicker.svelte:1 component ModActionPicker L202
+sym src/lib/plugins/mods/ModActionPicker.svelte:1 component ModActionPicker L208
 by src/lib/plugins/mods/ModActionPicker.svelte:default <- src/lib/app/AppOverlays.svelte:40 in (markup) mount
 ## locals
 local src/lib/plugins/mods/ModActionPicker.svelte:61 fn handleLogScroll() L4
@@ -26,8 +26,8 @@ local src/lib/plugins/mods/ModActionPicker.svelte:80 fn pick(action: ModPickerAc
 local src/lib/plugins/mods/ModActionPicker.svelte:89 fn handleKeydown(e: KeyboardEvent) L7
 local src/lib/plugins/mods/ModActionPicker.svelte:98 fn percent(done: number, total: number): number L3
 ## mounts
-mount src/lib/plugins/mods/ModActionPicker.svelte:153 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/plugins/mods/ModActionPicker.svelte:155 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/plugins/mods/ModActionPicker.svelte:159 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/plugins/mods/ModActionPicker.svelte:161 Button -> src/lib/components/ui/button/button.svelte
 ## mounted-at
 mount src/lib/app/AppOverlays.svelte:40 ModActionPicker -> src/lib/plugins/mods/ModActionPicker.svelte
 ## calls
@@ -40,10 +40,10 @@ call src/lib/plugins/mods/ModActionPicker.svelte:105 in (markup) -> src/lib/plug
 call src/lib/plugins/mods/ModActionPicker.svelte:112 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:handleRunKeydown markup
 call src/lib/plugins/mods/ModActionPicker.svelte:126 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:percent markup
 call src/lib/plugins/mods/ModActionPicker.svelte:132 in (markup) -> src/lib/plugins/mods/mods-runs.store.svelte.ts:modsRunsStore.isReloadPending markup
-call src/lib/plugins/mods/ModActionPicker.svelte:136 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:handleLogScroll markup
-call src/lib/plugins/mods/ModActionPicker.svelte:155 in (markup) -> src/lib/plugins/mods/mod-picker.store.svelte.ts:modPickerStore.close markup
-call src/lib/plugins/mods/ModActionPicker.svelte:165 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:handleKeydown markup
-call src/lib/plugins/mods/ModActionPicker.svelte:183 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:pick markup
+call src/lib/plugins/mods/ModActionPicker.svelte:142 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:handleLogScroll markup
+call src/lib/plugins/mods/ModActionPicker.svelte:161 in (markup) -> src/lib/plugins/mods/mod-picker.store.svelte.ts:modPickerStore.close markup
+call src/lib/plugins/mods/ModActionPicker.svelte:171 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:handleKeydown markup
+call src/lib/plugins/mods/ModActionPicker.svelte:189 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:pick markup
 ## effects
 fx src/lib/plugins/mods/ModActionPicker.svelte:28 svelte.$effect in (script)
 fx src/lib/plugins/mods/ModActionPicker.svelte:46 svelte.$effect in (script)
