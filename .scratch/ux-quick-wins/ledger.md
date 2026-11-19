@@ -82,7 +82,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 45 | [Quick Capture keeps the draft until it is written, with Discard and a short hold](issues/45-quick-capture-draft-discard.md) | 07 | done | issue/45-quick-capture-draft-discard (c95d30c4e) | 2026-11-18 |
 | 46 | [Frontmatter reads as metadata in source mode](issues/46-frontmatter-reads-as-metadata-source-mode.md) | none | done | issue/46-frontmatter-reads-as-metadata-source-mode (9d897ac41) | 2026-11-18 |
 | 47 | [Calendars count undated notes; view tabs show their type](issues/47-calendars-count-undated-notes-view-tabs.md) | 09, 14 | done | issue/47-calendars-count-undated-notes-view-tabs (a2a1e1997) | 2026-11-18 |
-| 48 | [New File from Template keeps a typed name inside the vault](issues/48-template-file-name-stays-inside-vault.md) | none | todo | | |
+| 48 | [New File from Template keeps a typed name inside the vault](issues/48-template-file-name-stays-inside-vault.md) | none | in-progress | | |
 | 49 | [The mod run log is a live region before its first line arrives](issues/49-mod-run-log-live-region-mounts-early.md) | none | todo | | |
 | 50 | [The Kanban card menu opens from the keyboard](issues/50-kanban-card-menu-opens-from-keyboard.md) | none | todo | | |
 | 51 | [The Create note path warning names a path and follows the typed text](issues/51-auto-organize-create-path-warning-reads-draft.md) | none | todo | | |
@@ -158,3 +158,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 21:37 — 45 — start — launched by /relay-lite:run — 6e734dbce
 - 2026-11-18 21:54 — 45 — deliver — merged after review 1 APPROVED, fix round (Discard focus test, late confirmed save test), re-review 2 APPROVED (claude); full vitest suite passed (17818 tests); by-hand Discard window-drag check still open — c95d30c4e
 - 2026-11-18 23:07 — ledger updated (added 48, 49, 50, 51, 52; title of 39)
+- 2026-11-18 23:14 — 48 — start — launched by /relay-lite:run — 52eb3ac66
