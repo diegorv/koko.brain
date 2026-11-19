@@ -73,7 +73,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 36 | [Periodic Notes and 1:1: live path examples and missing-template marks](issues/36-periodic-notes-11-live-path-examples.md) | 22 | done | issue/36-periodic-notes-11-live-path-examples (632893c70) | 2026-11-18 |
 | 37 | [Mods: each mod says what it does; the run view shows status and progress clearly](issues/37-mods-each-mod-run-view-shows.md) | none | done | issue/37-mods-each-mod-run-view-shows (a52bc3d78) | 2026-11-18 |
 | 38 | [Settings: text you can select, the Todoist root row fits, the update button says it downloads](issues/38-settings-text-you-can-select-todoist.md) | none | todo | | |
-| 39 | [Readable text on coloured fills: kanban tag chips, linear-calendar bars, the rail badge](issues/39-readable-chips-faded-text.md) | 12 | in-progress | | |
+| 39 | [Readable text on coloured fills: kanban tag chips, linear-calendar bars, the rail badge](issues/39-readable-chips-faded-text.md) | 12 | done | issue/39-readable-chips-faded-text (f6ef510a0) | 2026-11-18 |
 | 40 | [Default theme: a darker tab strip with a visible tab hover, bold and italic off the link blue](issues/40-default-theme-darker-tab-strip-visible.md) | 20, 39 | todo | | |
 | 41 | [Word count and graph stats read correctly for 0 and 1; graph mode buttons show their state](issues/41-word-count-graph-stats-read-correctly.md) | none | todo | | |
 | 42 | [Kanban cards move between lanes from the card menu](issues/42-kanban-cards-move-between-lanes-card.md) | 10, 11, 12 | done | issue/42-kanban-cards-move-between-lanes-card (8258ffac3) | 2026-11-18 |
@@ -161,3 +161,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 23:14 — 48 — start — launched by /relay-lite:run — 52eb3ac66
 - 2026-11-18 23:23 — 48 — deliver — merged after review 1 APPROVED with two nits, fix round (JSDoc says vault-relative name; in-vault .. hint normalization left as follow-up), re-review 2 APPROVED (claude); full vitest suite passed (17830 tests) — f0654735a
 - 2026-11-18 23:24 — 39 — start — launched by /relay-lite:run — d1d9e6021
+- 2026-11-18 23:33 — 39 — deliver — merged (items 1-3 after the split) after review 1 APPROVED, fix round (findings 2 and 3), re-review 2 APPROVED (claude); full vitest suite passed (17840 tests); by-eye check on Default and Lavender Haze still open — f6ef510a0
