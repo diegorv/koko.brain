@@ -40,7 +40,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 03 | [Accent and status text on its own tint: rows, search, menus](issues/03-accent-text-own-tint-rows-search-menus.md) | none | done | issue/03-accent-text-own-tint-rows-search-menus (df9a93639) | 2026-11-19 |
 | 04 | [Accent and status text on its own tint: kanban, collection functions, file history](issues/04-accent-text-own-tint-kanban-collection-diff.md) | 03 | done | issue/04-accent-text-own-tint-kanban-collection-diff (d2d8f050a) | 2026-11-19 |
 | 05 | [Theme builder keeps text readable on every surface it derives, by WCAG and APCA](issues/05-theme-builder-text-every-surface-apca.md) | none | done | issue/05-theme-builder-text-every-surface-apca (251c60180) | 2026-11-19 |
-| 06 | [Editor text on tinted surfaces: callouts, blockquote, highlight, code, collection](issues/06-theme-builder-editor-tinted-surfaces.md) | 05, 07 | in-progress | | |
+| 06 | [Editor text on tinted surfaces: callouts, blockquote, highlight, code, collection](issues/06-theme-builder-editor-tinted-surfaces.md) | 05, 07 | done | issue/06-theme-builder-editor-tinted-surfaces (a9a361aa3) | 2026-11-19 |
 | 07 | [Borders, inputs, switches, checkboxes and focus rings reach 3:1](issues/07-non-text-boundaries-focus-states.md) | none | done | issue/07-non-text-boundaries-focus-states (cc6b30159) | 2026-11-19 |
 | 08 | [Live-preview and QueryJS dimmed text stays readable](issues/08-live-preview-queryjs-dimmed-text.md) | 06 | todo | | |
 | 09 | [Canvas text, edges, groups and presets read on light themes](issues/09-canvas-readable-on-light-themes.md) | none | todo | | |
@@ -49,6 +49,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 12 | [User, edited and imported themes are corrected and the editor warns](issues/12-user-themes-readability-checks.md) | 07 | done | issue/12-user-themes-readability-checks (9c8ff9717) | 2026-11-19 |
 | 13 | [Themes repo: Zettlr hover and selected surfaces, and a contrast CI](issues/13-themes-repo-zettlr-palettes-contrast-ci.md) | 07 | done | koko.brain-themes eb9f062, bfdd3d8 | 2026-11-19 |
 | 14 | [Kanban date badges read on coloured cards](issues/14-kanban-date-badges-coloured-cards.md) | 04 | todo | | |
+| 15 | [IconPicker presets stay readable on tabs, Tasks, Properties and the organize check](issues/15-icon-presets-tabs-tasks-properties-organize.md) | none | todo | | |
+| 16 | [Theme editor reports the label it lifts, and theme previews show the lifted colors](issues/16-theme-editor-report-and-preview-follow-lift.md) | 05 | todo | | |
 
 ## Log
 
@@ -71,3 +73,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 19:30 — 05 — start — launched by /relay-lite:run — e8059fa12
 - 2026-11-19 20:05 — 05 — deliver — merged; reviews APPROVED x2 (claude); full suite 684 files passed; 2 minor round-2 findings left for a follow-up — 251c60180
 - 2026-11-19 20:05 — 06 — start — launched by /relay-lite:run — a8779035a
+- 2026-11-19 20:42 — 06 — deliver — merged; review CHANGES_REQUESTED then APPROVED (claude); full suite 685 files passed — a9a361aa3
+- 2026-11-19 20:43 — ledger updated (added 15, 16)

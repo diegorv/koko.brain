@@ -1,7 +1,7 @@
 # module card src/lib/utils
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/utils ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 97/118 ipc 3/0 card ~10.6k
+module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 99/119 ipc 3/0 card ~10.7k
 ## neighbors
 dep src/lib/app -> src/lib/utils 17
 dep src/lib/core/editor -> src/lib/utils 7
@@ -86,7 +86,7 @@ file src/lib/utils/build-info.js other L167 module src/lib/utils in1 t1
 file src/lib/utils/capture-path.ts other L14 module src/lib/utils in3 t1
 file src/lib/utils/clamp.ts other L9 module src/lib/utils in10 t1
 file src/lib/utils/color-presets.ts other L61 module src/lib/utils in6 t4
-file src/lib/utils/color.ts other L317 module src/lib/utils in9 t28
+file src/lib/utils/color.ts other L328 module src/lib/utils in9 t30
 file src/lib/utils/date.ts other L170 module src/lib/utils in17 t3
 file src/lib/utils/debounce.ts other L55 module src/lib/utils in4 t4
 file src/lib/utils/debug.ts other L166 module src/lib/utils in74 t53
@@ -123,14 +123,16 @@ sym src/lib/utils/color-presets.ts:49 const COLOR_PRESET_PLAIN_TEXT: Record<stri
 sym src/lib/utils/color-presets.ts:59 const COLOR_PRESET_BAR: Record<string, string> L3 | Named color presets for a bar (the collection `progress()` fill and track outline): the preset moved toward `--editor-fg` until it reaches 3:1, the non-text mi…
 sym src/lib/utils/color.ts:89 fn flatten(color: string, base: string): string | null L7 | Composites `color` (alpha honored) over the opaque `base` into a 6-digit hex; null when either is unparseable.
 sym src/lib/utils/color.ts:102 fn tint(color: string, share: number, base: string): string | null L7 | Composites `color` at `share` of its own alpha over the opaque `base` into a 6-digit hex: what Tailwind's `bg-x/25` or `color-mix(in oklch, x 18%, transparent)…
-sym src/lib/utils/color.ts:125 fn isDarkColor(color: string): boolean | null L4 | True when a background color is dark (WCAG relative luminance below 0.2), false when light, null when the value is not a hex, rgb(), hsl() or oklch() color.
-sym src/lib/utils/color.ts:135 fn contrastRatio(a: string, b: string): number | null L8 | WCAG contrast ratio of foreground `a` on background `b`, with a translucent `a` composited over `b` (`b`'s own alpha is ignored; flatten it first).
-sym src/lib/utils/color.ts:192 fn ensureContrast(fg: string, bg: string, min: number, minLc = 0): string L23 | Returns `fg` moved in OKLab toward white or black by the smallest 1% step that reaches `min` WCAG contrast on `bg`, and `minLc` APCA |Lc| when given, keeping i…
-sym src/lib/utils/color.ts:222 fn ensureContrastOn(fg: string, bgs: string[], min: number, minLc = 0): string L9 | `ensureContrast` against several backgrounds at once (a row and its hover or selected tint): lifts `fg` until it reaches `min` (and `minLc`) on each of `bgs`.
-sym src/lib/utils/color.ts:237 fn shiftLightness(color: string, delta: number): string | null L6 | Moves a color's OKLab lightness by `delta` (-1 to 1) keeping a and b, the TS twin of CSS `oklch(from x calc(l + delta) c h)`, as a 6-digit hex clamped to the s…
-sym src/lib/utils/color.ts:248 fn mixColors(a: string, b: string, t = 0.5): string | null L8 | OKLab mix of two colors as a 6-digit hex (alpha ignored): `t` is the share of `b`, 0.5 (the midpoint) by default.
-sym src/lib/utils/color.ts:298 fn apcaContrast(text: string, bg: string): number | null L6 | Signed APCA Lc of `text` on `bg` (APCA-W3 0.0.98G), with a translucent `text` composited over `bg` (`bg`'s own alpha is ignored).
-sym src/lib/utils/color.ts:312 fn labelColors(color: string): { fill: string; text: '#000000' | '#ffffff' } | null L6 | Fill and text for a label drawn on `color` (a badge, an event bar).
+sym src/lib/utils/color.ts:115 fn fade(color: string, share: number): string | null L5 | `color` with its alpha scaled by `share` (0-1), as an 8-digit hex: the translucent twin of `tint`, for a background that must stay see-through.
+sym src/lib/utils/color.ts:136 fn isDarkColor(color: string): boolean | null L4 | True when a background color is dark (WCAG relative luminance below 0.2), false when light, null when the value is not a hex, rgb(), hsl() or oklch() color.
+sym src/lib/utils/color.ts:146 fn contrastRatio(a: string, b: string): number | null L8 | WCAG contrast ratio of foreground `a` on background `b`, with a translucent `a` composited over `b` (`b`'s own alpha is ignored; flatten it first).
+sym src/lib/utils/color.ts:203 fn ensureContrast(fg: string, bg: string, min: number, minLc = 0): string L23 | Returns `fg` moved in OKLab toward white or black by the smallest 1% step that reaches `min` WCAG contrast on `bg`, and `minLc` APCA |Lc| when given, keeping i…
+sym src/lib/utils/color.ts:233 fn ensureContrastOn(fg: string, bgs: string[], min: number, minLc = 0): string L9 | `ensureContrast` against several backgrounds at once (a row and its hover or selected tint): lifts `fg` until it reaches `min` (and `minLc`) on each of `bgs`.
+sym src/lib/utils/color.ts:248 fn shiftLightness(color: string, delta: number): string | null L6 | Moves a color's OKLab lightness by `delta` (-1 to 1) keeping a and b, the TS twin of CSS `oklch(from x calc(l + delta) c h)`, as a 6-digit hex clamped to the s…
+sym src/lib/utils/color.ts:259 fn mixColors(a: string, b: string, t = 0.5): string | null L8 | OKLab mix of two colors as a 6-digit hex (alpha ignored): `t` is the share of `b`, 0.5 (the midpoint) by default.
+sym src/lib/utils/color.ts:272 fn colorDistance(a: string, b: string): number | null L8 | Perceptual distance between two colors: the Euclidean OKLab distance scaled by 100 (black to white is 100), alpha ignored.
+sym src/lib/utils/color.ts:309 fn apcaContrast(text: string, bg: string): number | null L6 | Signed APCA Lc of `text` on `bg` (APCA-W3 0.0.98G), with a translucent `text` composited over `bg` (`bg`'s own alpha is ignored).
+sym src/lib/utils/color.ts:323 fn labelColors(color: string): { fill: string; text: '#000000' | '#ffffff' } | null L6 | Fill and text for a label drawn on `color` (a badge, an event bar).
 sym src/lib/utils/date.ts:15 fn formatNow(outputFormat: string, offsetDays: number = 0): string L3 | Returns the current datetime formatted, with an optional day offset.
 sym src/lib/utils/date.ts:42 fn formatDate(date: dayjs.ConfigType, format: string): string L3 | Formats a date value (string, Date, dayjs, etc.) into the given format string.
 sym src/lib/utils/date.ts:92 fn formatToCapturingRegex(format: string): RegExp L36 | Converts a dayjs format string into an anchored regex (`^...$`) with named capture groups.

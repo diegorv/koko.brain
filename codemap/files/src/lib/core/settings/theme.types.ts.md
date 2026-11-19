@@ -9,7 +9,7 @@ imp src/lib/core/settings/sections/ThemeEditor.svelte:22 -> src/lib/core/setting
 imp src/lib/core/settings/sections/ThemePreview.svelte:3 -> src/lib/core/settings/theme.types.ts type:ThemeColors
 imp src/lib/core/settings/settings.store.svelte.ts:2 -> src/lib/core/settings/theme.types.ts type:AppearanceSettings
 imp src/lib/core/settings/settings.types.ts:399 -> src/lib/core/settings/theme.types.ts type:AppearanceSettings
-imp src/lib/core/settings/theme-builder.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:Theme,type:ThemeColors,type:UIColors
+imp src/lib/core/settings/theme-builder.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:PreviewColors,type:Theme,type:ThemeColors,type:UIColors
 imp src/lib/core/settings/theme-editor.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:Theme,type:ThemeColors,type:UIColors,type:SyntaxColors,type:PreviewColors,type:WikilinkColors,type:CalloutColors
 imp src/lib/core/settings/theme-package.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:AppearanceSettings,type:Theme,type:ThemeColors
 imp src/lib/core/settings/theme.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:Theme,type:ThemeColors,type:UIColors,type:SyntaxColors,type:PreviewColors,type:WikilinkColors,type:CalloutColors,type:AppearanceSettings
@@ -39,6 +39,7 @@ sym src/lib/core/settings/theme.types.ts:126 interface SyntaxColors L21 | Color 
 by src/lib/core/settings/theme.types.ts:SyntaxColors <- src/lib/core/settings/theme-editor.logic.ts:5 in (module) import
 by src/lib/core/settings/theme.types.ts:SyntaxColors <- src/lib/core/settings/theme.logic.ts:5 in (module) import
 sym src/lib/core/settings/theme.types.ts:149 interface PreviewColors L41 | Color tokens for live preview rendering
+by src/lib/core/settings/theme.types.ts:PreviewColors <- src/lib/core/settings/theme-builder.logic.ts:1 in (module) import
 by src/lib/core/settings/theme.types.ts:PreviewColors <- src/lib/core/settings/theme-editor.logic.ts:6 in (module) import
 by src/lib/core/settings/theme.types.ts:PreviewColors <- src/lib/core/settings/theme.logic.ts:6 in (module) import
 sym src/lib/core/settings/theme.types.ts:192 interface WikilinkColors L7 | Color tokens for wikilink decorations

@@ -1,4 +1,4 @@
-# 14: IconPicker presets stay readable on tabs, Tasks, Properties and the organize check
+# 15: IconPicker presets stay readable on tabs, Tasks, Properties and the organize check
 
 **Origin:** Issue 02 review, finding 1 (`.scratch/color-audit/work/02/review.md`). Issue 02 lifts the IconPicker Text/Icon presets in the navigators, NoteRow and the quick switcher with `readableIconColor` / `readableOn` (`file-icons.logic.ts`, `theme-surfaces.logic.ts`). These consumers still render the raw preset hex, tuned for dark themes.
 

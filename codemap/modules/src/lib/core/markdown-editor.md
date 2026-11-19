@@ -153,7 +153,7 @@ file src/lib/core/markdown-editor/extensions/wikilink/index.ts other L5 module s
 file src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts logic L54 module src/lib/core/markdown-editor in5 t1
 file src/lib/core/markdown-editor/highlight-styles.ts other L134 module src/lib/core/markdown-editor in2 t10
 file src/lib/core/markdown-editor/setup/editor-extensions.ts other L199 module src/lib/core/markdown-editor in3 t3
-file src/lib/core/markdown-editor/setup/editor-theme.ts other L96 module src/lib/core/markdown-editor in3 t1
+file src/lib/core/markdown-editor/setup/editor-theme.ts other L98 module src/lib/core/markdown-editor in3 t1
 file src/lib/core/markdown-editor/setup/index.ts other L2 module src/lib/core/markdown-editor in1 t0
 file src/lib/core/markdown-editor/tab-view-state.ts other L111 module src/lib/core/markdown-editor in3 t2 | Per-tab view state (scroll position, cursor) preserved across tab switches AND across MarkdownEditor component remounts (e.g. when switching to a non-markdown …
 file src/lib/core/markdown-editor/wikilink-click-target.ts other L81 module src/lib/core/markdown-editor in3 t2
@@ -189,7 +189,7 @@ sym src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts:6 const
 sym src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts:21 fn findHeadingPosition(content: string, headingName: string): number | null L14 | Finds the document position of a heading by name.
 sym src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts:41 fn findBlockIdPosition(content: string, blockId: string): number | null L14 | Finds the document position of a block identified by `^block-id`.
 sym src/lib/core/markdown-editor/setup/editor-extensions.ts:38 const COPY_BLOCK_LINK_SHORTCUT L1 | Copy Block Link (Cmd+Shift+L).
-sym src/lib/core/markdown-editor/setup/editor-theme.ts:12 fn buildEditorTheme(fontFamily: string, fontSize: number, lineHeight: number, contentWidth: number, paragraphSpacing: number, dark: boolea… L85 | Builds a CodeMirror theme from the current editor settings.
+sym src/lib/core/markdown-editor/setup/editor-theme.ts:12 fn buildEditorTheme(fontFamily: string, fontSize: number, lineHeight: number, contentWidth: number, paragraphSpacing: number, dark: boolea… L87 | Builds a CodeMirror theme from the current editor settings.
 sym src/lib/core/markdown-editor/tab-view-state.ts:81 fn deleteTabViewState(path: string): void L4 | Removes saved view and editor state for a tab (e.g. when the tab is closed)
 sym src/lib/core/markdown-editor/tab-view-state.ts:87 fn renameTabViewState(oldPath: string, newPath: string): void L8 | Moves a tab's saved view and editor state to its new path after a rename or move
 sym src/lib/core/markdown-editor/tab-view-state.ts:107 fn clearAllTabViewStates(): void L5 | Clears all saved view and editor states (e.g. on vault switch)
