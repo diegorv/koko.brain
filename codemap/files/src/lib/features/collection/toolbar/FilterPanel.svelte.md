@@ -23,7 +23,7 @@ out2 src/lib/features/collection/toolbar/FilterPanel.svelte 28 files in 4 module
 test src/tests/lib/features/collection/toolbar/FilterPanel.svelte.test.ts imports src/lib/features/collection/toolbar/FilterPanel.svelte mirror
 ## symbols
 sym src/lib/features/collection/toolbar/FilterPanel.svelte:1 component FilterPanel props:globalFilters,viewFilters,availableProperties,propertyIndex,onGlobalFiltersChange,onViewFiltersChange,showGlobal=,embedded= L220
-by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:471 in (markup) mount
+by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:488 in (markup) mount
 by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/collection/CollectionView.svelte:680 in (markup) mount
 by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:841 in (markup) mount
 by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/type-definitions/ViewDialog.svelte:202 in (markup) mount
@@ -52,7 +52,7 @@ mount src/lib/features/collection/toolbar/FilterPanel.svelte:183 DropdownMenuIte
 mount src/lib/features/collection/toolbar/FilterPanel.svelte:195 FilterRow -> src/lib/features/collection/toolbar/FilterRow.svelte
 mount src/lib/features/collection/toolbar/FilterPanel.svelte:207 Button -> src/lib/components/ui/button/button.svelte
 ## mounted-at
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:471 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:488 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
 mount src/lib/features/collection/CollectionView.svelte:680 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
 mount src/lib/features/rail-shell/RailNoteList.svelte:841 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
 mount src/lib/features/type-definitions/ViewDialog.svelte:202 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte

@@ -22,7 +22,7 @@ entry src/lib/features/auto-organize/AutoOrganizeSection.svelte ext-in1 src/lib/
 entry src/lib/features/auto-organize/auto-organize.service.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 ## files
 file src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte component L396 module src/lib/features/auto-organize in1 t0
-file src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte component L725 module src/lib/features/auto-organize in1 t1
+file src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte component L743 module src/lib/features/auto-organize in1 t1
 file src/lib/features/auto-organize/AutoOrganizeSection.svelte component L285 module src/lib/features/auto-organize in1 t1
 file src/lib/features/auto-organize/auto-organize.logic.ts logic L1007 module src/lib/features/auto-organize in4 t5
 file src/lib/features/auto-organize/auto-organize.service.ts service L777 module src/lib/features/auto-organize in2 t4
@@ -37,7 +37,7 @@ sym src/lib/features/auto-organize/auto-organize.service.ts:755 fn resetAutoOrga
 ## stores
 store src/lib/features/auto-organize/auto-organize.store.svelte.ts:9 autoOrganizeStore esc:0
 ## effects
-fx-count svelte.$effect 4
+fx-count svelte.$effect 5
 fx-count tauri-fs.exists 11
 fx-count tauri-fs.mkdir 3
 fx-count tauri-fs.readTextFile 2

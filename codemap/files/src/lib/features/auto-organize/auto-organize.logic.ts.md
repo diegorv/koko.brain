@@ -31,7 +31,7 @@ test src/tests/help/examples-scoping.test.ts imports src/lib/features/auto-organ
 test src/tests/lib/features/auto-organize/type-lifecycle-rules.test.ts imports src/lib/features/auto-organize/auto-organize.logic.ts
 ## symbols
 sym src/lib/features/auto-organize/auto-organize.logic.ts:25 const BLANK_VALUE_ERROR L1 | The message for a filter row that compares against a blank value, as the view dialog words it.
-by src/lib/features/auto-organize/auto-organize.logic.ts:BLANK_VALUE_ERROR <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:501 in (markup) markup
+by src/lib/features/auto-organize/auto-organize.logic.ts:BLANK_VALUE_ERROR <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:518 in (markup) markup
 sym src/lib/features/auto-organize/auto-organize.logic.ts:36 fn filterProblem(filter: FilterItem): string | null L18 | Why an object filter must match nothing, or null when it can run: a value that is not a filter object (`and` / `or` / `not` not lists, a null item), an object …
 sym src/lib/features/auto-organize/auto-organize.logic.ts:60 fn hasBlankValue(row: FilterRow): boolean L3 | True for a builder row shown as property, operator and value whose operator needs a value and has none: saved, it would compare against `''`, which most notes …
 by src/lib/features/auto-organize/auto-organize.logic.ts:hasBlankValue <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:91 in blankValue=$derived ref
@@ -57,9 +57,9 @@ sym src/lib/features/auto-organize/auto-organize.logic.ts:289 fn sanitizeRulePro
 by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeRuleProperties <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:173 in doesNothing=$derived call
 by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeRuleProperties <- src/lib/features/auto-organize/auto-organize.service.ts:151 in withValidProperties call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:323 fn isValidCreatePath(path: string): boolean L4 | True when `path` (trimmed) is a Markdown note path that does not start with `/`.
-by src/lib/features/auto-organize/auto-organize.logic.ts:isValidCreatePath <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:255 in pathInvalid=$derived call +1
+by src/lib/features/auto-organize/auto-organize.logic.ts:isValidCreatePath <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:269 in pathInvalid=$derived call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:329 fn isValidTemplatePath(template: string): boolean L4 | True when `template` (trimmed) stays inside the vault: no `..` segment and no leading `/`.
-by src/lib/features/auto-organize/auto-organize.logic.ts:isValidTemplatePath <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:258 in templateInvalid=$derived call +1
+by src/lib/features/auto-organize/auto-organize.logic.ts:isValidTemplatePath <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:272 in templateInvalid=$derived call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:341 fn sanitizeCreateNote(raw: unknown): RuleCreateNote | undefined L13 | A rule's `createNote` as loaded from JSON, or undefined when it has no string `path` that `isValidCreatePath` accepts, or a template that `isValidTemplatePath`…
 by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeCreateNote <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:130 in validCreate=$derived call
 by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeCreateNote <- src/lib/features/auto-organize/auto-organize.service.ts:156 in withValidProperties call +2
@@ -77,7 +77,7 @@ sym src/lib/features/auto-organize/auto-organize.logic.ts:525 type ComputedValue
 sym src/lib/features/auto-organize/auto-organize.logic.ts:543 fn computeRuleValue(property: RuleProperty, ctx: EvalContext): ComputedValue L28 | Evaluates `property.expr` against the note in `ctx` and converts the result to the value written.
 by src/lib/features/auto-organize/auto-organize.logic.ts:computeRuleValue <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:185 in preview=$derived call
 sym src/lib/features/auto-organize/auto-organize.logic.ts:585 fn renameProblem(raw: unknown): string | null L13 | Why a rule's `rename` cannot be used, or null: not an object, both or neither of `name` and `expr`, a blank or non-text one, an `expr` the evaluator's validato…
-by src/lib/features/auto-organize/auto-organize.logic.ts:renameProblem <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:328 in storedRenameProblem=$derived call +1
+by src/lib/features/auto-organize/auto-organize.logic.ts:renameProblem <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:344 in storedRenameProblem=$derived call +1
 by src/lib/features/auto-organize/auto-organize.logic.ts:renameProblem <- src/lib/features/auto-organize/auto-organize.service.ts:169 in withValidProperties call
 sym src/lib/features/auto-organize/auto-organize.logic.ts:600 fn sanitizeRename(raw: unknown): RuleRename | undefined L5 | A rule's `rename` as loaded from JSON, trimmed, or undefined when `renameProblem` refuses it.
 by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeRename <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:175 in doesNothing=$derived call
@@ -117,9 +117,9 @@ sym src/lib/features/auto-organize/auto-organize.logic.ts:926 fn isAlreadyInDest
 by src/lib/features/auto-organize/auto-organize.logic.ts:isAlreadyInDestination <- src/lib/features/auto-organize/auto-organize.service.ts:325 in evaluateAndMove call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:944 fn validateExpression(expression: string): string | null L9 | Validates a rule's expression by attempting to parse it.
 sym src/lib/features/auto-organize/auto-organize.logic.ts:955 const TEMPLATE_VARIABLES: readonly string[] L1 | The `{name}` variables `resolveDestination` replaces; keep in step with its `vars`.
-by src/lib/features/auto-organize/auto-organize.logic.ts:TEMPLATE_VARIABLES <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:341 in VARIABLES_LINE mcall
+by src/lib/features/auto-organize/auto-organize.logic.ts:TEMPLATE_VARIABLES <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:357 in VARIABLES_LINE mcall
 sym src/lib/features/auto-organize/auto-organize.logic.ts:962 fn unknownTemplateVariables(template: string): string[] L4 | The `{name}` variables in `template` that are not template variables, each once, in order.
-by src/lib/features/auto-organize/auto-organize.logic.ts:unknownTemplateVariables <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:345 in variableWarnings call
+by src/lib/features/auto-organize/auto-organize.logic.ts:unknownTemplateVariables <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:361 in variableWarnings call
 sym src/lib/features/auto-organize/auto-organize.logic.ts:972 fn resolveDestination(template: string, record: PropertyIndexRecord, vaultPath: string): string L29 | Resolves template variables in a destination string.
 by src/lib/features/auto-organize/auto-organize.logic.ts:resolveDestination <- src/lib/features/auto-organize/auto-organize.service.ts:324 in evaluateAndMove call +2
 sym src/lib/features/auto-organize/auto-organize.logic.ts:1005 fn generateRuleId(): string L3 | Generates a unique rule ID based on timestamp + random suffix.
