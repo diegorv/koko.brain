@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 004 | [A canvas edit closed inside the debounce window reaches its .canvas file](issues/004-canvas-edit-closed-renamed-inside-debounce-window.md) | 015 | done | issue/004-canvas-edit-closed-renamed-inside-debounce-window (5cb784f0f) | 2026-11-12 |
 | 005 | [Setting a folder icon never stacks a second frontmatter block](issues/005-empty-frontmatter-block-matched-writers-never-stack.md) | none | todo | | |
 | 006 | [A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab](issues/006-kanban-card-lane-title-being-edited-saved.md) | 004 | todo | | |
-| 007 | [Paste, cut and copy inside a meta-bind number or date input act on the input, not the note](issues/007-paste-cut-copy-inside-meta-bind-number.md) | none | todo | | |
+| 007 | [Paste, cut and copy inside a meta-bind number or date input act on the input, not the note](issues/007-paste-cut-copy-inside-meta-bind-number.md) | none | in-progress | | |
 | 008 | [A Properties panel commit that changes nothing does not arm the skip flag](issues/008-properties-panel-commit-that-changes-nothing-does.md) | none | todo | | |
 | 009 | [Tab rename and delete keep `_rail_view` in sync](issues/009-rail-view-follows-tab-rename.md) | none | todo | | |
 | 010 | [Filters report unknown methods](issues/010-filters-report-unknown-methods.md) | none | todo | | |
@@ -310,3 +310,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 06:34 — 039 — deliver — merged c3c0be1c7; review 1 APPROVED (1 finding, 1 nit, fix round), review 2 APPROVED no findings; full suite 17962 passed — c3c0be1c7
 - 2026-11-19 06:34 — 040 — start — launched by /relay-lite:run — ff90dbd41
 - 2026-11-19 06:44 — 040 — deliver — merged 6330cb601; review 1 APPROVED (fix round: lane helper, 2 tests), review 2 APPROVED (1 optional test nit kept); full suite 17973 passed — 6330cb601
+- 2026-11-19 06:44 — 007 — start — launched by /relay-lite:run — 17d5120f5
