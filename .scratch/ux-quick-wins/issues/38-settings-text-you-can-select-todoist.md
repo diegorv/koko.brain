@@ -14,16 +14,16 @@ Not in this ticket: toast text selection (waits for the toast Copy details featu
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run (no E2E selector changes; no spec looks the update button up by text).
 
-- [ ] Failing test first: the SettingItem label and description (`src/tests/lib/core/settings/SettingItem.test.ts`), BuildInfo (`BuildInfo.test.ts`), a dialog description and the Update error carry `select-text`.
-- [ ] `src/tests/lib/features/todoist-sync/TodoistSection.test.ts`: the `sync-root` row's root has `flex-col` and no control box with `max-w-[50%]`; Load projects, choose and load-error tests unchanged.
-- [ ] The idle button reads "Check and download"; existing flow tests change only the label lookup (`UpdateSection.restart.test.ts:98,115,134,143`, `UpdateSection.layout.test.ts:50`).
-- [ ] A download-progress case: `Started{contentLength: 1000}` then `Progress{chunkLength: 500}` gives a progressbar named "Download of update v<version>" with `aria-valuenow="50"`; `contentLength: null` gives no "?" and no `aria-valuenow`.
+- [x] Failing test first: the SettingItem label and description (`src/tests/lib/core/settings/SettingItem.test.ts`), BuildInfo (`BuildInfo.test.ts`), a dialog description and the Update error carry `select-text`.
+- [x] `src/tests/lib/features/todoist-sync/TodoistSection.test.ts`: the `sync-root` row's root has `flex-col` and no control box with `max-w-[50%]`; Load projects, choose and load-error tests unchanged.
+- [x] The idle button reads "Check and download"; existing flow tests change only the label lookup (`UpdateSection.restart.test.ts:98,115,134,143`, `UpdateSection.layout.test.ts:50`).
+- [x] A download-progress case: `Started{contentLength: 1000}` then `Progress{chunkLength: 500}` gives a progressbar named "Download of update v<version>" with `aria-valuenow="50"`; `contentLength: null` gives no "?" and no `aria-valuenow`.
 - [ ] Manual in `pnpm tauri dev`: a Settings description and the version can be selected and copied; rail and tabs cannot; the Root project row has no overlap at 1440 px.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -51,3 +51,5 @@ Ticket 19 (toasts follow the theme) edits `AppOverlays.svelte` only; the Setting
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Follow-up recorded (not a ticket yet): after mvp-claude merges, update `help/documentation/19-settings.md:330,336` to say "Check and download".
+
+- 2026-11-19, deliver (branch issue/38-settings-text-you-can-select-todoist): Settings text is selectable (SettingItem, BuildInfo, dialog descriptions, update error), the Todoist root row stacks, the update button reads "Check and download" with a real download progressbar. Fixes from review 1: dropped the unreachable formatBytes '?' branch; scoped the unknown-size test to the downloading row. Tests: pnpm check exit 0; full suite 665 files, 17861 passed, 56 skipped. Reviews: round 1 APPROVED (2 nits, fixed), round 2 APPROVED. Manual tauri dev check not done.

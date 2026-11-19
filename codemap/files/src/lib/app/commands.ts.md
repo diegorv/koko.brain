@@ -57,7 +57,7 @@ test src/tests/lib/app/global-keybindings.test.ts imports src/lib/app/commands.t
 test src/tests/lib/features/command-palette/CommandPalette.test.ts imports src/lib/app/commands.ts
 ## symbols
 sym src/lib/app/commands.ts:121 fn getBuiltInCommands(): AppCommand[] L340 | The command palette's built-in commands.
-by src/lib/app/commands.ts:getBuiltInCommands <- src/lib/app/AppOverlays.svelte:20 in (markup) markup
+by src/lib/app/commands.ts:getBuiltInCommands <- src/lib/app/AppOverlays.svelte:37 in (markup) markup
 ## locals
 local src/lib/app/commands.ts:64 fn railGoToCommands(): AppCommand[] L12
 local src/lib/app/commands.ts:82 fn tasksStatusFilterCommand(): AppCommand L13

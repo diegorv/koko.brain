@@ -16,13 +16,13 @@ out2 src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte 14 files in 3 mod
 test src/tests/lib/features/todoist-sync/TodoistSyncLogDialog.test.ts imports src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte mirror
 ## symbols
 sym src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:1 component TodoistSyncLogDialog L66
-by src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:default <- src/lib/app/AppOverlays.svelte:26 in (markup) mount
+by src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:default <- src/lib/app/AppOverlays.svelte:43 in (markup) mount
 ## locals
 local src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:18 fn handleOpenChange(next: boolean) L3
 ## mounts
 mount src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:37 Button -> src/lib/components/ui/button/button.svelte
 ## mounted-at
-mount src/lib/app/AppOverlays.svelte:26 TodoistSyncLogDialog -> src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte
+mount src/lib/app/AppOverlays.svelte:43 TodoistSyncLogDialog -> src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte
 ## calls
 call src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:15 in shown=$derived -> src/lib/features/todoist-sync/cycle-log.logic.ts:filterLogEntries call
 call src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:16 in latest=$derived -> src/lib/features/todoist-sync/cycle-log.logic.ts:newestCycle call

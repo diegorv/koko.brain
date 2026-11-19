@@ -95,7 +95,7 @@ describe('Restart to update with a dirty tab', () => {
 			savedAtRelaunch = editorStore.tabs[0].savedContent;
 		});
 
-		buttonByText(target, 'Check').click();
+		buttonByText(target, 'Check and download').click();
 		await settle();
 		buttonByText(target, 'Restart to update').click();
 		await settle();
@@ -112,7 +112,7 @@ describe('Restart to update with a dirty tab', () => {
 		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
 		vi.mocked(ask).mockResolvedValueOnce(false);
 
-		buttonByText(target, 'Check').click();
+		buttonByText(target, 'Check and download').click();
 		await settle();
 		buttonByText(target, 'Restart to update').click();
 		await settle();
@@ -131,7 +131,7 @@ describe('Restart to update with a dirty tab', () => {
 		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
 		vi.mocked(ask).mockResolvedValueOnce(true);
 
-		buttonByText(target, 'Check').click();
+		buttonByText(target, 'Check and download').click();
 		await settle();
 		buttonByText(target, 'Restart to update').click();
 		await settle();
@@ -140,7 +140,7 @@ describe('Restart to update with a dirty tab', () => {
 	});
 
 	it('relaunches at once with no tabs open', async () => {
-		buttonByText(target, 'Check').click();
+		buttonByText(target, 'Check and download').click();
 		await settle();
 		buttonByText(target, 'Restart to update').click();
 		await settle();

@@ -171,6 +171,14 @@ describe('TodoistSection', () => {
 		expect(trigger('sync-root').textContent).toContain('p-work');
 	});
 
+	it('stacks the Root project controls under the text, outside the half-width control box', () => {
+		const settingRow = row('sync-root').querySelector<HTMLElement>('.bg-setting-item-bg')!;
+		expect(settingRow.classList.contains('flex-col')).toBe(true);
+		expect(settingRow.querySelector('.max-w-\\[50\\%\\]')).toBeNull();
+		expect(settingRow.querySelector('[data-load-projects]')).not.toBeNull();
+		expect(settingRow.querySelector('[data-slot="select-trigger"]')).not.toBeNull();
+	});
+
 	it('"Load projects" fetches the tree from Todoist and names the saved root by its path', async () => {
 		server.addProject({ id: 'inbox', name: 'Inbox', inbox_project: true });
 		server.addProject({ id: 'p-work', name: 'Work' });

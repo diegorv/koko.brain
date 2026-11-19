@@ -16,12 +16,12 @@ out2 src/lib/features/command-palette/CommandPalette.svelte 12 files in 2 module
 test src/tests/lib/features/command-palette/CommandPalette.test.ts imports src/lib/features/command-palette/CommandPalette.svelte mirror
 ## symbols
 sym src/lib/features/command-palette/CommandPalette.svelte:1 component CommandPalette props:commands L100
-by src/lib/features/command-palette/CommandPalette.svelte:default <- src/lib/app/AppOverlays.svelte:20 in (markup) mount
+by src/lib/features/command-palette/CommandPalette.svelte:default <- src/lib/app/AppOverlays.svelte:37 in (markup) mount
 ## locals
 local src/lib/features/command-palette/CommandPalette.svelte:34 fn handleOpenChange(open: boolean) L6
 local src/lib/features/command-palette/CommandPalette.svelte:41 fn executeCommand(command: AppCommand) L11
 ## mounted-at
-mount src/lib/app/AppOverlays.svelte:20 CommandPalette -> src/lib/features/command-palette/CommandPalette.svelte
+mount src/lib/app/AppOverlays.svelte:37 CommandPalette -> src/lib/features/command-palette/CommandPalette.svelte
 ## calls
 call src/lib/features/command-palette/CommandPalette.svelte:24 in filteredCommands=$derived -> src/lib/features/command-palette/command-palette.logic.ts:filterAndRankCommands call
 call src/lib/features/command-palette/CommandPalette.svelte:30 in recentGroups=$derived -> src/lib/features/command-palette/command-palette.logic.ts:splitRecentCommands call

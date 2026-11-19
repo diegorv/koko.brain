@@ -53,7 +53,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 16 | [Canvas handles show on selected nodes; image cards get 8 handles and real loading and error states](issues/16-canvas-handles-show-selected-nodes-image.md) | 06 | todo | | |
 | 17 | [The canvas context menu and pickers work from the keyboard and show Mac shortcut glyphs](issues/17-canvas-context-menu-pickers-work-keyboard.md) | 06 | todo | | |
 | 18 | [Note action bar: Mac glyph tooltips, and the width toggle says when it cannot work](issues/18-note-action-bar-mac-glyph-tooltips.md) | 17 | todo | | |
-| 19 | [Toasts follow the theme; Copy block link confirms](issues/19-toasts-follow-theme-copy-block-link.md) | none | in-progress | | |
+| 19 | [Toasts follow the theme; Copy block link confirms](issues/19-toasts-follow-theme-copy-block-link.md) | none | done | issue/19-toasts-follow-theme-copy-block-link (ab8c7c476) | 2026-11-18 |
 | 20 | [Keyboard focus shows at full strength; spinners and pulses respect Reduce motion](issues/20-keyboard-focus-shows-at-full-strength.md) | none | done | issue/20-keyboard-focus-shows-at-full-strength (70af959e5) | 2026-11-18 |
 | 21 | [Settings number fields write only valid values and clamp on commit](issues/21-settings-number-fields-write-only-valid.md) | none | done | issue/21-settings-number-fields-write-only-valid (725b3f677) | 2026-11-18 |
 | 22 | [Settings switches: dependents disable while their parent is off, and a switch that failed to start turns back off](issues/22-settings-switches-dependents-disable-while-parent.md) | none | done | issue/22-settings-switches-dependents-disable-while-parent (7adcde4d4) | 2026-11-18 |
@@ -72,7 +72,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 35 | [Appearance settings: theme rows ignore keys from their buttons, one catalog error with its reason, Install and apply, a theme editor that confirms discards and restores the theme on close](issues/35-appearance-settings-theme-rows-ignore-keys.md) | none | todo | | |
 | 36 | [Periodic Notes and 1:1: live path examples and missing-template marks](issues/36-periodic-notes-11-live-path-examples.md) | 22 | done | issue/36-periodic-notes-11-live-path-examples (632893c70) | 2026-11-18 |
 | 37 | [Mods: each mod says what it does; the run view shows status and progress clearly](issues/37-mods-each-mod-run-view-shows.md) | none | done | issue/37-mods-each-mod-run-view-shows (a52bc3d78) | 2026-11-18 |
-| 38 | [Settings: text you can select, the Todoist root row fits, the update button says it downloads](issues/38-settings-text-you-can-select-todoist.md) | none | todo | | |
+| 38 | [Settings: text you can select, the Todoist root row fits, the update button says it downloads](issues/38-settings-text-you-can-select-todoist.md) | none | in-progress | | |
 | 39 | [Readable text on coloured fills: kanban tag chips, linear-calendar bars, the rail badge](issues/39-readable-chips-faded-text.md) | 12 | done | issue/39-readable-chips-faded-text (f6ef510a0) | 2026-11-18 |
 | 40 | [Default theme: a darker tab strip with a visible tab hover](issues/40-default-theme-darker-tab-strip-visible.md) | 20, 39 | done | issue/40-default-theme-darker-tab-strip-visible (7742f0a81) | 2026-11-18 |
 | 41 | [Word count and graph stats read correctly for 0 and 1; graph mode buttons show their state](issues/41-word-count-graph-stats-read-correctly.md) | none | todo | | |
@@ -169,3 +169,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 23:36 — 40 — start — launched by /relay-lite:run — 740e3269c
 - 2026-11-18 23:46 — 40 — deliver — merged (tab strip and hover after the split) after review 1 APPROVED with one minor and two nits, none changed (hovered tab near active tab colour left for owner eye check) (claude); full vitest suite passed (17843 tests) — 7742f0a81
 - 2026-11-18 23:46 — 19 — start — launched by /relay-lite:run — 6c73106bc
+- 2026-11-18 23:56 — 19 — deliver — merged after review 1 APPROVED with one major (manual light/dark toast check, left for owner) and two nits, no code change (claude); full vitest suite passed (17852 tests), copy-block-link E2E passed — ab8c7c476
+- 2026-11-18 23:56 — 38 — start — launched by /relay-lite:run — dff1f05d3

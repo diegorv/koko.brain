@@ -35,7 +35,7 @@ test src/tests/lib/plugins/queryjs/queryjs.logic.test.ts imports src/lib/core/fi
 sym src/lib/core/filesystem/wikilink-resolution.logic.ts:4 fn getNoteName(filePath: string): string L5 | Returns the file name without its last extension (`a/b.md` -> `b`); a dotfile keeps its name.
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:getNoteName <- src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:2 in (module) import
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:getNoteName <- src/lib/core/markdown-editor/extensions/wikilink/completion.ts:90 in buildFileCompletions call
-by src/lib/core/filesystem/wikilink-resolution.logic.ts:getNoteName <- src/lib/features/copy-block-link/copy-block-link.service.ts:28 in copyBlockLink call
+by src/lib/core/filesystem/wikilink-resolution.logic.ts:getNoteName <- src/lib/features/copy-block-link/copy-block-link.service.ts:30 in copyBlockLink call
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:getNoteName <- src/lib/plugins/quick-capture/composer-editor-host.service.ts:46 in createComposerEditorHost call
 sym src/lib/core/filesystem/wikilink-resolution.logic.ts:15 fn isLinkTargetFile(filePath: string): boolean L4 | Whether a wikilink can resolve to `filePath`: false for a `.view` (any casing), true for every other file.
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile <- src/lib/app/editor-host.ts:80 in treeLinkIndex call +1

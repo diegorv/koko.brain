@@ -15,11 +15,11 @@ test src/tests/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.te
 sym src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:5 type BlockElementType L1 | The kind of markdown element detected on a line
 sym src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:8 interface DetectedBlockElement L8 | Result of analyzing a line for copy-block-link
 sym src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:34 fn detectBlockElement(lineText: string): DetectedBlockElement L20 | Detects the type of markdown element on a given line.
-by src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:detectBlockElement <- src/lib/features/copy-block-link/copy-block-link.service.ts:27 in copyBlockLink call
+by src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:detectBlockElement <- src/lib/features/copy-block-link/copy-block-link.service.ts:29 in copyBlockLink call
 sym src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:59 fn generateBlockId(): string L6 | Generates a random 6-character alphanumeric block ID.
-by src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:generateBlockId <- src/lib/features/copy-block-link/copy-block-link.service.ts:49 in copyBlockLink call
+by src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:generateBlockId <- src/lib/features/copy-block-link/copy-block-link.service.ts:53 in copyBlockLink call
 sym src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:71 fn buildWikilinkText(noteName: string, element: DetectedBlockElement, blockId: string | null, embed: boolean): string L16 | Builds a wikilink string for the given element.
-by src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:buildWikilinkText <- src/lib/features/copy-block-link/copy-block-link.service.ts:34 in copyBlockLink call +1
+by src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:buildWikilinkText <- src/lib/features/copy-block-link/copy-block-link.service.ts:37 in copyBlockLink call +1
 ## calls
 call src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:35 in detectBlockElement -> src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts:BLOCK_ID_RE mcall
 call src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:38 in detectBlockElement -> src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts:HEADING_RE mcall

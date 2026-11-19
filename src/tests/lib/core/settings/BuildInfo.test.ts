@@ -70,4 +70,10 @@ describe('BuildInfo chip', () => {
 
 		expect(chip.parentElement?.textContent).toContain('9.9.9 (abc1234) (test)');
 	});
+
+	it('lets the version be selected, against the body-wide user-select: none', () => {
+		const chip = renderChip({ dev: false, channel: 'stable' });
+
+		expect(chip.parentElement?.classList.contains('select-text')).toBe(true);
+	});
 });

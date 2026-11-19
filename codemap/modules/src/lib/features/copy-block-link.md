@@ -11,9 +11,9 @@ out2 src/lib/features/copy-block-link 3 modules: src/lib/contracts(2) src/lib/co
 ## entry files
 entry src/lib/features/copy-block-link/copy-block-link.service.ts ext-in2 src/lib/app/commands.ts src/lib/app/editor-host.ts
 ## files
-file src/lib/features/copy-block-link/copy-block-link.service.ts service L73 module src/lib/features/copy-block-link in2 t3
+file src/lib/features/copy-block-link/copy-block-link.service.ts service L79 module src/lib/features/copy-block-link in2 t3
 ## public
-sym src/lib/features/copy-block-link/copy-block-link.service.ts:66 fn copyBlockLinkToClipboard(view: EditorView): Promise<void> L3 | Copies a wikilink to the block at the current cursor position
-sym src/lib/features/copy-block-link/copy-block-link.service.ts:71 fn copyBlockEmbedToClipboard(view: EditorView): Promise<void> L3 | Copies an embed wikilink to the block at the current cursor position
+sym src/lib/features/copy-block-link/copy-block-link.service.ts:72 fn copyBlockLinkToClipboard(view: EditorView): Promise<void> L3 | Copies a wikilink to the block at the current cursor position
+sym src/lib/features/copy-block-link/copy-block-link.service.ts:77 fn copyBlockEmbedToClipboard(view: EditorView): Promise<void> L3 | Copies an embed wikilink to the block at the current cursor position
 ## debt
 -

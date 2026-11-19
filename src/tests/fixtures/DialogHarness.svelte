@@ -13,6 +13,7 @@
 <Dialog.Root bind:open>
 	<Dialog.Content>
 		<Dialog.Title>Harness dialog</Dialog.Title>
+		<Dialog.Description>Harness description</Dialog.Description>
 		<p>Body</p>
 	</Dialog.Content>
 </Dialog.Root>
