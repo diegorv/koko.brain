@@ -48,6 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [Graph view labels, edges and controls read on every theme](issues/11-graph-view-follows-theme.md) | 07 | todo | | |
 | 12 | [User, edited and imported themes are corrected and the editor warns](issues/12-user-themes-readability-checks.md) | 07 | todo | | |
 | 13 | [Themes repo: Zettlr hover and selected surfaces, and a contrast CI](issues/13-themes-repo-zettlr-palettes-contrast-ci.md) | 07 | todo | | |
+| 14 | [Kanban date badges read on coloured cards](issues/14-kanban-date-badges-coloured-cards.md) | 04 | todo | | |
 
 ## Log
 
@@ -61,3 +62,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 17:02 — 03 — deliver — merged; review APPROVED (1 minor: NoteRow conflict with 02 resolved in deliver, checked by main session; 3 nits deferred); full suite 678 files passed — df9a93639
 - 2026-11-19 17:02 — 04 — start — launched by /relay-lite:run — 2e864a02f
 - 2026-11-19 17:30 — 04 — deliver — merged; review APPROVED, fix round (color() keeps more preset), round 2 APPROVED with one deferred minor (date badges on coloured cards 4.05-4.50 on Zettlr Bielefeld Light, follow-up 14); full suite 679 files passed — d2d8f050a
+- 2026-11-19 17:30 — ledger updated (added 14; title of 14; link of 14; blocked by of 14)

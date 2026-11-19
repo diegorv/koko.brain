@@ -31,3 +31,4 @@
 ## Comments
 
 - 2026-11-19, triage: ready-for-human. Decided by the owner: builder lifts tokens for every theme (WCAG + APCA), user themes are corrected by the builder and the editor warns, rail icons keep their hue and are darkened per theme (ADR-0033 amendment), Issues run through relay one at a time, the themes repo is fixed with version bumps.
+- 2026-11-19, progress (main session): item 1 done in the themes repo, `eb9f062` (pushed, Themes CI green). Zettlr dark: hover `#2e2e33`, selected `#3a3a46`, mutedFg `#a4a4ab`; light: `#ebebeb`, `#e0e0e8`, `#63636b`; Bielefeld Light: `#e0e0e4`, `#d6d6de`, `#5c5c64`. Every Zettlr theme 1.1.0. Measured with `buildThemeFromPackage`: muted on bg-muted 4.99 to 5.45, muted on the selected row 4.52 to 4.58, dark muted Lc 45 to 51; destructive on bg-muted 2.74 to 4.65 (Issue 05 lifts it). Items 2 (Shimmering Focus, re-measure) and 3 (contrast CI) wait for 07.
