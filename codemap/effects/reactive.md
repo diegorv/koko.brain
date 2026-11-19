@@ -19,10 +19,10 @@ fx src/lib/core/settings/sections/ThemeColorRow.svelte:11 svelte.$effect in (scr
 fx src/lib/core/settings/sections/ThemeEditor.svelte:50 svelte.$effect in (script)
 fx src/lib/core/settings/settings-persistence.svelte.ts:65 svelte.$effect in startSettingsPersistence
 fx src/lib/core/settings/settings-persistence.svelte.ts:66 svelte.$effect in $effect@65
-fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:120 svelte.$effect in (script)
-fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:158 svelte.$effect in (script)
-fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:162 svelte.$effect in (script)
-fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:314 svelte.$effect in (script)
+fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:122 svelte.$effect in (script)
+fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:160 svelte.$effect in (script)
+fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:164 svelte.$effect in (script)
+fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:321 svelte.$effect in (script)
 fx src/lib/features/backlinks/BacklinksPanel.svelte:33 svelte.$effect in (script)
 fx src/lib/features/backlinks/BacklinksPanel.svelte:46 svelte.$effect in (script)
 fx src/lib/features/canvas/CanvasFilePicker.svelte:41 svelte.$effect in (script)

@@ -22,7 +22,7 @@ imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:21 -> src/lib/util
 imp src/lib/app/SettingsPanel.svelte:11 -> src/lib/features/auto-organize/AutoOrganizeSection.svelte default
 ## reach
 in2 src/lib/features/auto-organize/AutoOrganizeSection.svelte 1 files in 1 modules: src/lib/app(1)
-out2 src/lib/features/auto-organize/AutoOrganizeSection.svelte 44 files in 15 modules: src/lib/features/collection(9) src/lib/features/file-icons(6) src/lib/components(4) src/lib/core/settings(4) src/lib/core/editor(3) +10 modules
+out2 src/lib/features/auto-organize/AutoOrganizeSection.svelte 45 files in 15 modules: src/lib/features/collection(9) src/lib/features/file-icons(6) src/lib/components(5) src/lib/core/settings(4) src/lib/core/editor(3) +10 modules
 ## tests
 test src/tests/lib/features/auto-organize/AutoOrganizeSection.test.ts imports src/lib/features/auto-organize/AutoOrganizeSection.svelte mirror
 ## symbols

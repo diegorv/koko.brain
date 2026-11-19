@@ -1,7 +1,7 @@
 # module card src/lib/features/collection
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/features/collection ' codemap/modules
 sections: neighbors, entry files, files, public, stores, effects, debt
-module src/lib/features/collection features files 32 in-modules 6 out-modules 9 pub 49/162 ipc 1/0 card ~6.4k
+module src/lib/features/collection features files 32 in-modules 6 out-modules 9 pub 50/163 ipc 1/0 card ~6.5k
 ## neighbors
 dep src/lib/app -> src/lib/features/collection 8
 dep src/lib/features/auto-organize -> src/lib/features/collection 18
@@ -58,12 +58,12 @@ file src/lib/features/collection/expression/tokenizer.ts other L181 module src/l
 file src/lib/features/collection/key-edit.logic.ts logic L100 module src/lib/features/collection in2 t1
 file src/lib/features/collection/linear-calendar.logic.ts logic L322 module src/lib/features/collection in2 t2
 file src/lib/features/collection/toolbar/CalendarConfigPanel.svelte component L144 module src/lib/features/collection in1 t0
-file src/lib/features/collection/toolbar/FilterPanel.svelte component L223 module src/lib/features/collection in4 t1
+file src/lib/features/collection/toolbar/FilterPanel.svelte component L220 module src/lib/features/collection in4 t1
 file src/lib/features/collection/toolbar/FilterRow.svelte component L205 module src/lib/features/collection in1 t1
 file src/lib/features/collection/toolbar/FormulaRow.svelte component L106 module src/lib/features/collection in1 t1
 file src/lib/features/collection/toolbar/PropertiesPanel.svelte component L169 module src/lib/features/collection in1 t1
 file src/lib/features/collection/toolbar/SortPanel.svelte component L160 module src/lib/features/collection in2 t1
-file src/lib/features/collection/toolbar/filter.logic.ts logic L560 module src/lib/features/collection in9 t9
+file src/lib/features/collection/toolbar/filter.logic.ts logic L576 module src/lib/features/collection in9 t9
 file src/lib/features/collection/toolbar/formula.logic.ts logic L144 module src/lib/features/collection in3 t2
 file src/lib/features/collection/toolbar/properties.logic.ts logic L80 module src/lib/features/collection in2 t2
 file src/lib/features/collection/toolbar/sort.logic.ts logic L72 module src/lib/features/collection in2 t1
@@ -99,7 +99,7 @@ sym src/lib/features/collection/expression/evaluator.ts:308 fn validateExpressio
 sym src/lib/features/collection/expression/expression.types.ts:74 type ASTNode L11 | Union of all AST node types
 sym src/lib/features/collection/expression/parser.ts:8 fn parse(expression: string): ASTNode L203 | Parses an expression string into an AST using recursive descent.
 sym src/lib/features/collection/key-edit.logic.ts:34 fn sortedJson(value: unknown): string L7 | JSON with the keys of every object sorted, so key order never makes two values differ.
-sym src/lib/features/collection/toolbar/FilterPanel.svelte:1 component FilterPanel props:globalFilters,viewFilters,availableProperties,propertyIndex,onGlobalFiltersChange,onViewFiltersChange,showGlobal= L223
+sym src/lib/features/collection/toolbar/FilterPanel.svelte:1 component FilterPanel props:globalFilters,viewFilters,availableProperties,propertyIndex,onGlobalFiltersChange,onViewFiltersChange,showGlobal=,embedded= L220
 sym src/lib/features/collection/toolbar/SortPanel.svelte:1 component SortPanel props:sorts,availableProperties,propertyConfigs,propertyIndex,onSortsChange,emptyText= L160
 sym src/lib/features/collection/toolbar/filter.logic.ts:22 fn parseExpressionToRow(expr: string): FilterRow L10 | Tries to parse a simple expression into a visual FilterRow.
 sym src/lib/features/collection/toolbar/filter.logic.ts:38 fn filterRowToExpression(row: FilterRow): string L51 | Converts a FilterRow back into an expression string for YAML serialization.
@@ -107,8 +107,9 @@ sym src/lib/features/collection/toolbar/filter.logic.ts:94 fn parseFilterToGroup
 sym src/lib/features/collection/toolbar/filter.logic.ts:146 fn filterGroupsToFilter(groups: FilterGroup[]): CollectionFilter | string | undefined L32 | Converts FilterGroup[] (from the UI) back into a CollectionFilter or string or undefined.
 sym src/lib/features/collection/toolbar/filter.logic.ts:203 fn isUnaryOperator(op: FilterOperator): boolean L3 | Whether an operator takes no value: `filterRowToExpression` ignores the row's value for it, and the filter row shows no value input.
 sym src/lib/features/collection/toolbar/filter.logic.ts:223 fn getAllKnownProperties(index: Map<string, PropertyIndexRecord>): string[] L16 | Collects all known note property names from the index plus standard file.* properties.
-sym src/lib/features/collection/toolbar/filter.logic.ts:296 fn createEmptyExpressionRow(): FilterRow L3 | Creates an expression row with no text yet.
-sym src/lib/features/collection/toolbar/filter.logic.ts:328 fn isFilterObject(item: unknown): item is CollectionFilter L5 | True for a non-null object whose `and` / `or` / `not`, where present, are lists.
+sym src/lib/features/collection/toolbar/filter.logic.ts:297 fn addFilter(groups: FilterGroup[], availableProperties: string[], propertyIndex: Map<string, PropertyIndexRecord>): FilterGroup[] L10 | Appends a blank filter row on the first available property (else `file.name`) to the first group, or to a new "and" group when there is none.
+sym src/lib/features/collection/toolbar/filter.logic.ts:312 fn createEmptyExpressionRow(): FilterRow L3 | Creates an expression row with no text yet.
+sym src/lib/features/collection/toolbar/filter.logic.ts:344 fn isFilterObject(item: unknown): item is CollectionFilter L5 | True for a non-null object whose `and` / `or` / `not`, where present, are lists.
 sym src/lib/features/collection/toolbar/toolbar.types.ts:66 interface FilterRow L19 | A visual filter row (property + operator + value)
 sym src/lib/features/collection/toolbar/toolbar.types.ts:87 interface FilterGroup L6 | A group of filters with a conjunction
 sym src/lib/features/collection/view-row-set.port.ts:55 fn registerViewRowSetPort(port: ViewRowSetPort): () => void L6 | Installs the port a `.view` in the collection editor uses.

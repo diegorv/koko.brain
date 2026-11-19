@@ -12,7 +12,7 @@ imp src/lib/features/file-icons/IconPicker.svelte:9 -> src/lib/components/ui/inp
 imp src/lib/features/file-icons/IconPicker.svelte:10 -> src/lib/components/ui/scroll-area/index.ts ScrollArea
 ## imported-by
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:8 -> src/lib/features/file-icons/IconPicker.svelte default
-imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:12 -> src/lib/features/file-icons/IconPicker.svelte default
+imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:13 -> src/lib/features/file-icons/IconPicker.svelte default
 imp src/lib/features/note-list/NoteRowMenu.svelte:19 -> src/lib/features/file-icons/IconPicker.svelte default
 imp src/lib/features/rail-shell/FilesNavigator.svelte:51 -> src/lib/features/file-icons/IconPicker.svelte default
 imp src/lib/features/rail-shell/TypesNavigator.svelte:31 -> src/lib/features/file-icons/IconPicker.svelte default
@@ -25,7 +25,7 @@ test src/tests/lib/features/file-icons/IconPicker.test.ts imports src/lib/featur
 ## symbols
 sym src/lib/features/file-icons/IconPicker.svelte:1 component IconPicker props:open=$bindable,currentPack,currentName,currentColor,currentTextColor,onSelect,onColorsChange,onRemove,onClose L323
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:385 in (markup) mount
-by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:702 in (markup) mount
+by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:716 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/note-list/NoteRowMenu.svelte:291 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/FilesNavigator.svelte:486 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/TypesNavigator.svelte:501 in (markup) mount
@@ -42,7 +42,7 @@ mount src/lib/features/file-icons/IconPicker.svelte:224 IconRenderer -> src/lib/
 mount src/lib/features/file-icons/IconPicker.svelte:239 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 ## mounted-at
 mount src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:385 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:702 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:716 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/note-list/NoteRowMenu.svelte:291 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/rail-shell/FilesNavigator.svelte:486 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/rail-shell/TypesNavigator.svelte:501 IconPicker -> src/lib/features/file-icons/IconPicker.svelte

@@ -3,19 +3,24 @@
 	import type { EditorView } from '@codemirror/view';
 	import type { UnlistenFn } from '@tauri-apps/api/event';
 	import { onMount, onDestroy } from 'svelte';
+	import CheckIcon from '@lucide/svelte/icons/check';
 	import { EVENT_NAMES } from '#lib/contracts/events.js';
 	import { call, on } from '#lib/contracts/ipc.js';
 	import { applyStoredTheme, THEME_VARS_STORAGE_KEY } from '#lib/core/settings/theme.service.js';
 	import { createComposerEditorHost } from '#lib/plugins/quick-capture/composer-editor-host.service.js';
 	import { createComposerEditor, setComposerDark, setComposerText } from '#lib/plugins/quick-capture/composer-editor.js';
 
-	const SAVE_FLASH_MS = 180;
+	/** How long a confirmed save shows "Saved" before the window hides. */
+	const SAVE_FLASH_MS = 600;
 	/** How long a save waits for the main window to report the written note. */
 	const RESULT_TIMEOUT_MS = 3000;
 	/** localStorage key of the unsaved composer text, kept until a save is reported written. */
 	const DRAFT_STORAGE_KEY = 'kokobrain:composer-draft';
 
-	let text = $state(readDraft());
+	const initialDraft = readDraft();
+	let text = $state(initialDraft);
+	/** A stored draft was put back in the editor and not edited since: shows "Draft restored". */
+	let restored = $state(initialDraft.trim() !== '');
 	let saved = $state(false);
 	/**
 	 * Why the last save left the text in place: `failed` when the note was not
@@ -109,6 +114,7 @@
 			return;
 		}
 		saving = true;
+		restored = false;
 		const savedShow = show;
 		const requestId = crypto.randomUUID();
 		// Start waiting before the submit so an early result is not missed.
@@ -139,6 +145,10 @@
 			saveProblem = ok === false ? 'failed' : 'unknown';
 			return;
 		}
+		// Store only what was typed after the submit before the hold: a summon
+		// during it restores the draft, which still holds the written text, and
+		// Cmd+Enter there would capture it twice. The editor keeps the text.
+		writeDraft(withoutWritten(text, body));
 		saved = true;
 		// `saving` stays set through the flash: the written text is still in the
 		// editor, so a second Cmd+Enter here would capture it twice.
@@ -171,7 +181,10 @@
 		show++;
 		host.reset();
 		// Text left unsaved by an earlier show (dismissed, failed or unconfirmed).
-		setText(readDraft());
+		const draft = readDraft();
+		setText(draft);
+		// Set even when the editor already held the draft: it is still coming back.
+		restored = draft.trim() !== '';
 		if (view) {
 			// The draft usually equals the text, so nothing above replaced it and
 			// a list left open by the last show would still be there.
@@ -184,6 +197,13 @@
 		dismissing = false;
 		// Defer focus to the next tick so the show + reset commits to DOM first.
 		queueMicrotask(() => view?.focus());
+	}
+
+	/** Throws the restored draft away: empties the editor and so the stored draft. */
+	function discard() {
+		setText('');
+		restored = false;
+		view?.focus();
 	}
 
 	function onKeyDown(event: KeyboardEvent) {
@@ -205,7 +225,11 @@
 			doc: text,
 			host,
 			dark: isDark(),
-			onDocChange: (next) => (text = next),
+			onDocChange: (next) => {
+				// setText() sets `text` first, so its own echo is equal and keeps the note.
+				if (next !== text) restored = false;
+				text = next;
+			},
 			// Esc inside the editor; the window handler takes it elsewhere.
 			onEscape: () => void dismiss(),
 		});
@@ -248,15 +272,25 @@
 			<div class="placeholder" aria-hidden="true">Quick capture...</div>
 		{/if}
 	</div>
-	{#if saveProblem === 'failed'}
-		<div class="hint error" role="alert">Could not save. ⌘↩ retries, Esc hides (draft kept).</div>
-	{:else if saveProblem === 'unknown'}
-		<div class="hint error" role="alert">Save not confirmed. ⌘↩ saves again, Esc hides (draft kept).</div>
-	{:else if saving && !saved}
-		<div class="hint">Saving...</div>
-	{:else}
-		<div class="hint">Esc hides (draft kept) · ⌘↩ saves</div>
-	{/if}
+	<div class="hint-row">
+		<!-- `text` too: a late confirmed save can drop the whole restored text. -->
+		{#if restored && text}
+			<div class="restored">
+				Draft restored · <button type="button" class="discard" data-tauri-drag-region="false" onclick={discard}>Discard</button>
+			</div>
+		{/if}
+		{#if saveProblem === 'failed'}
+			<div class="hint error" role="alert">Could not save. ⌘↩ retries, Esc hides (draft kept).</div>
+		{:else if saveProblem === 'unknown'}
+			<div class="hint error" role="alert">Save not confirmed. ⌘↩ saves again, Esc hides (draft kept).</div>
+		{:else if saved}
+			<div class="hint saved-hint"><CheckIcon size={12} aria-hidden="true" /> Saved</div>
+		{:else if saving}
+			<div class="hint">Saving...</div>
+		{:else}
+			<div class="hint">Esc hides (draft kept) · ⌘↩ saves</div>
+		{/if}
+	</div>
 </div>
 
 <style>
@@ -307,12 +341,36 @@
 		line-height: 1.5;
 	}
 
-	.hint {
+	.hint-row {
+		display: flex;
+		align-items: baseline;
+		gap: 8px;
 		padding-top: 6px;
 		color: var(--muted-foreground);
 		font-size: 11px;
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	}
+
+	.hint {
+		margin-left: auto;
 		text-align: right;
+	}
+
+	.discard {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--foreground);
+		font: inherit;
+		text-decoration: underline;
+		cursor: pointer;
+	}
+
+	.saved-hint {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		color: var(--primary);
 	}
 
 	.hint.error {

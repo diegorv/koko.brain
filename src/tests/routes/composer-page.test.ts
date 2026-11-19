@@ -254,7 +254,7 @@ describe('composer save', () => {
 		expect(alertText()).not.toContain('cancels');
 	});
 
-	it('reads Saving... while the save waits, and not during the saved flash', async () => {
+	it('reads Saving... while the save waits, then holds Saved for 600 ms', async () => {
 		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 		mockSubmit('silent');
 		type('an idea');
@@ -267,18 +267,91 @@ describe('composer save', () => {
 		resultHandler()({ requestId: lastRequestId(), ok: true });
 		await settle();
 		expect(target.querySelector('.composer-root')!.classList.contains('saved')).toBe(true);
-		expect(hint().textContent).toBe(DEFAULT_HINT);
+		expect(hint().textContent?.trim()).toBe('Saved');
+		expect(hint().querySelector('svg')).not.toBeNull();
 
-		// The flash still lasts 180 ms.
-		await vi.advanceTimersByTimeAsync(179);
+		await vi.advanceTimersByTimeAsync(599);
 		flushSync();
 		expect(commands()).toEqual(['submit_composer_capture']);
-		expect(hint().textContent).toBe(DEFAULT_HINT);
+		expect(target.querySelector('.composer-root')!.classList.contains('saved')).toBe(true);
+		expect(hint().textContent?.trim()).toBe('Saved');
 		await vi.advanceTimersByTimeAsync(1);
 		flushSync();
 		expect(commands()).toEqual(['submit_composer_capture', 'dismiss_composer']);
+		expect(target.querySelector('.composer-root')!.classList.contains('saved')).toBe(false);
 		expect(hint().textContent).toBe(DEFAULT_HINT);
 	});
+
+	it('stores only the text typed after the submit once the save is confirmed, before the hold ends', async () => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		mockSubmit('silent');
+		type('an idea');
+		saveKey();
+		await settle();
+		expect(localStorage.getItem('kokobrain:composer-draft')).toBe('an idea');
+
+		resultHandler()({ requestId: lastRequestId(), ok: true });
+		await settle();
+
+		expect(localStorage.getItem('kokobrain:composer-draft')).toBeNull();
+		expect(editorText()).toBe('an idea');
+		expect(commands()).toEqual(['submit_composer_capture']);
+	});
+
+	it('keeps text typed while the save waited in the stored draft during the hold', async () => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		mockSubmit('silent');
+		type('an idea');
+		saveKey();
+		await settle();
+		type('an idea, and more');
+
+		resultHandler()({ requestId: lastRequestId(), ok: true });
+		await settle();
+
+		expect(localStorage.getItem('kokobrain:composer-draft')).toBe(', and more');
+		expect(editorText()).toBe('an idea, and more');
+	});
+
+	it('shows an empty composer and sends no second capture after Esc and a summon during the hold', async () => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		type('an idea');
+		saveKey();
+		await vi.advanceTimersByTimeAsync(1);
+		flushSync();
+		expect(target.querySelector('.composer-root')!.classList.contains('saved')).toBe(true);
+
+		press({ key: 'Escape' });
+		summon();
+
+		expect(editorText()).toBe('');
+		expect(target.textContent).not.toContain('Draft restored');
+		saveKey();
+		await vi.advanceTimersByTimeAsync(600);
+		flushSync();
+		expect(commands().filter((c) => c === 'submit_composer_capture')).toHaveLength(1);
+		expect(editorText()).toBe('');
+	});
+
+	it.each(['write-fail', 'silent'] as const)(
+		'keeps the stored draft after a %s save and restores it on the next summon',
+		async (outcome) => {
+			vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+			mockSubmit(outcome);
+			type('an idea');
+			saveKey();
+			await vi.advanceTimersByTimeAsync(3000);
+			flushSync();
+			expect(alertText()).not.toBeUndefined();
+			expect(localStorage.getItem('kokobrain:composer-draft')).toBe('an idea');
+
+			press({ key: 'Escape' });
+			summon();
+
+			expect(editorText()).toBe('an idea');
+			expect(localStorage.getItem('kokobrain:composer-draft')).toBe('an idea');
+		},
+	);
 
 	it('replaces the failed hint with Saving... while a retry waits', async () => {
 		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
@@ -314,26 +387,145 @@ describe('composer save', () => {
 		expect(hint().textContent).toBe('Saving...');
 	});
 
-	it('restores a stored draft with no restored note and no Discard control', async () => {
-		unmount(component!);
-		localStorage.setItem('kokobrain:composer-draft', 'half a thought');
-		await mountComposer();
+	describe('draft restored', () => {
+		function restoredNote(): HTMLElement | null {
+			return target.querySelector('.restored');
+		}
 
-		expect(editorText()).toBe('half a thought');
-		expect(target.textContent).not.toContain('Draft restored');
-		expect(target.textContent).not.toContain('Discard');
-		expect(target.querySelector('button')).toBeNull();
-		expect(hint().textContent).toBe(DEFAULT_HINT);
+		function discardButton(): HTMLButtonElement | null {
+			return target.querySelector('.restored button');
+		}
 
-		press({ key: 'Escape' });
-		await vi.waitFor(() => expect(commands()).toEqual(['dismiss_composer']));
-		summon();
+		async function remountWithDraft(draft: string): Promise<void> {
+			unmount(component!);
+			// summon() must reach the new mount's listener, not the unmounted one's.
+			vi.mocked(on).mockClear();
+			localStorage.setItem('kokobrain:composer-draft', draft);
+			await mountComposer();
+		}
 
-		expect(editorText()).toBe('half a thought');
-		expect(target.textContent).not.toContain('Draft restored');
-		expect(target.textContent).not.toContain('Discard');
-		expect(target.querySelector('button')).toBeNull();
-		expect(hint().textContent).toBe(DEFAULT_HINT);
+		it('says Draft restored with a Discard button when mounted with a stored draft', async () => {
+			await remountWithDraft('half a thought');
+
+			expect(editorText()).toBe('half a thought');
+			expect(restoredNote()?.textContent).toBe('Draft restored · Discard');
+			expect(discardButton()?.textContent).toBe('Discard');
+			expect(discardButton()?.getAttribute('data-tauri-drag-region')).toBe('false');
+			// The note sits beside the hint, not in it.
+			expect(hint().textContent).toBe(DEFAULT_HINT);
+		});
+
+		it('says nothing about a draft when none was stored', async () => {
+			expect(restoredNote()).toBeNull();
+			expect(target.querySelector('button')).toBeNull();
+
+			press({ key: 'Escape' });
+			await vi.waitFor(() => expect(commands()).toEqual(['dismiss_composer']));
+			summon();
+
+			expect(restoredNote()).toBeNull();
+			expect(target.textContent).not.toContain('Draft restored');
+		});
+
+		it('says Draft restored when a summon restores a dismissed draft', async () => {
+			type('half a thought');
+			expect(restoredNote()).toBeNull();
+			press({ key: 'Escape' });
+			await vi.waitFor(() => expect(commands()).toEqual(['dismiss_composer']));
+
+			// The editor already holds the draft, so the restore changes no text.
+			summon();
+
+			expect(editorText()).toBe('half a thought');
+			expect(restoredNote()?.textContent).toBe('Draft restored · Discard');
+		});
+
+		it('keeps the note when the restore replaces the editor text', async () => {
+			type('older text');
+			localStorage.setItem('kokobrain:composer-draft', 'newer draft');
+
+			summon();
+
+			expect(editorText()).toBe('newer draft');
+			expect(restoredNote()).not.toBeNull();
+		});
+
+		it('drops the note when a late confirmed save empties the restored text', async () => {
+			mockSubmit('silent');
+			type('an idea');
+			saveKey();
+			await settle();
+			press({ key: 'Escape' });
+			summon();
+			expect(restoredNote()).not.toBeNull();
+
+			resultHandler()({ requestId: lastRequestId(), ok: true });
+			await vi.waitFor(() => expect(editorText()).toBe(''));
+			flushSync();
+
+			expect(restoredNote()).toBeNull();
+		});
+
+		it('keeps the note when a late confirmed save leaves text typed after the submit', async () => {
+			mockSubmit('silent');
+			type('an idea');
+			saveKey();
+			await settle();
+			type('an idea, more');
+			press({ key: 'Escape' });
+			summon();
+			expect(restoredNote()).not.toBeNull();
+
+			resultHandler()({ requestId: lastRequestId(), ok: true });
+			await vi.waitFor(() => expect(editorText()).toBe(', more'));
+			flushSync();
+
+			expect(restoredNote()).not.toBeNull();
+		});
+
+		it('drops the note once the restored draft is being saved', async () => {
+			mockSubmit('silent');
+			await remountWithDraft('half a thought');
+
+			saveKey();
+			await settle();
+
+			expect(hint().textContent).toBe('Saving...');
+			expect(restoredNote()).toBeNull();
+		});
+
+		it('drops the note on the first typed character', async () => {
+			await remountWithDraft('half a thought');
+			typeKeys('!');
+			expect(restoredNote()).toBeNull();
+
+			press({ key: 'Escape' });
+			summon();
+			expect(restoredNote()).not.toBeNull();
+			typeKeys('?');
+			expect(restoredNote()).toBeNull();
+			expect(editorText()).toBe('half a thought!?');
+		});
+
+		it('Discard empties the editor and the stored draft and keeps focus in the editor', async () => {
+			await remountWithDraft('half a thought');
+
+			// A real click moves focus to the button; jsdom's .click() does not.
+			discardButton()!.focus();
+			expect(document.activeElement).toBe(discardButton());
+			discardButton()!.click();
+			flushSync();
+
+			expect(editorText()).toBe('');
+			expect(localStorage.getItem('kokobrain:composer-draft')).toBeNull();
+			expect(restoredNote()).toBeNull();
+			expect(document.activeElement).toBe(editorView().contentDOM);
+			expect(commands()).toEqual([]);
+
+			summon();
+			expect(editorText()).toBe('');
+			expect(restoredNote()).toBeNull();
+		});
 	});
 
 	it('keeps the text and shows an error when the save fails', async () => {
@@ -433,7 +625,7 @@ describe('composer save', () => {
 		expect(target.querySelector('.composer-root')!.classList.contains('saved')).toBe(true);
 
 		saveKey();
-		await vi.advanceTimersByTimeAsync(500);
+		await vi.advanceTimersByTimeAsync(600);
 		flushSync();
 
 		expect(commands()).toEqual(['submit_composer_capture', 'dismiss_composer']);
@@ -448,7 +640,7 @@ describe('composer save', () => {
 		press({ key: 'Escape' });
 		summon();
 
-		await vi.advanceTimersByTimeAsync(500);
+		await vi.advanceTimersByTimeAsync(600);
 		flushSync();
 
 		// Only the Esc dismissed; the written text is dropped from the new show.

@@ -4,7 +4,7 @@ file src/lib/features/auto-organize/auto-organize.store.svelte.ts store L59 modu
 ## imports
 imp src/lib/features/auto-organize/auto-organize.store.svelte.ts:1 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeRule,type:AutoOrganizeConfig
 ## imported-by
-imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:47 -> src/lib/features/auto-organize/auto-organize.store.svelte.ts autoOrganizeStore
+imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:49 -> src/lib/features/auto-organize/auto-organize.store.svelte.ts autoOrganizeStore
 imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:16 -> src/lib/features/auto-organize/auto-organize.store.svelte.ts autoOrganizeStore
 imp src/lib/features/auto-organize/auto-organize.service.ts:14 -> src/lib/features/auto-organize/auto-organize.store.svelte.ts autoOrganizeStore
 ## reach
@@ -18,7 +18,7 @@ test src/tests/lib/features/auto-organize/auto-organize.no-chain.test.ts imports
 test src/tests/lib/features/auto-organize/auto-organize.service.test.ts imports src/lib/features/auto-organize/auto-organize.store.svelte.ts
 ## symbols
 sym src/lib/features/auto-organize/auto-organize.store.svelte.ts:9 store autoOrganizeStore L51 | Reactive store for auto-organize rules and excluded folders
-by src/lib/features/auto-organize/auto-organize.store.svelte.ts:autoOrganizeStore <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:134 in createCount=$derived member
+by src/lib/features/auto-organize/auto-organize.store.svelte.ts:autoOrganizeStore <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:136 in createCount=$derived member
 by src/lib/features/auto-organize/auto-organize.store.svelte.ts:autoOrganizeStore <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:83 in addRule mcall +16
 by src/lib/features/auto-organize/auto-organize.store.svelte.ts:autoOrganizeStore <- src/lib/features/auto-organize/auto-organize.service.ts:118 in loadAutoOrganizeConfig mcall +12
 ## store

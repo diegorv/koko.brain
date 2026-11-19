@@ -28,7 +28,7 @@ imp src/lib/core/settings/sections/TrashSection.svelte:8 -> src/lib/core/vault/v
 imp src/lib/core/vault/vault-entries.service.ts:5 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/core/vault/vault.service.ts:7 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:16 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
-imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:26 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
+imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:28 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:10 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/auto-organize/auto-organize.service.ts:16 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/backlinks/BacklinksPanel.svelte:10 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
