@@ -106,7 +106,7 @@ by src/lib/core/filesystem/fs.service.ts:addToTree <- src/lib/core/note-creator/
 by src/lib/core/filesystem/fs.service.ts:addToTree <- src/lib/features/deep-link/deep-link.service.ts:315 in executeNewAction call +1
 by src/lib/core/filesystem/fs.service.ts:addToTree <- src/lib/features/todoist-sync/closed-note-writer.service.ts:80 in createNoteFile call
 by src/lib/core/filesystem/fs.service.ts:addToTree <- src/lib/plugins/mods/mod-vault.service.ts:148 in createModVault call
-by src/lib/core/filesystem/fs.service.ts:addToTree <- src/lib/plugins/templates/templates.service.ts:110 in ensureTemplatesFolder call +1
+by src/lib/core/filesystem/fs.service.ts:addToTree <- src/lib/plugins/templates/templates.service.ts:112 in ensureTemplatesFolder call +1
 sym src/lib/core/filesystem/fs.service.ts:179 fn addScannedToTree(path: string, isDirectory: boolean): Promise<void> L11 | `addToTree` for an item that arrived on disk with content (a copied or restored folder): a folder's subtree comes from `scan_vault` on that folder alone.
 by src/lib/core/filesystem/fs.service.ts:addScannedToTree <- src/lib/core/trash/trash.service.ts:159 in restoreItem call
 sym src/lib/core/filesystem/fs.service.ts:198 fn createFile(parentPath: string, fileName: string, content: string = ''): Promise<string> L27 | Creates a file on disk with the given initial content (empty by default) and adds it to the tree.

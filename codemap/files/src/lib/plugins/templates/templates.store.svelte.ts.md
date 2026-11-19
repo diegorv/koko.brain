@@ -16,13 +16,13 @@ test src/tests/lib/plugins/templates/templates.service.test.ts imports src/lib/p
 ## symbols
 sym src/lib/plugins/templates/templates.store.svelte.ts:9 store templatesStore L20 | Reactive store for the templates plugin
 by src/lib/plugins/templates/templates.store.svelte.ts:templatesStore <- src/lib/plugins/templates/TemplatePicker.svelte:17 in filteredTemplates=$derived member +3
-by src/lib/plugins/templates/templates.store.svelte.ts:templatesStore <- src/lib/plugins/templates/templates.service.ts:29 in loadTemplates mcall +4
+by src/lib/plugins/templates/templates.store.svelte.ts:templatesStore <- src/lib/plugins/templates/templates.service.ts:30 in loadTemplates mcall +4
 ## store
 store src/lib/plugins/templates/templates.store.svelte.ts:9 templatesStore esc:0
-mem src/lib/plugins/templates/templates.store.svelte.ts:10 get templatesStore.isOpen r:src/lib/plugins/templates/TemplatePicker.svelte:87 w-via:open,close,toggle,reset
+mem src/lib/plugins/templates/templates.store.svelte.ts:10 get templatesStore.isOpen r:src/lib/plugins/templates/TemplatePicker.svelte:90 w-via:open,close,toggle,reset
 mem src/lib/plugins/templates/templates.store.svelte.ts:11 get templatesStore.templates r:src/lib/plugins/templates/TemplatePicker.svelte:17,src/lib/plugins/templates/TemplatePicker.svelte:25 w-via:setTemplates,reset
-mem src/lib/plugins/templates/templates.store.svelte.ts:14 do templatesStore.open w:src/lib/plugins/templates/templates.service.ts:130 | Opens the template picker dialog
-mem src/lib/plugins/templates/templates.store.svelte.ts:16 do templatesStore.close w:src/lib/plugins/templates/TemplatePicker.svelte:79 | Closes the template picker dialog
+mem src/lib/plugins/templates/templates.store.svelte.ts:14 do templatesStore.open w:src/lib/plugins/templates/templates.service.ts:132 | Opens the template picker dialog
+mem src/lib/plugins/templates/templates.store.svelte.ts:16 do templatesStore.close w:src/lib/plugins/templates/TemplatePicker.svelte:82 | Closes the template picker dialog
 mem src/lib/plugins/templates/templates.store.svelte.ts:18 do templatesStore.toggle w:- | Toggles the template picker dialog
-mem src/lib/plugins/templates/templates.store.svelte.ts:21 do templatesStore.setTemplates w:src/lib/plugins/templates/templates.service.ts:29,src/lib/plugins/templates/templates.service.ts:43,src/lib/plugins/templates/templates.service.ts:46 | Replaces the full list of available templates
-mem src/lib/plugins/templates/templates.store.svelte.ts:24 do templatesStore.reset w:src/lib/plugins/templates/templates.service.ts:135 | Resets all state (e.g. when switching vaults)
+mem src/lib/plugins/templates/templates.store.svelte.ts:21 do templatesStore.setTemplates w:src/lib/plugins/templates/templates.service.ts:30,src/lib/plugins/templates/templates.service.ts:44,src/lib/plugins/templates/templates.service.ts:47 | Replaces the full list of available templates
+mem src/lib/plugins/templates/templates.store.svelte.ts:24 do templatesStore.reset w:src/lib/plugins/templates/templates.service.ts:137 | Resets all state (e.g. when switching vaults)

@@ -55,7 +55,7 @@ module src/lib/plugins/periodic-notes plugins files 3 in-modules 5 out-modules 7
 module src/lib/plugins/queryjs plugins files 14 in-modules 2 out-modules 10 pub 6/78 ipc 0/0 card ~1.6k
 module src/lib/plugins/quick-capture plugins files 5 in-modules 2 out-modules 10 pub 10/15 ipc 3/0 card ~1.6k
 module src/lib/plugins/table-of-contents plugins files 5 in-modules 1 out-modules 5 pub 2/7 ipc 0/0 card ~0.8k
-module src/lib/plugins/templates plugins files 4 in-modules 1 out-modules 7 pub 4/13 ipc 1/0 card ~0.8k
+module src/lib/plugins/templates plugins files 4 in-modules 1 out-modules 7 pub 4/14 ipc 1/0 card ~0.8k
 module src/lib/plugins/word-count plugins files 2 in-modules 1 out-modules 1 pub 1/4 ipc 0/0 card ~0.4k
 module src/lib/types types files 1 in-modules 17 out-modules 1 pub 8/17 ipc 0/0 card ~1k
 module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 89/109 ipc 3/0 card ~9.8k
@@ -90,7 +90,7 @@ layer plugins -> core 111
 layer plugins -> features 35
 layer plugins -> plugins 142
 layer plugins -> types 4
-layer plugins -> utils 43
+layer plugins -> utils 44
 layer routes -> app 7
 layer routes -> components 1
 layer routes -> contracts 2

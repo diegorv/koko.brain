@@ -1,6 +1,6 @@
 # file card src/lib/utils/path.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/utils/path.ts ' codemap/files
-file src/lib/utils/path.ts other L123 module src/lib/utils in28 t1
+file src/lib/utils/path.ts other L123 module src/lib/utils in29 t1
 ## imported-by
 imp src/lib/app/deep-link-actions.ts:15 -> src/lib/utils/path.ts vaultRelativeKey
 imp src/lib/app/editor-host.ts:27 -> src/lib/utils/path.ts resolveFilePath
@@ -31,8 +31,9 @@ imp src/lib/plugins/mods/mod-query.service.ts:5 -> src/lib/utils/path.ts relativ
 imp src/lib/plugins/mods/mod-vault.service.ts:13 -> src/lib/utils/path.ts relativePath
 imp src/lib/plugins/mods/mods-host.service.ts:18 -> src/lib/utils/path.ts vaultRelativeKey
 imp src/lib/plugins/one-on-one/one-on-one.service.ts:19 -> src/lib/utils/path.ts stem
+imp src/lib/plugins/templates/templates.service.ts:15 -> src/lib/utils/path.ts resolveFilePath
 ## reach
-in2 src/lib/utils/path.ts 89 files in 34 modules: src/lib/features/rail-shell(11) src/lib/app(9) src/lib/core/markdown-editor(5) src/lib/features/tasks(5) src/lib/features/type-definitions(5) +29 modules: q impact src/lib/utils/path.ts --depth 2
+in2 src/lib/utils/path.ts 90 files in 35 modules: src/lib/features/rail-shell(11) src/lib/app(9) src/lib/core/markdown-editor(5) src/lib/features/tasks(5) src/lib/features/type-definitions(5) +30 modules: q impact src/lib/utils/path.ts --depth 2
 out2 src/lib/utils/path.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/utils/path.test.ts imports src/lib/utils/path.ts mirror
@@ -42,6 +43,7 @@ by src/lib/utils/path.ts:normalizePath <- src/lib/features/properties/bookmark-m
 sym src/lib/utils/path.ts:33 fn resolveFilePath(vaultPath: string, file: string): string L21 | Resolves a relative file path against a vault root, normalizing path segments and ensuring the result stays within the vault.
 by src/lib/utils/path.ts:resolveFilePath <- src/lib/app/editor-host.ts:162 in appEditorHost.createNote call +1
 by src/lib/utils/path.ts:resolveFilePath <- src/lib/features/deep-link/deep-link.service.ts:188 in executeAction call +1
+by src/lib/utils/path.ts:resolveFilePath <- src/lib/plugins/templates/templates.service.ts:63 in createFileFromTemplate call
 sym src/lib/utils/path.ts:64 fn basename(path: string): string L3 | Extracts the last segment of a path, extension included.
 by src/lib/utils/path.ts:basename <- src/lib/core/editor/editor.logic.ts:36 in getFileName call
 by src/lib/utils/path.ts:basename <- src/lib/core/filesystem/delete-note.service.ts:13 in deleteNoteWithConfirm call

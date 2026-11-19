@@ -59,9 +59,9 @@ fx src/lib/plugins/mods/mods-host.service.ts:925 tauri-fs.exists in reloadFolder
 fx src/lib/plugins/mods/mods-host.service.ts:1047 tauri-fs.exists in rediscoverMods
 fx src/lib/plugins/mods/mods-host.service.ts:1088 tauri-fs.exists in startModsHost
 fx src/lib/plugins/one-on-one/one-on-one.service.ts:32 tauri-fs.exists in loadPeopleFromFolder
-fx src/lib/plugins/templates/templates.service.ts:27 tauri-fs.exists in loadTemplates
-fx src/lib/plugins/templates/templates.service.ts:101 tauri-fs.exists in ensureTemplatesFolder
-fx src/lib/plugins/templates/templates.service.ts:113 tauri-fs.exists in ensureTemplatesFolder
+fx src/lib/plugins/templates/templates.service.ts:28 tauri-fs.exists in loadTemplates
+fx src/lib/plugins/templates/templates.service.ts:103 tauri-fs.exists in ensureTemplatesFolder
+fx src/lib/plugins/templates/templates.service.ts:115 tauri-fs.exists in ensureTemplatesFolder
 fx src/lib/utils/log.service.ts:63 tauri-fs.exists in initLogSession
 fx src/lib/utils/log.service.ts:231 tauri-fs.exists in openLogDir
 fx src/lib/core/filesystem/fs.service.ts:200 tauri-fs.readDir in createFile
@@ -77,7 +77,7 @@ fx src/lib/plugins/mods/mod-vault.service.ts:123 tauri-fs.readDir in createModVa
 fx src/lib/plugins/mods/mods-host.service.ts:1048 tauri-fs.readDir in rediscoverMods
 fx src/lib/plugins/mods/mods-host.service.ts:1089 tauri-fs.readDir in startModsHost
 fx src/lib/plugins/one-on-one/one-on-one.service.ts:34 tauri-fs.readDir in loadPeopleFromFolder
-fx src/lib/plugins/templates/templates.service.ts:33 tauri-fs.readDir in loadTemplates
+fx src/lib/plugins/templates/templates.service.ts:34 tauri-fs.readDir in loadTemplates
 fx src/lib/features/canvas/canvas-image.service.ts:34 tauri-fs.readFile in resolveImageSrc
 fx src/lib/app/deep-link-actions.ts:68 tauri-fs.readTextFile in executeDailyAction
 fx src/lib/app/deep-link-actions.ts:171 tauri-fs.readTextFile in executeCaptureAction
