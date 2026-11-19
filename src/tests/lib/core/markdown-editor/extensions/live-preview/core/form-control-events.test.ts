@@ -36,6 +36,25 @@ describe('isFormControlInputEvent', () => {
 		});
 	}
 
+	const clipboardAndDropEvents = (): Event[] =>
+		['paste', 'cut', 'copy', 'drop'].map((type) => new Event(type, { bubbles: true, cancelable: true }));
+
+	for (const tag of ['input', 'select', 'textarea'] as const) {
+		it(`claims paste, cut, copy and drop from a <${tag}>`, () => {
+			const control = el(tag);
+			for (const ev of clipboardAndDropEvents()) {
+				expect(isFormControlInputEvent(fire(control, ev)), ev.type).toBe(true);
+			}
+		});
+	}
+
+	it('leaves paste, cut, copy and drop from a non-control element to CodeMirror', () => {
+		const label = el('label');
+		for (const ev of clipboardAndDropEvents()) {
+			expect(isFormControlInputEvent(fire(label, ev)), ev.type).toBe(false);
+		}
+	});
+
 	it('claims a key event whose target sits inside a control', () => {
 		const select = el('select');
 		const option = select.appendChild(document.createElement('option'));

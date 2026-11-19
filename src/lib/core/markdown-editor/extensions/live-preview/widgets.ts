@@ -456,7 +456,7 @@ export class TableWidget extends WidgetType {
 		);
 	}
 
-	/** Cells can hold meta-bind controls (`pickWidget`): their keys stay in the control. */
+	/** Cells can hold meta-bind controls (`pickWidget`): their key, clipboard and drop events stay in the control. */
 	ignoreEvent(event: Event) {
 		return isFormControlInputEvent(event);
 	}
