@@ -1,0 +1,1783 @@
+{
+ "07-dims-editor-kbui": [
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:595",
+   "title": "Live-preview dimmed syntax (inline comments, block refs, hard break, link ref defs, revealed marks) is 1.6-4.1:1",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "%%comment%%, ^block-id and the hard-break arrow use --syntax-meta at 0.5 opacity (--lp-comment and --lp-hard-break are never set). This fails 4.5:1 on all 28 themes and 3:1 on 24. Worst cases: 1.66:1 on Zettlr Bielefeld Light (Lc 27), 1.60:1 on Zettlr Karl-Marx-Stadt Dark, 1.77:1 on KokoBrain Default; best 3.24:1. Link ref def label (editor-fg@0.5): 27/28 fail, 2.29:1. Its URL (@0.5): 28/28 fail, 1.92:1. Revealed marks (processing@0.6): 28/28 below 4.5, 19 below 3. QueryJS table indicator (fg@0.7 on collection bg): 5/28, 3.50:1. QueryJS error details (@0.85): 22/28, 3.10:1 on Lavender Haze and 2.76:1 on Zettlr Bordeaux Dark.",
+   "fix": "Shared fix B. In styles.ts, remove the flat opacity from .cm-lp-inline-comment, .cm-lp-block-ref, the hard-break ::after, .cm-lp-link-ref-def, .cm-formatting-block, .cm-lp-qjs-error-details and .cm-lp-qjs-table-nav-indicator. Use the token at full strength, or a color-mix toward editor-bg that stops at 4.5:1 (3:1 for syntax glyphs). Findings 10, 13 and 14 are subsets of this one.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/queryjs/kb-ui.ts:390",
+   "title": "QueryJS kb.ui secondary text faded with opacity 0.5-0.7",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "editor-fg over lp-collection-bg (flattened over editor-bg): @0.5 fails 22/28 (2.30:1 on Zettlr Berlin Light, 2.72:1 on Lavender Haze, 3.43:1 worst dark); @0.6 fails 15/28; @0.7 fails 5/28 (3.50:1). kpi labels (line 133) sit on their default card tint rgba(160,160,160,0.15), where @0.7 fails 10/28 (3.29:1 on Zettlr Berlin Light).",
+   "fix": "Shared fix A. Set color to a muted token that already passes on lp-collection-bg (--lp-collection-loading or --muted-foreground; the builder holds collectionLoading to 4.5:1 there) and drop opacity.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/queryjs/kb-ui.ts:279",
+   "title": "kb.ui.tagCloud scales whole-chip opacity down to 0.4, rare tags are 1.7-3.2:1",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Chip text at whole-chip alpha over the default chip rgba(139,108,239,0.3) on the collection bg. Alpha 0.4: 28/28 fail, 1.69:1 on Zettlr Berlin Light, best 3.23:1. Alpha 0.7: 15/28 fail. Alpha 1.0: 0/28, minimum 5.22:1.",
+   "fix": "Encode frequency through font size, which is already scaled, and the background alpha only. Keep the chip text at full editor-fg.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:593",
+   "title": "Revealed %%comment%% and ^block-id text is dimmed twice (meta color at 0.5 opacity)",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Same numbers as styles.ts:595: 28/28 below 4.5:1, 24/28 below 3:1, 1.60-3.24:1, KokoBrain Default 1.77:1, Lavender Haze 1.70:1.",
+   "fix": "Covered by shared fix B; merge it into the styles.ts:595 finding.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:149",
+   "title": "Link reference definition lines are dimmed to 0.5 opacity while idle",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Label (editor-fg@0.5): 27/28 fail, 12 below 3:1, 2.29:1 on Zettlr Bielefeld Light. URL (syntax-url@0.5): 28/28 fail, 1.92:1 on Zettlr Bordeaux Light and 1.93:1 on Willemstad Dark.",
+   "fix": "Covered by shared fix B; subset of the styles.ts:595 finding.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:108",
+   "title": "Revealed # and > block markers are dimmed to 0.6 opacity",
+   "sev": "low",
+   "owner": "app",
+   "measured": "--syntax-processing at 0.6 on editor-bg: 28/28 below 4.5:1 and 19/28 below 3:1, 2.27:1 on Zettlr Bielefeld Light, 2.30:1 on Willemstad Dark, 3.41:1 on KokoBrain Default. If the heading color applied instead, 9/28 would be below 3:1.",
+   "fix": "Covered by shared fix B: replace the flat 0.6 with a mix that keeps at least 3:1.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:440",
+   "title": "Table add-row/add-column '+' button is under 3:1 when revealed",
+   "sev": "low",
+   "owner": "app",
+   "measured": "1.87:1 on Zettlr Bielefeld Light (Lc 33), 1.80:1 on Zettlr Karl-Marx-Stadt Dark, 1.97:1 on KokoBrain Default, 1.92:1 on Lavender Haze; best 4.08:1 (3:1 required for a control)",
+   "fix": "Part of shared fix B: reveal the button at full strength, or give it a color mixed toward editor-bg that keeps 3:1, and drop the 0.6 hover opacity.",
+   "src": "validator"
+  }
+ ],
+ "08-canvas": [
+  {
+   "key": "src/lib/features/canvas/LinkNode.svelte:184",
+   "title": "Canvas secondary text (paths, URLs, shortcuts, placeholders, empty states) at opacity 0.3-0.5 is 1.6-3.7:1",
+   "sev": "high",
+   "owner": "app",
+   "measured": "Measured on card, the default node surface. Full URL, file error and text placeholder (foreground@0.4): 28/28 fail, 1.96:1 on Zettlr Berlin Light (Lc 38), 2.60:1 worst dark. Empty state (@0.3): 1.62:1. FileNode subpath (@0.5): 27/28, 2.37:1. File picker path and context-menu shortcut (@0.4 on background): 28/28, 1.92:1. Image path and textarea/link-edit placeholders (muted-foreground@0.5): 28/28, 1.99:1 on Tolaria Light. Best case anywhere 3.65:1.",
+   "fix": "Shared fix A. Use color: var(--muted-foreground) at full strength in place of the opacity values, and remove opacity from the ::placeholder rules.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/canvas/CanvasContextMenu.svelte:226",
+   "title": "Low-opacity hint text in context menu, file picker and image placeholder",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Shortcut (foreground at .4 on --background): 28/28 under 4.5, light 1.92 (Zettlr light), dark 2.68-3.67, KokoBrain Default 3.57, Lc 19.5-49.5. Picker path on hover: 1.91-3.53. Image path (muted at .5 on card): 28/28, 1.99-3.02.",
+   "fix": "Replace opacity with solid --muted-foreground, which READABILITY_PAIRS guarantees at 4.5:1 on background, card and popover. The same fix covers LinkNode.svelte:184 (listed under missed).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/canvas/CanvasLinkInput.svelte:108",
+   "title": "Hard-coded white-alpha borders, input edges and hover states invisible on light themes",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Menu border rgba(255,255,255,.15) on background: 1.01 Sakura, 1.02 Lavender Haze, dark max 1.63. Input edge vs its .05 fill: 1.01-1.63, 28/28. Uncolored node border on card: 1.00 on light themes. Menu hover fill: 1.01-1.28.",
+   "fix": "Shared root with CanvasInner.svelte:764 (edges), GroupNode.svelte:31 (uncolored) and the xyflow defaults (CanvasInner.svelte:758). Define a few canvas tokens once in CanvasInner's .svelte-flow block from theme vars, for example a line color mixed from --foreground into --card at about 3:1 and a hover fill from --accent, and replace every rgba(255,255,255,x) in the canvas components with them.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/canvas/canvas.types.ts:5",
+   "title": "Preset palette used raw as edge stroke, node border and picker swatch fails 3:1 on light themes",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Preset as edge or border vs card: orange, yellow, green, cyan and purple fail 3:1 on 15/15 light themes; red fails only on Lavender Haze and Sakura; min 1.15 yellow Lavender Haze. Swatch vs background: min 1.09 yellow Sepia. Dark: all pass (min 3.48 Graphite Violet).",
+   "fix": "Shared root with GroupNode.svelte:31 (colored border) and canvas-markdown.css:133 (tinted fill). Resolve the preset per theme at render time (resolveColor plus ensureContrast against --card, or a labelColors-style OKLab darkening) for strokes, borders and swatches, keeping the stored preset number.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/canvas/canvas-markdown.css:133",
+   "title": "Markdown text colors lose contrast on tinted node fills",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "Blockquote (syntax-quote on lp-blockquote-bg over card plus 12.5% preset): 20/28 themes fail, worst 2.87 Zettlr Bielefeld Dark yellow (Lc 30.5); 8 themes fail even uncolored. Link 17 themes (3.30 Zettlr Frankfurt Dark yellow). LinkNode title (--primary) 15 themes (3.05 Twilight Violet yellow). h6 and del 16 themes (3.28-3.30). Sakura h2 2.39 on red and under 3:1 uncolored. mark 3.25 Zettlr Berlin Dark (4 Zettlr dark themes fail uncolored).",
+   "fix": "Themes side: add READABILITY_PAIRS for quote on blockquote-bg and for headings, link and primary on card, which fixes the uncolored failures. App side: lower the node tint or resolve the text color against the actual tinted surface. Share the per-theme preset resolution with canvas.types.ts:5.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/canvas/CanvasContextMenu.svelte:211",
+   "title": "Context menu Delete hover uses fixed #fb464c on pale red tint",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "#fb464c on rgba(251,70,76,.15) over --background: 25/28 under 4.5, all 15 light under 3 (Sepia 2.26, Lavender Haze 2.57), dark 3.69-4.64. The scout's fix var(--destructive) on its own 15% tint also fails on 23/28 (Willemstad Light 2.96, Zettlr Bordeaux Dark 3.02).",
+   "fix": "Keep the item text in --foreground on hover and color only the icon and tint with destructive, or use a solid --destructive fill with --destructive-foreground (guaranteed 4.5 by READABILITY_PAIRS). This shares a root with the shadcn destructive menu item (listed under missed).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/canvas/CanvasInner.svelte:764",
+   "title": "Uncolored edges and arrowheads invisible on light themes, below 3:1 on dark",
+   "sev": "high",
+   "owner": "app",
+   "measured": "--xy-edge-stroke rgba(255,255,255,.3) on --card: all 15 light themes 1.00-1.07 (Cool Mist 1.00, Lavender Haze 1.07); all 13 dark 2.51-2.71 (Graphite Violet 2.51).",
+   "fix": "Use the shared canvas line token (a --foreground mix at 3:1 or more on --card) for --xy-edge-stroke. This is the same change as CanvasLinkInput.svelte:108.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/canvas/CanvasInner.svelte:745",
+   "title": "Empty-canvas '+ Add card' text below 4.5:1 on dark themes",
+   "sev": "low",
+   "owner": "app",
+   "measured": "--muted-foreground on --card plus white .05: 8/13 dark under 4.5 (Zettlr dark 3.86, Twilight Violet 3.87, KokoBrain Default 4.43), Lc 35.6-43. Light themes pass.",
+   "fix": "Drop the white .05 fill (or use --accent), or set the label to --foreground. Owner is app only, not both.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/canvas/GroupNode.svelte:31",
+   "title": "Group containers invisible (uncolored) or below 1.7:1 (colored) on light themes",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Uncolored dashed border rgba(255,255,255,.2) on card: 28/28 under 3:1 (light 1.00-1.04, dark max 1.92); fill .03 invisible. Colored border (preset at 0x60) on card: 28/28 (1.06 Lavender Haze yellow to 1.71 Willemstad Dark).",
+   "fix": "Uncolored: the shared canvas line token (same as CanvasLinkInput:108). Colored: use the per-theme resolved preset (same as canvas.types.ts:5) at full or near-full alpha for the border.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/canvas/CanvasInner.svelte:770",
+   "title": "Minimap nodes invisible",
+   "sev": "low",
+   "owner": "app",
+   "measured": "--muted node fill vs --background minimap: 28/28 under 3:1 (Shimmering Focus Light 1.00, Willemstad Dark 1.04, best 2.07 Zettlr KMS Dark).",
+   "fix": "Set --xy-minimap-node-background-color to the canvas line token or a --muted-foreground mix that reaches 3:1 on --background.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/canvas/CanvasInner.svelte:610",
+   "title": "Svelte Flow attribution link unreadable on every theme",
+   "sev": "low",
+   "owner": "app",
+   "measured": "#999 (style.css:324) on rgba(255,255,255,.5) over card: dark 1.02-1.26 (KokoBrain Default 1.02), light 2.59-2.85. With colorMode dark the default bg would be rgba(150,150,150,.25), still 12/13 dark under 4.5 (2.90-4.57).",
+   "fix": "Set --xy-attribution-background-color to transparent and color the link with --muted-foreground via a :global(.svelte-flow__attribution a) override, or hide it through proOptions after checking the xyflow licensing terms.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/canvas/CanvasInner.svelte:771",
+   "title": "Controls (zoom/fit/lock) hover shows light icon on #f4f4f4 on dark themes",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Hover bg #f4f4f4 (style.css:43) with the inherited light foreground: 13/13 dark themes 1.03-1.52 (KokoBrain Default 1.03). Light themes pass. colorMode defaults to 'light' (initial-store.svelte.js:300) and is not passed at CanvasInner.svelte:609.",
+   "fix": "Set --xy-controls-button-background-color-hover to var(--muted) and --xy-controls-button-color-hover to var(--foreground), next to the existing controls vars (as CanvasToolbar's hover already does). Passing colorMode from the active theme's dark flag also fixes this and the marquee.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/canvas/CanvasInner.svelte:758",
+   "title": "Remaining xyflow light-mode defaults: edge label frame, connection line, selection marquee",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Connection line #b1b1b7 on card: 15/15 light under 3:1 (Lavender Haze 1.74, Sakura 1.83). Marquee rgba(0,89,220,.8): 13/13 dark (Graphite Violet 1.68, KokoBrain Default 1.85). Edge-label wrapper: white bg with 2px padding (style.css:626) frames the card-colored span on dark themes (white vs card 12-19:1).",
+   "fix": "Pass colorMode from the theme's dark flag, which fixes the marquee. Set --xy-connectionline-stroke to the canvas line token, because the dark default is also #b1b1b7 and fails on light, and --xy-edge-label-background-color to transparent or var(--card). This shares the canvas token change with CanvasLinkInput:108.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/canvas/LinkNode.svelte:184",
+   "title": "Link card URL line at 40% opacity unreadable on every theme",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "1.96:1 Zettlr light themes, 2.22 Lavender Haze, dark 2.60 (Zettlr Bordeaux Dark) to 3.65, KokoBrain Default 3.36",
+   "fix": "Same fix as CanvasContextMenu.svelte:226: replace the opacity with solid --muted-foreground (guaranteed 4.5:1 on card).",
+   "src": "validator"
+  }
+ ],
+ "01-faded": [
+  {
+   "key": "src/lib/features/collection/CollectionView.svelte:613",
+   "title": "Muted info text at 60% alpha: collection results count and 'Add property' label are 2.2-3.8:1",
+   "sev": "high",
+   "owner": "app",
+   "measured": "The scout measured the wrong surface: the view root is bg-card (CollectionView.svelte:517), not editor-bg. Re-measured on card: 28/28 fail, 2.35:1 on Tolaria Light (Lc 46), 2.53:1 on Twilight Violet, 2.81:1 on KokoBrain Default, best 3.77:1. Add property (PropertiesView.svelte:235, tab-text-inactive/60 on right-sidebar-bg): 28/28 fail, 2.25:1 on Tolaria Light, 2.75:1 on Zettlr Bordeaux Dark. Both tokens at full strength pass on all 28 themes.",
+   "fix": "Shared fix A. Use text-muted-foreground and text-tab-text-inactive without the alpha modifier, and keep the hover change. Do the same for the Plus icon at PropertiesView.svelte:224.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:74",
+   "title": "Unresolved link rows dimmed with container opacity (60% / 50%) lose readability",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Unresolved rows at opacity-60 on right-sidebar-bg: destructive text fails 28/28, 2.30:1 on Tolaria Light and 1.95:1 on Zettlr Bordeaux Dark. Heading (right-sidebar-muted-fg@0.6): 28/28, 2.25:1. Properties relationship row (PropertiesView.svelte:273, opacity-50): 23/28, 2.30:1 on Zettlr Berlin Light, 3.43:1 worst dark.",
+   "fix": "Shared fix A. Remove opacity-60 and opacity-50 and mark the unresolved state with the icon, italic or a dashed underline. The remaining red-text failures go away with scout 01's fix: a destructive text pair in READABILITY_PAIRS.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/kanban/KanbanDatePicker.svelte:67",
+   "title": "Icon-only controls dimmed to 50-60% alpha fall below 3:1",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "muted-foreground/50 on background (Kanban date icons, welcome page): 27/28 below 3:1, 1.94:1 on Tolaria Light (Lc 36), 2.23:1 on Twilight Violet. On popover (SortPanel.svelte:91, PropertiesPanel.svelte:135 and 142, FormulaRow.svelte:91 and 98): 28/28 below 3:1, 1.93:1 on Sakura. Properties '+' icon (/60 on right-sidebar-bg): 21/28 below 3:1.",
+   "fix": "Shared fix A. Use text-muted-foreground at full strength (it passes 4.5:1 on background and popover on all 28 themes) and keep the hover to foreground.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/kanban/KanbanView.svelte:607",
+   "title": "Placeholder text at 30-50% alpha is 1.5-3.1:1 (kanban inputs, properties list input)",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Kanban filter placeholder and the 'Add a card...' placeholder (KanbanLane.svelte:418, which is not the lane title input) at muted/50 on bg-background: 28/28 fail, 1.94:1 on Tolaria Light, 2.23:1 on Twilight Violet, 2.56:1 on KokoBrain Default. PropertyField.svelte:191 (right-sidebar-muted-fg/30 on input-bg over the sidebar): 28/28 fail, 1.46:1 on Lavender Haze (Lc 19), best 1.91:1.",
+   "fix": "Shared fix A. Use placeholder:text-muted-foreground (and text-right-sidebar-muted-fg) without alpha, as ui/input.svelte does.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/collection/collection-block-widget.ts:271",
+   "title": "Widget calendar dims out-of-month cells to 35% opacity, including event pills",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Day numbers (--editor-fg composited at .35 over the collection bg) measure 1.76 to 3.11. 26 of 28 themes are under 3:1 and all 28 are under 4.5. Event pill text measures 1.72 to 3.11 (APCA Lc 15 to 44).",
+   "fix": "Dim only the day-number div, and keep it at 3:1 or better (for example --muted-foreground with no opacity). Leave the event pills at full contrast.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/collection/CollectionCalendarView.svelte:144",
+   "title": "Svelte calendar out-of-month day numbers use muted-foreground/40 on muted/20",
+   "sev": "low",
+   "owner": "app",
+   "measured": "1.69 to 2.37 in all 28 themes: Zettlr light family 1.69, KokoBrain Default 2.02, best Shimmering Focus Dark 2.37.",
+   "fix": "Use /70 (or plain muted-foreground) and let the bg-muted/20 cell tint carry the 'other month' cue.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/collection/CollectionTableView.svelte:73",
+   "title": "Table null placeholder em dash uses text-muted-foreground/50",
+   "sev": "low",
+   "owner": "app",
+   "measured": "1.99 to 3.02: Tolaria Light 1.99, Zettlr light family 2.00. 27 of 28 themes are under 3.",
+   "fix": "Use /70 or plain muted-foreground.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/collection/toolbar/PropertiesPanel.svelte:135",
+   "title": "Icon-only row actions and drag handle at text-muted-foreground/50",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "muted-foreground/50 on popover 1.95 (Sakura) to 2.96 (Willemstad Light), all 28 under 3:1; on accent hover row 1.66 to 2.82. At /70 12 themes still fail (2.78 Tolaria Light, 2.83 Zettlr light); plain muted-foreground is 4.51+ everywhere",
+   "fix": "Use plain text-muted-foreground at rest, keeping the hover colors. Raising to /70 is not enough.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/calendar/CalendarGrid.svelte:68",
+   "title": "Days navigator: note-count dots are invisible on the selected day",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Dot and selected fill are both bg-file-explorer-primary: 1.00:1 on 28/28 themes",
+   "fix": "While the day is selected, draw the dots with the label color (bg-primary-foreground).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/file-history/FileHistoryDialog.svelte:83",
+   "title": "File History header timestamp at opacity-50 is 1.6 to 2.8:1",
+   "sev": "low",
+   "owner": "app",
+   "measured": "muted-fg at 50% on muted/50 over popover: 1.90 Zettlr light, 1.92 Sakura, 2.05 Lavender Haze, 2.36 KokoBrain Default; 28/28 under 3",
+   "fix": "Remove opacity-50 (or drop the raw timestamp). The header falls under shared root cause B.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/properties/PropertiesView.svelte:230",
+   "title": "Placeholders drawn with opacity modifiers or inherited 50% alpha fall far below 4.5:1",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "preflight placeholder (currentcolor 50%) right-sidebar-fg on right-sidebar-bg 2.30 Zettlr light, 2.64 Sakura, 2.82 Lavender Haze, 4.39 KokoBrain Default (23/28); PropertyField.svelte:187 muted at 30% on input-bg 1.46 Lavender Haze, 1.56 KokoBrain Default (28/28); PropertyField.svelte:113 key placeholder (muted at 50%) 1.93 Lavender Haze; kanban muted-foreground/50 on background 1.94 Tolaria Light, 2.56 KokoBrain Default",
+   "fix": "Set placeholder:text-right-sidebar-muted-fg (PropertiesView, PropertyField key and list item) and placeholder:text-muted-foreground (KanbanLane:418, KanbanView:607) without alpha. Those tokens already hold 4.5 on these surfaces.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/event-calendar/EventBlock.svelte:80",
+   "title": "Archived event chips dim the whole chip with opacity-50",
+   "sev": "low",
+   "owner": "app",
+   "measured": "opacity-50 over editor-bg: worst 1.83 Zettlr Bielefeld Light (green, Lc30) and 1.87 on the other Zettlr Light themes. Most light themes 2.1-2.2; Lumen Contrast 2.51; Willemstad Light 3.07. Dark themes 2.45 (Bordeaux Dark) to 2.97, Willemstad Dark 3.57. Read-only lock icon (opacity-70) on a cyan chip: 2.50-2.63 on 5 Zettlr Light.",
+   "fix": "Shared roots D/E. Dim archived chips by desaturating or blending the fill toward the surface while keeping text at least 3:1 (better 4.5), or use a strikethrough or 'archived' marker in place of 50% opacity. Draw the lock at full chip fg.",
+   "src": "scout"
+  },
+  {
+   "key": "src/app.css:480",
+   "title": "Date input text is --foreground at 70% alpha",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Foreground at 70% over input-bg: 3.71 on the 5 Zettlr Light themes (Lc65); Sakura in the right sidebar (right-sidebar-fg) 4.38. All dark themes pass (min 5.11).",
+   "fix": "Shared root D. Use 100% of the foreground (or at least about 85%) for date fields and for PropertyField values. Mark the dim look with weight or size, not alpha.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/calendar/CalendarGrid.svelte:58",
+   "title": "Other opacity-dimmed text and icons: placeholders, out-of-month days, clear/delete icons",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Out-of-month days (file-explorer-muted-fg/40 on nav-bg): 1.67 Lavender Haze to 2.42, 28/28 under 3. KanbanDatePicker outside days (muted/40 on popover): 1.68-2.37. CollectionCalendarView:144: 1.67-2.41. Icon buttons at /50 on popover (FormulaRow, PropertiesPanel, SortPanel, KanbanDatePicker clear): 1.95-2.96, 28/28 under 3. On editor 1.94-3.07. Result count /60 on editor: 2.26-3.84, 19 under 3. KokoBrain Default: out-of-month 1.91, icon 2.25.",
+   "fix": "Shared root D. Out-of-month days: keep a dim token that still reaches about 3:1 (for example a mix of muted-fg toward the surface capped by ensureContrast at 3). Icon buttons and the result count: use the solid muted-foreground (4.5 on these surfaces by READABILITY_PAIRS) and show hover with a color change, not alpha.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/kanban/KanbanCard.svelte:214",
+   "title": "Unchecked card checkbox border at 40% muted-foreground is nearly invisible in every theme",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "border-muted-foreground/40 on the card's bg-background: Tolaria Light and all Zettlr Light 1.68, Foolscap 1.72, Sakura 1.76, Lavender Haze 1.78, KokoBrain Default 2.09, best Tolaria Dark 2.40. 28/28 under 3.",
+   "fix": "Shared root D. Use full muted-foreground (4.5 on background) or the input/borderStrong token once that reaches 3:1.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/kanban/KanbanLane.svelte:418",
+   "title": "Placeholder text at 50% muted-foreground unreadable in every theme (add-card and filter inputs)",
+   "sev": "high",
+   "owner": "app",
+   "measured": "muted-foreground/50 on bg-background: Tolaria Light 1.94 (Lc36), all Zettlr Light 1.96, Foolscap 1.99, Lavender Haze 2.10, KokoBrain Default 2.56, best Tolaria Dark 3.06. 27/28 under 3:1. Same for the 'Filter cards...' input (KanbanView.svelte:607).",
+   "fix": "Shared root D. Use placeholder:text-muted-foreground at full alpha, which READABILITY_PAIRS already holds to 4.5 on background.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/properties/PropertyField.svelte:131",
+   "title": "Property values at 70% opacity fall below 4.5:1 on light Zettlr themes and Sakura",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "right-sidebar-fg at 70%: 3.50:1 on right-sidebar-bg (#f5f5f5) and 3.66 on input-bg (#ffffff) for all 5 Zettlr light themes (Lc60). Sakura 4.38. Hover on right-sidebar-accent drops to 2.77.",
+   "fix": "Fix C. Drop the /70 modifier on property values, the boolean label and the type picker (PropertiesView.svelte:176), or use right-sidebar-muted-fg, which is already lifted to 4.5 on right-sidebar-bg.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/properties/PropertiesView.svelte:235",
+   "title": "Properties panel: 'Add property' label and 'Add item' placeholder are drawn at 30-60% opacity",
+   "sev": "high",
+   "owner": "app",
+   "measured": "'Add property' (tab-text-inactive/60 on right-sidebar-bg) fails 4.5 on 28/28 themes and is under 3 on 21: KokoBrain Default 2.93 (Lc25), Lavender Haze 2.80, Tolaria Light 2.25, Zettlr Light 2.28. The solid token would give 4.58-11.7. The 'Add item...' placeholder (right-sidebar-muted-fg/30) is 1.46-1.91 on all 28.",
+   "fix": "Fix C. Use right-sidebar-muted-fg (tested on this surface) for the idle label, with no opacity, and keep the hover change. Use solid right-sidebar-muted-fg for the placeholder as well.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/properties/PropertyField.svelte:139",
+   "title": "Property values rendered at 70% of the sidebar foreground",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Input value: 3.66:1 on Zettlr Light input-bg #ffffff (x5) and 4.38 on Sakura. Boolean: 3.50 on right-sidebar-bg. Date input (app.css:480-481, 70% srgb mix): same values. Hover on right-sidebar-accent: 10/28 fail, Zettlr Light 2.77.",
+   "fix": "Fix C, shared with :131. Use full right-sidebar-fg for values, and remove the 70% alpha from the date-input rule when --date-input-fg is set.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/tasks/SourcesPanel.svelte:344",
+   "title": "SourcesPanel hint and label text on bg-muted/30 below 4.5",
+   "sev": "low",
+   "owner": "app",
+   "measured": "muted-foreground on muted/30 over editor-bg: 6/28 under 4.5, 3.86 (Lc 37) Zettlr Berlin/Bielefeld/Frankfurt/Karl-Marx-Stadt Dark, 4.00 Zettlr Bordeaux Dark, 4.25 Zettlr Bielefeld Light. The same text on the bg-background cards passes (min 4.58).",
+   "fix": "Drop or lower the bg-muted/30 fill (a border already frames the panel), or use foreground for the hints on it.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/collection/CollectionCalendarView.svelte:161",
+   "title": "Calendar '+N more' label falls under 4.5:1 inside out-of-month cells",
+   "sev": "low",
+   "owner": "app",
+   "measured": "4.10:1 on the Zettlr dark family (Lc -38), 4.25 on Bordeaux Dark, 4.39 on Twilight Violet. Scout 09 measured this label on plain --card only (4.51 or better).",
+   "fix": "Same root cause as the header-row finding (CollectionCalendarView.svelte:119): mutedForeground is clamped against card, not against the muted tints on top of it. Lighten the out-of-month tint or check mutedForeground against muted tints in the builder.",
+   "src": "validator"
+  },
+  {
+   "key": "src/lib/plugins/calendar/CalendarGrid.svelte:58",
+   "title": "Calendar days outside the current month are at 1.7-2.4:1",
+   "sev": "low",
+   "owner": "app",
+   "measured": "1.67:1 on Lavender Haze and Zettlr Light, 1.91 KokoBrain Default, max 2.42 Shimmering Focus Dark",
+   "fix": "Fix C: use solid file-explorer-muted-fg (4.5 on the panel) for other-month days and mark them some other way (weight or no hover), or at least raise them to 3:1.",
+   "src": "validator"
+  }
+ ],
+ "06-builder-nontext": [
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:234",
+   "title": "Unchecked task checkbox border is below 3:1 on 19 of 28 themes",
+   "sev": "high",
+   "owner": "app",
+   "measured": "--lp-task-border against editor-bg: 19/28 below 3:1 and 13/28 below 2:1. 1.50:1 on Zettlr Bielefeld Light, 1.61:1 on Twilight Violet, 1.69:1 on Lavender Haze, 2.02:1 on KokoBrain Default; best 5.10:1 on Lumen Contrast.",
+   "fix": "Shared fix C. Add ['preview','taskBorder','ui','editorBg',3] to READABILITY_PAIRS, or derive taskBorder from mutedFg. No themes-repo change is needed.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:219",
+   "title": "Blockquote left bar nearly invisible on Shimmering Focus themes",
+   "sev": "low",
+   "owner": "themes-repo",
+   "measured": "1.34:1 on both Shimmering Focus themes, 2.79:1 on KokoBrain Default, and at least 3.28:1 elsewhere.",
+   "fix": "In the themes repo, set the Shimmering Focus blockquoteAccent to a color with at least 3:1 on editorBg, or remove it so the builder falls back to primary.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/setup/editor-theme.ts:58",
+   "title": "Native selection background is too close to colored text on some themes",
+   "sev": "low",
+   "owner": "both",
+   "measured": "Native selection (no drawSelection) flattened over editor-bg. editor-fg: 1/28 fail (3.35:1 on Zettlr Berlin Dark). lp-link and wikilink: 21/28 below 4.5:1 and 4/28 below 3:1 (1.40:1 on Zettlr Berlin Dark); KokoBrain Default link 3.87:1.",
+   "fix": "Tone down the Zettlr Berlin Dark and Willemstad Dark selection colors in the themes repo. Optionally add a builder pair of editorFg against the flattened selection (shared fix C).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/collection/CollectionLinearCalendarView.svelte:132",
+   "title": "Linear-calendar legend swatches vanish against the card",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Swatch fill (barColors().fill) against --card is 1.25 to 1.53 on all 15 light themes (Lavender Haze 1.25 worst) and at least 2.62 on dark themes. 17 of 28 themes have a swatch under 3:1.",
+   "fix": "Add a 1px inset ring to the swatch, using the bar text colour or color-mix toward --foreground.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/collection/toolbar/FilterRow.svelte:102",
+   "title": "Toolbar input and select borders (--input) are nearly invisible against the popover",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "--input border vs --popover: 1.06 Sakura, 1.24 KokoBrain Default, 1.49 Graphite Violet, 1.51 Lavender Haze, 1.67 Zettlr light x5, 1.81 Zettlr dark x5, 2.70 Willemstad Dark; only Lumen Contrast 4.29 and Willemstad Light 3.95 reach 3:1. Border vs the bg-background fill 1.07 to 3.83",
+   "fix": "Clamp borderStrong to 3:1 against popoverBg and editorBg in buildTheme (note it also feeds switchUncheckedBg), or give these inputs a stronger border token. One builder change fixes every shadcn border-input site.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/event-calendar/EventMonthGrid.svelte:115",
+   "title": "Today is marked by hue only in the event calendar month grid, day headers and week strip",
+   "sev": "low",
+   "owner": "app",
+   "measured": "primary vs editor-fg (the neighbouring day numbers) is under 3:1 on 26/28 themes: Zettlr Bordeaux Dark 1.08, Deep Ocean 1.22, SF Dark 1.32",
+   "fix": "Add font-semibold plus a ring or a dot for today, matching the navigator.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/rail-shell/Rail.svelte:382",
+   "title": "Focus ring ring-ring/50 on rail, navigator and note rows is under 3:1 on most themes",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "ring at 50% fails 3:1 on 24/28 themes (all light, 9 dark) on rail, nav, list and tab-bar: 1.80 on Zettlr Bielefeld Light rail, KokoBrain Default 2.76. Over the selected tint it fails 28/28 (1.67-2.76). Full-strength ring on rail-bg passes (min 3.62).",
+   "fix": "Use full-strength ring-ring on these rows, matching Button. On selected rows, offset the ring or draw it as an outline outside the tint (full ring on the list tint still fails on Twilight Violet at 2.82).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/rail-shell/RailNoteList.svelte:974",
+   "title": "Note list toolbar on/off state is shown only by a text-color change under 3:1 between states",
+   "sev": "low",
+   "owner": "app",
+   "measured": "tab-text-active against tab-text-inactive is 1.25 (Shimmering Focus Dark) to 2.74 on all 28 themes. KokoBrain Default 1.45, Lavender Haze 1.64. Each color alone passes on tab-bar.",
+   "fix": "Add a non-color on-state marker (a dot, a count, or a filled background such as bg-file-explorer-accent) and keep the hover state distinct from on.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/mods/ModActionPicker.svelte:126",
+   "title": "Mod run progress fill vs track under 3:1 on three dark themes",
+   "sev": "low",
+   "owner": "both",
+   "measured": "primary fill vs muted track over popover 2.58 Zettlr Frankfurt Dark, 2.60 Karl-Marx-Stadt Dark, 2.96 Berlin Dark",
+   "fix": "Shared root cause E: give the track a 1px border-border outline, or fill it with a tone further from primary. Themes repo: Zettlr dark hover #505050 is close to primary #1cb27e in luminance.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/app/SettingsPanel.svelte:137",
+   "title": "Settings sidebar active section has almost no background cue (hover-bg ~ sidebar-bg), only font-medium",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "settings-hover-bg vs settings-sidebar-bg 1.00 Shimmering Focus Light (both #eff0f5), 1.04 Willemstad Dark, 1.06 Cool Mist and Willemstad Light, 1.07 Foolscap and Mint Linen, 1.25 KokoBrain Default, 1.48 Lavender Haze; 28/28 under 3",
+   "fix": "Shared root cause A: add a primary leading bar or a primary-tinted icon and text on the active row. Themes repo: keep hover apart from sidebarBg.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/components/ui/scroll-area/scroll-area-scrollbar.svelte:29",
+   "title": "Custom scrollbar thumb is a 30% muted-foreground tint, far under 3:1 on every surface",
+   "sev": "low",
+   "owner": "app",
+   "measured": "muted-fg at 30% vs surface 1.44 Zettlr Bielefeld Light (list-bg), 1.46 Sakura (popover), 1.64 KokoBrain Default, 1.49 Lavender Haze; at 50% (hover) 1.89 or more",
+   "fix": "Raise the thumb to about 60% muted-foreground (or a solid muted-fg mix that reaches 3:1).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/rail-shell/FilesNavigator.svelte:348",
+   "title": "Focus indicator is only a 50% alpha ring (ring-ring/50) with outline-none on rows, icon buttons, tabs and live-preview buttons",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "ring/50 vs surface: rail 24/28 under 3:1 (Zettlr Bielefeld Light 1.80, Willemstad Dark 1.93), editor 24/28 (KokoBrain Default 2.52, Lavender Haze 2.20), popover 25/28 (Sakura 1.87), active row tint 28/28 (1.67-2.76). Solid --ring: rail min 3.62, editor 4.52, popover 3.73, but active row 2.97 Shimmering Focus Light, 2.98 Zettlr KMS Light.",
+   "fix": "Shared fix: replace ring-ring/50 with the solid ring (2px) in the row/icon-button classes and the ui input/select/scroll-area primitives. On the active row the inset solid ring is still about 2.97 on 2 light themes, so use an outline offset so the ring sits on the surrounding surface, or lift --ring against the selected tint in theme-builder.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/search/SearchPanel.svelte:334",
+   "title": "Search panel field and other border-border fields have no visible boundary",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "file-explorer-border vs list-bg 28/28 under 3:1 (KokoBrain Default 1.02, Twilight Violet 1.10, best 2.07 Zettlr KMS Dark); field fill bg-background vs list 1.00-1.14; border-border vs background 28/28 (1.07-2.07).",
+   "fix": "Draw input edges with a derived field-edge token (for example a foreground mix tuned to 3:1 against background and list-bg) instead of border/input, or have theme-builder lift borderStrong/input to 3:1 against background, list and popover, and add that pair to READABILITY_PAIRS. TasksView:955, GraphControls:121 and KanbanView/Lane share the same fix.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/event-calendar/EventBlock.svelte:79",
+   "title": "Selected event ring is under 3:1 against the editor surface",
+   "sev": "low",
+   "owner": "app",
+   "measured": "ring-2 ring-primary/70 against editor-bg is under 3:1 on 10 themes: Bielefeld Light 2.69, Shimmering Focus Light 2.75, Willemstad Dark 2.75, Berlin Light 2.78, Sakura 2.80, Bordeaux Light 2.81, Frankfurt Light 2.90, Twilight Violet 2.94, Karl-Marx-Stadt Dark 2.95, Frankfurt Dark 2.98. Against the blue chip fill: 2.31-2.82 on most themes.",
+   "fix": "Use ring-primary at full alpha (primary is already 4.5:1 on editor-bg) or ring-ring.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/components/ui/input/input.svelte:28",
+   "title": "Input and Select borders are indistinguishable from the surface they sit on",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "border-input against setting-item-bg: Sakura 1.06, Lavender Haze 1.08, KokoBrain Default 1.09, Tolaria Light 1.31, Twilight Violet 1.38. Against popover: Default 1.24, Lavender Haze 1.51. Only Lumen Contrast (3.83-4.29) and Willemstad Light (3.40-3.95) reach 3:1. The bg-input-bg fill against the surface is 1.00-1.32 everywhere, so the border is the only edge. Typed text at /80 passes (min 4.70).",
+   "fix": "Shared root F. In buildTheme, lift ui.input to 3:1 against the surfaces it sits on (setting-item, settings-dialog, popover, background) and add that non-text pair to READABILITY_PAIRS. Raise borderStrong in palettes where it nearly equals the surface (Sakura, Twilight Violet, Zettlr Light, Tolaria Light). The built-ins KokoBrain Default and Lavender Haze need app-side values.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/kanban/KanbanCard.svelte:311",
+   "title": "Card and tag colour swatches in the context menu fail 3:1 on light themes (colour is the only label)",
+   "sev": "low",
+   "owner": "app",
+   "measured": "COLOR_PRESET_TEXT swatch fill against popover: yellow 1.47 Sakura and 1.79-1.92 on the other 14 light themes; green 1.86-2.43, orange 1.96-2.55 and gray 2.01-2.61 on all 15 light themes. Blue under 3 on Sakura, Sepia and Shimmering Focus Light; red and purple on Sakura and Graphite Violet.",
+   "fix": "Give each swatch a 1px edge at 3:1 (for example a ring in foreground/40 or a darker shade of the same hue).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:85",
+   "title": "Selected wikilink suggestion row is indistinguishable from the list on Zettlr dark themes",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "bg-accent against bg-popover: 1.00 on the 5 Zettlr dark themes (accent #282832 == popover), 1.01 Willemstad Dark, 1.06 Sakura, 1.12 Tolaria Light, 1.24 KokoBrain Default, best 1.67 Zettlr Light. accent-foreground equals popover-foreground, so there is no second cue.",
+   "fix": "Shared root F. Change selected in the Zettlr dark and Willemstad Dark palettes. In buildTheme, enforce an accent-vs-popover distance (at least about 1.3, never 1.0). In the app, add a non-color cue (a left bar in primary) to the selected suggestion row, the same fix as for the shadcn menus.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/sections/UpdateSection.svelte:291",
+   "title": "Update download progress track is invisible and fill drops under 3:1 on some themes",
+   "sev": "low",
+   "owner": "app",
+   "measured": "bg-muted track vs setting-item-bg is under 3 on 28/28 (1.00 Shimmering Focus Light, 1.09 KokoBrain Default, 2.07 Zettlr dark max). The primary fill vs the track is under 3 on 3/28 (2.58 Zettlr Frankfurt Dark, 2.60 Karl-Marx-Stadt Dark, 2.96 Berlin Dark).",
+   "fix": "Give the track a 1px border or a fill step from the row, and keep the fill 3:1 from the track. Low priority.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/components/ui/button/button.svelte:13",
+   "title": "Outline buttons and Select triggers have no visible edge on a Settings row",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Outline border (border in light, input under .dark) vs setting-item-bg is under 3 on 28/28: 1.06 Sakura, 1.08 Lavender Haze, 1.09 KokoBrain Default, best 2.80 Willemstad Dark. In light themes bg-background equals setting-item-bg (both palette sidebarBg), so the fill is 1.00.",
+   "fix": "For outline buttons and Select triggers on rows, use a border that reaches 3:1 against the row (a lifted input token), or a fill step that differs from setting-item-bg.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/theme-builder.logic.ts:273",
+   "title": "Editor task checkbox: unchecked border nearly invisible on 19 themes",
+   "sev": "high",
+   "owner": "app",
+   "measured": "lp-task-border vs editor-bg is under 3 on 19/28: 1.50 Zettlr Bielefeld Light, 1.61 Sakura and Twilight Violet, 1.67 Zettlr light, 1.69 Lavender Haze, 1.78 Zettlr dark, 2.02 KokoBrain Default, best failing 2.68 Graphite Violet.",
+   "fix": "Derive taskBorder as ensureContrast(faintFg, editorBg, 3) and add ['preview','taskBorder','ui','editorBg',3] to READABILITY_PAIRS.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/tasks/TasksView.svelte:955",
+   "title": "Tasks filter box border is nearly invisible",
+   "sev": "low",
+   "owner": "app",
+   "measured": "The --border edge of the filter input vs editor-bg is under 3 on 28/28: 1.09 KokoBrain Default, 1.22 Tolaria Light, 1.34 Lavender Haze, best 1.86 Willemstad Light and Zettlr Bordeaux Dark. Against the input fill it is 1.07-2.07.",
+   "fix": "Use an input border token lifted to 3:1 against editorBg for text fields, or accept it as polish together with the outline-button finding.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/components/ui/input/input.svelte:43",
+   "title": "Form control boundaries (input border, checkbox) are far below 3:1",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "Input border (border-input = borderStrong) vs setting-item-bg is under 3:1 on 26/28 themes (1.06 Sakura, 1.08 Lavender Haze, 1.09 KokoBrain Default); vs popover 26/28 (1.24 KokoBrain Default). The input-bg fill vs the surrounding surface is 1.0-1.32 on 28/28. The KanbanCard.svelte:214 checkbox border at muted/40 on bg-background is 1.68-2.40 on 28/28; at full strength muted passes 28/28.",
+   "fix": "Add a control-border token at 3:1 against setting-item-bg, popover and editor (or raise borderStrong for inputs only), and drop /40 on the Kanban checkbox border. Shares the token with the switch track finding.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/components/ui/switch/switch.svelte:18",
+   "title": "Off-state switch track is nearly invisible against Settings rows",
+   "sev": "high",
+   "owner": "both",
+   "measured": "The off track (switch-unchecked-bg = borderStrong) vs setting-item-bg is under 3:1 on 26/28 themes (1.06 Sakura, 1.12 Lavender Haze, 1.74 KokoBrain Default). The light-theme thumb (bg-background, line 26) has exactly the row color, because setting-item-bg = background = sidebarBg: 1.00 on 13/15 light themes, 1.21 Sakura, 1.24 Lavender Haze. The thumb vs track is 1.28-2.34 on 13/15 light themes.",
+   "fix": "Give the off track a 3:1 fill or border against setting-item-bg, and a light-theme thumb distinct from the row (for example a border, or a background different from sidebarBg). Add switchUncheckedBg vs settingItemBg at 3:1 to READABILITY_PAIRS. Shares the control-border token with the input finding.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/todoist-sync/TodoistSyncLogDialog.svelte:39",
+   "title": "Sync log filter: selected pill shown only by a secondary fill invisible on popover",
+   "sev": "low",
+   "owner": "both",
+   "measured": "1.00:1 Willemstad Dark, 1.02 Graphite Violet, 1.04 Deep Ocean and Ink Night, 1.24 KokoBrain Default, 1.51 Lavender Haze, best 1.81 Zettlr dark",
+   "fix": "Shared root cause A (selected state by fill only): use variant=outline or a primary-tinted selected pill, or add a primary underline. Themes repo: keep hover apart from popoverBg.",
+   "src": "validator"
+  }
+ ],
+ "05-builder-editor-tints": [
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:268",
+   "title": "==highlight== background makes text and accent colors unreadable on dark themes",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "Text on lp-highlight-bg flattened over editor-bg. editor-fg: 4/28 fail (3.93:1 on Zettlr Berlin, Bielefeld, Frankfurt and Karl-Marx-Stadt Dark). Strong: 6/28 (3.38:1 on Shimmering Focus Dark). Emphasis: 8/28 (2.97:1 on Twilight Violet, 3.47:1 on Lavender Haze). lp-link: 15/28 below 4.5:1 and 6/28 below 3:1 (1.43:1 on Zettlr Frankfurt Dark), 2.88:1 on KokoBrain Default.",
+   "fix": "Shared fix C. Add builder pairs for editorFg, strong, emphasis and link against the flattened highlightBg, adjusting the highlight rather than the text. In the themes repo, lower the alpha or darken the yellow highlight in the Zettlr dark palettes.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:272",
+   "title": "Tag pill text is below 4.5:1 on five Zettlr light themes",
+   "sev": "low",
+   "owner": "app",
+   "measured": "color-mix(primary 70%, editor-fg) on color-mix(primary 20%, editor-bg): 4.01:1 on Zettlr Bielefeld Light, then 4.14, 4.18, 4.22 and 4.37:1 on the other Zettlr light themes (Lc 55 and up). All other themes pass (minimum 4.55:1 on Twilight Violet).",
+   "fix": "Raise the editor-fg share (for example primary 55%) or lighten the tint on light themes. Under 0.5:1 short, APCA is fine.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:281",
+   "title": "Ordered-list markers on two light themes are about 3:1",
+   "sev": "low",
+   "owner": "both",
+   "measured": "3.05:1 on Lavender Haze (#ca7536 on #F3F0F8) and 3.01:1 on Sakura (Lc 54). All other themes are at 4.53:1 or above.",
+   "fix": "Shared fix C. Raise the olMarker pair to 4.5:1, which lifts both themes automatically, or split the numeral and bullet tokens.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/highlight-styles.ts:41",
+   "title": "--syntax-meta guarded at only 3:1 colors visible text on 9 themes",
+   "sev": "low",
+   "owner": "app",
+   "measured": "--syntax-meta on editor-bg: 9/28 below 4.5:1, 3.00-3.33:1 (3.05:1 on KokoBrain Default, 3.00:1 on Zettlr Karl-Marx-Stadt Dark with Lc 27).",
+   "fix": "Shared fix C, optional: raise the meta pair to 4.5:1, or leave it and keep only the wikilink bracket at 3:1. This is an owner decision.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/theme-builder.logic.ts:272",
+   "title": "Blockquote text (--syntax-quote) falls below 4.5:1 on the blockquote tint",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Over the blockquote tint at depth 1: Zettlr Bielefeld Dark 3.88, Bordeaux Dark 4.02, Berlin Dark 4.06, Frankfurt Dark 4.07, Karl-Marx-Stadt Dark 4.14, Bielefeld Light 4.15, Lavender Haze 4.25, Tolaria Light 4.49 (8 themes). At depth 3: Bielefeld Dark 3.40, Lavender Haze 4.01. Zettlr dark APCA Lc about -34 to -38.",
+   "fix": "Add a ['syntax','quote','preview','blockquoteBg3',4.5] pair (withReadableContrast already flattens the bg over editorBg). This is the same fix as the callout body finding (styles.ts:481).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:520",
+   "title": "Callout type label (accent colour at 85% opacity) is far below 4.5:1 in 25 of 28 themes",
+   "sev": "high",
+   "owner": "app",
+   "measured": "Measured at opacity .85 over the 7% callout-note tint: 127 of 168 theme x type pairs are under 4.5 and 46 are under 3; 25 of 28 themes fail at least one type. Worst: Zettlr Bordeaux Dark caution 2.26 (Lc -18), Lavender Haze warning 2.33, Tolaria Light warning 2.34, Sakura warning 2.35. At full opacity, 71 pairs are still under 4.5.",
+   "fix": "Colour the label with color-mix(in oklab, accent 40%, var(--editor-fg)) at opacity 1. Measured worst 4.58 (Bielefeld Light warning) and |Lc| at least 48 on all 168 pairs; a 50% accent mix gives only 4.23. Keep the raw hue for the border.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:481",
+   "title": "Callout title and body text drop below 4.5:1 on the callout tint in 9 themes, including the built-in light default",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Over the 7% note tint: Lavender Haze 4.15 (4.55 on the bare editor), Zettlr Bielefeld Light 4.18, Zettlr Berlin, Bielefeld, Frankfurt and Karl-Marx-Stadt Dark 4.20, Bordeaux Dark 4.29, Twilight Violet 4.41 (Lc -38), Tolaria Light 4.49. KokoBrain Default 4.70 passes but sits at Lc -44.9.",
+   "fix": "This shares the fix with the blockquote finding (theme-builder.logic.ts:272): lift quote against the callout tint as well as blockquoteBg3 in the builder. The alternative is to colour callout body text with --editor-fg.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:503",
+   "title": "Callout fold chevron at 60% opacity is under 3:1 in five Zettlr light themes",
+   "sev": "low",
+   "owner": "app",
+   "measured": "2.72:1 on Zettlr Bielefeld Light and 2.85:1 on Zettlr Berlin, Bordeaux, Frankfurt and Karl-Marx-Stadt Light. The other 23 themes pass 3:1.",
+   "fix": "Raise the resting opacity to .7 (worst case 3.32) or .75 (worst case 3.70).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:898",
+   "title": "Mermaid error message below 4.5:1 on 11 themes",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "On --lp-codeblock-bg (the .cm-lp-mermaid container): Zettlr Bordeaux Dark 3.39, Zettlr Berlin, Bielefeld, Frankfurt and Karl-Marx-Stadt Dark 3.55, Lavender Haze 3.66, Tolaria Light 3.82, Shimmering Focus Light 3.89, Willemstad Light 3.96, Sakura 3.97. Twilight Violet passes WCAG (4.63) but is Lc -35.5.",
+   "fix": "Shared fix with styles.ts:660 and CollectionView.svelte:520: lift error to 4.5 on editorBg, panelBg, popoverBg and sidebarBg in readableCore. errorFg is already re-derived against it, so the destructive button stays at 4.5.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/source-frontmatter/source-frontmatter.ts:60",
+   "title": "Source-mode frontmatter and comment text (--syntax-meta) only 3.0-3.3:1 on 9 themes, including both built-ins",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "--syntax-meta on --editor-bg: KokoBrain Default 3.05 (Lc -26), Lavender Haze 3.28, Sakura 3.33, Twilight Violet 3.08 (Lc -24), Zettlr Berlin Light 3.04, Bielefeld Light 3.03, Bordeaux Light 3.06, Frankfurt Dark 3.02, Karl-Marx-Stadt Dark 3.00. The other 19 themes are at 4.5 or better.",
+   "fix": "Colour frontmatter and comment text with --muted-foreground, which is clamped to 4.5, or raise the meta pair to 4.5. Wikilink brackets also use meta, and a 4.5 meta is fine for them too.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:660",
+   "title": "Widget error text --lp-collection-error has no contrast guard",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "On --lp-collection-bg: Zettlr Bordeaux Dark 3.39, Zettlr dark family 3.55, Willemstad Light 3.62, Lavender Haze 3.66, Shimmering Focus Light 3.69, Tolaria Light 3.82, Sakura 3.97, Shimmering Focus Dark 4.42 (11 themes). The same token on the editor bg (math error) measures 3.01 on the Zettlr dark family.",
+   "fix": "Use the shared readableCore error lift to 4.5 on all surfaces (see styles.ts:898) instead of a single collectionError pair. Lifting the core keeps error, destructive and the embed error consistent.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:933",
+   "title": "QueryJS error text (--lp-collection-error) below 4.5:1 on the collection surface in 11 themes",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "--lp-collection-error on --lp-collection-bg: Zettlr Bordeaux Dark 3.39 (Lc-27), Zettlr Berlin/Bielefeld/Frankfurt/KMS Dark 3.55, Willemstad Light 3.62, Lavender Haze 3.66, SF Light 3.69, Tolaria Light 3.82, Sakura 3.97, SF Dark 4.42 (11 themes). The stack on --lp-codeblock-bg fails the same set, and the details text at opacity .85 is 2.76 worst",
+   "fix": "Shared root A with finding 14: lift the error text color to 4.5 on editorBg, popoverBg and sidebarBg/collectionBg in readableCore, and add collectionError on collectionBg to READABILITY_PAIRS. Drop the .85 opacity on the details text.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:992",
+   "title": "Wikilinks inside QueryJS tables and lists are below 4.5:1 on the collection surface in 7 themes",
+   "sev": "low",
+   "owner": "app",
+   "measured": "--lp-wikilink on collection bg: Sakura 3.79, SF Light 4.08, Willemstad Dark 4.18, Zettlr Berlin Light 4.19, Bordeaux Light 4.29, KMS Light 4.32, Lavender Haze 4.41; the same colors on editor-bg are 4.52 to 5.45",
+   "fix": "Add preview wikilink (and preview link) on collectionBg to READABILITY_PAIRS. This is root C, shared with findings 1 and 16. The builder rebuilds every theme at load, so no themes-repo change is required.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:963",
+   "title": "QueryJS Run button text on --primary has low APCA contrast on a few themes, hover fails WCAG on Zettlr Berlin Light",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Zettlr Berlin Light 4.51 Lc33, hover 4.16 Lc30 (fails WCAG); Willemstad Dark 4.51 Lc33; Twilight Violet 4.95 Lc39; Zettlr Frankfurt Dark 4.54 Lc41; KMS Dark 4.56 Lc41. White on the same fills is Lc-63 to -77",
+   "fix": "Same fix as finding 15 (root B): choose primaryForeground by APCA the way labelColors does, and check the hover mix at 4.5:1.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/setup/editor-theme.ts:66",
+   "title": "Active-line gutter number: muted text on the active-line gutter fill",
+   "sev": "low",
+   "owner": "both",
+   "measured": "muted-foreground on syntax-active-line-gutter: 11/28 under 4.5 (Zettlr Bordeaux Dark 2.52 Lc 27, other Zettlr dark 2.58, Zettlr light 3.68, Tolaria Light 4.15); KokoBrain Default 6.62, Lavender Haze 4.53. Editor-fg on the same fill passes everywhere (min 4.82).",
+   "fix": "Covered by the shared muted/hover derivation fix (TrashSection:68). An app-only alternative is to color .cm-activeLineGutter text with --editor-fg, which passes on all 28.",
+   "src": "scout"
+  },
+  {
+   "key": "src/app.css:403",
+   "title": "Event chip text just under 4.5 on Zettlr Light themes",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Zettlr Bielefeld Light: cyan 4.06, green 4.10, orange 4.15, pink 4.31, blue 4.36, purple 4.40. Zettlr Berlin/Frankfurt/Karl-Marx-Stadt Light: green 4.48, cyan 4.44. Zettlr Bordeaux Light: 4.46/4.43. All other themes pass. APCA Lc 57-64, so this is a WCAG-only miss.",
+   "fix": "Shared root E. Lift each derived fg against its derived bg with a floor (a test over the 28 theme tokens, or a slightly higher fg share such as 35-38% for light editors). The comment above the block only covers KokoBrain Default and Sakura.",
+   "src": "scout"
+  },
+  {
+   "key": "src/app.css:321",
+   "title": "Event calendar pills drop under 4.5:1 on Zettlr Bielefeld Light and the other Zettlr light themes",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Same as app.css:403: Bielefeld Light cyan 4.06 to purple 4.40; green/cyan 4.43-4.48 on the other four Zettlr Light themes.",
+   "fix": "Merge into the app.css:403 finding (shared root E).",
+   "src": "scout"
+  },
+  {
+   "key": "src/app.css:444",
+   "title": "Code token punctuation and comment colors fall under 4.5 on light themes",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Punctuation on codeblock-bg: 3.32:1 on Zettlr Berlin/Frankfurt/KMS Light, 3.47 on Bielefeld/Bordeaux Light, 4.28 on Lavender Haze, 4.40 on Tolaria Light. On editor-bg: 3.11 on Zettlr Bielefeld Light, 4.18 on Bordeaux Dark, 4.38 on Mint Linen, 4.44 on Sepia. Comment (app.css:439): 4.22 on Zettlr Berlin Light (codeblock), 4.39 on Bielefeld Light (editor-bg).",
+   "fix": "Shares fix G with app.css:427. Raise punctuation to about 80-85% editor-fg, or emit both tokens per theme from themeColorsToCssVars through ensureContrast(\u2026, codeblock-bg and editor-bg, 4.5).",
+   "src": "scout"
+  },
+  {
+   "key": "src/app.css:427",
+   "title": "Code block header language label and copy button use muted text on a tinted header",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "muted-foreground on the header (codeblock-bg 92% + editor-fg 8%, oklab) fails on 13/28 themes: Sakura 3.84, Lavender Haze 3.88, Tolaria Light 3.93, Zettlr Berlin/Frankfurt/KMS Light 4.09, Graphite Violet 4.23, Zettlr Bielefeld/Bordeaux Light 4.43, Zettlr Dark 4.47 (Lc39). Copy button on hover (header + collection-table-hover) fails on 15/28, worst Zettlr Bordeaux Dark 3.34 and the other Zettlr Dark themes 3.37.",
+   "fix": "Shares fix G. Give --lp-codeblock-lang and --lp-codeblock-copy a token derived against the flattened header bg and its hover state (ensureContrast to 4.5), instead of reusing --muted-foreground.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/theme-builder.logic.ts:283",
+   "title": "Collection null and empty placeholder text is nearly invisible",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "faintFg on collection-bg fails on 27/28 themes: Sakura 1.33, Lavender Haze 1.37, Zettlr Light 1.53, Twilight Violet 1.75, Tolaria Light 1.92, KokoBrain Default 2.46, Zettlr Dark 2.09. Only Lumen Contrast passes (4.55).",
+   "fix": "In buildTheme, map collectionEmpty to mutedFg (as collectionLoading already is). Lift collectionNull to at least 3:1 (4.5 if the views hint keeps it). Add both to READABILITY_PAIRS against collectionBg.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:269",
+   "title": "==highlight== text under 4.5 on four Zettlr dark themes",
+   "sev": "low",
+   "owner": "both",
+   "measured": "editor-fg on highlight (#ffff0060 over editor-bg = #7b7b1b) is 3.93:1 (Lc67) on Zettlr Berlin/Bielefeld/Frankfurt/KMS Dark. Strong text inside a highlight: 3.38 (Lc35) on Shimmering Focus Dark, 3.47 on Shimmering Focus Light. Zettlr Bordeaux Dark's highlight is #000000, only 1.40:1 against its editor-bg.",
+   "fix": "Fix E. Lower the highlight alpha in the Zettlr Dark palettes and check Bordeaux Dark's black highlight (themes repo). In the app, add editorFg, strong, emphasis, link and wikilink against the flattened highlight to READABILITY_PAIRS, lowering the highlight alpha, not the text, when they fail.",
+   "src": "scout"
+  },
+  {
+   "key": "src/app.css:460",
+   "title": "Meta-bind hover fills mix toward the label color",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Destructive hover (destructive 85% + editor-fg 15%): 3.16:1 (Lc25) on Willemstad Light, 3.84 on Shimmering Focus Light, 3.87 on Tolaria Light, 3.66 on Zettlr Berlin/Bielefeld/Frankfurt/KMS Dark, 4.12 on Bordeaux Dark. Primary hover: 4.16 (Lc30) on Zettlr Berlin Light. Base states are 4.5 or more.",
+   "fix": "Fix D. Mix the hover toward the opposite of the label (darker under white text, lighter under black), or pick the label per fill with the labelColors APCA rule.",
+   "src": "scout"
+  },
+  {
+   "key": "src/app.css:488",
+   "title": "Search snippet match highlight puts muted text on the yellow highlight tint",
+   "sev": "high",
+   "owner": "both",
+   "measured": "<mark> in FTS/hybrid snippets, file-explorer-muted-fg on lp-highlight-bg over list-bg: 15/28 under 4.5. 1.60:1 (Lc 15) on Zettlr Berlin/Bielefeld/Frankfurt/Karl-Marx-Stadt Dark, 2.42 on KokoBrain Default (built-in default), 2.65 Willemstad Dark, 2.73 Twilight Violet, 3.45 Graphite Violet, 3.65 Lavender Haze.",
+   "fix": "App: set the mark color to var(--file-explorer-fg). That fixes 24/28. The four Zettlr dark themes still reach only 4.40 because their palette highlight #ffff0060 is too strong (editorFg on it in the editor is 3.93 too), so the themes repo should lower that alpha or darken the hue.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/theme.logic.ts:210",
+   "title": "Collection table zebra rows are a no-op: the alt-row token equals the block background",
+   "sev": "low",
+   "owner": "both",
+   "measured": "1.00:1 on 5 themes, 1.01 to 1.06:1 on 17 more; zebra striping is decorative, so this is a polish gap, not a WCAG failure",
+   "fix": "The built-ins set collectionTableAlt to their own collectionBg plus alpha (theme.logic.ts:210 and 308). Sakura and Twilight Violet override it the same way in the themes repo, and Shimmering Focus Light derives it from hover == sidebarBg (theme-builder.logic.ts:282). Derive the alt row as a small editor-fg mix into collectionBg in the builder, remove the self-referential overrides, and use the same color for kb.ui.table striped rows.",
+   "src": "validator"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:269",
+   "title": "Links and wikilinks inside ==highlight== drop to 1.4-2.7:1, including the default theme",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "2.69:1 (Lc32) KokoBrain Default, 1.43 (Lc12) Zettlr Frankfurt Dark, 1.44 KMS Dark, 1.65 Berlin Dark, 1.96 Willemstad Dark, 2.63 Twilight Violet",
+   "fix": "Fix E, shared with the highlight finding: inside .cm-lp-highlight, render links in editor-fg and keep the underline as the link cue, or lower the highlight alpha per theme until link and wikilink reach 4.5 against it.",
+   "src": "validator"
+  }
+ ],
+ "04-builder-text": [
+  {
+   "key": "src/lib/core/settings/theme-builder.logic.ts:128",
+   "title": "Accent text passes WCAG 2 but reads poorly by APCA on some dark themes",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "Fails by APCA only. Willemstad Dark #567f83 (links, wikilinks, footnote, ol marker, url, processing): 4.57:1, Lc -31. Frankfurt Dark #5e97c7: 4.53, Lc -40. Karl-Marx-Stadt Dark #eb6a60: 4.56, Lc -40. Zettlr dark #91919a (h6, strikethrough, quote): 4.53, Lc -39. The scout missed two more: Twilight Violet wikilink #9a7bb9 (4.53, Lc -36), its h6 (Lc -40) and its link (Lc -44), and KokoBrain Default url #818cf8 (4.52, Lc -41).",
+   "fix": "Add an APCA floor (|Lc| at least 45) to the linkFg, primary and mutedFg lifts in readableCore. Optionally retune Willemstad Dark's link colour in the themes repo.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/collection/CollectionCalendarView.svelte:119",
+   "title": "Calendar and linear-calendar header cells use muted-foreground on bg-muted/60",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Measured on --muted at 60% over --card: Zettlr Berlin, Bielefeld, Frankfurt and Karl-Marx-Stadt Dark 3.26 (Lc -33), Bordeaux Dark 3.32, Twilight Violet 4.12, Zettlr light family 4.20, Tolaria Light 4.46 (12 themes). On plain card the minimum is 4.51.",
+   "fix": "Lower the header tint to bg-muted/30 or drop it, or add a mutedForeground pair against muted. The same fix covers the '+N more' label listed under missed.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/collection/CollectionTableView.svelte:78",
+   "title": "text-primary used as small text, and link hover primary/80, on card and widget surfaces",
+   "sev": "low",
+   "owner": "app",
+   "measured": "--primary on card: Sakura 4.15, Twilight Violet 4.19, Shimmering Focus Light 4.30. On a hovered row (muted/50): Frankfurt Dark 3.43. The link with primary/80 on a hovered row: Karl-Marx-Stadt Dark 2.70. The month label on the accent hover: Zettlr Berlin Light 2.73. The widget's today number: Sakura 3.73.",
+   "fix": "In readableCore, lift primary to 4.5 against panelBg and sidebarBg as well. Drop the hover:text-primary/80 and show hover with an underline change instead.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/collection/CollectionView.svelte:520",
+   "title": "text-destructive in collection error panels and form messages",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Error panel (destructive on destructive/10 over card): Zettlr Berlin, Bielefeld, Frankfurt and Karl-Marx-Stadt Dark 2.79 (Lc -25). 14 of 28 themes are under 4.5 and 5 are under 3. The 12px messages on --popover (FormulaRow.svelte:72,83, FilterRow.svelte:116): Zettlr Bordeaux Dark 2.96, KokoBrain Default 3.02; 12 of 28 are under 4.5.",
+   "fix": "Use the same error lift to 4.5 as styles.ts:898. For the tinted panel body, also consider text-foreground, keeping destructive for the border and the title.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/event-calendar/EventCalendarNeedsAttention.svelte:69",
+   "title": "Destructive-colored text in the calendar fails on dark themes including the default",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Badge (destructive on destructive/10 over editor-bg) fails on 15 themes: Zettlr Berlin/Bielefeld/Frankfurt/KMS Dark 2.78 (Lc-25), Zettlr Bordeaux Dark 2.95, KokoBrain Default 3.19 (Lc-31), SF Light 3.53. EventForm errors on popover fail on 12: Bordeaux Dark 2.96, KokoBrain Default 3.02, Zettlr dark 3.11. Load error on editor-bg (text-sm, not text-xs) fails on 10: Zettlr dark 3.01, KokoBrain Default 3.44. Trash icon under 3:1 only on Zettlr Bordeaux Dark 2.96",
+   "fix": "Root A, shared with finding 4: lift the error text form to 4.5 on editorBg, popoverBg and sidebarBg. Simulation shows the badge still sits at 3.97 on Zettlr Berlin Dark after that lift, so the badge also needs its own change: text-foreground on the tint, or check the error against the tinted fill.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/event-calendar/EventMonthGrid.svelte:113",
+   "title": "Selected-day number: near-black label on mid-tone primary fill reads poorly by APCA",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "WCAG 4.51 to 4.95, but APCA Lc33 on Willemstad Dark and Zettlr Berlin Light, Lc39 Twilight Violet, Lc41 Zettlr Frankfurt and KMS Dark. White on the same fills is Lc-63 to -77. The navigator (CalendarGrid.svelte:60, file-explorer-primary) fails the same 5",
+   "fix": "Root B, shared with finding 6 and every bg-primary + text-primary-foreground use: pick primaryForeground by APCA, and add a separate fill token darkened to 4.5 under white, because the text-primary token must keep its 4.5 against the editor.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/event-calendar/EventMonthGrid.svelte:118",
+   "title": "Hover fill hurts muted and primary text on calendar days and buttons",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "muted-fg on muted fails on 14 themes (Zettlr Bordeaux Dark 2.52, Zettlr dark 2.58, Twilight Violet 3.87, Zettlr light 3.68). primary on muted (today hover) fails on 15 (Frankfurt Dark 2.58, KMS Dark 2.60, Berlin Dark 2.96, Berlin Light 3.33). Navigator weekend file-explorer-primary on file-explorer-accent fails on 11 (Zettlr Berlin Light 2.73, Bordeaux Light 2.80)",
+   "fix": "Root C: add mutedForeground and primary on muted, and fileExplorerPrimary on fileExplorerAccent, to the builder pairs, or use a lighter hover fill (a mix of muted into editor-bg) in these components.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/properties/NoteInfo.svelte:44",
+   "title": "NoteInfo heading text-right-sidebar-primary slightly under 4.5 on 7 themes",
+   "sev": "low",
+   "owner": "themes-repo",
+   "measured": "right-sidebar-primary on right-sidebar-bg fails on 7 of 28 themes (5 light, 2 dark): 4.08 Shimmering Focus Light, 4.15 Sakura, 4.18 Willemstad Dark, 4.19 Twilight Violet. Both built-ins pass (5.55).",
+   "fix": "Lift right-sidebar-primary to 4.5 on those themes, and add a rightSidebarPrimary-on-rightSidebarBg pair to READABILITY_PAIRS.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/tags/TagItem.svelte:62",
+   "title": "Tags view row counts (muted-foreground on hover accent) drop to 3:1 on hover",
+   "sev": "low",
+   "owner": "themes-repo",
+   "measured": "muted-foreground on accent fails 11/28: 3.02 (Lc 43) on all 5 Zettlr light themes, Lavender Haze 4.20. At rest on editor-bg the minimum is 4.52. The tag name in foreground on accent passes (min 4.76).",
+   "fix": "Lighten accent on the Zettlr light family, and add a mutedForeground-on-accent pair to READABILITY_PAIRS.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/rail-shell/RailPropertiesPicker.svelte:130",
+   "title": "Properties picker popover label uses a token tuned for the sidebar: 3.71:1 on the default theme",
+   "sev": "low",
+   "owner": "app",
+   "measured": "file-explorer-muted-fg on popover: KokoBrain Default 3.71 (Lc -35). All other themes pass. muted-foreground on popover passes everywhere (min 4.51).",
+   "fix": "Remove text-file-explorer-muted-fg from both popover texts so section-label's muted-foreground applies (or set text-muted-foreground on the :172 line).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/components/ui/command/command-item.svelte:20",
+   "title": "Highlighted row (accent) is invisible against popover on 7+ themes in command palette, quick switcher, menus, autocomplete",
+   "sev": "high",
+   "owner": "both",
+   "measured": "accent vs popover 1.00:1 on all 5 Zettlr dark themes (selected == popoverBg == #282832 in themes/zettlr-*-dark.json), 1.01 Willemstad Dark, 1.06 Sakura, 1.12 Tolaria Light, 1.24 KokoBrain Default, best 1.67 Zettlr light",
+   "fix": "Shared root cause A: themes repo must make selected differ from popoverBg (Zettlr dark x5, Willemstad Dark, Sakura). App: give the selected row a non-color cue (primary leading bar or inset ring) in command-item, dropdown-menu-item, context-menu-item and editor-theme autocomplete, and add a selected-vs-popover floor in theme-builder.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/zoom/ZoomChip.svelte:16",
+   "title": "ZoomChip hover color primary on popover fails on three themes",
+   "sev": "low",
+   "owner": "both",
+   "measured": "primary on popover 3.73:1 Sakura, 4.02 Willemstad Dark (APCA -30), 4.48 Graphite Violet",
+   "fix": "Shared root cause C: lift primary to 4.5 on popoverBg in readableCore as well. App alternative: keep popover-foreground and underline on hover.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/command-palette/CommandPalette.svelte:60",
+   "title": "Muted text and icons on the highlighted accent row fail on light themes",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "muted-foreground on accent: 3.02 Zettlr light x5 (APCA 43), 3.70 Graphite Violet, 3.87 Twilight Violet (Lc -36), 4.13 Sepia, 4.20 Lavender Haze, 4.26 Sakura, 4.43 Tolaria Light; 11/28 under 4.5",
+   "fix": "Shared root cause B: add mutedForeground vs accent (flattened over popover) to READABILITY_PAIRS and the readableCore surfaces. App alternative: switch descendants to accent-foreground at about 75% on aria-selected rows.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/search/SearchPanel.svelte:251",
+   "title": "Muted text on --muted fails: search mode toggle, Archived chip, Text badge, footer key hints",
+   "sev": "high",
+   "owner": "both",
+   "measured": "file-explorer-muted-fg on bg-muted over list-bg: 2.52 Zettlr Bordeaux Dark, 2.58 Zettlr dark x4 (Lc -28), 3.68 Zettlr light x5 and Lavender Haze, 3.87 Twilight Violet; 14/28. Same values for the SearchResult.svelte:156 Text badge, the QuickSwitcher Archived chip and command-dialog kbd hints",
+   "fix": "Shared root cause B: pair mutedForeground and fileExplorerMutedFg with the muted (hover) surface in READABILITY_PAIRS so buildTheme lifts them. Themes repo: Zettlr hover #505050 sits too close to mutedFg #787882.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/todoist-sync/TodoistSyncStatus.svelte:20",
+   "title": "Todoist sync error text in status bar fails on 12 themes",
+   "sev": "low",
+   "owner": "both",
+   "measured": "destructive on status-bar-bg 3.39 Zettlr Bordeaux Dark, 3.55 Zettlr dark (Lc -28), 3.62 Willemstad Light, 3.69 Shimmering Focus Light, 4.01 KokoBrain Default, 4.37 Lavender Haze; 12/28",
+   "fix": "Shared root cause C: lift error to 4.5 on statusBarBg and popover in readableCore.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/sections/TrashSection.svelte:68",
+   "title": "text-muted-foreground on bg-muted chips fails 4.5:1 in 14 themes, 2.5:1 on Zettlr dark family",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "muted-foreground on muted fails on 14/28: Zettlr dark 2.52 (Bordeaux), 2.58 (others), Lc 27-28; Zettlr light 3.68; Twilight Violet 3.87 (Lc 36); Tolaria Light 4.15; Lavender Haze 4.20 (file-explorer-muted-fg 3.68); Sakura 4.26.",
+   "fix": "Shared root with kanban.logic.ts:756, EventTaskChip.svelte:27 and editor-theme.ts:66. Do not just lift mutedForeground: on Zettlr Bordeaux Dark ensureContrast lands at #c2c2c7, which is 1.06:1 from foreground and makes muted read the same as body text. Derive muted (and activeLineGutter) from the surface in theme-builder so mutedForeground keeps 4.5:1 on it, and add a [mutedForeground, muted] check. For the pills, text-foreground on bg-muted is the cheap app-side fallback.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/kanban/kanban.logic.ts:756",
+   "title": "text-muted-foreground on opaque bg-muted pills fails on Zettlr dark and several light themes",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "Same pair as TrashSection:68: 14/28, 2.52 Zettlr Bordeaux Dark. Collection weekday headers on bg-muted/60 over editor: 12/28, 3.26 Zettlr dark, 4.00 Zettlr Bielefeld Light. Select placeholder on dark:bg-input/30: 5/13 dark at 4.30-4.41; the scout's 3.85 did not reproduce.",
+   "fix": "Same fix as TrashSection:68 (derive muted in theme-builder, add the pair). The headers on muted/60 are fixed by the same change.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/event-calendar/EventTaskChip.svelte:27",
+   "title": "Calendar task chip hover fill hides closed task text",
+   "sev": "low",
+   "owner": "both",
+   "measured": "hover:bg-muted under text-muted-foreground: 14/28 under 4.5 (2.52 Zettlr Bordeaux Dark, 3.68 Zettlr light, 3.87 Twilight Violet, 4.15 Tolaria Light). Icon 2.52-2.58 on Zettlr dark (under 3:1). Resting state passes.",
+   "fix": "Covered by the shared muted derivation fix (TrashSection:68). An app-only alternative is hover:bg-accent/50.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/theme-builder.logic.ts:186",
+   "title": "Links, wikilinks, footnotes and URLs at APCA Lc 31-44 on dark themes",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "Willemstad Dark: every link, wikilink, footnote and URL token is #567f83 on #070707, 4.57:1 but APCA Lc-31. The raw palette primary #0d5257 is 2.27:1. Zettlr Frankfurt Dark #5e97c7 4.53 Lc-40; Zettlr Karl-Marx-Stadt Dark #eb6a60 4.56 Lc-40; Twilight Violet wikilink #9a7bb9 4.53 Lc-36 and link #7898c8 5.46 Lc-44; Zettlr Bordeaux Dark wikilink-heading 4.58 Lc-39. Also under Lc45: KokoBrain Default syntax-url 4.52 Lc-41 and Graphite Violet wikilink-heading 4.80 Lc-43. Light themes are fine.",
+   "fix": "Shared root A. In readableCore, give accent text on dark editors an APCA floor (|Lc| >= 60; for these palettes that is about 6-7:1 WCAG, e.g. Frankfurt Dark #83afd5-#96bbdb, Willemstad Dark #7f9ea1 for Lc-47 or lighter). Apply it to primary/linkFg/wikilink. The builder change alone fixes all 28 themes. Changing linkFg in the repo palettes is optional.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/kanban/KanbanDatePicker.svelte:130",
+   "title": "Date picker selected day: black on mid-saturation primary passes WCAG at the limit but is poor by APCA",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "WCAG passes 28/28, but APCA: Zettlr Berlin Light #030305 on #12865e 4.51 Lc33 (white would be 4.57 / Lc-77); Willemstad Dark #090909 on #567f83 4.51 Lc33 (white 4.41 / Lc-76); Twilight Violet Lc39; Zettlr Frankfurt Dark and Karl-Marx-Stadt Dark #2b2b2b Lc41.",
+   "fix": "Shared root A. Derive primaryForeground in readableCore the way labelColors does: pick black or white by APCA, then nudge primary only as far as 4.5 needs. Fixing the APCA floor for primary on dark editors (finding 1) also moves these fills.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/theme-builder.logic.ts:192",
+   "title": "mutedForeground family sits at APCA Lc 38-42 on 6 dark themes (WCAG floor only)",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "WCAG passes; APCA does not. mutedFg on Zettlr Dark themes (x5): 4.53-4.68:1, Lc39-42 on editor-bg, card and background. Twilight Violet: 4.51-5.32, Lc38-40. Also KokoBrain Default status-bar-fg 4.50 at Lc37, and its popover muted text Lc44.",
+   "fix": "In readableCore, add an APCA floor (Lc 50 or more for small text on dark themes) to the mutedFg and statusBarFg lifts, so every token derived from them inherits it. Optionally also raise mutedFg in the Zettlr Dark and Twilight Violet palettes.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/theme-builder.logic.ts:241",
+   "title": "--file-explorer-primary text on nav and list surfaces",
+   "sev": "low",
+   "owner": "app",
+   "measured": "file-explorer-primary on nav-bg fails on 8/28: Shimmering Focus Light 4.08, Zettlr Bielefeld Light 4.13, Sakura 4.15, Zettlr Berlin Light 4.19, Willemstad Dark 4.40. On list-bg it fails on 7/28: Twilight Violet 3.97, Willemstad Dark 4.18, Shimmering Focus Light 4.30.",
+   "fix": "Fix B, shared with SidebarSection.svelte:46 and missed item 1. Lift primary against sidebarBg, panelBg, popoverBg and the derived nav and list tones, and add those pairs to READABILITY_PAIRS.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/layout/SidebarSection.svelte:46",
+   "title": "Primary and file-explorer-primary text on sidebar surfaces, only guaranteed on the editor background",
+   "sev": "low",
+   "owner": "app",
+   "measured": "right-sidebar-primary section titles (15px semibold, not large text) fail on 7/28: Shimmering Focus Light 4.08, Sakura 4.15, Willemstad Dark 4.18, Twilight Violet 4.19, Zettlr Berlin Light 4.19. Calendar weekend days fail on 8/28. The 'Active' label on setting-item-bg fails on 6/28, worst Sakura 3.73.",
+   "fix": "Fix B. Lift primary against every surface it is read on (sidebarBg, panelBg, popoverBg, settings item).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/sections/AppearanceSection.svelte:190",
+   "title": "Theme row hover in Settings > Appearance: action icons, Active label and uninstall X unreadable on hover surface",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "Edit and duplicate icons are non-text, so 3:1 applies: 5/28 fail (Zettlr Bordeaux Dark 2.52, other Zettlr dark 2.58), not 15. Uninstall/delete X on hover (destructive on destructive/10 over settings-hover-bg): 7/28 under 3, 1.62 (Lc 14) Zettlr Bordeaux Dark, 1.66 other Zettlr dark, 2.57 KokoBrain Default, 2.89 Lavender Haze. I could not reproduce Willemstad Light 2.99. 'Active' 12px text-primary on the hovered row: 17/28 under 4.5, 2.58 Zettlr Frankfurt Dark; at rest 6/28 (Sakura 3.73).",
+   "fix": "Shared fix B: draw secondary text and icons on the hover surface in settings-text/foreground. Lift error to 4.5 (the same root as the Tasks banner), and the themes repo darkens the Zettlr dark hover. Alternatively, add primary, mutedForeground and destructive on settingsHoverBg to READABILITY_PAIRS.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/auto-organize/AutoOrganizeSection.svelte:266",
+   "title": "Muted text and remove icon on bg-muted chips in Settings",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "muted-foreground on bg-muted: 14/28 under 4.5, 2.52 (Lc 27) Zettlr Bordeaux Dark, 2.58 other Zettlr dark, 3.68 Zettlr light x5, 3.87 Twilight Violet, 4.15 Tolaria Light, 4.20 Lavender Haze, 4.26 Sakura. The remove X (icon, 3:1) fails on the 5 Zettlr dark themes. Foreground on muted passes 28/28 (min 4.82).",
+   "fix": "Shared fix B: on bg-muted chips use foreground for labels and icons (the X can go to foreground on hover only if its rest state is already 3:1). The themes repo darkens the Zettlr dark hover/muted (#505050).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/sections/SettingItem.svelte:28",
+   "title": "Muted description, label and placeholder text in Settings passes WCAG but is under APCA Lc45 on dark themes",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "WCAG passes everywhere for row descriptions and dialog text, but APCA is under Lc 45 on 6-7 dark themes: Twilight Violet 4.51:1 Lc 38 (dialog), Zettlr dark 4.53:1 Lc 39, KokoBrain Default 4.61:1 Lc 44, Twilight Violet description 5.32:1 Lc 40. The settings nav group labels also fail WCAG on Twilight Violet (4.27:1), reported under missed.",
+   "fix": "In readableCore, also require an APCA floor (about Lc 45-50) when lifting mutedFg for dark themes. The Zettlr dark and Twilight Violet palettes can set a lighter mutedFg.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/one-on-one/MyPeopleSection.svelte:50",
+   "title": "Hover and active-row surfaces under muted, primary or warning text",
+   "sev": "low",
+   "owner": "both",
+   "measured": "Active My People row (file-explorer-accent): muted days 11/28 under 4.5 (Zettlr light 3.02, Lc 43), warning days 12/28 (3.05). Weekend day on hover (CalendarGrid.svelte:58,60) 11/28 (Zettlr Berlin Light 2.73). Today on hover:bg-muted 15/28 (Zettlr Frankfurt Dark 2.58). Property type trigger on hover (PropertiesView.svelte:176) 10/28 (Zettlr light 2.77).",
+   "fix": "Shared fix B. Switch text to foreground when the row is active or hovered, add mutedForeground, primary and warning on fileExplorerAccent/muted to the builder pairs where lifting is feasible, and have the themes repo make the Zettlr hover and selected surfaces quieter.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/tasks/SourcesPanel.svelte:327",
+   "title": "SourcesPanel exclude-chip remove icon low contrast on bg-muted",
+   "sev": "low",
+   "owner": "both",
+   "measured": "Exclude-chip remove X (icon, 3:1), muted-foreground on bg-muted: 5/28 fail, 2.52 Zettlr Bordeaux Dark and 2.58 the other Zettlr dark themes. The chip text is foreground and passes.",
+   "fix": "Shared fix B: foreground icon on the chip, and the themes repo darkens the Zettlr dark hover/muted.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/tasks/TaskLists.svelte:197",
+   "title": "Active task list count is muted text on the accent row",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Active list count, muted-foreground on bg-accent: 11/28 under 4.5, 3.02 (Lc 43) Zettlr light x5, 3.70 Graphite Violet, 3.87 Twilight Violet, 4.13 Sepia, 4.20 Lavender Haze, 4.26 Sakura, 4.43 Tolaria Light. text-foreground on the same row passes everywhere (min 4.76).",
+   "fix": "Render the count of the active row in text-foreground (the same treatment as the name). This is shared fix B for selected rows.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/tasks/TasksView.svelte:845",
+   "title": "Tasks row and list hover tint drops muted text and links below 4.5 on light themes",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "Surface is bg-editor-bg (EditorView.svelte:71). muted-foreground on accent/50 over editor fails on 6/28 themes: 3.74 on Zettlr Bielefeld Light (#6e6e77/#deded8), 4.37 on Twilight Violet. primary fails on 10/28: 3.59 on Zettlr Berlin Light (#12865e/#e4e4e4), 4.06 Lc35 on Twilight Violet. The resting state passes on 28/28, and foreground on the hover fill passes on 28/28.",
+   "fix": "Share the fix with the Zettlr palette and builder findings: a lighter hover/selected fill in the Zettlr palettes, plus lifting mutedFg and primary against the hover and selected surfaces in readableCore. A quicker app-side option is a lower-alpha hover tint (bg-accent/30).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/tasks/TasksView.svelte:902",
+   "title": "Muted-foreground 11px task chips are APCA-weak on six dark themes",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "muted-foreground on editor-bg passes WCAG but is APCA-weak on 6/28 dark themes: 4.53-4.87 at Lc 39 on Twilight Violet and the 5 Zettlr Dark themes. The chips are 11px (text-label).",
+   "fix": "Same root cause as the StatusBar and primary APCA findings. Give the builder a stronger floor for muted text on dark themes (about Lc 45, or 5:1), or show overdue, due and priority chips in foreground.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/tasks/TasksView.svelte:879",
+   "title": "Primary-colored small text is APCA-weak on four dark themes",
+   "sev": "low",
+   "owner": "app",
+   "measured": "primary on editor-bg is APCA-weak on 4/28 dark themes: 4.57 Lc31 on Willemstad Dark, 4.53 Lc36 on Twilight Violet, Lc40 on Zettlr Frankfurt Dark and Zettlr Karl-Marx-Stadt Dark.",
+   "fix": "Use the same dark-theme APCA floor as the muted-text finding, and apply it to primary when it is used as text.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/theme-builder.logic.ts:194",
+   "title": "primaryForeground on primary passes AA but reads poorly (black on mid-tone fills), and hover drops it",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "At rest, primaryForeground on primary passes WCAG but reads poorly: 4.51 Lc33 on Zettlr Berlin Light (#030305/#12865e) and Willemstad Dark (#090909/#567f83), 4.95 Lc39 on Twilight Violet, Lc41 on Zettlr Frankfurt Dark and Zettlr Karl-Marx-Stadt Dark. On hover (bg-primary/90 over popover, settings or editor) 11/28 themes drop under 4.5: 3.75 Zettlr Bielefeld Light, 3.83-3.97 Willemstad Dark and Zettlr Frankfurt/Karl-Marx-Stadt Dark, 4.16-4.48 Sakura, Twilight Violet and Tolaria Light. For comparison, white on #12865e is 4.57 Lc77.",
+   "fix": "Pick primaryFg the way labelColors does: choose black or white by APCA and darken or lighten the primary fill so the text gets 4.5, with headroom so hover:bg-primary/90 still holds. This also fixes the kanban checked box, the selected calendar days and the hidden-tabs badge.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/status-bar/StatusBar.svelte:9",
+   "title": "Muted text on dark themes passes 4.5:1 by a hair but reads at Lc 37 to 42",
+   "sev": "low",
+   "owner": "app",
+   "measured": "status-bar-fg on status-bar-bg is 4.50 Lc37 on KokoBrain Default, and 7/28 themes are under |Lc| 45. muted on popover: 7/28 under Lc 45 (KokoBrain Default 4.52 Lc44, Zettlr Dark Lc 39-40). tab-text-inactive: 5 Zettlr Dark themes at Lc 41-42.",
+   "fix": "Share the muted-text APCA floor fix with TasksView:902; no change in StatusBar.svelte itself is needed.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/theme-builder.logic.ts:187",
+   "title": "text-destructive used as small plain text is held to only 3:1 by the theme builder",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "text-destructive fails 4.5 by surface: popover 12/28 (2.96 Lc26 Zettlr Bordeaux Dark, 3.02 Lc30 KokoBrain Default, 3.11 other Zettlr Dark, 3.97 Sakura); settings-dialog-bg 12/28 (3.01 Zettlr Dark, 3.08 KokoBrain Default, 4.16 Lavender Haze); setting-item-bg 12/28 (3.39 Zettlr Bordeaux Dark, 3.62 Willemstad Light, 3.66 Lavender Haze); editor-bg 10/28.",
+   "fix": "Lift error to 4.5 against every surface it is drawn on (editor, sidebar, panel, popover; settings surfaces map to these), or add a separate destructive-text token. This shares a fix with Todoist, the destructive menu item and READABILITY_PAIRS.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/theme-builder.logic.ts:183",
+   "title": "readableCore lifts text to exactly 4.5 on four plain surfaces, so hover/selected surfaces from the same palette fail",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "destructive on muted (hover) fails 19/28: 1.64 Lc14 Zettlr Bordeaux Dark, 1.72 other Zettlr Dark, 3.74 KokoBrain Default. muted on accent 11/28 (3.02 Zettlr Light, 3.70 Graphite Violet). primary on accent 11/28 (2.73 Zettlr Berlin Light).",
+   "fix": "Duplicate root cause of theme-builder.logic.ts:105. Add hover and selected to the lift surfaces, lift error to 4.5, and pair this with the Zettlr palette change so the muted/fg hierarchy is kept.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/todoist-sync/TodoistSection.svelte:151",
+   "title": "Todoist settings load error and token link below 4.5",
+   "sev": "low",
+   "owner": "app",
+   "measured": "On settings-dialog-bg, the error text (12px) fails on 12/28 themes: 3.01 Zettlr Berlin Dark, 3.08 KokoBrain Default, 3.89 Shimmering Focus Light. The token link at line 91 fails on 4/28: 4.15 Sakura, 4.19 Twilight Violet, 4.30 Shimmering Focus Light, 4.34 Willemstad Dark.",
+   "fix": "No local change needed; it is covered by the destructive-text and primary-on-settings lift in theme-builder.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/theme-builder.logic.ts:194",
+   "title": "Primary and destructive button labels pass WCAG but read poorly by APCA (dark text on mid-tone fills)",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "4.51:1 at Lc33 on Willemstad Dark and Zettlr Berlin Light; 4.54-4.56 at Lc41 on Zettlr Frankfurt/KMS Dark (black on mid blue, the owner's original complaint); 4.57 at Lc38 for KokoBrain Default destructive",
+   "fix": "Fix D: in readableCore, pick primaryFg and errorFg with the labelColors APCA rule (black or white, whichever has higher |Lc|), then adjust the fill as labelColors does, instead of ensureContrast(primaryFg, primary, 4.5), which keeps a near-black that only just reaches WCAG.",
+   "src": "validator"
+  },
+  {
+   "key": "src/lib/app/SettingsPanel.svelte:130",
+   "title": "Settings nav group labels fail 4.5:1 on Twilight Violet",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "4.27:1, Lc 37 on Twilight Violet; next lowest 4.58 Tolaria Light",
+   "fix": "Twilight Violet overrides settingsSidebarBg to #2C2A34 (themes/twilight-violet.json:52), lighter than the surfaces mutedFg is lifted against (readableCore lifts it only on editorBg, sidebarBg, panelBg and popoverBg). Add mutedForeground on settingsSidebarBg to READABILITY_PAIRS so the final pass lifts it, or align the override with sidebarBg in the themes repo.",
+   "src": "validator"
+  }
+ ],
+ "09-queryjs-charts": [
+  {
+   "key": "src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts:121",
+   "title": "Mermaid diagram keeps its old theme after a light/dark switch (traced, not run)",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Traced, not run in the app. Mermaid 12.3.0 default-theme lineColor #333333 on a dark code block bg: 1.05 to 1.52. Dark-theme textColor #ccc on a light code block bg: 1.15 to 1.61.",
+   "fix": "Store the mermaid theme on the widget, compare it in eq(), and pass currentMermaidTheme() when the decoration is built, so a light/dark flip re-renders the diagram. Confirm in the running app first.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/queryjs/kb-ui.ts:215",
+   "title": "kb.ui.heatmap cell label at opacity 0.6 over a colored cell is unreadable in every theme",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "editor-fg at .6 over each default step flattened on the block: red step fails 28/28, amber/yellow/lime/green 27/28, gray 19/28. Worst 1.87 SF Dark (green), 2.13 Zettlr light x5 (red)",
+   "fix": "Root D: drop the opacity, and set the cell text (value and label) per cell with labelColors(flattened cell color), or derive the scale from theme vars.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/queryjs/kb-ui.ts:29",
+   "title": "kb.ui.heatmap value text uses the theme text color on a fixed rgba scale and fails on dark and Zettlr light themes",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Value text (editor-fg, bold ~14px) fails the green step on 11 dark themes (SF Dark 2.80 Lc-43, Zettlr Bordeaux Dark 2.89, Twilight Violet 3.15, Zettlr dark 4.25), lime on 6, yellow on 7, amber on 5, and red on Zettlr light x5 at 3.83",
+   "fix": "Same per-cell labelColors fix as finding 7 (root D).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/queryjs/kb-ui.ts:608",
+   "title": "Charts and calendars bake html.dark colors at render time and are not redrawn on a theme switch",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Stale #000 on dark collection bg 1.14 to 1.39, #fff on light 1.08 to 1.39. Traced in code, not run in the app",
+   "fix": "Resolve chart text, point and empty-cell colors from CSS vars at paint time and update the charts on appliedThemeStore change, or clear the QueryJS results when the dark flag flips.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/queryjs/kb-ui.ts:800",
+   "title": "heatmapCalendar and yearlyCalendar today marker rgb(61,61,61) is invisible on dark themes",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "rgb(61,61,61) border vs the #333 empty cell is 1.16 on all 13 dark themes, and 1.39 to 1.70 vs the block bg. Light themes pass (9.26)",
+   "fix": "Draw it with a theme var (--editor-fg or --ring) as an outline with offset, so it contrasts with both the cell and the block in both modes.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/queryjs/kb-ui.ts:977",
+   "title": "Calendar default GitHub green scale and empty cell are fixed hex values that do not contrast with the collection surface",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Light: level 1 vs block 1.01 (Lavender Haze) to 1.31, level 1 vs the empty cell 1.20, empty vs block 1.01 to 1.19. Dark: level 5 #196127 vs block 1.99 to 2.44 and vs the #333 empty cell 1.67, so on dark themes the busiest days are the least visible",
+   "fix": "Root D: derive the empty cell and the default scale from --lp-collection-bg toward a hue and --editor-fg, ensuring 3:1 for the top level and between empty and level 1; optionally run user palettes through ensureContrast against the block.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/queryjs/kb-ui.ts:1067",
+   "title": "Documented chart series colors have under 3:1 against the block background on light themes",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Lavender Haze: yellow 1.38, green 1.74, orange 1.83, gray 1.88, blue 2.19. All 15 light themes are under 3:1 for these five; dark themes pass",
+   "fix": "Use darker example colors in the docs. Optionally run series colors through ensureContrast(color, block bg, 3) in expandDataset.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/queryjs/kb-ui.ts:421",
+   "title": "kb.ui.table striped option is invisible on light themes",
+   "sev": "low",
+   "owner": "app",
+   "measured": "The stripe flattened over the block is 1.00 to 1.01 on all 15 light themes and 1.07 to 1.10 on dark",
+   "fix": "Use color-mix(in oklab, var(--editor-fg) 5-6%, var(--lp-collection-bg)) for the stripe, and use the same fix for the collection table zebra.",
+   "src": "scout"
+  }
+ ],
+ "02-palettes": [
+  {
+   "key": "src/lib/features/tags/TagColorPicker.svelte:99",
+   "title": "Tag color picker: selected ring has the swatch color on dark themes, so the selected state is invisible",
+   "sev": "low",
+   "owner": "app",
+   "measured": "The foreground ring against the swatch it encloses fails 3:1 on all 13 dark themes for orange, yellow, green, cyan and purple: yellow 1.07 on Deep Ocean, cyan 1.03 on Shimmering Focus Dark, green 1.21, orange 1.40, purple 1.72. Red fails 12/28. The ring against the popover passes everywhere (min 7.97).",
+   "fix": "Separate the ring from the fill: background-clip padding-box with a transparent gap, or an offset box-shadow ring. The ring is then judged against the popover (7.97 or more).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/tags/TagColorPicker.svelte:60",
+   "title": "Tag color picker: custom-color swatch and hover border use hard-coded translucent white",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "The custom swatch fill rgba(255,255,255,0.1) against the popover is 1.00 on all 15 light themes and 1.33-1.38 on dark themes (KokoBrain Default 1.36): 28/28 fail. The none dot's X icon passes (min 3.30).",
+   "fix": "Give the empty custom swatch a visible outline from foreground or border tokens, or a plus or pipette glyph. Replace the white rgba hover border and the none fill with foreground-based tokens.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/theme-builder.logic.ts:123",
+   "title": "Type palette icons on selected-row tint and the Inbox organize check fall below 3:1 (builder only tests fe-bg)",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "Builder pair (type-* on fe-bg) passes everywhere (min 3.39). On the selected nav tint, each hue fails 10-13 of 28 themes: red 2.11 on Zettlr Bordeaux Dark, pink 2.42, yellow and orange 2.28 on Willemstad Light. On the selected list tint: red 1.94 on Bordeaux Dark, pink 2.22. KokoBrain Default red 2.50 (nav), 2.29 (list). Organize check in type-green: 8/28 fail on the plain row (2.88 Tolaria Light) and 15/28 on an active row (1.98 Willemstad Light).",
+   "fix": "Shared fix B: add the selected-tint surface to the TYPE_PALETTE_TOKENS pairs, or have the app soften the selected tint under colored icons. Color the organize check by contrast with the surface it sits on, or keep it in foreground on active rows.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/file-icons/IconPicker.svelte:51",
+   "title": "IconPicker Text and Icon presets are fixed hex; as row title text they fail 4.5:1 on nearly every theme",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Raw hex used as title text (4.5:1). On list-bg: Purple 25/28 fail, Red 24/28, Blue and Pink 19/28 each; Yellow, Green, Cyan and Orange fail all 15 light themes (Yellow 1.47 on Sepia nav-bg, Green 1.75, Cyan 1.87). Dark: KokoBrain Default list-bg Purple 3.64, Red 3.83, Blue 3.92. EditorTabs.svelte:232 also applies the same titleColor to tab titles: Yellow 1.47 on Sepia tab-bar, Purple 3.36 on Sepia editor-bg.",
+   "fix": "Store type palette names and resolve title colors through iconColorCss, plus a contrast lift against the row or tab surface (ensureContrast to 4.5). Shares root cause C with the tag dots.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/rail-shell/Rail.svelte:384",
+   "title": "Active rail item is marked only by an 18% tint of 1.06-1.45:1; the collapsed rail has no other cue",
+   "sev": "low",
+   "owner": "app",
+   "measured": "The 18% item-color tint against rail-bg is 1.06 (favorites, Sepia) to 1.45 on all 28 themes. Hover fg/10 is 1.15-1.32, so selected looks no different from hover.",
+   "fix": "Add a 3:1 marker for the active item, such as a side bar or ring in file-explorer-fg or primary, or make the tint clearly stronger than the hover state.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/quick-switcher/QuickSwitcher.svelte:137",
+   "title": "Type-colored icons on the selected quick switcher row drop under 3:1 on light themes",
+   "sev": "low",
+   "owner": "both",
+   "measured": "worst type token on accent: 2.23 Zettlr light (yellow), 2.51 Zettlr Bielefeld Light (teal), 2.80 Lavender Haze (orange), 2.83 Shimmering Focus Light, 2.85 Shimmering Focus Dark (blue), 2.92 Sakura (green), 2.96 Zettlr Bordeaux Dark (red, also 2.96 on plain popover)",
+   "fix": "Shared root cause D: also check TYPE_PALETTE_TOKENS against popover and the selected surface in READABILITY_PAIRS.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/markdown-editor/extensions/composition-aware-bracket-matching.ts:164",
+   "title": "Matching-bracket highlight is hardcoded pale blue, invisible on light themes",
+   "sev": "low",
+   "owner": "app",
+   "measured": "#bad0f847 over editor-bg 1.08 Sepia, 1.09 Lavender Haze, 1.10-1.12 other light themes (all 28 under 3); lp-link and wikilink text on the fill 2.25 Zettlr Frankfurt Dark, 2.40 Willemstad Dark, 2.67/2.49 KokoBrain Default (8 themes under 3:1); editor-fg on it stays 4.50 or more",
+   "fix": "Define --bracket-match-bg from the theme (for example a foreground mix of about 15% over editor-bg, or a primary/25 tint) in app.css or theme vars, and check that link text keeps 4.5 on it.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/rail-shell/rail-items.logic.ts:144",
+   "title": "Rail item icons use fixed saturated hues that vanish on the darker light-theme rail",
+   "sev": "high",
+   "owner": "app",
+   "measured": "On light-theme rail-bg (#dcdbe0 to #eae9e6): favorites 1.31-1.58, tasks 1.56-1.88, files 1.71-2.05, pin/fallback 1.90-2.28, today 1.92-2.31, action 2.37-2.85 and tags 2.42-2.91, all under 3 on 15/15 light themes. Inbox and calendar are under 3 on 10/15. The active 18% tint lowers them further (favorites 1.24). Dark themes pass at rest; active search/archive is 2.9 on Twilight Violet.",
+   "fix": "Fix F. In Rail.svelte, resolve each RAIL_ITEM_COLORS entry per theme with ensureContrast(color, flattened rail-bg and active tint, 3). Alternatively map the items onto the --type-* tokens, which buildTheme already holds to 3:1.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/rail-shell/rail-items.logic.ts:143",
+   "title": "Rail icons use fixed hex colors that fall to 1.3-3:1 on light themes",
+   "sev": "high",
+   "owner": "app",
+   "measured": "Same measurements as rail-items.logic.ts:144.",
+   "fix": "Fix F, the same as rail-items.logic.ts:144. railActionColor already takes isDark, so a mod's declared light colour should go through the same ensureContrast.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/utils/tag-colors.ts:3",
+   "title": "Tag and icon color presets are tuned for dark backgrounds; the none/custom swatches in TagColorPicker vanish on light popovers",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Tag presets vs popover and right-sidebar on light themes: yellow 1.09-1.41, cyan 1.24-1.62, green 1.55-2.02, orange 1.80-2.34, purple 2.21-2.88, red 2.65-3.45. The TagColorPicker custom dot fill rgba(255,255,255,.1) (TagColorPicker.svelte:104) is 1.00-1.03 on light popovers and 1.33-1.38 on dark ones, so the empty custom swatch has no visible edge in any theme. Its hover border is white 50% (:96).",
+   "fix": "Give the picker dots a border from --border/--foreground instead of white rgba, and draw the custom swatch with a visible ring. Optionally darken the presets per light/dark mode.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/components/ui/button/button.svelte:12",
+   "title": "Destructive button text is hardcoded white and ignores destructiveForeground",
+   "sev": "low",
+   "owner": "app",
+   "measured": "White on bg-destructive at rest fails on 3/15 light themes: 4.13 Tolaria Light, 4.20 Shimmering Focus Light and Willemstad Light. On hover (/90) 4 light themes fail, down to 3.67 Tolaria Light. On dark, the /60 fill over popover gives 4.47 on Graphite Violet; over settings-dialog-bg all 13 dark themes pass.",
+   "fix": "Drop dark:bg-destructive/60 and use text-destructive-foreground on the opaque bg-destructive, which passes 4.5 on 28/28. Alternatively keep white text and darken the destructive fill by APCA, the labelColors approach.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/utils/tag-colors.ts:3",
+   "title": "Tag color dots and the property tag icon use a dark-theme preset palette that fails 3:1 on every light theme",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "editor-bg: yellow 1.20 Sepia (Lc 9), 1.25 Lavender Haze; cyan 1.38; green 1.72; orange 1.99; purple 2.44. input-bg: yellow 1.15 Lavender Haze, cyan 1.32, green 1.64, orange 1.91, purple 2.34, red 2.81",
+   "fix": "The color is the information the dot carries. Darken the presets on light themes (ensureContrast to 3:1 against the surface at render time, or a light-theme variant of each preset), or give the dot a foreground outline. Same root cause as the IconPicker presets: a fixed palette tuned for dark backgrounds.",
+   "src": "validator"
+  }
+ ],
+ "10-graph": [
+  {
+   "key": "src/lib/plugins/graph-view/graph-view.logic.ts:296",
+   "title": "Center-note node is nearly indistinguishable from ordinary nodes (hue-only difference)",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "nodeActive (primary) against node (muted-foreground) is under 1.5:1 on 23/28 themes. OKLab distance: KokoBrain Default 1.08:1 / 4.9, Mint Linen 1.09 / 5.3, Twilight Violet 1.08 / 6.0, Graphite Violet 1.03 / 6.5. Both pass on editor-bg (min 4.52).",
+   "fix": "Add a non-hue cue to the center node: a foreground ring or stroke, a larger radius, or a bold label.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/graph-view/graph-view.logic.ts:289",
+   "title": "Graph edges are hairlines under 3:1 on most themes, hover highlight differs only by width",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "edge (muted mixed 40% toward editor-bg) against editor-bg: 21/28 under 3:1 at full coverage, 2.31 Zettlr Bielefeld Light, KokoBrain Default 2.73. edgeHighlight (primary mixed 50%): 27/28 under 3:1, 1.79 Willemstad Dark, KokoBrain Default 2.38. edgeHighlight against edge is only 1.01-1.63.",
+   "fix": "Mix edges less toward the background (about 20%) so they reach 3:1. Draw edgeHighlight from primary at full or near-full strength so it differs from plain edges in luminance as well as width.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/graph-view/graph-view.logic.ts:288",
+   "title": "Hover-dimmed nodes and labels fall to 1.2-1.7:1",
+   "sev": "low",
+   "owner": "app",
+   "measured": "labelDimmed vs editor-bg 1.57:1 Zettlr Bielefeld Light to 2.27 Willemstad Light, APCA Lc 0 on Willemstad Dark, -12.9 KokoBrain Default; nodeDimmed 1.22 Willemstad Dark to 1.53",
+   "fix": "Skip fillText for dimmed nodes, or lower the label mix to about 0.4 so dimmed labels stay near 3:1. Keep nodeDimmed as it is (decorative).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/graph-view/GraphControls.svelte:45",
+   "title": "Global/Local mode toggle: selected state barely visible",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "bg-muted chip vs panel (background 90% over editor-bg) 1.01:1 Shimmering Focus Light, 1.05 Willemstad Dark, 1.06 KokoBrain Default, 1.34 Lavender Haze, best 2.06 Zettlr dark; foreground vs muted-foreground icon 1.25 Shimmering Focus Dark, 1.58 Zettlr light, max 2.74",
+   "fix": "Shared root cause A (selected state by fill only, with findings at command-item.svelte:20 and SettingsPanel.svelte:137): give the pressed button a primary icon color or a primary/15 fill plus ring. Themes repo: keep hover further from background.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/graph-view/GraphControls.svelte:121",
+   "title": "Filter and display controls in the graph panels have near-invisible boundaries",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "border vs panel 1.06 KokoBrain Default, 1.13 Tolaria Light, max 2.06; select chevron (muted-fg at 50%) 1.94 Tolaria Light to 2.90; switch track vs panel 1.25 Twilight Violet, 1.28 Sakura, 1.32 Tolaria Light, 1.38 Lavender Haze; light-theme thumb (bg-background) vs track 1.28 Sakura, 1.31 Tolaria Light, 1.38 Lavender Haze, about 1.53 Zettlr light",
+   "fix": "Shared root cause E: derive switchUncheckedBg and input to reach 3:1 against background, popover and setting-item-bg in theme-builder and the themes repo, or give the light-theme thumb a border or shadow. Drop opacity-50 from the select chevron.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/graph-view/GraphView.svelte:316",
+   "title": "Node labels can print over other nodes with no halo (label on node 1.1-1.7:1)",
+   "sev": "low",
+   "owner": "app",
+   "measured": "label on node (muted-foreground) 1.12 Shimmering Focus Dark, 1.25 Zettlr light, 1.61 KokoBrain Default; label on the active node (primary) 1.05 Zettlr Bielefeld Dark, 1.07 Deep Ocean; label on bg alone passes (5.66 or more)",
+   "fix": "Stroke the label text with the editor-bg color (a 3px strokeText halo) before fillText, or draw all labels after all nodes.",
+   "src": "scout"
+  }
+ ],
+ "11-theme-tooling": [
+  {
+   "key": "src/lib/core/settings/sections/ThemeColorRow.svelte:52",
+   "title": "Theme editor swatches vanish into the dialog background",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Swatch border (--border) vs settings-dialog-bg is under 3:1 on 28/28 themes: 1.13 Graphite Violet, 1.17 Twilight Violet, 1.18 Sakura, 1.21 KokoBrain Default. A surface-colored token makes the swatch's extent invisible.",
+   "fix": "Add a contrast-aware outline to the swatch (for example a 1px ring in foreground at reduced opacity, or a double ring of foreground plus background) so surface and translucent tokens still show their edges.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/utils/color.ts:14",
+   "title": "Schema accepts hsl(), 4-digit hex and space-separated rgb() that color.ts cannot parse (dark detection and lift silently skipped)",
+   "sev": "low",
+   "owner": "both",
+   "measured": "color.ts:16 and :32 parse only #rgb, #rrggbb, #rrggbbaa, comma-separated rgb()/rgba() and oklch(). theme.schema.json:593-594 also accepts 4-digit hex, hsl()/hsla(), space-separated rgb, transparent and color-mix(). A grep finds none of those forms in any of the 26 repo themes.",
+   "fix": "Either extend parseRgba to hsl/hsla, #rgba and space/slash rgb, or narrow the schema pattern and README to the forms the parser accepts.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/theme.logic.ts:105",
+   "title": "User-created, edited and imported themes bypass every contrast check; the 26 catalog themes have no test or CI contrast gate",
+   "sev": "low",
+   "owner": "both",
+   "measured": "Traced, no shipped theme fails. theme.logic.ts:105-109 keeps every token from partial.ui verbatim and only fills missing tokens from the lifted derivation. The every-pair test (theme-builder.logic.test.ts:248) loops over BUILTIN_THEMES only.",
+   "fix": "Show the measured ratio in ThemeEditor and warn on import or save. Extend the every-pair test to the catalog packages, and add a contrast step to the themes repo's validate script.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/theme-builder.logic.ts:105",
+   "title": "READABILITY_PAIRS has no Settings surfaces and no destructive-text pair, so lifting never protects them",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "muted on settings-hover-bg 15/28 (2.52 Zettlr Bordeaux Dark, 4.05 KokoBrain Default and Lavender Haze). primary on settings-hover-bg 17/28 (2.58 Zettlr Frankfurt Dark, 3.33 Zettlr Berlin Light). primary on setting-item-bg 6/28 (3.73 Sakura, 4.18 Lc30 Willemstad Dark). Destructive on the settings surfaces: see theme-builder.logic.ts:187.",
+   "fix": "Add these pairs and the matching lift surfaces in readableCore together with the test. This is the same fix as theme-builder.logic.ts:183.",
+   "src": "scout"
+  }
+ ],
+ "12-themes": [
+  {
+   "key": "themes/zettlr-*-dark.json and themes/zettlr-*-light.json (palette.hover, palette.selected):0",
+   "title": "Zettlr palettes use the border gray as the hover and selected surface",
+   "sev": "high",
+   "owner": "themes-repo",
+   "measured": "Palettes read from the themes repo: dark hover = border = borderStrong = #505050, selected #282832; light hover = border #dcdcdc, selected = borderStrong #c8c8c8. Resting bg-muted chips on the 5 Zettlr Dark themes measure 2.52-2.58. Light muted on selected is 3.02 and primary on selected is 2.73-3.03.",
+   "fix": "In the themes repo, move the Zettlr hover and selected fills closer to editorBg, and lighten (dark themes) or darken (light themes) mutedFg. Combine this with the builder lift change.",
+   "src": "scout"
+  }
+ ],
+ "03-rows": [
+  {
+   "key": "src/lib/features/collection/toolbar/FilterPanel.svelte:96",
+   "title": "Filter count pill uses text-primary on bg-primary/15 at 11px",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "15/28 themes under 4.5: Sakura 3.11 (Lc45), Willemstad Dark 3.43, Graphite Violet 3.50, Zettlr Frankfurt Dark 3.73, Shimmering Focus Light 3.74, KokoBrain Default 3.78 (Lc-42) up to Zettlr Berlin Dark 4.25. Rendered on bg-popover (PopoverContent in CollectionView.svelte and RailNoteList.svelte)",
+   "fix": "Use text-foreground (or popover-foreground) on the tinted pill in both places. A builder-level alternative is adding primary on popover to readableCore surfaces, but the tint still lowers it, so the component change is the reliable one. Shares root C (tokens lifted against editorBg only) with findings 5 and 16.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/note-list/NoteRow.svelte:141",
+   "title": "Note-list property and type pills: text-primary on bg-primary/10 under 4.5 on 10 themes",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "text-primary on primary/10 over list-bg. Row at rest: 10/28 fail (8 light, 2 dark), worst Twilight Violet 3.49 (Lc -32), Willemstad Dark 3.77, Shimmering Focus Light 3.78. Hovered row: 18/28 fail, worst 3.08. Active row (pill on primary/25): 26/28 fail, worst 2.53. KokoBrain Default is 4.97 at rest and 3.20 on an active row.",
+   "fix": "Shared fix B: draw the pill text in foreground mixed with primary (as the editor tag pill does), not in raw primary. In the themes repo, lift primary on list-bg for Twilight Violet, Willemstad Dark, Shimmering Focus Light, Sakura and the Zettlr light themes.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/note-list/NoteRow.svelte:127",
+   "title": "Selected row text (primary on its own 25% tint) below 4.5:1 in the note list, Files and Types navigators",
+   "sev": "high",
+   "owner": "both",
+   "measured": "primary on primary/25 over list-bg fails 21/28 (13 light, 8 dark): Twilight Violet 2.82 (Lc -28), Zettlr Karl-Marx-Stadt Light 3.10, Sakura 3.11, KokoBrain Default 3.70, Lavender Haze 4.01. fe-primary on the nav tint fails 20/28: Shimmering Focus Light 2.97, KokoBrain Default 4.05. file-explorer-fg on either tint passes everywhere (min 5.03 nav, 5.24 list).",
+   "fix": "Shared fix B: draw the selected label in file-explorer-fg, which passes on all themes. Keep primary for the icon or a side bar. Add a primary-on-selected-tint pair to the builder.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/rail-shell/FilesNavigator.svelte:569",
+   "title": "Muted and badge text on hovered/selected row tints: counts and note subtitle drop below 4.5:1",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "Selected nav tint: fe-muted-fg and badge-fg counts fail 21/28, KokoBrain Default 3.08 (Lc -32), Lavender Haze 3.15. Subtitle in muted-foreground on the selected list tint fails 22/28: Zettlr Bielefeld Dark 2.96, KokoBrain Default 3.42. Hover: counts 12/28 (Lavender Haze 3.92), subtitle 10/28 (Twilight Violet 3.75). At rest the counts sit at exactly 4.50 minimum.",
+   "fix": "Shared fix B: on selected rows, draw counts and subtitles in foreground, or reduce opacity of a foreground color rather than the muted token. In builder and themes repo, give muted tokens headroom (about 5:1 on base) or add tint pairs.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/search/SearchResult.svelte:151",
+   "title": "File-explorer primary as text and as a tint in the search panel fails",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "Both/Semantic badge (primary on primary/15 over list-bg) 3.25 Twilight Violet, 3.54 Shimmering Focus Light, 3.56 Sakura, 3.61 Zettlr light, 14/28; on row hover 2.81 Zettlr Karl-Marx-Stadt Light; fuzzy toggle on primary/20 over background 3.18 Shimmering Focus Light, 19/28; section heading on list-bg 3.97 Twilight Violet (7/28), hovered 3.33 Zettlr Berlin Light",
+   "fix": "Shared root cause C: lift primary on fileExplorerBg/list-bg and popover in readableCore. App: use file-explorer-fg for the text inside the primary tint badges and the fuzzy toggle, and keep the hue for the tint.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/note-list/NoteRow.svelte:108",
+   "title": "Active note row: title, subtitle and pills sit on bg-primary/25 and fail AA",
+   "sev": "high",
+   "owner": "app",
+   "measured": "Active row bg = list-bg + primary/25. Title text-primary fails on 21/28: KokoBrain Default 3.70 (Lc41), Lavender Haze 4.04, Twilight Violet 2.82 (Lc28), Willemstad Dark 3.11 (Lc27), Sakura 3.11. Subtitle (muted-fg, 11px) fails on 22/28, worst Zettlr Bielefeld/Bordeaux Dark 2.96. Pills (primary/10 on the active tint) fail on 26/28, 8 of them under 3 (Twilight Violet 2.53). file-explorer-fg on the same tint is 5.24 or more on every theme.",
+   "fix": "Fix A. Use file-explorer-fg for the active title, a muted token checked against the flattened tint for the subtitle, and a foreground-derived pill colour. Or emit --primary-on-tint per theme through ensureContrast.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/rail-shell/FilesNavigator.svelte:347",
+   "title": "Selected row in Files and Types navigators: primary text on its own 25% tint",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "file-explorer-primary on nav-bg + primary/25 fails on 20/28: Shimmering Focus Light 2.97, Zettlr KMS Light 2.98, Sakura 3.01, Twilight Violet 3.06, Zettlr Light 3.04-3.26, KokoBrain Default 4.05 (Lc43), Lavender Haze 3.87. file-explorer-fg on the same tint is 5.03 or more.",
+   "fix": "Fix A. Use text-file-explorer-fg for the selected label (TypesNavigator.svelte:282,411 too). Keep the accent on the icon and the tint.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/rail-shell/TypesNavigator.svelte:299",
+   "title": "Types navigator row counts on the selected row tint",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "file-explorer-badge-fg on the selected tint fails on 21/28: KokoBrain Default 3.09 (Lc32), Lavender Haze 3.15, Tolaria Light 3.20, Zettlr Bielefeld/Bordeaux Dark 3.24, Zettlr Light 3.19-3.36.",
+   "fix": "Fix A. On the selected row, render the count in file-explorer-fg (or file-explorer-fg at reduced opacity, tested). The same applies to TypesNavigator.svelte:430 and FilesNavigator.svelte:569.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/rail-shell/FilesNavigator.svelte:349",
+   "title": "Selected row in Files and Types navigators: file-explorer-primary on its 25% tint, plus muted counts",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Same figures as FilesNavigator.svelte:347 (20/28) and TypesNavigator.svelte:299 (21/28). The FilesNavigator.svelte:569 muted count has the same values because badge-fg equals mutedFg.",
+   "fix": "Fix A, the same as the two findings above. Including nav-bg + primary/25 in READABILITY_PAIRS would not help, because that pass only moves fg tokens globally.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/search/SearchResult.svelte:153",
+   "title": "Search result Semantic and Both badges: primary-colored text on its own 15% tint fails 4.5:1 in 14 themes",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "Both badge (file-explorer-primary on primary/15 over list-bg) 14/28 under 4.5: Twilight Violet 3.25 (Lc 31), Shimmering Focus Light 3.54, Sakura 3.56, Willemstad Dark 3.57 (Lc 29), Zettlr light 3.61-3.89; KokoBrain Default 4.53 and Lavender Haze 4.68 pass. On a hovered row (file-explorer-accent/60 under the tint) 18/28 fail, worst 2.81 on Zettlr Karl-Marx-Stadt Light. Semantic badge gives the same numbers (3.26 Twilight Violet).",
+   "fix": "Shared fix A (tint badge text): draw the badge text in --file-explorer-fg with the primary tint as the cue (passes 28/28, min 6.10), or compute the text with ensureContrast against the flattened tint. Same fix for finding 3 (duplicate), BuildInfo, the Tasks error banner and scout 17 #8.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/search/SearchResult.svelte:155",
+   "title": "Search result Semantic and Both badges: accent text on a 15% accent tint",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "Duplicate of SearchResult.svelte:153 (same badges, same numbers). The fuzzy toggle (SearchPanel.svelte:348) sits on the input's bg-background, not on list-bg: primary on primary/20 fails on 19/28, worst Shimmering Focus Light 3.18, Zettlr Karl-Marx-Stadt Light 3.21, Zettlr Berlin Light 3.26; KokoBrain Default 4.47.",
+   "fix": "Merge with the :153 finding and use shared fix A. For the fuzzy toggle, the 'on' state can use file-explorer-fg text with the tint as the cue.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/core/settings/BuildInfo.svelte:29",
+   "title": "BuildInfo channel badge text fails 4.5:1 on most themes for every channel",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "In Settings (20% tint over setting-item-bg): stable 15/28 (Lavender Haze 3.13, Lc 43), nightly 15/28 (Lavender Haze 3.16), preview 23/28 (5 under 3), dev 19/28. In the welcome footer (over card): stable 21/28 (Lavender Haze 3.50), nightly 16/28, preview 19/28.",
+   "fix": "Shared fix A: pick the text with ensureContrast on the flattened tint, or use foreground text with the tint as the cue.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/tasks/TasksView.svelte:634",
+   "title": "Tasks refresh error banner text and Retry too faint on destructive tint",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "destructive on destructive/10 over editor-bg: 15/28 under 4.5, 2.79 (Lc 25) Zettlr Berlin/Bielefeld/Frankfurt/Karl-Marx-Stadt Dark, 2.96 Bordeaux Dark, 3.19 KokoBrain Default, 3.56 Shimmering Focus Light, 3.95 Lavender Haze. The Retry button on hover is 22/28 (2.57). Foreground on the tint passes 28/28 (min 6.14).",
+   "fix": "Draw alert message text in foreground and keep destructive for the border and icon (shared fix A). Separately, lift error to 4.5 where it is used as text.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/search/SearchResult.svelte:156",
+   "title": "muted text on --muted chips (SearchResult 'Text' badge, Off/Archived/count chips)",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "muted-foreground on --muted fails on 14/28 themes: 2.52 Lc27 Zettlr Bordeaux Dark, 2.58 the other Zettlr Dark themes, 3.68 Zettlr Light, 3.87 Twilight Violet, 4.20 Lavender Haze. The 'Text' badge (file-explorer-muted-fg) is 3.68 on Lavender Haze.",
+   "fix": "Add mutedForeground vs muted to the lift surfaces and pairs, and fix the Zettlr hover color in the themes repo. Shares a fix with the Zettlr palette and READABILITY_PAIRS findings.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/components/ui/dropdown-menu/dropdown-menu-item.svelte:23",
+   "title": "Highlighted destructive menu item (Delete) is 2.5 to 3:1 on dark themes",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "Highlighted destructive item, text-destructive on destructive/20 over popover (dark) or /10 (light): fails on 18/28 themes. Dark: 2.56 Lc23 Zettlr Bordeaux Dark, 2.62 other Zettlr Dark, 2.63 Lc27 KokoBrain Default. Light: worst 3.48 Sakura, 4.42 Lavender Haze. context-menu-item.svelte:23 is the same.",
+   "fix": "Keep the neutral accent highlight for destructive items, or lift the destructive text against the flattened tint. The builder change that lifts error to 4.5 also fixes the resting state.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/mods/ModActionPicker.svelte:19",
+   "title": "Mod run 'Failed' status text in destructive fails on popover",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "2.96:1 Zettlr Bordeaux Dark, 3.02 KokoBrain Default (Lc -30), 3.11 Zettlr dark, 3.97 Sakura, 4.09 Shimmering Focus Light",
+   "fix": "Same root cause as the destructive menu text and the Todoist error: lift error to 4.5 on popover and statusBar in theme-builder readableCore (currently lift(p.error, 3) on editorBg only).",
+   "src": "validator"
+  },
+  {
+   "key": "src/lib/components/ui/context-menu/context-menu-item.svelte:23",
+   "title": "Highlighted destructive menu item (Delete in Files/Types/kanban menus) red text on its own tint fails on 18 themes, including the default",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "2.56:1 Zettlr Bordeaux Dark (Lc 23), 2.62 other Zettlr dark, 2.63 KokoBrain Default (Lc 27), 3.48 Sakura, 4.42 Lavender Haze; at rest 12/28 under 4.5 (KokoBrain Default 3.02)",
+   "fix": "Same root as scout-02's destructive-as-text finding: theme-builder lifts error only to 3:1. For these items, keep the label in the popover foreground and color only the icon red, or have theme-builder lift destructive to 4.5 against popover and its own 10-20% tint. Shares the fix with the CanvasContextMenu.svelte:211 delete hover.",
+   "src": "validator"
+  },
+  {
+   "key": "src/lib/components/ui/context-menu/context-menu-item.svelte:23",
+   "title": "Destructive context/dropdown menu item ('Delete') is about 3:1 on the default theme and Zettlr Dark",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "3.02:1 (Lc30) KokoBrain Default, 2.96 Zettlr Bordeaux Dark, 3.11 (Lc27) other Zettlr Dark; highlighted 2.56-2.63",
+   "fix": "Fix B: readableCore runs lift(p.error, 3) against editorBg only. Lift error used as text to 4.5 against popoverBg (and the other surfaces), or give menus a destructive-text token checked against popover and the highlighted tint. The dropdown-menu item uses the same classes.",
+   "src": "validator"
+  },
+  {
+   "key": "src/lib/features/note-list/NoteRow.svelte:141",
+   "title": "Note-list type and property pills fail on idle rows too",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "3.49:1 Twilight Violet, 3.77 Willemstad Dark, 3.78 Shimmering Focus Light, 3.79 Sakura, 3.82-4.17 Zettlr Light, 4.32 Tolaria Light",
+   "fix": "Fix A, shared with the active-row finding: compute the pill text against the flattened pill bg (ensureContrast) or use a foreground-derived pill colour.",
+   "src": "validator"
+  },
+  {
+   "key": "src/lib/features/search/SearchResult.svelte:153",
+   "title": "Hybrid search source badges (Both / Semantic / Text) under 4.5, Text badge about 2.5:1 on Zettlr Dark",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "Both 3.25:1 (Lc31) Twilight Violet, 3.54 Shimmering Focus Light, 3.56 Sakura, 3.57 Willemstad Dark; Text 2.52-2.58:1 (Lc27-28) Zettlr Dark",
+   "fix": "Fix A: badge text checked against its flattened tint (ensureContrast, or the column foreground), and a Text badge background that is not --muted (which is the hover/selected shade #505050 on Zettlr Dark).",
+   "src": "validator"
+  }
+ ],
+ "04-kanban": [
+  {
+   "key": "src/lib/features/collection/expression/evaluator.ts:444",
+   "title": "badge() display function draws raw palette color as text on its own 15% tint",
+   "sev": "high",
+   "owner": "app",
+   "measured": "Light themes on --card: yellow 1.45, green 1.79, orange 1.86, gray 1.93, blue 2.18, red 2.57, purple 2.69 (Lavender Haze worst). Widget yellow 1.29. Red and purple fail in all 28 themes; Graphite Violet purple is 2.66. With COLOR_PRESET_CHIP_TEXT instead, every colour is at least 4.58 on card, and at least 4.23 on the widget surface (yellow and green fall under 4.5 on the five Zettlr light themes).",
+   "fix": "Use COLOR_PRESET_CHIP_TEXT for the badge text and lower the preset share to about 25%, or clamp it, so the widget's yellow and green clear 4.5. The same preset-text fix applies to evaluator.ts:451.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/collection/expression/evaluator.ts:451",
+   "title": "color() and progress() display functions use raw palette or gray on the surface",
+   "sev": "high",
+   "owner": "app",
+   "measured": "color() text on --card, light themes: yellow 1.56, green 1.98, orange 2.08, gray 2.13, blue 2.49. On dark themes red is 3.19 and purple 3.14 (Graphite Violet), with red under 4.5 on 12 of 13 dark themes. The progress percent label rgb(160,160,160) is 2.13 to 2.61 on card and 1.88 in the widget. Progress fill against the surface: yellow 1.56 and green 1.98 on light themes.",
+   "fix": "Colour color() text with the chip-text mix (shared with evaluator.ts:444). Use var(--muted-foreground) for the percent label. Give the progress bar a darker fill or a 1px outline so it reaches 3:1 on light themes.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/collection/expression/evaluator.ts:448",
+   "title": "Collection badge() text is the raw preset color on its own 15% tint",
+   "sev": "high",
+   "owner": "app",
+   "measured": "Preset text on its own 15% tint, flattened. On editor-bg: red 27/28, purple 27/28, blue 25/28, gray 22/28, green 21/28, orange 21/28, yellow 15/28 (all 15 light themes fail every preset). Worst is yellow at 1.51 on Sepia (Lc 20). On lp-collection-bg: yellow 1.29 on Lavender Haze (Lc 11), green 1.60, blue 1.96. Dark: KokoBrain Default purple 2.95, red 3.13, blue 3.54.",
+   "fix": "Shared fix A with color() and progress(): render the text as the preset mixed toward var(--editor-fg). The kanban 30/70 mix leaves 13 of 784 measured pairs under 4.5 (worst 4.14). A 25/75 mix leaves 1 of 784 (4.42). Use about 25/75, or apply ensureContrast against the surface. Update the badge tests.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/collection/expression/evaluator.ts:462",
+   "title": "Collection color() text is the raw preset color on the bare surface",
+   "sev": "high",
+   "owner": "app",
+   "measured": "Raw preset on the bare surface. On editor-bg: purple 25/28, red 24/28, blue 17/28; green, orange, yellow and gray fail all 15 light themes. Yellow 1.63 on Sepia, 1.38 on Lavender Haze with lp-collection-bg. Dark: KokoBrain Default red 3.58, purple 3.53, blue 4.42.",
+   "fix": "Shared fix A: the same foreground-mixed preset as badge(), at about 25/75. On the bare surface the 30/70 mix already measured 4.51 or better.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/collection/expression/evaluator.ts:457",
+   "title": "Collection progress(): fixed gray percent label and low-contrast bars on light themes",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "The percent label rgb(160,160,160) fails 15/15 light themes: 2.22 on Sepia (editor-bg, Lc 40) and 1.88 on Lavender Haze (lp-collection-bg). Bar against the surface (3:1): yellow 1.63, green 2.06 (15 light), blue 2.59 (8 light). Dark themes pass.",
+   "fix": "Shared fix A for the bar fill, and use muted-foreground or a mix of editor-fg toward the surface for the label. The label states the value, so the track can stay decorative.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/features/file-history/DiffViewer.svelte:14",
+   "title": "File History diff: red/green text on tinted rows fails, deleted lines under 3:1 on built-in default",
+   "sev": "high",
+   "owner": "both",
+   "measured": "deleted text on destructive/15 over popover: 2.65 Zettlr Bordeaux Dark, 2.74 KokoBrain Default and Zettlr dark (Lc -24 to -28), 3.24 Sakura, 4.09 Lavender Haze, 21/28 fail; inserted 3.42 Sakura, 3.81 Graphite Violet, 11/28; line numbers 3.32 KokoBrain Default on the insert tint",
+   "fix": "App: color the line text with popover-foreground and let the tint plus the +/- column show add/remove (optionally keep the hue on the prefix only). Shared root cause C: lift error and success to 4.5 on popoverBg in readableCore.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/kanban/KanbanView.svelte:549",
+   "title": "Primary text on a primary tint: view toggles, filter counts, search badges, TOC hover",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "View-mode toggle: icon only (LayoutGrid/List, size-3.5), so 3:1 applies. 0/28 fail on editor-bg or background; that part is refuted. Text-bearing parts fail. Filter count pill (primary on primary/15 over popover, 11px semibold): 15/28, Sakura 3.11, Willemstad Dark 3.43, KokoBrain Default 3.78. Fuzzy toggle (file-explorer-primary on /20 over background): 19/28, Shimmering Focus Light 3.18, Default 4.47. Both/Semantic badges on list-bg: 14/28, Twilight Violet 3.26 (Lc-31). TOC hover (right-sidebar-primary on /10): 12/28, Shimmering Focus Light 3.61 (hover only).",
+   "fix": "Shared roots A and C. Derive accent text against the flattened tint (ensureContrast on the composite) or put foreground text on the tint. Derive searchSemanticFg against its own tint in buildTheme. The view toggle needs no change.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/kanban/kanban.logic.ts:752",
+   "title": "Status text on its own 15-20% tint (kanban due badges, diff lines, build badge, error panels) fails",
+   "sev": "high",
+   "owner": "both",
+   "measured": "Kanban badges on the bg-background card: overdue 23/28 (Willemstad Light 2.96, Shimmering Focus Light 3.02, KokoBrain Default 3.51); today 14/28 (3.79 min); tomorrow 16/28 (Shimmering Focus Light 2.90, Willemstad Light 2.91, Tolaria Light 2.96); upcoming 21/28 (3.05 Zettlr Light). DiffViewer on the dialog popover: delete 21/28, 6 under 3 (KokoBrain Default 2.74 Lc-28, Zettlr Bordeaux Dark 2.69); insert 11/28. BuildInfo badges on settings-dialog-bg: stable 21/28, nightly 16, preview 19 (Zettlr dark 2.94), dev 17. Error panels at /10 on editor: 15/28, 5 under 3 (Zettlr dark 2.78, Default 3.19).",
+   "fix": "Shared roots B and C. Put foreground (popover-foreground) text on the tint and keep the hue in the tint and the +/- prefix or dot. Or lift each status hue against its composited tint. In buildTheme, hold error/destructive to 4.5 as text (theme-builder.logic.ts:187 lifts it to 3 only) and add tinted-surface pairs.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/kanban/KanbanCard.svelte:204",
+   "title": "Coloured-card tint drops secondary text below 4.5:1 (checked text, note preview, wikilinks, table Done and lane column)",
+   "sev": "medium",
+   "owner": "app",
+   "measured": "rgba(preset, 0.15) over the lane (muted/30 over editor-bg). Muted-foreground (checked text, preview) fails on 18/28: Zettlr dark yellow 2.87 (#91919a on #514930), Bordeaux Dark 3.02, Twilight Violet 3.38, Bielefeld Light red 3.55, KokoBrain Default yellow 3.94. Primary wikilinks fail on 16/28: Frankfurt Dark yellow 2.87, Karl-Marx-Stadt Dark 2.88, Berlin Light red 3.45. Foreground text passes everywhere. On a plain card, muted-foreground passes on 28/28.",
+   "fix": "Shared root C. Tint only a left stripe or the border and keep the opaque card background. Or keep the tint and switch secondary text to foreground and wikilinks to an ensureContrast-lifted primary on coloured cards. Applies to the list and table rows too (KanbanTableView.svelte:43).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/kanban/KanbanCardText.svelte:25",
+   "title": "text-primary wikilinks on cards slightly under 4.5:1 in five themes",
+   "sev": "low",
+   "owner": "both",
+   "measured": "Primary on the card's bg-background: Shimmering Focus Light 4.08, Willemstad Dark 4.18 (Lc-30), Zettlr Berlin Light 4.19, Zettlr Bordeaux Light 4.29, Zettlr Karl-Marx-Stadt Light 4.32. Other themes pass.",
+   "fix": "Shared root A. Lift primary against background, card and popover as well as the editor (pass surfaces to lift).",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/kanban/KanbanLane.svelte:256",
+   "title": "Lane card-limit count in destructive red fails on 12 themes, including built-in dark",
+   "sev": "medium",
+   "owner": "both",
+   "measured": "Destructive on the lane (muted/30 over editor-bg), 12px semibold, fails on 12/28: Zettlr dark 2.57 (Lc-23), Zettlr Bordeaux Dark 2.61, KokoBrain Default 3.53, Tolaria Light 3.92, Shimmering Focus Light and Willemstad Light 3.96, Twilight Violet 3.97, Lavender Haze 4.15, Sakura 4.47.",
+   "fix": "Shared root B. Hold destructive to 4.5 as text in buildTheme (theme-builder.logic.ts:187), or add a text-specific error token lifted against the surfaces. The built-in KokoBrain Default needs its own value.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/utils/color-presets.ts:37",
+   "title": "Tag chip text (Issue 39) still under 4.5:1 on Zettlr light themes, worst on coloured cards",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Plain card (chip = preset@0.15 over --background): yellow chip #7b6d57 on #f3ebd1 is 4.23:1 (Lc63) on all 5 Zettlr light themes. Coloured card (preset@0.15 over lane = muted@0.3 over editor-bg): yellow on red is 3.36:1 (Lc49) on Zettlr Bielefeld Light and 3.58 on the other Zettlr light themes. Blue on yellow is 4.09 on Zettlr Bordeaux Dark. Lowest built-in: 4.96 (Lavender Haze).",
+   "fix": "Run the chip text through ensureContrast against the flattened chip background (preset tint over card over lane), or mix the preset at least 85% toward editor-fg. Extend color-presets.test.ts to cover the theme-repo palettes.",
+   "src": "scout"
+  },
+  {
+   "key": "src/lib/plugins/kanban/KanbanCardText.svelte:34",
+   "title": "Kanban tag chips (COLOR_PRESET_CHIP_TEXT) under 4.5:1 on Zettlr Light cards, worse on coloured cards",
+   "sev": "low",
+   "owner": "app",
+   "measured": "Plain card: yellow 4.23 (Lc63) on Zettlr Berlin, Bielefeld, Bordeaux, Frankfurt and Karl-Marx-Stadt Light. Stacked on a red card: 3.36 Zettlr Bielefeld Light (Lc49), 3.57-3.58 the other Zettlr Light themes; Zettlr Bordeaux Dark purple tag on yellow card 4.09. On editor-bg (table) only Bielefeld Light 4.14.",
+   "fix": "color-presets.test.ts checks COLOR_PRESET_CHIP_TEXT only on the built-in themes, against editor-bg. Clamp the chip text with ensureContrast against the flattened chip, or raise the editor-fg share for yellow and green. Do not stack the chip tint on a card tint (see the KanbanCard.svelte:204 fix).",
+   "src": "validator"
+  }
+ ]
+}
