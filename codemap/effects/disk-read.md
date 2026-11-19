@@ -83,7 +83,7 @@ fx src/lib/app/deep-link-actions.ts:68 tauri-fs.readTextFile in executeDailyActi
 fx src/lib/app/deep-link-actions.ts:171 tauri-fs.readTextFile in executeCaptureAction
 fx src/lib/app/editor-host.ts:136 tauri-fs.readTextFile in appEditorHost.readNote
 fx src/lib/core/editor/editor.service.ts:174 tauri-fs.readTextFile in openFileInEditor
-fx src/lib/core/editor/editor.service.ts:496 tauri-fs.readTextFile in reloadExternallyChangedTabs
+fx src/lib/core/editor/editor.service.ts:506 tauri-fs.readTextFile in reloadExternallyChangedTabs
 fx src/lib/core/filesystem/fs.service.ts:52 tauri-fs.readTextFile in loadFolderOrder
 fx src/lib/core/filesystem/link-updater.service.ts:54 tauri-fs.readTextFile in updateLinksAfterRename
 fx src/lib/core/frontmatter/frontmatter-write.service.ts:121 tauri-fs.readTextFile in attempt

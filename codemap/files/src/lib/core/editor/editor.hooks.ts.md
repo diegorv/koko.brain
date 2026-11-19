@@ -1,7 +1,7 @@
 # file card src/lib/core/editor/editor.hooks.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/editor/editor.hooks.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, calls, effects
-file src/lib/core/editor/editor.hooks.ts other L137 module src/lib/core/editor in23 t50
+file src/lib/core/editor/editor.hooks.ts other L167 module src/lib/core/editor in23 t50
 ## imports
 imp src/lib/core/editor/editor.hooks.ts:1 -> src/lib/core/filesystem/note-change.service.ts applyNoteChange,notifyContentInvalidated
 imp src/lib/core/editor/editor.hooks.ts:2 -> src/lib/utils/index-dedupe.ts clearAllIndexed
@@ -11,7 +11,7 @@ imp src/lib/app/commands.ts:11 -> src/lib/core/editor/editor.hooks.ts notifyNote
 imp src/lib/app/deep-link-actions.ts:3 -> src/lib/core/editor/editor.hooks.ts markRecentSave,notifyAfterSave
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:4 -> src/lib/core/editor/editor.hooks.ts resetHooks
 imp src/lib/app/lifecycle/watcher-handler.service.ts:5 -> src/lib/core/editor/editor.hooks.ts areAllRecentSaves
-imp src/lib/core/editor/editor.service.ts:7 -> src/lib/core/editor/editor.hooks.ts notifyAfterSave
+imp src/lib/core/editor/editor.service.ts:7 -> src/lib/core/editor/editor.hooks.ts getExternalVersionKeeper,notifyAfterSave
 imp src/lib/core/filesystem/fs.service.ts:9 -> src/lib/core/editor/editor.hooks.ts markRecentSave
 imp src/lib/core/filesystem/task-write.service.ts:2 -> src/lib/core/editor/editor.hooks.ts markRecentSave
 imp src/lib/core/frontmatter/frontmatter-write.service.ts:5 -> src/lib/core/editor/editor.hooks.ts notifyAfterSave
@@ -19,7 +19,7 @@ imp src/lib/core/note-creator/note-creator.service.ts:5 -> src/lib/core/editor/e
 imp src/lib/core/trash/trash.service.ts:17 -> src/lib/core/editor/editor.hooks.ts markRecentSave
 imp src/lib/features/auto-organize/auto-organize.service.ts:3 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver
 imp src/lib/features/deep-link/deep-link.service.ts:14 -> src/lib/core/editor/editor.hooks.ts markRecentSave,notifyAfterSave
-imp src/lib/features/file-history/file-history.service.ts:8 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver
+imp src/lib/features/file-history/file-history.service.ts:8 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver,setExternalVersionKeeper
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:6 -> src/lib/core/editor/editor.hooks.ts notifyNoteCreated
 imp src/lib/features/rail-shell/FilesNavigator.svelte:22 -> src/lib/core/editor/editor.hooks.ts notifyNoteCreated
 imp src/lib/features/rail-shell/new-note.service.ts:2 -> src/lib/core/editor/editor.hooks.ts notifyNoteCreated
@@ -91,7 +91,7 @@ sym src/lib/core/editor/editor.hooks.ts:47 fn areAllRecentSaves(paths: string[])
 by src/lib/core/editor/editor.hooks.ts:areAllRecentSaves <- src/lib/app/lifecycle/watcher-handler.service.ts:50 in rebuildAllIndexes call
 sym src/lib/core/editor/editor.hooks.ts:52 fn addAfterSaveObserver(observer: AfterSaveObserver): () => void L9 | Adds an after-save observer.
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/auto-organize/auto-organize.service.ts:208 in registerAutoOrganizeHook call
-by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/file-history/file-history.service.ts:192 in registerFileHistoryHook call
+by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/file-history/file-history.service.ts:193 in registerFileHistoryHook call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/search/SemanticIndexStatus.svelte:23 in (script) call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/search/search.service.ts:367 in registerSearchIndexHook call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/todoist-sync/sync-scheduler.service.ts:90 in startAutoSync call
@@ -111,7 +111,12 @@ by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/core/note-cr
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/quick-switcher/QuickSwitcher.svelte:110 in createAndOpenNote call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/rail-shell/FilesNavigator.svelte:170 in handleNewFile call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/rail-shell/new-note.service.ts:41 in createNoteHere call
-sym src/lib/core/editor/editor.hooks.ts:130 fn resetHooks(): void L8 | Removes all hooks and observers.
+sym src/lib/core/editor/editor.hooks.ts:134 type ExternalVersionKeeper L1 | Keeps a copy of a note's on-disk content that the editor is about to overwrite with a dirty tab's typing.
+sym src/lib/core/editor/editor.hooks.ts:146 fn setExternalVersionKeeper(keeper: ExternalVersionKeeper): () => void L6 | Sets the external-version keeper, replacing any earlier one.
+by src/lib/core/editor/editor.hooks.ts:setExternalVersionKeeper <- src/lib/features/file-history/file-history.service.ts:200 in registerFileHistoryHook call
+sym src/lib/core/editor/editor.hooks.ts:154 fn getExternalVersionKeeper(): ExternalVersionKeeper | null L3 | Returns the registered external-version keeper, or null when none is.
+by src/lib/core/editor/editor.hooks.ts:getExternalVersionKeeper <- src/lib/core/editor/editor.service.ts:548 in keepExternalVersion call
+sym src/lib/core/editor/editor.hooks.ts:159 fn resetHooks(): void L9 | Removes all hooks and observers.
 by src/lib/core/editor/editor.hooks.ts:resetHooks <- src/lib/app/lifecycle/app-lifecycle.service.ts:651 in teardownVault call
 ## calls
 call src/lib/core/editor/editor.hooks.ts:54 in addAfterSaveObserver -> src/lib/utils/debug.ts:debug call +1
@@ -121,7 +126,7 @@ call src/lib/core/editor/editor.hooks.ts:83 in notifyAfterSave -> src/lib/core/f
 call src/lib/core/editor/editor.hooks.ts:84 in notifyAfterSave -> src/lib/utils/debug.ts:debug call
 call src/lib/core/editor/editor.hooks.ts:89 in notifyAfterSave -> src/lib/utils/debug.ts:error call
 call src/lib/core/editor/editor.hooks.ts:124 in notifyNoteCreated -> src/lib/utils/debug.ts:error call
-call src/lib/core/editor/editor.hooks.ts:131 in resetHooks -> src/lib/utils/debug.ts:debug call
-call src/lib/core/editor/editor.hooks.ts:136 in resetHooks -> src/lib/utils/index-dedupe.ts:clearAllIndexed call
+call src/lib/core/editor/editor.hooks.ts:160 in resetHooks -> src/lib/utils/debug.ts:debug call
+call src/lib/core/editor/editor.hooks.ts:166 in resetHooks -> src/lib/utils/index-dedupe.ts:clearAllIndexed call
 ## effects
 fx src/lib/core/editor/editor.hooks.ts:40 timer.setTimeout delay=RECENT_SAVE_TIMEOUT_MS in markRecentSave

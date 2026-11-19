@@ -1,14 +1,14 @@
 # file card src/lib/core/editor/editor.service.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/editor/editor.service.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls, effects
-file src/lib/core/editor/editor.service.ts service L527 module src/lib/core/editor in55 t102
+file src/lib/core/editor/editor.service.ts service L576 module src/lib/core/editor in55 t102
 ## imports
 imp src/lib/core/editor/editor.service.ts:1 -> pkg:@tauri-apps/plugin-fs readTextFile,writeTextFile
 imp src/lib/core/editor/editor.service.ts:2 -> pkg:@tauri-apps/plugin-dialog ask
 imp src/lib/core/editor/editor.service.ts:4 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/core/editor/editor.service.ts:5 -> src/lib/core/editor/editor.logic.ts findTabIndex,getFileName,isTabDirty,isTabPinned,isVirtualTab
 imp src/lib/core/editor/editor.service.ts:6 -> src/lib/core/filesystem/fs.logic.ts isViewFile,isCanvasFile,isKanbanFile,isBinaryFile
-imp src/lib/core/editor/editor.service.ts:7 -> src/lib/core/editor/editor.hooks.ts notifyAfterSave
+imp src/lib/core/editor/editor.service.ts:7 -> src/lib/core/editor/editor.hooks.ts getExternalVersionKeeper,notifyAfterSave
 imp src/lib/core/editor/editor.service.ts:8 -> src/lib/core/editor/editor.types.ts type:EditorTab
 imp src/lib/core/editor/editor.service.ts:9 -> src/lib/utils/debounce.ts debounce
 imp src/lib/core/editor/editor.service.ts:10 -> src/lib/core/markdown-editor/tab-view-state.ts clearAllTabViewStates,deleteTabViewState
@@ -177,10 +177,10 @@ sym src/lib/core/editor/editor.service.ts:450 fn unpinTabByPath(filePath: string
 by src/lib/core/editor/editor.service.ts:unpinTabByPath <- src/lib/plugins/periodic-notes/periodic-notes.service.ts:146 in refreshDailyNoteIfDateChanged call
 sym src/lib/core/editor/editor.service.ts:463 fn closeTabsForDeletedPath(deletedPath: string): EditorTab[] L14 | Force-closes all tabs whose path matches or is a child of the given path.
 by src/lib/core/editor/editor.service.ts:closeTabsForDeletedPath <- src/lib/core/filesystem/path-change.service.ts:171 in applyPathChange call
-sym src/lib/core/editor/editor.service.ts:485 fn reloadExternallyChangedTabs(changedPaths: string[]): Promise<void> L30 | Reloads content from disk for open tabs whose files were externally modified.
+sym src/lib/core/editor/editor.service.ts:487 fn reloadExternallyChangedTabs(changedPaths: string[]): Promise<void> L54 | Reloads content from disk for open tabs whose files were externally modified.
 by src/lib/core/editor/editor.service.ts:reloadExternallyChangedTabs <- src/lib/app/lifecycle/app-lifecycle.service.ts:511 in initializeVault call
 by src/lib/core/editor/editor.service.ts:reloadExternallyChangedTabs <- src/lib/features/collection/CollectionView.svelte:351 in writeYaml call
-sym src/lib/core/editor/editor.service.ts:522 fn resetEditor() L6 | Cancels any pending auto-saves and resets all editor state.
+sym src/lib/core/editor/editor.service.ts:571 fn resetEditor() L6 | Cancels any pending auto-saves and resets all editor state.
 by src/lib/core/editor/editor.service.ts:resetEditor <- src/lib/app/lifecycle/app-lifecycle.service.ts:660 in teardownVault call
 ## locals
 local src/lib/core/editor/editor.service.ts:38 fn notifyTabClosed(path: string): void L9
@@ -190,6 +190,7 @@ local src/lib/core/editor/editor.service.ts:276 fn debouncedSave = debounce(…)
 local src/lib/core/editor/editor.service.ts:279 fn debouncedSaveFrontmatter = debounce(…) L1
 local src/lib/core/editor/editor.service.ts:292 fn scheduleAutoSave(schedule: AutoSaveSchedule): void L9
 local src/lib/core/editor/editor.service.ts:348 fn isPathDirty(path: string): boolean L4
+local src/lib/core/editor/editor.service.ts:547 fn keepExternalVersion(filePath: string, name: string, diskContent: string): Promise<void> L17
 ## calls
 call src/lib/core/editor/editor.service.ts:43 in notifyTabClosed -> src/lib/utils/debug.ts:error call
 call src/lib/core/editor/editor.service.ts:90 in flushPendingEdits -> src/lib/utils/debug.ts:error call
@@ -267,14 +268,19 @@ call src/lib/core/editor/editor.service.ts:453 in unpinTabByPath -> src/lib/core
 call src/lib/core/editor/editor.service.ts:469 in closeTabsForDeletedPath -> src/lib/core/markdown-editor/tab-view-state.ts:deleteTabViewState call
 call src/lib/core/editor/editor.service.ts:470 in closeTabsForDeletedPath -> src/lib/core/editor/editor.service.ts:notifyTabClosed call
 call src/lib/core/editor/editor.service.ts:471 in closeTabsForDeletedPath -> src/lib/core/editor/editor.store.svelte.ts:editorStore.removeTab mcall
-call src/lib/core/editor/editor.service.ts:490 in reloadExternallyChangedTabs -> src/lib/core/editor/editor.logic.ts:isTabDirty call
-call src/lib/core/editor/editor.service.ts:490 in reloadExternallyChangedTabs -> src/lib/core/editor/editor.logic.ts:isVirtualTab call
-call src/lib/core/editor/editor.service.ts:502 in reloadExternallyChangedTabs -> src/lib/utils/debug.ts:debug call +1
-call src/lib/core/editor/editor.service.ts:511 in reloadExternallyChangedTabs -> src/lib/core/editor/editor.service.ts:syncExternalContentToEditor call
-call src/lib/core/editor/editor.service.ts:523 in resetEditor -> src/lib/core/editor/editor.service.ts:debouncedSave mcall
-call src/lib/core/editor/editor.service.ts:524 in resetEditor -> src/lib/core/editor/editor.service.ts:debouncedSaveFrontmatter mcall
-call src/lib/core/editor/editor.service.ts:525 in resetEditor -> src/lib/core/editor/editor.store.svelte.ts:editorStore.reset mcall
-call src/lib/core/editor/editor.service.ts:526 in resetEditor -> src/lib/core/markdown-editor/tab-view-state.ts:clearAllTabViewStates call
+call src/lib/core/editor/editor.service.ts:492 in reloadExternallyChangedTabs -> src/lib/core/editor/editor.logic.ts:isVirtualTab call
+call src/lib/core/editor/editor.service.ts:504 in reloadExternallyChangedTabs -> src/lib/core/editor/editor.logic.ts:isTabDirty call +1
+call src/lib/core/editor/editor.service.ts:504 in reloadExternallyChangedTabs -> src/lib/core/editor/editor.service.ts:waitForTabSave call
+call src/lib/core/editor/editor.service.ts:514 in reloadExternallyChangedTabs -> src/lib/utils/debug.ts:debug call +1
+call src/lib/core/editor/editor.service.ts:525 in reloadExternallyChangedTabs -> src/lib/core/editor/editor.service.ts:keepExternalVersion call +1
+call src/lib/core/editor/editor.service.ts:536 in reloadExternallyChangedTabs -> src/lib/core/editor/editor.service.ts:syncExternalContentToEditor call
+call src/lib/core/editor/editor.service.ts:548 in keepExternalVersion -> src/lib/core/editor/editor.hooks.ts:getExternalVersionKeeper call
+call src/lib/core/editor/editor.service.ts:550 in keepExternalVersion -> src/lib/utils/debug.ts:debug call
+call src/lib/core/editor/editor.service.ts:560 in keepExternalVersion -> src/lib/utils/debug.ts:error call
+call src/lib/core/editor/editor.service.ts:572 in resetEditor -> src/lib/core/editor/editor.service.ts:debouncedSave mcall
+call src/lib/core/editor/editor.service.ts:573 in resetEditor -> src/lib/core/editor/editor.service.ts:debouncedSaveFrontmatter mcall
+call src/lib/core/editor/editor.service.ts:574 in resetEditor -> src/lib/core/editor/editor.store.svelte.ts:editorStore.reset mcall
+call src/lib/core/editor/editor.service.ts:575 in resetEditor -> src/lib/core/markdown-editor/tab-view-state.ts:clearAllTabViewStates call
 ## effects
 fx src/lib/core/editor/editor.service.ts:174 tauri-fs.readTextFile in openFileInEditor
 fx src/lib/core/editor/editor.service.ts:243 tauri-fs.writeTextFile in writeTab
@@ -282,4 +288,4 @@ fx src/lib/core/editor/editor.service.ts:267 timer.setTimeout delay=SAVE_RETRY_D
 fx src/lib/core/editor/editor.service.ts:276 timer-wrap.debounce args=saveDirtyTabs, 2000, { maxWait: 10_000 } as debouncedSave in debouncedSave
 fx src/lib/core/editor/editor.service.ts:279 timer-wrap.debounce args=saveDirtyTabs, 500 as debouncedSaveFrontmatter in debouncedSaveFrontmatter
 fx src/lib/core/editor/editor.service.ts:376 tauri-dialog.ask in closeTab
-fx src/lib/core/editor/editor.service.ts:496 tauri-fs.readTextFile in reloadExternallyChangedTabs
+fx src/lib/core/editor/editor.service.ts:506 tauri-fs.readTextFile in reloadExternallyChangedTabs

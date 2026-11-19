@@ -1,7 +1,7 @@
 # file card src/lib/features/file-history/file-history.service.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/file-history/file-history.service.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls, effects
-file src/lib/features/file-history/file-history.service.ts service L197 module src/lib/features/file-history in6 t6
+file src/lib/features/file-history/file-history.service.ts service L208 module src/lib/features/file-history in6 t7
 ## imports
 imp src/lib/features/file-history/file-history.service.ts:1 -> src/lib/contracts/ipc.ts call
 imp src/lib/features/file-history/file-history.service.ts:2 -> pkg:@tauri-apps/plugin-fs readTextFile,writeTextFile,mkdir,exists,readDir
@@ -10,7 +10,7 @@ imp src/lib/features/file-history/file-history.service.ts:4 -> src/lib/features/
 imp src/lib/features/file-history/file-history.service.ts:5 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/file-history/file-history.service.ts:6 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/file-history/file-history.service.ts:7 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
-imp src/lib/features/file-history/file-history.service.ts:8 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver
+imp src/lib/features/file-history/file-history.service.ts:8 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver,setExternalVersionKeeper
 imp src/lib/features/file-history/file-history.service.ts:9 -> src/lib/core/editor/editor.service.ts saveCurrentFile
 imp src/lib/features/file-history/file-history.service.ts:10 -> src/lib/utils/debug.ts debug,error
 imp src/lib/features/file-history/file-history.service.ts:11 -> src/lib/features/file-history/file-history.types.ts type:SnapshotInfo
@@ -26,6 +26,7 @@ in2 src/lib/features/file-history/file-history.service.ts 4 files in 3 modules: 
 out2 src/lib/features/file-history/file-history.service.ts 17 files in 7 modules: src/lib/core/settings(4) src/lib/utils(4) src/lib/contracts(3) src/lib/core/editor(2) src/lib/core/filesystem(2) +2 modules
 ## tests
 test src/tests/lib/features/file-history/file-history.service.test.ts imports src/lib/features/file-history/file-history.service.ts mirror
+test src/tests/lib/core/editor/editor.service.test.ts imports src/lib/features/file-history/file-history.service.ts
 test src/tests/lib/core/vault/vault.service.switch-save.test.ts imports src/lib/features/file-history/file-history.service.ts
 test src/tests/lib/app/commands.test.ts mocks src/lib/features/file-history/file-history.service.ts
 test src/tests/lib/app/global-keybindings.test.ts mocks src/lib/features/file-history/file-history.service.ts
@@ -46,7 +47,7 @@ sym src/lib/features/file-history/file-history.service.ts:154 fn loadBackupTimes
 sym src/lib/features/file-history/file-history.service.ts:181 fn closeFileHistory(): void L3 | Closes the file history dialog and resets all state.
 by src/lib/features/file-history/file-history.service.ts:closeFileHistory <- src/lib/app/lifecycle/app-lifecycle.service.ts:639 in teardownVault call
 by src/lib/features/file-history/file-history.service.ts:closeFileHistory <- src/lib/features/file-history/FileHistoryDialog.svelte:27 in handleOpenChange call
-sym src/lib/features/file-history/file-history.service.ts:190 fn registerFileHistoryHook(): () => void L8 | Registers the file history after-save hook.
+sym src/lib/features/file-history/file-history.service.ts:191 fn registerFileHistoryHook(): () => void L18 | Registers the file history after-save hook, which saves a snapshot every time a file is saved, and the external-version keeper, which snapshots the on-disk con…
 by src/lib/features/file-history/file-history.service.ts:registerFileHistoryHook <- src/lib/app/lifecycle/app-lifecycle.service.ts:285 in initializeVault call
 ## locals
 local src/lib/features/file-history/file-history.service.ts:130 fn saveSnapshotBackup(vaultPath: string, absoluteFilePath: string, content: string, timestamp: number): Promise<void> L19
@@ -85,10 +86,11 @@ call src/lib/features/file-history/file-history.service.ts:146 in saveSnapshotBa
 call src/lib/features/file-history/file-history.service.ts:158 in loadBackupTimestamps -> src/lib/features/file-history/file-history.logic.ts:getSnapshotBackupDir call
 call src/lib/features/file-history/file-history.service.ts:175 in loadBackupTimestamps -> src/lib/utils/debug.ts:error call
 call src/lib/features/file-history/file-history.service.ts:182 in closeFileHistory -> src/lib/features/file-history/file-history.store.svelte.ts:fileHistoryStore.reset mcall
-call src/lib/features/file-history/file-history.service.ts:191 in registerFileHistoryHook -> src/lib/utils/debug.ts:debug call
-call src/lib/features/file-history/file-history.service.ts:192 in registerFileHistoryHook -> src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver call
-call src/lib/features/file-history/file-history.service.ts:193 in registerFileHistoryHook -> src/lib/features/file-history/file-history.service.ts:saveSnapshotForFile call
-call src/lib/features/file-history/file-history.service.ts:194 in registerFileHistoryHook -> src/lib/utils/debug.ts:error call
+call src/lib/features/file-history/file-history.service.ts:192 in registerFileHistoryHook -> src/lib/utils/debug.ts:debug call
+call src/lib/features/file-history/file-history.service.ts:193 in registerFileHistoryHook -> src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver call
+call src/lib/features/file-history/file-history.service.ts:194 in registerFileHistoryHook -> src/lib/features/file-history/file-history.service.ts:saveSnapshotForFile call +1
+call src/lib/features/file-history/file-history.service.ts:195 in registerFileHistoryHook -> src/lib/utils/debug.ts:error call
+call src/lib/features/file-history/file-history.service.ts:200 in registerFileHistoryHook -> src/lib/core/editor/editor.hooks.ts:setExternalVersionKeeper call
 ## effects
 fx src/lib/features/file-history/file-history.service.ts:28 tauri-fs.readTextFile in openFileHistory
 ipc-call src/lib/features/file-history/file-history.service.ts:31 in openFileHistory -> ipc:get_file_history -> src-tauri/src/commands/history.rs:92
@@ -101,4 +103,5 @@ fx src/lib/features/file-history/file-history.service.ts:140 tauri-fs.mkdir in s
 fx src/lib/features/file-history/file-history.service.ts:143 tauri-fs.writeTextFile in saveSnapshotBackup
 fx src/lib/features/file-history/file-history.service.ts:160 tauri-fs.exists in loadBackupTimestamps
 fx src/lib/features/file-history/file-history.service.ts:163 tauri-fs.readDir in loadBackupTimestamps
-reg src/lib/features/file-history/file-history.service.ts:192 src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver in registerFileHistoryHook args=(filePath, content) => { saveSnapshotForFile(filePath, content).catch((err) => …
+reg src/lib/features/file-history/file-history.service.ts:193 src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver in registerFileHistoryHook args=(filePath, content) => { saveSnapshotForFile(filePath, content).catch((err) => …
+reg src/lib/features/file-history/file-history.service.ts:200 src/lib/core/editor/editor.hooks.ts:setExternalVersionKeeper in registerFileHistoryHook args=async (filePath, content) => { if (!vaultStore.path) throw new Error('No vault …

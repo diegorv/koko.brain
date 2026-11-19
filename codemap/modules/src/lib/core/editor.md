@@ -1,7 +1,7 @@
 # module card src/lib/core/editor
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/core/editor ' codemap/modules
 sections: neighbors, entry files, files, public, stores, effects, debt
-module src/lib/core/editor core files 6 in-modules 38 out-modules 3 pub 46/55 ipc 0/0 card ~4.5k
+module src/lib/core/editor core files 6 in-modules 38 out-modules 3 pub 47/58 ipc 0/0 card ~4.6k
 ## neighbors
 dep src/lib/app -> src/lib/core/editor 19
 dep src/lib/core/filesystem -> src/lib/core/editor 10
@@ -54,9 +54,9 @@ entry src/lib/core/editor/editor.logic.ts ext-in20 src/lib/app/EditorView.svelte
 entry src/lib/core/editor/open-note-at.service.ts ext-in5 src/lib/features/event-calendar/EventTaskChip.svelte src/lib/features/search/SearchResult.svelte src/lib/features/tasks/TasksView.svelte src/lib/plugins/mods/mod-app.service.ts src/lib/plugins/table-of-contents/TableOfContentsPanel.svelte
 entry src/lib/core/editor/editor.types.ts ext-in3 src/lib/app/EditorView.svelte src/lib/core/filesystem/path-change.service.ts src/lib/core/markdown-editor/EditorTabs.svelte
 ## files
-file src/lib/core/editor/editor.hooks.ts other L137 module src/lib/core/editor in23 t50
+file src/lib/core/editor/editor.hooks.ts other L167 module src/lib/core/editor in23 t50
 file src/lib/core/editor/editor.logic.ts logic L192 module src/lib/core/editor in23 t22
-file src/lib/core/editor/editor.service.ts service L527 module src/lib/core/editor in55 t102
+file src/lib/core/editor/editor.service.ts service L576 module src/lib/core/editor in55 t102
 file src/lib/core/editor/editor.store.svelte.ts store L180 module src/lib/core/editor in50 t118
 file src/lib/core/editor/editor.types.ts types L15 module src/lib/core/editor in6 t0
 file src/lib/core/editor/open-note-at.service.ts service L49 module src/lib/core/editor in5 t3
@@ -67,7 +67,8 @@ sym src/lib/core/editor/editor.hooks.ts:52 fn addAfterSaveObserver(observer: Aft
 sym src/lib/core/editor/editor.hooks.ts:67 fn notifyAfterSave(filePath: string, content: string): void L26 | Notifies all after-save observers.
 sym src/lib/core/editor/editor.hooks.ts:104 fn addNoteCreatedObserver(observer: NoteCreatedObserver): () => void L7 | Adds a note-created observer.
 sym src/lib/core/editor/editor.hooks.ts:119 fn notifyNoteCreated(filePath: string): void L9 | Notifies the note-created observers.
-sym src/lib/core/editor/editor.hooks.ts:130 fn resetHooks(): void L8 | Removes all hooks and observers.
+sym src/lib/core/editor/editor.hooks.ts:146 fn setExternalVersionKeeper(keeper: ExternalVersionKeeper): () => void L6 | Sets the external-version keeper, replacing any earlier one.
+sym src/lib/core/editor/editor.hooks.ts:159 fn resetHooks(): void L9 | Removes all hooks and observers.
 sym src/lib/core/editor/editor.logic.ts:6 const TASKS_VIRTUAL_PATH L1 | Virtual path used for the singleton Tasks tab
 sym src/lib/core/editor/editor.logic.ts:9 const GRAPH_VIRTUAL_PATH L1 | Virtual path used for the singleton Graph View tab
 sym src/lib/core/editor/editor.logic.ts:12 const TAGS_VIRTUAL_PATH L1 | Virtual path used for the singleton Tags tab
@@ -102,8 +103,8 @@ sym src/lib/core/editor/editor.service.ts:437 fn toggleSourceMode() L3 | Toggles
 sym src/lib/core/editor/editor.service.ts:442 fn pinTabByPath(filePath: string) L6 | Pins a tab identified by file path (used for auto-pin features like daily notes)
 sym src/lib/core/editor/editor.service.ts:450 fn unpinTabByPath(filePath: string) L6 | Unpins a tab identified by file path (used when rotating auto-pinned daily notes)
 sym src/lib/core/editor/editor.service.ts:463 fn closeTabsForDeletedPath(deletedPath: string): EditorTab[] L14 | Force-closes all tabs whose path matches or is a child of the given path.
-sym src/lib/core/editor/editor.service.ts:485 fn reloadExternallyChangedTabs(changedPaths: string[]): Promise<void> L30 | Reloads content from disk for open tabs whose files were externally modified.
-sym src/lib/core/editor/editor.service.ts:522 fn resetEditor() L6 | Cancels any pending auto-saves and resets all editor state.
+sym src/lib/core/editor/editor.service.ts:487 fn reloadExternallyChangedTabs(changedPaths: string[]): Promise<void> L54 | Reloads content from disk for open tabs whose files were externally modified.
+sym src/lib/core/editor/editor.service.ts:571 fn resetEditor() L6 | Cancels any pending auto-saves and resets all editor state.
 sym src/lib/core/editor/editor.store.svelte.ts:33 store editorStore L148 | Central store for all editor tab state.
 sym src/lib/core/editor/editor.types.ts:2 interface EditorTab L14 | Represents a single open file tab in the editor
 sym src/lib/core/editor/open-note-at.service.ts:35 fn openNoteAt(path: string | null, target: NoteTarget): Promise<void> L15 | Single owner of "open this note and put the caret at this position".

@@ -24,7 +24,7 @@ file src/lib/features/file-history/DiffViewer.svelte component L56 module src/li
 file src/lib/features/file-history/FileHistoryDialog.svelte component L102 module src/lib/features/file-history in1 t1
 file src/lib/features/file-history/SnapshotList.svelte component L68 module src/lib/features/file-history in1 t0
 file src/lib/features/file-history/file-history.logic.ts logic L178 module src/lib/features/file-history in4 t2
-file src/lib/features/file-history/file-history.service.ts service L197 module src/lib/features/file-history in6 t6
+file src/lib/features/file-history/file-history.service.ts service L208 module src/lib/features/file-history in6 t7
 file src/lib/features/file-history/file-history.store.svelte.ts store L61 module src/lib/features/file-history in2 t5
 file src/lib/features/file-history/file-history.types.ts types L11 module src/lib/features/file-history in6 t0
 ## public
@@ -32,7 +32,7 @@ sym src/lib/features/file-history/FileHistoryDialog.svelte:1 component FileHisto
 sym src/lib/features/file-history/file-history.logic.ts:56 fn formatFileSize(bytes: number): string L5 | Formats a byte count as a human-readable file size. e.g., 512 → "512 B", 1536 → "1.5 KB", 1048576 → "1.0 MB"
 sym src/lib/features/file-history/file-history.service.ts:17 fn openFileHistory(absoluteFilePath: string): Promise<void> L35 | Opens the file history dialog for a given file.
 sym src/lib/features/file-history/file-history.service.ts:181 fn closeFileHistory(): void L3 | Closes the file history dialog and resets all state.
-sym src/lib/features/file-history/file-history.service.ts:190 fn registerFileHistoryHook(): () => void L8 | Registers the file history after-save hook.
+sym src/lib/features/file-history/file-history.service.ts:191 fn registerFileHistoryHook(): () => void L18 | Registers the file history after-save hook, which saves a snapshot every time a file is saved, and the external-version keeper, which snapshots the on-disk con…
 ## stores
 store src/lib/features/file-history/file-history.store.svelte.ts:28 fileHistoryStore esc:0
 ## effects

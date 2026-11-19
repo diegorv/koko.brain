@@ -1,7 +1,7 @@
 # file card src/lib/core/vault/vault.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/vault/vault.store.svelte.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, store, locals, calls, effects
-file src/lib/core/vault/vault.store.svelte.ts store L159 module src/lib/core/vault in88 t163
+file src/lib/core/vault/vault.store.svelte.ts store L159 module src/lib/core/vault in88 t164
 ## imports
 imp src/lib/core/vault/vault.store.svelte.ts:1 -> src/lib/core/vault/vault.logic.ts extractVaultName,updateRecentVaults,type:RecentVault
 ## imported-by
@@ -69,6 +69,7 @@ test src/tests/lib/app/lifecycle/watcher-handler.mixed-batch.test.ts imports src
 test src/tests/lib/app/lifecycle/watcher-handler.service.test.ts imports src/lib/core/vault/vault.store.svelte.ts
 test src/tests/lib/app/meta-bind-open-view.test.ts imports src/lib/core/vault/vault.store.svelte.ts
 test src/tests/lib/app/tauri-listeners.service.test.ts imports src/lib/core/vault/vault.store.svelte.ts
+test src/tests/lib/core/editor/editor.service.test.ts imports src/lib/core/vault/vault.store.svelte.ts
 test src/tests/lib/core/filesystem/delete-dirty-tab.test.ts imports src/lib/core/vault/vault.store.svelte.ts
 test src/tests/lib/core/filesystem/delete-note.service.test.ts imports src/lib/core/vault/vault.store.svelte.ts
 test src/tests/lib/core/filesystem/f165-delete-dirty-tab.test.ts imports src/lib/core/vault/vault.store.svelte.ts
@@ -89,8 +90,7 @@ test src/tests/lib/core/settings/settings-persistence.test.ts imports src/lib/co
 test src/tests/lib/core/settings/update-check.service.test.ts imports src/lib/core/vault/vault.store.svelte.ts
 test src/tests/lib/core/trash/trash.restore-tree.test.ts imports src/lib/core/vault/vault.store.svelte.ts
 test src/tests/lib/core/vault/vault-entries.service.test.ts imports src/lib/core/vault/vault.store.svelte.ts
-test src/tests/lib/core/vault/vault-switch-failed-save.test.ts imports src/lib/core/vault/vault.store.svelte.ts
-more tests 123 not shown: src/tests/lib/features/rail-shell(19) src/tests/lib/plugins/mods(17) src/tests/lib/features/tasks(11) src/tests/lib/features/properties(8) src/tests/lib/features/collection(7) src/tests/lib/features/event-calendar(6) src/tests/lib/features/todoist-sync(6) src/tests/lib/features/note-list(5) +19 modules: q tests src/lib/core/vault/vault.store.svelte.ts
+more tests 124 not shown: src/tests/lib/features/rail-shell(19) src/tests/lib/plugins/mods(17) src/tests/lib/features/tasks(11) src/tests/lib/features/properties(8) src/tests/lib/features/collection(7) src/tests/lib/features/event-calendar(6) src/tests/lib/features/todoist-sync(6) src/tests/lib/features/note-list(5) +19 modules: q tests src/lib/core/vault/vault.store.svelte.ts
 ## symbols
 sym src/lib/core/vault/vault.store.svelte.ts:60 store vaultStore L100 | Reactive store for the current vault and the recent vaults list
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/AppShell.svelte:71 in $effect@66 member +6
@@ -104,8 +104,8 @@ by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/tauri-list
 more by 80 not shown: src/lib/features/rail-shell(6) src/lib/core/filesystem(5) src/lib/features/properties(5) src/lib/features/todoist-sync(5) src/lib/features/auto-organize(4) src/lib/features/event-calendar(4) src/lib/features/search(4) src/lib/plugins/mods(4) +26 modules: q importers src/lib/core/vault/vault.store.svelte.ts:vaultStore
 ## store
 store src/lib/core/vault/vault.store.svelte.ts:60 vaultStore esc:1
-mem src/lib/core/vault/vault.store.svelte.ts:61 get vaultStore.path r:184 w-via:open,close,_reset
-more r 184 not shown: src/lib/features/rail-shell(21) src/lib/app(20) src/lib/plugins/mods(18) src/lib/features/search(12) src/lib/features/event-calendar(11) src/lib/core/settings(10) src/lib/features/type-definitions(10) src/lib/core/filesystem(9) +23 modules: q store src/lib/core/vault/vault.store.svelte.ts:vaultStore.path
+mem src/lib/core/vault/vault.store.svelte.ts:61 get vaultStore.path r:185 w-via:open,close,_reset
+more r 185 not shown: src/lib/features/rail-shell(21) src/lib/app(20) src/lib/plugins/mods(18) src/lib/features/search(12) src/lib/features/event-calendar(11) src/lib/core/settings(10) src/lib/features/type-definitions(10) src/lib/core/filesystem(9) +23 modules: q store src/lib/core/vault/vault.store.svelte.ts:vaultStore.path
 mem src/lib/core/vault/vault.store.svelte.ts:62 get vaultStore.name r:src/lib/features/note-action-bar/note-action-bar.service.ts:59,src/lib/plugins/quick-capture/quick-capture.service.ts:103 w-via:open,close,_reset
 mem src/lib/core/vault/vault.store.svelte.ts:64 get vaultStore.isOpen r:src/lib/app/AppShell.svelte:184,src/lib/app/commands.ts:450,src/lib/features/backlinks/BacklinksPanel.svelte:59,src/routes/(app)/+layout.svelte:81,src/routes/(app)/+layout.svelte:122 w-via:open,close,_reset | Whether a vault is currently open (computed from path)
 mem src/lib/core/vault/vault.store.svelte.ts:65 get vaultStore.recentVaults r:src/lib/features/deep-link/deep-link.service.ts:142,src/routes/(app)/+page.svelte:36,src/routes/(app)/+page.svelte:46 w-via:open,removeRecent,_reset
