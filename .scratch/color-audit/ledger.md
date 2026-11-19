@@ -49,6 +49,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 12 | [User, edited and imported themes are corrected and the editor warns](issues/12-user-themes-readability-checks.md) | 07 | done | issue/12-user-themes-readability-checks (9c8ff9717) | 2026-11-19 |
 | 13 | [Themes repo: Zettlr hover and selected surfaces, and a contrast CI](issues/13-themes-repo-zettlr-palettes-contrast-ci.md) | 07 | done | koko.brain-themes eb9f062, bfdd3d8 | 2026-11-19 |
 | 14 | [Kanban date badges read on coloured cards](issues/14-kanban-date-badges-coloured-cards.md) | 04 | todo | | |
+| 15 | [IconPicker presets stay readable on tabs, Tasks, Properties and the organize check](issues/15-icon-presets-tabs-tasks-properties-organize.md) | none | todo | | |
+| 16 | [Theme editor reports the label it lifts, and theme previews show the lifted colors](issues/16-theme-editor-report-and-preview-follow-lift.md) | 05 | todo | | |
 
 ## Log
 
@@ -72,3 +74,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 20:05 — 05 — deliver — merged; reviews APPROVED x2 (claude); full suite 684 files passed; 2 minor round-2 findings left for a follow-up — 251c60180
 - 2026-11-19 20:05 — 06 — start — launched by /relay-lite:run — a8779035a
 - 2026-11-19 20:42 — 06 — deliver — merged; review CHANGES_REQUESTED then APPROVED (claude); full suite 685 files passed — a9a361aa3
+- 2026-11-19 20:43 — ledger updated (added 15, 16)
