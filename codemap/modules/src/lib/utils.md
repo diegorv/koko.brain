@@ -1,7 +1,7 @@
 # module card src/lib/utils
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/utils ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 90/110 ipc 3/0 card ~10k
+module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 90/111 ipc 3/0 card ~10k
 ## neighbors
 dep src/lib/app -> src/lib/utils 17
 dep src/lib/core/editor -> src/lib/utils 7
@@ -86,7 +86,7 @@ file src/lib/utils/build-info.js other L167 module src/lib/utils in1 t1
 file src/lib/utils/capture-path.ts other L14 module src/lib/utils in3 t1
 file src/lib/utils/clamp.ts other L9 module src/lib/utils in10 t1
 file src/lib/utils/color-presets.ts other L39 module src/lib/utils in6 t1
-file src/lib/utils/color.ts other L159 module src/lib/utils in8 t7
+file src/lib/utils/color.ts other L172 module src/lib/utils in8 t7
 file src/lib/utils/date.ts other L170 module src/lib/utils in17 t3
 file src/lib/utils/debounce.ts other L55 module src/lib/utils in4 t4
 file src/lib/utils/debug.ts other L166 module src/lib/utils in74 t53

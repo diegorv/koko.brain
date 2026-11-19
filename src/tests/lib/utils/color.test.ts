@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isDarkColor, contrastRatio, ensureContrast, flatten, mixColors } from '#lib/utils/color.js';
+import { isDarkColor, contrastRatio, colorDistance, ensureContrast, flatten, mixColors } from '#lib/utils/color.js';
 
 describe('isDarkColor', () => {
 	it('detects dark hex backgrounds', () => {
@@ -197,5 +197,23 @@ describe('mixColors', () => {
 	it('returns null when either color is unparseable', () => {
 		expect(mixColors('hsl(200 50% 50%)', '#ffffff')).toBeNull();
 		expect(mixColors('#ffffff', '')).toBeNull();
+	});
+});
+
+describe('colorDistance', () => {
+	it('gives 0 for equal colors, whatever their notation', () => {
+		expect(colorDistance('#60a5fa', '#60a5fa')).toBe(0);
+		expect(colorDistance('#fff', '#ffffff')).toBe(0);
+	});
+
+	it('measures OKLab distance scaled by 100', () => {
+		expect(colorDistance('#93c5fd', '#60a5fa')).toBeCloseTo(10.7, 1);
+		expect(colorDistance('#000000', '#ffffff')).toBeCloseTo(100, 0);
+		expect(colorDistance('#60a5fa', '#93c5fd')).toBe(colorDistance('#93c5fd', '#60a5fa'));
+	});
+
+	it('returns null when either color is unparseable', () => {
+		expect(colorDistance('hsl(200 50% 50%)', '#ffffff')).toBeNull();
+		expect(colorDistance('#ffffff', '')).toBeNull();
 	});
 });

@@ -1,6 +1,6 @@
 # file card src/lib/utils/color.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/utils/color.ts ' codemap/files
-file src/lib/utils/color.ts other L159 module src/lib/utils in8 t7
+file src/lib/utils/color.ts other L172 module src/lib/utils in8 t7
 ## imported-by
 imp src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts:2 -> src/lib/utils/color.ts isDarkColor
 imp src/lib/core/settings/sections/ThemePreview.svelte:2 -> src/lib/utils/color.ts isDarkColor
@@ -37,6 +37,7 @@ by src/lib/utils/color.ts:ensureContrast <- src/lib/core/settings/theme-builder.
 sym src/lib/utils/color.ts:152 fn mixColors(a: string, b: string, t = 0.5): string | null L8 | OKLab mix of two colors as a 6-digit hex (alpha ignored): `t` is the share of `b`, 0.5 (the midpoint) by default.
 by src/lib/utils/color.ts:mixColors <- src/lib/core/settings/theme-builder.logic.ts:224 in buildTheme call
 by src/lib/utils/color.ts:mixColors <- src/lib/plugins/graph-view/graph-view.logic.ts:287 in graphPalette call +4
+sym src/lib/utils/color.ts:165 fn colorDistance(a: string, b: string): number | null L8 | Perceptual distance between two colors: the Euclidean OKLab distance scaled by 100 (black to white is 100), alpha ignored.
 ## locals
 local src/lib/utils/color.ts:8 fn clamp01(v: number) L1
 local src/lib/utils/color.ts:14 fn parseRgba(color: string): [number, number, number, number] | null L21
@@ -70,3 +71,6 @@ call src/lib/utils/color.ts:153 in mixColors -> src/lib/utils/color.ts:parseRgb 
 call src/lib/utils/color.ts:156 in mixColors -> src/lib/utils/color.ts:toLinear ref +1
 call src/lib/utils/color.ts:156 in mixColors -> src/lib/utils/color.ts:toOklab call +1
 call src/lib/utils/color.ts:158 in mixColors -> src/lib/utils/color.ts:oklabToHex call
+call src/lib/utils/color.ts:166 in colorDistance -> src/lib/utils/color.ts:parseRgb call +1
+call src/lib/utils/color.ts:169 in colorDistance -> src/lib/utils/color.ts:toLinear ref +1
+call src/lib/utils/color.ts:169 in colorDistance -> src/lib/utils/color.ts:toOklab call +1

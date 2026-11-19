@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildTheme, alpha, coreFromColors, READABILITY_PAIRS, TYPE_PALETTE_TOKENS, type CorePalette } from '#lib/core/settings/theme-builder.logic.js';
-import { contrastRatio, flatten, mixColors } from '#lib/utils/color.js';
+import { colorDistance, contrastRatio, flatten, mixColors } from '#lib/utils/color.js';
 import { BUILTIN_THEMES, mergeThemeWithDefaults } from '#lib/core/settings/theme.logic.js';
 import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
 import type { SyntaxColors } from '#lib/core/settings/theme.types.js';
@@ -164,6 +164,15 @@ describe('heading and bold colors of every theme', () => {
 			const strong = syntax.strong.toLowerCase();
 			expect(strong, theme.name).not.toBe(ui.editorFg.toLowerCase());
 			expect(headings(syntax), theme.name).not.toContain(strong);
+		}
+	});
+
+	it('keeps bold and italic off the link and wikilink hues in every built-in theme, so emphasis does not look clickable', () => {
+		for (const theme of BUILTIN_THEMES) {
+			const { syntax, wikilink } = theme.colors;
+			expect(colorDistance(syntax.strong, syntax.link)!, `${theme.name} strong vs link`).toBeGreaterThanOrEqual(12);
+			expect(colorDistance(syntax.emphasis, syntax.link)!, `${theme.name} emphasis vs link`).toBeGreaterThanOrEqual(12);
+			expect(colorDistance(syntax.strong, wikilink.target)!, `${theme.name} strong vs wikilink`).toBeGreaterThanOrEqual(12);
 		}
 	});
 

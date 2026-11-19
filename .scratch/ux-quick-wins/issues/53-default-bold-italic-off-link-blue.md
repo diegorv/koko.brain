@@ -19,15 +19,15 @@ Not in this ticket: the tab strip and hover (Issue 40); the section-title and ca
 
 **Blocked by:** 40
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run.
 
 - [x] Owner decision recorded in Comments (option 1 or 2, and for option 2 the chosen value).
-- [ ] Failing test first, `src/tests/lib/core/settings/theme-builder.logic.test.ts` over `BUILTIN_THEMES`: `colorDistance(strong, link)`, `colorDistance(emphasis, link)` and `colorDistance(strong, wikilink.target)` are each at least 12 (10.7 on Default today).
-- [ ] `colorDistance` unit test in `src/tests/lib/utils/color.test.ts`: equal colours give 0; `#93c5fd` against `#60a5fa` gives about 10.7.
-- [ ] The snapshot (`src/tests/lib/core/settings/__snapshots__/theme-snapshot.test.ts.snap`), `theme.logic.test.ts` and `theme.service.test.ts` move on purpose to the new `--syntax-strong` and `--syntax-emphasis` (Default) and the new Lavender Haze `strong`; with option 1 the Issue 05 test changes as decided, with option 2 it stays green unchanged.
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, `src/tests/lib/core/settings/theme-builder.logic.test.ts` over `BUILTIN_THEMES`: `colorDistance(strong, link)`, `colorDistance(emphasis, link)` and `colorDistance(strong, wikilink.target)` are each at least 12 (10.7 on Default today).
+- [x] `colorDistance` unit test in `src/tests/lib/utils/color.test.ts`: equal colours give 0; `#93c5fd` against `#60a5fa` gives about 10.7.
+- [x] The snapshot (`src/tests/lib/core/settings/__snapshots__/theme-snapshot.test.ts.snap`), `theme.logic.test.ts` and `theme.service.test.ts` move on purpose to the new `--syntax-strong` and `--syntax-emphasis` (Default) and the new Lavender Haze `strong`; with option 1 the Issue 05 test changes as decided, with option 2 it stays green unchanged.
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Problem
 
@@ -44,3 +44,4 @@ On Default, bold, italic and wikilink targets all draw `#93c5fd`, next to the li
 - 2026-11-18, split from Issue 40 while the owner was away; waits for the owner's pick above.
 - 2026-11-19, owner decision: option 2, Default `inlineFg` = `#f5d0a9` (warm light peach). Measured: 9.3:1 on `editorBg` `#2a2e3d`; `colorDistance` 26.7 from `link` `#60a5fa`, 27.1 from `wikilink.target` `#a78bfa`, 11.5 from `fg`, 18.7 from `heading1`. Set `--syntax-emphasis` and `--syntax-strong` in `app.css` to the same value. The Issue 05 test stays unchanged. Triage: ready-for-agent.
 - 2026-11-19, owner decision: Lavender Haze `inlineFg` = `#9C2F5C` in this ticket (measured 9.6 from `wikilink.target` today, under the 12 the test requires). The catalog themes with the same collision (Zettlr Bordeaux Dark and Light, Sakura) were fixed in koko.brain-themes f694e36.
+- 2026-11-19, delivered from branch `issue/53-default-bold-italic-off-link-blue`: Default `inlineFg` and `--syntax-strong`/`--syntax-emphasis` move to `#f5d0a9`, Lavender Haze `strong` to `#9C2F5C`; new `colorDistance` (OKLab) in `utils/color.ts` with unit tests, and a `BUILTIN_THEMES` test holding bold and italic at least 12 from the link colours. Full suite: 672 files, 17994 passed, 56 skipped, 1 todo, exit 0. Review round 1: APPROVED (one minor out-of-scope note on Lavender Haze italic vs wikilink target, left for a possible follow-up).
