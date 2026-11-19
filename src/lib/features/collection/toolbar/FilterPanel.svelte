@@ -17,7 +17,7 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import type { FilterConjunction, FilterGroup, FilterRow as FilterRowType } from './toolbar.types';
 	import { CONJUNCTION_LABELS } from './toolbar.types';
-	import { createEmptyFilterRow, inferPropertyType } from './filter.logic';
+	import { addFilter } from './filter.logic';
 	import type { PropertyIndexRecord } from '../collection.types';
 	import FilterRow from './FilterRow.svelte';
 
@@ -36,6 +36,12 @@
 		onViewFiltersChange: (groups: FilterGroup[]) => void;
 		/** Whether to show the "All views" section above "This view" (default `true`) */
 		showGlobal?: boolean;
+		/**
+		 * Shows only the "This view" groups, without the section header or its
+		 * "Add filter" button, for a host that labels the rows and adds them
+		 * itself (default `false`)
+		 */
+		embedded?: boolean;
 	}
 
 	let {
@@ -46,6 +52,7 @@
 		onGlobalFiltersChange,
 		onViewFiltersChange,
 		showGlobal = true,
+		embedded = false,
 	}: Props = $props();
 
 	let globalOpen = $state(true);
@@ -69,20 +76,6 @@
 		);
 		// Remove empty groups
 		return updated.filter((g) => g.rows.length > 0);
-	}
-
-	function addFilter(groups: FilterGroup[]): FilterGroup[] {
-		const defaultProp = availableProperties[0] ?? 'file.name';
-		const type = inferPropertyType(defaultProp, propertyIndex);
-		const newRow = createEmptyFilterRow(defaultProp, type);
-
-		if (groups.length === 0) {
-			return [{ conjunction: 'and', rows: [newRow] }];
-		}
-		// Add to the first group
-		return groups.map((g, i) =>
-			i === 0 ? { ...g, rows: [...g.rows, newRow] } : g,
-		);
 	}
 
 	function changeConjunction(groups: FilterGroup[], groupIdx: number, conjunction: FilterConjunction): FilterGroup[] {
@@ -147,7 +140,7 @@
 						variant="ghost"
 						size="sm"
 						class="h-7 w-fit gap-1 px-2 text-xs text-muted-foreground"
-						onclick={() => onGlobalFiltersChange(addFilter(globalFilters))}
+						onclick={() => onGlobalFiltersChange(addFilter(globalFilters, availableProperties, propertyIndex))}
 					>
 						<Plus class="size-3" />
 						Add filter
@@ -161,17 +154,19 @@
 
 	<!-- This view section -->
 	<Collapsible bind:open={viewOpen}>
-		<CollapsibleTrigger class="flex w-full items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
-			<ChevronRight class="size-3.5 transition-transform {viewOpen ? 'rotate-90' : ''}" />
-			This view
-			{#if viewCount > 0}
-				<span class="rounded-full bg-primary/15 px-1.5 text-label font-semibold text-primary">
-					{viewCount}
-				</span>
-			{/if}
-		</CollapsibleTrigger>
+		{#if !embedded}
+			<CollapsibleTrigger class="flex w-full items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
+				<ChevronRight class="size-3.5 transition-transform {viewOpen ? 'rotate-90' : ''}" />
+				This view
+				{#if viewCount > 0}
+					<span class="rounded-full bg-primary/15 px-1.5 text-label font-semibold text-primary">
+						{viewCount}
+					</span>
+				{/if}
+			</CollapsibleTrigger>
+		{/if}
 		<CollapsibleContent>
-			<div class="mt-2 flex flex-col gap-2">
+			<div class={['flex flex-col gap-2', !embedded && 'mt-2']}>
 				{#each viewFilters as group, gi}
 					<!-- Conjunction selector -->
 					<DropdownMenu>
@@ -208,15 +203,17 @@
 					{/each}
 				{/each}
 
-				<Button
-					variant="ghost"
-					size="sm"
-					class="h-7 w-fit gap-1 px-2 text-xs text-muted-foreground"
-					onclick={() => onViewFiltersChange(addFilter(viewFilters))}
-				>
-					<Plus class="size-3" />
-					Add filter
-				</Button>
+				{#if !embedded}
+					<Button
+						variant="ghost"
+						size="sm"
+						class="h-7 w-fit gap-1 px-2 text-xs text-muted-foreground"
+						onclick={() => onViewFiltersChange(addFilter(viewFilters, availableProperties, propertyIndex))}
+					>
+						<Plus class="size-3" />
+						Add filter
+					</Button>
+				{/if}
 			</div>
 		</CollapsibleContent>
 	</Collapsible>

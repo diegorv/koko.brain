@@ -24,8 +24,8 @@ test src/tests/lib/features/file-icons/IconPicker.colors.svelte.test.ts imports 
 test src/tests/lib/features/file-icons/IconPicker.test.ts imports src/lib/features/file-icons/IconPicker.svelte mirror
 ## symbols
 sym src/lib/features/file-icons/IconPicker.svelte:1 component IconPicker props:open=$bindable,currentPack,currentName,currentColor,currentTextColor,onSelect,onColorsChange,onRemove,onClose L323
-by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:367 in (markup) mount
-by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:662 in (markup) mount
+by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:385 in (markup) mount
+by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:702 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/note-list/NoteRowMenu.svelte:291 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/FilesNavigator.svelte:486 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/TypesNavigator.svelte:501 in (markup) mount
@@ -41,8 +41,8 @@ mount src/lib/features/file-icons/IconPicker.svelte:202 ScrollArea -> src/lib/co
 mount src/lib/features/file-icons/IconPicker.svelte:224 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/file-icons/IconPicker.svelte:239 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 ## mounted-at
-mount src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:367 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:662 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:385 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:702 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/note-list/NoteRowMenu.svelte:291 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/rail-shell/FilesNavigator.svelte:486 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/rail-shell/TypesNavigator.svelte:501 IconPicker -> src/lib/features/file-icons/IconPicker.svelte

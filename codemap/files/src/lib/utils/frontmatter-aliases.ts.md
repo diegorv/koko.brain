@@ -21,6 +21,6 @@ test src/tests/lib/features/properties/frontmatter-parity.test.ts imports src/li
 sym src/lib/utils/frontmatter-aliases.ts:29 fn canonicalizeKey(key: string): string L3 | Returns the canonical key name if the input matches a known alias, otherwise returns the input unchanged.
 by src/lib/utils/frontmatter-aliases.ts:canonicalizeKey <- src/lib/core/frontmatter/properties.logic.ts:297 in computeAndCache call +6
 by src/lib/utils/frontmatter-aliases.ts:canonicalizeKey <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:766 in boundValue call +1
-by src/lib/utils/frontmatter-aliases.ts:canonicalizeKey <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:198 in setColor call +2
+by src/lib/utils/frontmatter-aliases.ts:canonicalizeKey <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:210 in setColor call +2
 by src/lib/utils/frontmatter-aliases.ts:canonicalizeKey <- src/lib/features/auto-organize/auto-organize.logic.ts:183 in isRefusedKey call +11
 by src/lib/utils/frontmatter-aliases.ts:canonicalizeKey <- src/lib/features/properties/properties.service.ts:116 in findCanonicalTwin call +5

@@ -25,7 +25,9 @@ describe('FilterPanel', () => {
 		document.body.innerHTML = '';
 	});
 
-	function render(options: { showGlobal?: boolean; viewFilters?: FilterGroup[]; globalFilters?: FilterGroup[] } = {}) {
+	function render(
+		options: { showGlobal?: boolean; embedded?: boolean; viewFilters?: FilterGroup[]; globalFilters?: FilterGroup[] } = {},
+	) {
 		viewChanges = [];
 		globalChanges = [];
 		target = document.body.appendChild(document.createElement('div'));
@@ -43,6 +45,7 @@ describe('FilterPanel', () => {
 				props.viewFilters = groups;
 			},
 			...(options.showGlobal === undefined ? {} : { showGlobal: options.showGlobal }),
+			...(options.embedded === undefined ? {} : { embedded: options.embedded }),
 		});
 		component = mount(FilterPanel, { target, props });
 		flushSync();
@@ -81,6 +84,31 @@ describe('FilterPanel', () => {
 		expect(target.textContent).toContain('This view');
 		expect(target.querySelector('[data-slot="separator"]')).toBeNull();
 		expect(buttons('Add filter')).toHaveLength(1);
+	});
+
+	describe('embedded', () => {
+		const rows: FilterGroup[] = [{ conjunction: 'and', rows: [{ id: 'v1', property: 'status', operator: 'is', value: 'done' }] }];
+
+		it('shows the view rows without the "This view" header or its "Add filter" button', () => {
+			render({ showGlobal: false, embedded: true, viewFilters: rows });
+			expect(target.textContent).not.toContain('This view');
+			expect(target.textContent).not.toContain('All views');
+			expect(buttons('Add filter')).toHaveLength(0);
+			expect(target.querySelector<HTMLInputElement>('input[placeholder="Value..."]')?.value).toBe('done');
+		});
+
+		it('still reports a conjunction change through onViewFiltersChange', async () => {
+			render({ showGlobal: false, embedded: true, viewFilters: rows });
+			await openMenu(buttons('All the following are true')[0]);
+			await clickMenuItem('Any of the following are true');
+			expect(lastView()[0].conjunction).toBe('or');
+		});
+
+		it('renders nothing for no groups', () => {
+			render({ showGlobal: false, embedded: true });
+			expect(target.textContent?.trim()).toBe('');
+			expect(target.querySelectorAll('button')).toHaveLength(0);
+		});
 	});
 
 	it('reports add, edit, conjunction change and remove through onViewFiltersChange with showGlobal false', async () => {

@@ -11,6 +11,7 @@ import {
 	createEmptyExpressionRow,
 	isFilterObject,
 	isUnaryOperator,
+	addFilter,
 } from '#lib/features/collection/toolbar/filter.logic.js';
 import { executeQuery } from '#lib/features/collection/collection.logic.js';
 import type { CollectionDefinition, CollectionFilter, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -944,5 +945,32 @@ describe('createEmptyFilterRow', () => {
 	it('creates a row with is_true for boolean type', () => {
 		const row = createEmptyFilterRow('archived', 'boolean');
 		expect(row.operator).toBe('is_true');
+	});
+});
+
+describe('addFilter', () => {
+	it('makes one "and" group on no groups, with a row for the first property', () => {
+		const index = makeIndex([makeRecord('/vault/a.md', { priority: 5 })]);
+		const groups = addFilter([], ['priority', 'status'], index);
+		expect(groups).toEqual([{ conjunction: 'and', rows: [expect.objectContaining({ property: 'priority', operator: 'eq', value: '' })] }]);
+	});
+
+	it('falls back to file.name when no property is known', () => {
+		const groups = addFilter([], [], new Map());
+		expect(groups).toEqual([{ conjunction: 'and', rows: [expect.objectContaining({ property: 'file.name', operator: 'is', value: '' })] }]);
+	});
+
+	it('appends to the first group only and leaves the others untouched', () => {
+		const first = { conjunction: 'or' as const, rows: [createEmptyFilterRow('status', 'text')] };
+		const second = { conjunction: 'not' as const, rows: [createEmptyFilterRow('status', 'text')] };
+		const groups = addFilter([first, second], ['status'], new Map());
+
+		expect(groups).toHaveLength(2);
+		expect(groups[0].conjunction).toBe('or');
+		expect(groups[0].rows).toHaveLength(2);
+		expect(groups[0].rows[0]).toBe(first.rows[0]);
+		expect(groups[0].rows[1]).toEqual(expect.objectContaining({ property: 'status', value: '' }));
+		expect(groups[1]).toBe(second);
+		expect(first.rows).toHaveLength(1);
 	});
 });

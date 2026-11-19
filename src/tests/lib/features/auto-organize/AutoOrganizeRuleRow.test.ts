@@ -170,6 +170,11 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		await settle();
 	}
 
+	/** Picks `kind` from the filter's "Add condition" menu. */
+	async function addCondition(kind: 'Property filter' | 'Expression') {
+		await pickMenuItem(button('Add condition'), kind);
+	}
+
 	/** Types `text` into `el` without leaving it. */
 	function type(el: HTMLInputElement, text: string) {
 		el.value = text;
@@ -666,14 +671,55 @@ describe('AutoOrganizeRuleRow consequences', () => {
 	describe('filter builder', () => {
 		const COMPLEX = '(status == "done" && _type == "project") || file.hasTag("archive")';
 
+		it('reads "When" with one "Add condition", not the view panel\'s header and buttons', async () => {
+			await render({ ...BLANK, expression: "status == 'done'" });
+
+			const labels = [...document.querySelectorAll('span')].map((el) => el.textContent?.trim());
+			expect(labels).toContain('When');
+			expect(labels).not.toContain('Filter');
+			const text = document.body.textContent ?? '';
+			for (const gone of ['This view', 'Add filter', 'Add expression']) expect(text).not.toContain(gone);
+			expect(button('Add condition')).toBeTruthy();
+		});
+
+		it('"Add condition" offers "Property filter" and "Expression"', async () => {
+			await render(BLANK);
+
+			button('Add condition').click();
+			await settle();
+
+			const items = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].map((el) => el.textContent?.trim());
+			expect(items).toEqual(['Property filter', 'Expression']);
+		});
+
+		it('"Property filter" adds a filter row, saves nothing yet and focuses its input', async () => {
+			const onupdate = await render(BLANK);
+
+			await addCondition('Property filter');
+
+			expect(valueInputs().map((i) => i.value)).toEqual(['']);
+			expect(rawInputs()).toEqual([]);
+			expect(onupdate).not.toHaveBeenCalled();
+			expect(document.activeElement).toBe(valueInputs()[0]);
+		});
+
+		it('"Expression" adds an expression row, saves nothing yet and focuses its input', async () => {
+			const onupdate = await render({ ...BLANK, expression: "status == 'done'" });
+
+			await addCondition('Expression');
+
+			expect(rawInputs().map((i) => i.value)).toEqual(['']);
+			expect(valueInputs().map((i) => i.value)).toEqual(['done']);
+			expect(onupdate).not.toHaveBeenCalled();
+			expect(document.activeElement).toBe(rawInputs()[0]);
+		});
+
 		it('adding two rows in an "any" group saves { or: [..] }', async () => {
 			const onupdate = await render(BLANK);
 
-			button('Add filter').click();
-			await settle();
+			await addCondition('Property filter');
 			commit(valueInputs()[0], 'Alpha');
-			button('Add filter').click();
-			await settle();
+			await addCondition('Property filter');
 			commit(valueInputs()[1], 'Beta');
 			await pickMenuItem(button('All the following are true'), 'Any of the following are true');
 
@@ -683,8 +729,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		it('adds an expression row and saves what is typed in it', async () => {
 			const onupdate = await render(BLANK);
 
-			button('Add expression').click();
-			await settle();
+			await addCondition('Expression');
 			expect(rawInputs().map((i) => i.value)).toEqual(['']);
 			expect(onupdate).not.toHaveBeenCalled();
 
@@ -695,8 +740,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		it('adds an expression row to the first group', async () => {
 			const onupdate = await render({ ...BLANK, expression: { or: ["status == 'done'", "status == 'dropped'"] } });
 
-			button('Add expression').click();
-			await settle();
+			await addCondition('Expression');
 			commit(rawInputs()[0], "file.hasTag('x')");
 
 			expect(onupdate).toHaveBeenLastCalledWith('r1', {
@@ -707,8 +751,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		it('saves a row only once it has a value, and says so', async () => {
 			const onupdate = await render(BLANK);
 
-			button('Add filter').click();
-			await settle();
+			await addCondition('Property filter');
 
 			expect(onupdate).not.toHaveBeenCalled();
 			expect(document.querySelector('[data-rule-filter-error]')?.textContent?.trim()).toBe('Not saved: Every filter needs a value');
@@ -761,8 +804,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			expect(rawInputs().map((i) => i.value)).toEqual([COMPLEX]);
 			expect(valueInputs()).toEqual([]);
 
-			button('Add filter').click();
-			await settle();
+			await addCondition('Property filter');
 			commit(valueInputs()[0], 'x');
 			expect(onupdate).toHaveBeenLastCalledWith('r1', { expression: { and: [COMPLEX, "file.name == 'x'"] } });
 

@@ -4,6 +4,7 @@
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Select from '#lib/components/ui/select/index.js';
+	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import TrashIcon from '@lucide/svelte/icons/trash-2';
 	import ChevronUpIcon from '@lucide/svelte/icons/chevron-up';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
@@ -15,6 +16,7 @@
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 	import {
+		addFilter,
 		createEmptyExpressionRow,
 		filterGroupsToFilter,
 		getAllKnownProperties,
@@ -215,6 +217,11 @@
 		const [first, ...rest] = groups;
 		const row = createEmptyExpressionRow();
 		groups = first ? [{ ...first, rows: [...first.rows, row] }, ...rest] : [{ conjunction: 'and', rows: [row] }];
+	}
+
+	/** Appends a blank property filter row, as the view panel's "Add filter" does. Saved once it has a value. */
+	function addPropertyFilter() {
+		groups = addFilter(groups, availableProperties, collectionStore.propertyIndex);
 	}
 
 	/** Saves the builder's filter unless a row still has no value. */
@@ -458,11 +465,12 @@
 	<!-- Filter builder -->
 	<div class="flex flex-col gap-1">
 		<div class="flex items-start gap-2">
-			<span class="w-24 shrink-0 text-meta text-muted-foreground">Filter</span>
+			<span class="w-24 shrink-0 text-meta text-muted-foreground">When</span>
 			<!-- Value and raw-expression inputs report every keystroke; they save when left. -->
 			<div class="min-w-0 flex-1" data-rule-filter bind:this={filterBox} oninputcapture={() => (typing = true)} onchange={commitFilter}>
 				<FilterPanel
 					showGlobal={false}
+					embedded
 					globalFilters={[]}
 					viewFilters={groups}
 					{availableProperties}
@@ -472,15 +480,21 @@
 				/>
 			</div>
 		</div>
-		<Button
-			variant="ghost"
-			size="sm"
-			class="ml-[6.5rem] h-7 w-fit gap-1 px-2 text-muted-foreground"
-			onclick={() => focusAdded(filterBox, addExpression)}
-		>
-			<PlusIcon class="size-3" />
-			Add expression
-		</Button>
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger>
+				{#snippet child({ props })}
+					<Button {...props} variant="ghost" size="sm" class="ml-[6.5rem] h-7 w-fit gap-1 px-2 text-muted-foreground">
+						<PlusIcon class="size-3" />
+						Add condition
+					</Button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<!-- The menu hands focus back to its trigger as it closes, in the flush `focusAdded` awaits, so the new row's input still ends up focused. -->
+			<DropdownMenu.Content align="start">
+				<DropdownMenu.Item onSelect={() => focusAdded(filterBox, addPropertyFilter)}>Property filter</DropdownMenu.Item>
+				<DropdownMenu.Item onSelect={() => focusAdded(filterBox, addExpression)}>Expression</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
 		{#if blankValue}
 			<!-- The prefix lives here: the loader logs BLANK_VALUE_ERROR for a stored filter, which was saved. -->
 			<p class="ml-[6.5rem] text-meta text-destructive" data-rule-filter-error>

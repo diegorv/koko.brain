@@ -38,7 +38,7 @@ by src/lib/features/collection/toolbar/filter.logic.ts:parseExpressionToRow <- s
 sym src/lib/features/collection/toolbar/filter.logic.ts:38 fn filterRowToExpression(row: FilterRow): string L51 | Converts a FilterRow back into an expression string for YAML serialization.
 by src/lib/features/collection/toolbar/filter.logic.ts:filterRowToExpression <- src/lib/features/rail-shell/lens.logic.ts:870 in describeViewFilters ref
 sym src/lib/features/collection/toolbar/filter.logic.ts:94 fn parseFilterToGroups(filter: CollectionFilter | string | undefined): FilterGroup[] L47 | Converts a CollectionFilter or string (from YAML) into FilterGroup[] for the visual UI.
-by src/lib/features/collection/toolbar/filter.logic.ts:parseFilterToGroups <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:195 in toGroups call
+by src/lib/features/collection/toolbar/filter.logic.ts:parseFilterToGroups <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:197 in toGroups call
 by src/lib/features/collection/toolbar/filter.logic.ts:parseFilterToGroups <- src/lib/features/collection/CollectionView.svelte:164 in seedFromDefinition call +1
 by src/lib/features/collection/toolbar/filter.logic.ts:parseFilterToGroups <- src/lib/features/type-definitions/ViewDialog.svelte:96 in load call +1
 by src/lib/features/collection/toolbar/filter.logic.ts:parseFilterToGroups <- src/lib/features/type-definitions/type-note-list.logic.ts:58 in seedToolbarStateFromDefinition call +2
@@ -54,7 +54,7 @@ by src/lib/features/collection/toolbar/filter.logic.ts:isUnaryOperator <- src/li
 by src/lib/features/collection/toolbar/filter.logic.ts:isUnaryOperator <- src/lib/features/collection/toolbar/FilterRow.svelte:51 in unary=$derived call +1
 by src/lib/features/collection/toolbar/filter.logic.ts:isUnaryOperator <- src/lib/features/type-definitions/ViewDialog.svelte:62 in blankValue=$derived call
 sym src/lib/features/collection/toolbar/filter.logic.ts:223 fn getAllKnownProperties(index: Map<string, PropertyIndexRecord>): string[] L16 | Collects all known note property names from the index plus standard file.* properties.
-by src/lib/features/collection/toolbar/filter.logic.ts:getAllKnownProperties <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:90 in availableProperties=$derived call +1
+by src/lib/features/collection/toolbar/filter.logic.ts:getAllKnownProperties <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:92 in availableProperties=$derived call +1
 by src/lib/features/collection/toolbar/filter.logic.ts:getAllKnownProperties <- src/lib/features/collection/CollectionView.svelte:219 in availableProperties=$derived call
 by src/lib/features/collection/toolbar/filter.logic.ts:getAllKnownProperties <- src/lib/features/type-definitions/ViewDialog.svelte:58 in availableProperties=$derived call
 by src/lib/features/collection/toolbar/filter.logic.ts:getAllKnownProperties <- src/lib/features/type-definitions/type-note-list.logic.ts:118 in combineAvailableProperties call
@@ -65,7 +65,7 @@ by src/lib/features/collection/toolbar/filter.logic.ts:inferPropertyType <- src/
 sym src/lib/features/collection/toolbar/filter.logic.ts:282 fn createEmptyFilterRow(property: string, type: PropertyType): FilterRow L9 | Creates an empty FilterRow with sensible defaults for a given property type.
 by src/lib/features/collection/toolbar/filter.logic.ts:createEmptyFilterRow <- src/lib/features/collection/toolbar/FilterPanel.svelte:77 in addFilter call
 sym src/lib/features/collection/toolbar/filter.logic.ts:296 fn createEmptyExpressionRow(): FilterRow L3 | Creates an expression row with no text yet.
-by src/lib/features/collection/toolbar/filter.logic.ts:createEmptyExpressionRow <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:214 in addExpression call
+by src/lib/features/collection/toolbar/filter.logic.ts:createEmptyExpressionRow <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:216 in addExpression call
 sym src/lib/features/collection/toolbar/filter.logic.ts:328 fn isFilterObject(item: unknown): item is CollectionFilter L5 | True for a non-null object whose `and` / `or` / `not`, where present, are lists.
 by src/lib/features/collection/toolbar/filter.logic.ts:isFilterObject <- src/lib/features/auto-organize/auto-organize.logic.ts:45 in filterProblem call
 ## locals

@@ -347,11 +347,16 @@ describe('AutoOrganizeSection', () => {
 			expect(document.activeElement).toBe(keys[0]);
 		});
 
-		it('focuses the input of the row "Add expression" adds', async () => {
+		it('focuses the input of the row "Add condition" > "Expression" adds', async () => {
 			autoOrganizeStore.setConfig({ rules: [{ ...RULE, expression: 'file.hasTag("a")' }], excludedFolders: [] });
 			render();
 
-			button('Add expression').click();
+			// A synthetic click (detail 0, the keyboard path in bits-ui) opens the menu.
+			button('Add condition').click();
+			await settle();
+			const item = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((el) => el.textContent?.trim() === 'Expression');
+			if (!item) throw new Error('menu item "Expression" not found');
+			item.click();
 			await settle();
 
 			const inputs = [...document.querySelectorAll<HTMLInputElement>('[data-rule-filter] input[placeholder="Expression..."]')];
