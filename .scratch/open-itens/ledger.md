@@ -73,7 +73,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 036 | [Settings > File History > Automatic snapshots takes effect on the next save, with no vault reopen](issues/036-settings-file-history-automatic-snapshots-takes-effect.md) | none | todo | | |
 | 037 | [update_semantic_file has no queue: bursts pile up, repeat work and embed deleted notes](issues/037-update-semantic-file-queue.md) | none | todo | | |
 | 038 | [Canvas image nodes load their image: the main capability grants fs:allow-read-file, and image nodes store and resolve vault-relative paths](issues/038-canvas-image-nodes-load-their-image-main.md) | none | done | issue/038-canvas-image-nodes-load-their-image-main (c037d7ff7) | 2026-11-13 |
-| 039 | [Canvas file nodes added in the app load their note, and file nodes resolve both absolute and vault-relative paths](issues/039-canvas-file-image-nodes-store-vault-relative.md) | 004 | todo | | |
+| 039 | [Canvas file nodes added in the app load their note, and file nodes resolve both absolute and vault-relative paths](issues/039-canvas-file-image-nodes-store-vault-relative.md) | 004 | in-progress | | |
 | 040 | [Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows](issues/040-kanban-drag-drop-puts-card-lane-exactly.md) | none | todo | | |
 | 041 | [DataArray sort and sortBy keep the items that have the key in order and group the items without it at one end](issues/041-dataarray-sort-sortby-keep-items-that-have.md) | none | todo | | |
 | 042 | [Enter in the quick switcher creates the note when nothing matches](issues/042-enter-quick-switcher-creates-note-when-nothing.md) | none | done | issue/042-enter-quick-switcher-creates-note-when-nothing (2009ad219) | 2026-11-12 |
@@ -306,3 +306,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-13 08:45 — 038 — start — launched by /relay-lite:run (253 merged in, owner approved) — 8a3e478c3
 - 2026-11-13 09:01 — 038 — deliver — 253 merged in; round 1 APPROVED by claude with a fix round (fs-capabilities test fails on unparsable plugin-fs imports), deliver re-review APPROVED by claude; full suite 637 files / 16910 tests passed; squash merged and pushed — c037d7ff7
 - 2026-11-19 06:20 — ledger updated (title of 006, 006; link of 006, 006; blocked by of 006, 006, 040; wontfix 014, 045, 046, 049, 050, 057, 153, 155, 156, 159, 164, 195, 196, 197, 201, 206, 208, 210, 212, 213, 217, 218, 220)
+- 2026-11-19 06:25 — 039 — start — launched by /relay-lite:run — ff79c9912
