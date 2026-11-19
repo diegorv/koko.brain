@@ -64,7 +64,7 @@
 				{/snippet}
 			</PopoverPrimitive.Trigger>
 			<button
-				class="rounded-full p-0.5 text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted transition-colors"
+				class="rounded-full p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
 				onclick={handleRemove}
 				type="button"
 				aria-label="Remove date"
@@ -76,7 +76,7 @@
 		<PopoverPrimitive.Trigger>
 			{#snippet children()}
 				<button
-					class="rounded-sm p-0.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+					class="rounded-sm p-0.5 text-muted-foreground hover:text-foreground transition-colors"
 					type="button"
 					aria-label="Set date"
 					title="Set date"
@@ -127,7 +127,7 @@
 									{#each week as cellDate}
 										<CalendarPrimitive.Cell date={cellDate} month={month.value} class="p-0">
 											<CalendarPrimitive.Day
-												class="inline-flex size-8 items-center justify-center rounded-xs text-sm transition-colors hover:bg-muted data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[today]:font-bold data-[outside-month]:text-muted-foreground/40 data-[disabled]:text-muted-foreground/40"
+												class="inline-flex size-8 items-center justify-center rounded-xs text-sm transition-colors hover:bg-muted data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[today]:font-bold data-[outside-month]:text-muted-foreground data-[disabled]:text-muted-foreground"
 											>
 												{#snippet children({ day })}
 													{day}

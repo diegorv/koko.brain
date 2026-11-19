@@ -224,6 +224,15 @@ describe('KanbanView: date proximity tone', () => {
 		expect(dateBadge(done).className).toContain('bg-muted text-muted-foreground');
 		expect(dateBadge(open).className).toContain('bg-destructive/15 text-destructive');
 	});
+
+	it.each(['board', 'list', 'table'] as const)('%s: an unchecked card check box has a full muted-foreground border', (mode) => {
+		mountMode(mode);
+
+		const box = cardRow('open task').querySelector<HTMLButtonElement>('button[aria-label="Check"], button[aria-label="Mark done"]')!;
+		expect(box.classList).toContain('border-muted-foreground');
+		expect(box.className).not.toMatch(/border-muted-foreground\/\d+/);
+		expect(box.classList).toContain('hover:border-primary');
+	});
 });
 
 describe('KanbanView: card and lane menus', () => {

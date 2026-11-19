@@ -96,6 +96,22 @@ describe('PropertiesView relationship links', () => {
 		const link = [...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'b/foo.png')!;
 		expect(link.querySelector('svg')!.getAttribute('style')).toContain('rgb(239, 68, 68)');
 	});
+
+	it('marks an unresolved link with italic muted text and data-unresolved, not with opacity', () => {
+		fsStore.setFileTree([{ name: 'note.md', path: NOTE, isDirectory: false }]);
+		editorStore.addTab({ path: NOTE, name: 'note.md', content: NOTE_BODY, savedContent: NOTE_BODY });
+
+		const target = document.body.appendChild(document.createElement('div'));
+		component = mount(PropertiesView, { target });
+		flushSync();
+
+		const row = target.querySelector<HTMLElement>('[data-unresolved]')!;
+		expect(row.textContent?.trim()).toBe('b/foo.png');
+		expect(row.className).not.toMatch(/(^|\s)opacity-/);
+		expect(row.classList).toContain('italic');
+		expect(row.classList).toContain('text-right-sidebar-muted-fg');
+		expect([...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'b/foo.png')).toBeUndefined();
+	});
 });
 
 describe('PropertiesView text roles', () => {
@@ -167,6 +183,22 @@ describe('PropertiesView text roles', () => {
 		addRows[0].click();
 		flushSync();
 		expect(target.querySelector('input[placeholder="Property name..."]')).not.toBeNull();
+	});
+
+	it('draws the Add property label and its input placeholder in full-strength muted tokens', () => {
+		editorStore.addTab({ path: NOTE, name: 'note.md', content: NOTE_BODY, savedContent: NOTE_BODY });
+		mountView();
+
+		const add = [...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Add property')!;
+		expect(add.classList).toContain('text-tab-text-inactive');
+		expect(add.className).not.toMatch(/text-tab-text-inactive\/\d+/);
+		add.click();
+		flushSync();
+		const input = target.querySelector<HTMLInputElement>('input[placeholder="Property name..."]')!;
+		expect(input.classList).toContain('placeholder:text-right-sidebar-muted-fg');
+		const plus = input.parentElement!.querySelector('svg')!;
+		expect(plus.getAttribute('class')).toContain('text-right-sidebar-muted-fg');
+		expect(plus.getAttribute('class')).not.toMatch(/text-right-sidebar-muted-fg\/\d+/);
 	});
 
 	it('labels each relationship kind with the section-label style', () => {

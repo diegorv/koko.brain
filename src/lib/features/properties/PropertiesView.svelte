@@ -173,7 +173,7 @@
 									{@const selectedTypeIcon = resolveIconForType(typeName)}
 								<button
 										{...props}
-										class="flex h-6 flex-[3] min-w-0 items-center gap-1.5 rounded-md bg-input-bg px-2.5 text-row font-medium text-right-sidebar-fg/70 transition-colors cursor-pointer hover:bg-right-sidebar-accent"
+										class="flex h-6 flex-[3] min-w-0 items-center gap-1.5 rounded-md bg-input-bg px-2.5 text-row font-medium text-right-sidebar-fg transition-colors cursor-pointer hover:bg-right-sidebar-accent"
 									>
 										{#if selectedTypeIcon?.icon}
 											<IconRenderer icon={selectedTypeIcon.icon} class="size-3.5 shrink-0" color={selectedTypeIcon.color} />
@@ -221,10 +221,10 @@
 			<!-- Add property row -->
 			{#if isAddingProperty}
 				<div class="flex items-center gap-1.5 mt-1 px-2 py-1">
-					<Plus class="size-3.5 shrink-0 text-right-sidebar-muted-fg/60" />
+					<Plus class="size-3.5 shrink-0 text-right-sidebar-muted-fg" />
 					<input
 						bind:this={addInputRef}
-						class="flex-1 h-6 text-row bg-transparent border border-input rounded-xs px-1.5 outline-none focus:border-ring"
+						class="flex-1 h-6 text-row bg-transparent border border-input rounded-xs px-1.5 outline-none focus:border-ring placeholder:text-right-sidebar-muted-fg"
 						bind:value={newKeyInput}
 						onkeydown={handleAddKeydown}
 						placeholder="Property name..."
@@ -232,7 +232,7 @@
 				</div>
 			{:else}
 				<button
-					class="flex items-center gap-1.5 w-full mt-1 px-2 py-1.5 rounded-md text-row text-tab-text-inactive/60 hover:text-tab-text-inactive hover:bg-right-sidebar-accent/50 transition-colors cursor-pointer"
+					class="flex items-center gap-1.5 w-full mt-1 px-2 py-1.5 rounded-md text-row text-tab-text-inactive hover:text-right-sidebar-fg hover:bg-right-sidebar-accent/50 transition-colors cursor-pointer"
 					onclick={() => (isAddingProperty = true)}
 				>
 					<Plus class="size-3.5" />
@@ -270,7 +270,7 @@
 											<span class="truncate">{link.display}</span>
 										</button>
 									{:else}
-										<div class="flex items-center gap-1.5 min-w-0 flex-1 opacity-50">
+										<div class="flex items-center gap-1.5 min-w-0 flex-1 italic text-right-sidebar-muted-fg" data-unresolved>
 											<FileText class="size-3.5 shrink-0" />
 											<span class="truncate">{link.display}</span>
 										</div>

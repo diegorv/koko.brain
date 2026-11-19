@@ -134,4 +134,23 @@ describe('OutgoingLinksPanel — vaultIndexVersion refetch', () => {
 		expect(spans.find((s) => s.textContent === 'Alpha')!.classList).toContain('text-row');
 		expect(spans.find((s) => s.textContent === 'Missing')!.classList).toContain('text-row');
 	});
+
+	it('marks an unresolved row with data-unresolved and the destructive color, at full opacity', () => {
+		mountPanel();
+		clickTrigger();
+		outgoingLinksStore.setOutgoingLinks([
+			{ target: 'Alpha', alias: null, heading: null, resolvedPath: '/vault/Alpha.md', position: 0 },
+			{ target: 'Missing', alias: null, heading: 'Intro', resolvedPath: null, position: 10 },
+		]);
+		flushSync();
+
+		const rows = [...target.querySelectorAll<HTMLElement>('[data-unresolved]')];
+		expect(rows).toHaveLength(1);
+		const row = rows[0];
+		expect(row.textContent).toContain('Missing');
+		expect(row.className).not.toMatch(/(^|\s)opacity-/);
+		const name = [...row.querySelectorAll('span')].find((s) => s.textContent === 'Missing')!;
+		expect(name.classList).toContain('text-destructive');
+		expect(row.querySelector('svg')!.getAttribute('class')).toContain('text-destructive');
+	});
 });

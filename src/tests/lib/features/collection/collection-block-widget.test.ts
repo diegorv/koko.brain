@@ -21,6 +21,7 @@ import {
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { barColors, COLOR_PALETTE } from '#lib/features/collection/linear-calendar.logic.js';
+import { formatDateKey, getCalendarGrid } from '#lib/features/collection/calendar.logic.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 
 import { BLOCK_TEXT_FLOOR, resolveFontSize, resolvedFontPx } from '../../../fixtures/font-size.fixture.js';
@@ -480,6 +481,28 @@ describe('CollectionBlockWidget — query data cache', () => {
 			for (const dom of [new CollectionBlockWidget(CALENDAR).toDOM(), new CollectionBlockWidget(CALENDAR).toDOM()]) {
 				expect(dom.querySelector('.cm-lp-collection-header')?.textContent).toBe('Cal (3, 1 without date)');
 				expect(dom.querySelector('table.cm-lp-collection-table')).not.toBeNull();
+			}
+		});
+
+		it('keeps adjacent-month cells at full opacity, with the day number in the muted token', () => {
+			setOneUndated();
+			vi.useFakeTimers({ toFake: ['Date'] });
+			try {
+				vi.setSystemTime(new Date(2026, 5, 15));
+				const dom = new CollectionBlockWidget(CALENDAR).toDOM();
+				const cells = [...dom.querySelectorAll<HTMLElement>('table.cm-lp-collection-table tbody td')];
+				const days = getCalendarGrid(2026, 5, 1).flat();
+				expect(cells).toHaveLength(days.length);
+				expect(days.some((d) => !d.isCurrentMonth)).toBe(true);
+				for (const [i, day] of days.entries()) {
+					const key = formatDateKey(day.date);
+					expect(cells[i].style.opacity, key).toBe('');
+					const dayNum = cells[i].firstElementChild as HTMLElement;
+					const color = key === '2026-06-15' ? 'var(--primary)' : day.isCurrentMonth ? '' : 'var(--muted-foreground)';
+					expect(dayNum.style.color, key).toBe(color);
+				}
+			} finally {
+				vi.useRealTimers();
 			}
 		});
 

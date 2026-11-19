@@ -132,14 +132,14 @@
 					/>
 					<span class="flex-1 truncate">{entry.name || '(unnamed)'}</span>
 					<button
-						class="text-muted-foreground/50 hover:text-foreground"
+						class="text-muted-foreground hover:text-foreground"
 						onclick={() =>
 							onFormulasChange(setFormulaEditing(formulaEntries, entry.id))}
 					>
 						<Pencil class="size-3" />
 					</button>
 					<button
-						class="text-muted-foreground/50 hover:text-destructive"
+						class="text-muted-foreground hover:text-destructive"
 						onclick={() =>
 							onFormulasChange(removeFormulaEntry(formulaEntries, entry.id))}
 					>

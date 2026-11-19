@@ -44,7 +44,7 @@
 	let label = $derived(`${event.title}, ${labelTime}${snippetLine ? `, ${snippetLine}` : ''}${event.readOnly ? ', read-only' : ''}`);
 	let style = $derived(
 		[
-			eventColorStyle(event.color),
+			eventColorStyle(event.color, event.archived),
 			`top: ${minutesToPx(event.start) + 1}px`,
 			`height: ${Math.max(height, MIN_BLOCK_PX)}px`,
 			`left: calc((100% - 5px) * ${column / columns} + 2px)`,
@@ -76,8 +76,7 @@
 	class="@container absolute overflow-hidden rounded-md font-medium outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring
 		{event.readOnly ? 'cursor-default' : 'cursor-pointer'}
 		{event.pending ? 'after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:border after:border-dashed after:border-current' : ''}
-		{selected ? 'ring-2 ring-primary/70' : ''}
-		{event.archived ? 'opacity-50' : ''}"
+		{selected ? 'ring-2 ring-primary/70' : ''}"
 	{style}
 	aria-label={label}
 	data-event-path={event.path}
@@ -125,7 +124,7 @@
 	{/if}
 	{#if event.readOnly}
 		<!-- A drag does nothing on a read-only block; the lock says so before the drag. -->
-		<Lock class="pointer-events-none absolute top-1 right-1 size-3 opacity-70" aria-hidden="true" data-readonly-lock />
+		<Lock class="pointer-events-none absolute top-1 right-1 size-3" aria-hidden="true" data-readonly-lock />
 	{:else}
 		<!-- Bottom resize handle: the time grid's pointerdown hit-tests `[data-resize]`. -->
 		<div class="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize" aria-hidden="true" data-resize></div>

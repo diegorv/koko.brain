@@ -75,4 +75,20 @@ describe('CalendarGrid', () => {
 		firstWeek.click();
 		expect(onWeekClick).toHaveBeenCalledWith('2026-11-02');
 	});
+
+	it('draws an adjacent-month day in the full muted token', () => {
+		mountGrid();
+		const outside = day('2026-10-26')!;
+		expect(outside.classList).toContain('text-file-explorer-muted-fg');
+		expect(outside.className).not.toMatch(/text-file-explorer-muted-fg\/\d+/);
+		expect(day('2026-11-10')!.classList).toContain('text-file-explorer-fg');
+	});
+
+	it('draws the note dots of the selected day in the selected label color, so they show on its fill', () => {
+		mountGrid({ dayFileCounts: new Map([['2026-11-10', 2], ['2026-11-11', 2]]), selectedDateKey: '2026-11-10' });
+		const dots = (key: string) => [...day(key)!.querySelectorAll('span.rounded-full')];
+		expect(dots('2026-11-10').length).toBeGreaterThan(0);
+		for (const dot of dots('2026-11-10')) expect(dot.classList).toContain('bg-primary-foreground');
+		for (const dot of dots('2026-11-11')) expect(dot.classList).toContain('bg-file-explorer-primary');
+	});
 });

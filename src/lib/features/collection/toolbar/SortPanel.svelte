@@ -88,7 +88,7 @@
 			role="listitem"
 		>
 			<!-- Drag handle -->
-			<span class="cursor-grab text-muted-foreground/50 hover:text-muted-foreground active:cursor-grabbing">
+			<span class="cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing">
 				<GripVertical class="size-3.5" />
 			</span>
 

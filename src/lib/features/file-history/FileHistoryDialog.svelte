@@ -80,7 +80,7 @@
 			<div class="flex flex-1 flex-col overflow-hidden">
 				{#if fileHistoryStore.selectedSnapshot}
 					<div class="flex items-center justify-between border-b border-border bg-muted/50 px-4 py-2 text-xs text-muted-foreground">
-						<span>{formatSnapshotDateTime(fileHistoryStore.selectedSnapshot.timestamp)} <span class="font-mono opacity-50">({fileHistoryStore.selectedSnapshot.timestamp})</span></span>
+						<span>{formatSnapshotDateTime(fileHistoryStore.selectedSnapshot.timestamp)} <span class="font-mono">({fileHistoryStore.selectedSnapshot.timestamp})</span></span>
 						<span>{formatSnapshotLabel(selectedSnapshotIndex)}</span>
 					</div>
 				{/if}

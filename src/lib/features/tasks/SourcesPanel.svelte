@@ -341,7 +341,7 @@
 	</section>
 {/snippet}
 
-<div bind:this={panelEl} {id} data-task-sources-panel role="region" aria-label="Sources and excludes" class="mb-3 space-y-4 rounded-md border border-border bg-muted/30 p-3">
+<div bind:this={panelEl} {id} data-task-sources-panel role="region" aria-label="Sources and excludes" class="mb-3 space-y-4 rounded-md border border-border p-3">
 	<section data-task-sources aria-label="Sources" class="space-y-2">
 		<div>
 			<h3 class="text-meta font-medium text-foreground">Sources</h3>

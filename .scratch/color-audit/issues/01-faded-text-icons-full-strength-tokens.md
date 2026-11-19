@@ -19,14 +19,14 @@ Not in this ticket: canvas (Issue 09), the live-preview and QueryJS dims (Issue 
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes.
 
-- [ ] Failing test first, a source scan in `src/tests/lib/architecture/` (style of the existing scan tests, comments stripped): no `.svelte` file under `src/lib` outside `components/ui/` has `text-(muted-foreground|right-sidebar-muted-fg|tab-text-inactive|file-explorer-muted-fg|foreground)/[0-9]+` or `placeholder:text-*/NN`. An explicit allow-list names the decorative exceptions with a reason each. It fails today on the sites above.
-- [ ] Component tests for the high ones: the collection results count and the Properties "Add property" label carry the full token class and no alpha (`CollectionView`, `PropertiesView` tests); the Outgoing Links unresolved row has no `opacity-*` and still exposes its unresolved state (attribute or class the test reads).
-- [ ] A contrast test over `BUILTIN_THEMES` (real `contrastRatio` and `flatten` from `utils/color.ts`): `mutedForeground` on `background`, `rightSidebarMutedFg` on `rightSidebarBg` and `tabTextInactive` on `rightSidebarBg` are at least 4.5:1, and the old `/60` composite of each fails on at least one theme (proves the test sees the real alpha).
-- [ ] Frontend gate passes; tests that pinned an old opacity class move on purpose and the commit says why.
+- [x] Failing test first, a source scan in `src/tests/lib/architecture/` (style of the existing scan tests, comments stripped): no `.svelte` file under `src/lib` outside `components/ui/` has `text-(muted-foreground|right-sidebar-muted-fg|tab-text-inactive|file-explorer-muted-fg|foreground)/[0-9]+` or `placeholder:text-*/NN`. An explicit allow-list names the decorative exceptions with a reason each. It fails today on the sites above.
+- [x] Component tests for the high ones: the collection results count and the Properties "Add property" label carry the full token class and no alpha (`CollectionView`, `PropertiesView` tests); the Outgoing Links unresolved row has no `opacity-*` and still exposes its unresolved state (attribute or class the test reads).
+- [x] A contrast test over `BUILTIN_THEMES` (real `contrastRatio` and `flatten` from `utils/color.ts`): `mutedForeground` on `background`, `rightSidebarMutedFg` on `rightSidebarBg` and `tabTextInactive` on `rightSidebarBg` are at least 4.5:1, and the old `/60` composite of each fails on at least one theme (proves the test sees the real alpha).
+- [x] Frontend gate passes; tests that pinned an old opacity class move on purpose and the commit says why.
 
 ## Findings covered
 
@@ -58,3 +58,4 @@ Not in this ticket: canvas (Issue 09), the live-preview and QueryJS dims (Issue 
 ## Comments
 
 - 2026-11-19, triage: ready-for-agent. Decided by the owner: builder lifts tokens for every theme (WCAG + APCA), user themes are corrected by the builder and the editor warns, rail icons keep their hue and are darkened per theme (ADR-0033 amendment), Issues run through relay one at a time, the themes repo is fixed with version bumps.
+- 2026-11-19, delivered from `issue/01-faded-text-icons-full-strength-tokens`: muted text, placeholders and icon-only controls use full-strength tokens (no `/NN` alpha or `opacity-*`), faded states marked without opacity, source-scan guard over `src/lib` and `src/routes`, contrast test over `BUILTIN_THEMES`. Review fixes: welcome page chevron/X/paths at full token, calendar read-only locks drop `opacity-70`. Full suite at 9805ff45c: 674 files, 18052 passed, exit 0; `pnpm check` clean. Reviews: round 1 APPROVED, round 2 APPROVED.

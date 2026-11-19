@@ -186,6 +186,8 @@ describe('EventMonthGrid: chips', () => {
 		const chip = (name: string) => q(`[data-month-cell="2026-11-11"] [data-event-path="${P(name)}"]`)!;
 		expect(chip('Retreat').textContent?.trim()).toBe('Retreat, read-only');
 		expect(chip('Retreat').querySelector('[data-readonly-lock]')?.getAttribute('aria-hidden')).toBe('true');
+		// The lock draws at the chip's text color: a dim on top falls under 3:1.
+		expect(chip('Retreat').querySelector('[data-readonly-lock]')?.getAttribute('class')).not.toMatch(/(?:^|\s)opacity-/);
 		expect(chip('Standup').textContent?.trim()).toBe('09:00 Standup');
 		expect(chip('Standup').querySelector('[data-readonly-lock]')).toBeNull();
 	});

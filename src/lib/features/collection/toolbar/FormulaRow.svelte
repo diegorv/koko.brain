@@ -88,14 +88,14 @@
 	<div class="flex items-center gap-1.5 rounded-xs px-1 py-0.5 text-xs hover:bg-accent">
 		<span class="flex-1 truncate">{entry.name || '(unnamed)'}</span>
 		<button
-			class="text-muted-foreground/50 hover:text-foreground"
+			class="text-muted-foreground hover:text-foreground"
 			aria-label="Edit formula"
 			onclick={() => onUpdate({ editing: true })}
 		>
 			<Pencil class="size-3" />
 		</button>
 		<button
-			class="text-muted-foreground/50 hover:text-destructive"
+			class="text-muted-foreground hover:text-destructive"
 			aria-label={removeLabel}
 			title={removeLabel}
 			onclick={onRemove}

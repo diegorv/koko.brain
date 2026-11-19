@@ -171,6 +171,8 @@ describe('EventTimeGrid: timed blocks', () => {
 		const trip = q(`[data-event-path="${P('Trip')}"]`)!;
 		expect(trip.getAttribute('aria-label')).toBe('Trip, 09:00 – 10:00, read-only');
 		expect(trip.querySelector('[data-readonly-lock]')?.getAttribute('aria-hidden')).toBe('true');
+		// The lock is the only sign before a drag, so it draws at the chip's full text color.
+		expect(trip.querySelector('[data-readonly-lock]')!.getAttribute('class')).not.toMatch(/(^|\s)opacity-/);
 		expect(trip.className).toContain('cursor-default');
 		expect(trip.className).not.toContain('cursor-pointer');
 		// The content leaves room on the right so the lock does not cover the title.

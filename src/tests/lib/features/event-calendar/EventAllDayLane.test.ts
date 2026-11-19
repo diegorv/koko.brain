@@ -244,6 +244,8 @@ describe('EventAllDayLane: read-only chips', () => {
 		for (const day of ['2026-11-10', '2026-11-11']) {
 			expect(chipIn(day, 'Retreat')!.textContent?.trim()).toBe('Retreat, read-only');
 			expect(chipIn(day, 'Retreat')!.querySelector('[data-readonly-lock]')?.getAttribute('aria-hidden')).toBe('true');
+			// The lock draws at the chip's text color: a dim on top falls under 3:1.
+			expect(chipIn(day, 'Retreat')!.querySelector('[data-readonly-lock]')?.getAttribute('class')).not.toMatch(/(?:^|\s)opacity-/);
 		}
 		expect(chipIn('2026-11-12', 'Holiday')!.textContent?.trim()).toBe('Holiday');
 		expect(chipIn('2026-11-12', 'Holiday')!.querySelector('[data-readonly-lock]')).toBeNull();

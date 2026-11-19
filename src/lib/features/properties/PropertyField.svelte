@@ -111,7 +111,7 @@
 
 		<!-- Property key -->
 		<input
-			class="flex-[2] min-w-0 text-row bg-transparent px-1 outline-none truncate text-right-sidebar-muted-fg focus:text-right-sidebar-fg"
+			class="flex-[2] min-w-0 text-row bg-transparent px-1 outline-none truncate text-right-sidebar-muted-fg focus:text-right-sidebar-fg placeholder:text-right-sidebar-muted-fg"
 			data-property-key
 			value={property.key}
 			onblur={handleKeyBlur}
@@ -128,7 +128,7 @@
 					onchange={handleValueChange}
 					class="rounded-xs border-input"
 				/>
-				<span class="text-row font-medium text-right-sidebar-fg/70" data-property-value>{String(property.value)}</span>
+				<span class="text-row font-medium text-right-sidebar-fg" data-property-value>{String(property.value)}</span>
 			</label>
 		{:else if property.type !== 'list'}
 			<!-- md:text-row is not a duplicate: it makes cn() drop Input's md:text-sm. -->
@@ -136,7 +136,7 @@
 				type={property.type === 'number' ? 'number' : property.type === 'date' ? 'date' : 'text'}
 				value={String(property.value)}
 				oninput={handleValueChange}
-				class="h-6 flex-[3] min-w-0 text-row md:text-row font-medium px-2.5 border-none shadow-none focus-visible:ring-0 !text-right-sidebar-fg/70"
+				class="h-6 flex-[3] min-w-0 text-row md:text-row font-medium px-2.5 border-none shadow-none focus-visible:ring-0 !text-right-sidebar-fg"
 				style={property.type === 'date' ? '--date-input-fg: var(--right-sidebar-fg)' : undefined}
 				data-property-value
 				placeholder="--"
@@ -188,7 +188,7 @@
 						bind:this={addListInputRef}
 						bind:value={newListItem}
 						placeholder="Add item..."
-						class="flex-1 min-w-0 bg-transparent outline-none text-right-sidebar-fg/80 placeholder:text-right-sidebar-muted-fg/30"
+						class="flex-1 min-w-0 bg-transparent outline-none text-right-sidebar-fg/80 placeholder:text-right-sidebar-muted-fg"
 						onkeydown={(e) => {
 							if (e.key === 'Enter') { e.preventDefault(); addListItem(); }
 							else if (e.key === 'Escape') { isAddingListItem = false; newListItem = ''; }

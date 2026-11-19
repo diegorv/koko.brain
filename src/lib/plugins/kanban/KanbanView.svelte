@@ -604,7 +604,7 @@
 			<div class="relative">
 				<input
 					bind:this={filterInputEl}
-					class="rounded-xs border border-border bg-background py-0.5 pr-6 pl-2 text-xs outline-none placeholder:text-muted-foreground/50 focus:border-primary"
+					class="rounded-xs border border-border bg-background py-0.5 pr-6 pl-2 text-xs outline-none placeholder:text-muted-foreground focus:border-primary"
 					placeholder="Filter cards..."
 					value={kanbanStore.filterQuery}
 					oninput={(e) => kanbanStore.setFilterQuery(e.currentTarget.value)}

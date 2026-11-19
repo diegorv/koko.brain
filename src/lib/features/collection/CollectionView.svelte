@@ -610,7 +610,7 @@
 						</ContextMenu.Content>
 					</ContextMenu.Root>
 				{/if}
-				<span class="ml-1 text-xs text-muted-foreground/60">{queryResult.records.length} results{undatedCount > 0 ? `, ${undatedCount} without ${activeView.dateProperty}` : ''}</span>
+				<span class="ml-1 text-xs text-muted-foreground">{queryResult.records.length} results{undatedCount > 0 ? `, ${undatedCount} without ${activeView.dateProperty}` : ''}</span>
 
 				<!-- Right: toolbar buttons -->
 				<div class="ml-auto flex items-center gap-0.5">

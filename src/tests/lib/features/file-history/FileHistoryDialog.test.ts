@@ -80,6 +80,13 @@ describe('FileHistoryDialog', () => {
 		expect(matches[0].classList.contains('sr-only')).toBe(false);
 	});
 
+	it('draws the raw timestamp in the header at the full muted color, with no opacity', () => {
+		const raw = [...document.body.querySelectorAll('span')].find((s) => s.textContent === `(${SNAPSHOT.timestamp})`)!;
+		expect(raw.classList).toContain('font-mono');
+		expect(raw.className).not.toMatch(/(^|\s)opacity-/);
+		expect(raw.closest('.text-muted-foreground')).not.toBeNull();
+	});
+
 	it('has the built-in close button, which closes File History', async () => {
 		const close = [...document.body.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Close');
 		expect(close).toBeDefined();

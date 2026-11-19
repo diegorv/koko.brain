@@ -41,11 +41,11 @@
 			</div>
 			<div class="flex items-center gap-1.5 rounded-md border border-muted-foreground/10 bg-card px-3 py-1.5 text-xs text-muted-foreground">
 				<ShieldCheck class="size-3.5 shrink-0" />
-				<span>Allowed locations: <span class="font-medium text-foreground/80">~/Documents/kokobrain-vaults/</span> and <span class="font-medium text-foreground/80">~/kokobrain-vaults/</span></span>
+				<span>Allowed locations: <span class="font-medium text-foreground">~/Documents/kokobrain-vaults/</span> and <span class="font-medium text-foreground">~/kokobrain-vaults/</span></span>
 			</div>
 			{#each vaultStore.recentVaults as vault}
 				<div class="group flex items-center gap-2">
-					<ChevronRight class="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
+					<ChevronRight class="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
 					<button
 						class="flex flex-1 flex-col rounded-md border bg-card px-3 py-2 text-left transition-colors duration-100 group-hover:bg-secondary group-hover:shadow-md group-hover:border-muted-foreground/30"
 						onclick={() => handleOpenRecent(vault.path)}
@@ -54,7 +54,7 @@
 						<span class="truncate text-xs text-muted-foreground">{vault.path}</span>
 					</button>
 					<button
-						class="shrink-0 rounded-md p-1.5 text-muted-foreground/50 opacity-0 transition-opacity hover:bg-secondary hover:text-foreground group-hover:opacity-100 group-focus-within:opacity-100"
+						class="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-secondary hover:text-foreground group-hover:opacity-100 group-focus-within:opacity-100"
 						title="Remove from recent"
 						aria-label="Remove {vault.name} from recent vaults"
 						onclick={() => handleRemoveRecent(vault.path)}
