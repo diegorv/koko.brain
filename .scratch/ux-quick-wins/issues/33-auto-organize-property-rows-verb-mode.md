@@ -15,16 +15,16 @@ Not in this ticket: collapsing the Source and Type choosers while at defaults (P
 
 **Blocked by:** 32
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh auto-organize.spec.ts auto-organize-flows.spec.ts (the property row layout test needs a real browser).
 
-- [ ] Failing test first, `AutoOrganizeRuleRow.test.ts`: the mode menu offers the four labels with descriptions; choosing "Always overwrite" calls `onupdate` with `mode: 'always'`; `allowRemove={false}` offers no "Remove"; a lifecycle key offers no "Add to list".
-- [ ] Committing `notes/bad` in Create note path sets `aria-invalid` and its `aria-describedby` text starts "Not saved:"; a valid path removes both; the same for template, refused rename and refused expression; two property rows get different message ids; a stored invalid `createNote.path` shows the message without "Not saved:".
-- [ ] A rule without `icon` has no "Legacy icon on move"; with one, the button opens the picker ("Change icon") and the `_icon` hint shows; removing the icon hides the button.
-- [ ] `exprProblem('now()', 'always')` names "Set if missing" (the three test files updated on purpose); `filterProblem` unchanged; the `choose` helper (`AutoOrganizeRuleRow.test.ts:187-199`) matches on the label element, because with a description inside every option it matches nothing on the whole `textContent`.
-- [ ] `bash scripts/e2e.sh auto-organize.spec.ts auto-organize-flows.spec.ts` passes, including "every property row fits its controls side by side inside the rule card" (`auto-organize.spec.ts:98-130`), which jsdom cannot check and which guards the wider mode trigger.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `AutoOrganizeRuleRow.test.ts`: the mode menu offers the four labels with descriptions; choosing "Always overwrite" calls `onupdate` with `mode: 'always'`; `allowRemove={false}` offers no "Remove"; a lifecycle key offers no "Add to list".
+- [x] Committing `notes/bad` in Create note path sets `aria-invalid` and its `aria-describedby` text starts "Not saved:"; a valid path removes both; the same for template, refused rename and refused expression; two property rows get different message ids; a stored invalid `createNote.path` shows the message without "Not saved:".
+- [x] A rule without `icon` has no "Legacy icon on move"; with one, the button opens the picker ("Change icon") and the `_icon` hint shows; removing the icon hides the button.
+- [x] `exprProblem('now()', 'always')` names "Set if missing" (the three test files updated on purpose); `filterProblem` unchanged; the `choose` helper (`AutoOrganizeRuleRow.test.ts:187-199`) matches on the label element, because with a description inside every option it matches nothing on the whole `textContent`.
+- [x] `bash scripts/e2e.sh auto-organize.spec.ts auto-organize-flows.spec.ts` passes, including "every property row fits its controls side by side inside the rule card" (`auto-organize.spec.ts:98-130`), which jsdom cannot check and which guards the wider mode trigger.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -57,3 +57,4 @@ Ticket 34 edits `AutoOrganizeRuleRow.svelte` (the filter label column, around `:
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping.
+- 2026-11-18, deliver (branch issue/33-auto-organize-property-rows-verb-mode): verb mode labels with descriptions on property rows, rule field errors tied to their fields via aria-invalid/aria-describedby ("Not saved:" only for refused commits), the legacy icon button only on rules that set one, help and e2e updated. Review round 1 APPROVED with 3 findings fixed in bfdb20fed (blank stored filter and re-committed path/template say a run ignores them; e2e test renamed); round 2 APPROVED, no findings. Tests: pnpm check 0 errors; full suite at bfdb20fed exit 0, 662 files, 17795 passed, 56 skipped, 1 todo.

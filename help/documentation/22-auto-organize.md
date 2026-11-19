@@ -65,7 +65,7 @@ Each rule consists of:
    - **Move to folder:** the destination folder. Leave it empty for a rule that does not move notes.
    - **Create note:** the path of a note to create, such as `{folder}/{basename} follow-up.md`. Leave it empty for a rule that creates nothing. Once a path is set, pick a **template**, add the new note's properties with **Add note property**, and turn on **Open it** to open the note in a tab (see [Creating notes](#creating-notes)).
    - **Run mod action:** pick an action of a loaded mod, or **None**. Only the actions a mod offers to rules are listed (see [Running a mod action](#running-a-mod-action)). When the action asks for text, a field under it holds the text the rule passes.
-   - **Set properties:** click **Add property** for each property. Type or pick the **key** (the field suggests the properties your notes already use), set the **value** or switch the row to an **Expression** (see [Computed values](#computed-values)), and pick the mode: **if missing** (the default), **always**, **remove** or **add to list** (see [Set properties](#set-properties)). A **remove** row has no value field; an **add to list** row takes the items separated by commas. The **×** button deletes the row from the rule.
+   - **Set properties:** click **Add property** for each property. Type or pick the **key** (the field suggests the properties your notes already use), set the **value** or switch the row to an **Expression** (see [Computed values](#computed-values)), and pick the mode: **Set if missing** (the default), **Always overwrite**, **Remove** or **Add to list**; each one says under its name what it does (see [Set properties](#set-properties)). A **Remove** row has no value field; an **Add to list** row takes the items separated by commas. The **×** button deletes the row from the rule.
 4. Turn the rule's toggle on when it is ready.
 
 A rule with no new name, no folder, no property, no note to create and no mod action does nothing. Settings says so under the rule, and still saves it.
@@ -325,7 +325,7 @@ Things to know:
 - The expression sees the note as the filter does, before the rule moves it. In a rule that also moves the note, `file.folder` and `file.path` are the old location.
 - `file.mtime`, `file.ctime` and `file.size` lag one save behind (see [Traps](#traps)).
 
-In Settings, the menu next to the key switches a row between **Value** and **Expression**. An expression is checked when you leave the field: an error, or a value that changes on every save with **always** or **add to list**, is shown under the row and not saved. Under a valid expression, a line such as **Result for Alpha: projects** shows what it gives for the note open in the editor (here `Alpha`), or **no value** when it fails there.
+In Settings, the menu next to the key switches a row between **Value** and **Expression**. An expression is checked when you leave the field: an error, or a value that changes on every save with **Always overwrite** or **Add to list**, is not saved: the field is marked, and the line under the row starts with **Not saved:** and says why. Under a valid expression, a line such as **Result for Alpha: projects** shows what it gives for the note open in the editor (here `Alpha`), or **no value** when it fails there.
 
 In Settings, the value field adapts to the key:
 
@@ -336,9 +336,9 @@ In Settings, the value field adapts to the key:
 | `_color`, `_title_color` | **Pick color** opens the icon picker's colors. On a `_color` row, pick from the **Icon** colors; on a `_title_color` row, from the **Text** colors |
 | Any other key | Text. Pick **Yes/no** in the type menu next to the key for a `true` / `false` value |
 
-A **remove** row has no value field. An **add to list** row has one text field, whatever the key: type the items separated by commas, such as `work, q3`.
+A **Remove** row has no value field. An **Add to list** row has one text field, whatever the key: type the items separated by commas, such as `work, q3`.
 
-For **if missing** and **always**, numbers and lists have no editor in Settings. Write them in `.kokobrain/auto-organize-rules.json` (see [Configuration File](#configuration-file)); Settings shows them read-only.
+For **Set if missing** and **Always overwrite**, numbers and lists have no editor in Settings. Write them in `.kokobrain/auto-organize-rules.json` (see [Configuration File](#configuration-file)); Settings shows them read-only.
 
 **Icons and colors** are properties like any other: `_icon` (`pack:name`), `_color` (the icon's color: a palette name such as `red`, `green` or `gray`, or a CSS color; on a note with no `_icon` it colors the default note icon) and `_title_color` (the title's color). See [File Icons](02-file-explorer.md#frontmatter-icons).
 
@@ -483,6 +483,8 @@ A rule can run an action of a [vault mod](28-mods.md) on the note it matched. It
 ### Icon (legacy)
 
 Legacy: older rules can assign an icon to the moved file. Only the rule that moves the note applies its icon, and it clears the colors it does not set. To set an icon or color from any rule, use [properties](#set-properties) instead. The icon integrates with [File Icons](02-file-explorer.md#custom-file-icons): an icon pack, icon name, and optional colors, applied to the file at its new path after the move completes.
+
+In Settings, only a rule that already has a legacy icon shows the **Legacy icon on move** button next to **Move to folder**. It opens the icon picker, where you can change the icon or remove it; once removed, the button is gone. A new rule cannot get one there: set the `_icon` property instead.
 
 ## Examples
 

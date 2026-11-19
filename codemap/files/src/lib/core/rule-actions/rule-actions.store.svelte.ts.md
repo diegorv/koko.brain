@@ -18,12 +18,12 @@ test src/tests/lib/plugins/mods/mods-host.service.test.ts imports src/lib/core/r
 sym src/lib/core/rule-actions/rule-actions.store.svelte.ts:9 interface RuleActionTarget L6 | The note a rule runs an action on
 sym src/lib/core/rule-actions/rule-actions.store.svelte.ts:17 interface RuleAction L16 | An action a rule can run
 sym src/lib/core/rule-actions/rule-actions.store.svelte.ts:38 store ruleActionsStore L25 | Live registry of the actions a rule can run
-by src/lib/core/rule-actions/rule-actions.store.svelte.ts:ruleActionsStore <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:124 in actionMissing=$derived member +2
+by src/lib/core/rule-actions/rule-actions.store.svelte.ts:ruleActionsStore <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:175 in actionMissing=$derived member +2
 by src/lib/core/rule-actions/rule-actions.store.svelte.ts:ruleActionsStore <- src/lib/features/auto-organize/auto-organize.service.ts:435 in runRuleAction mcall
 by src/lib/core/rule-actions/rule-actions.store.svelte.ts:ruleActionsStore <- src/lib/plugins/mods/mods-host.service.ts:563 in createModContext mcall
 ## store
 store src/lib/core/rule-actions/rule-actions.store.svelte.ts:38 ruleActionsStore esc:0
-mem src/lib/core/rule-actions/rule-actions.store.svelte.ts:40 get ruleActionsStore.list r:src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:124,src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:130 w-via:register,reset | Every registered action, in registration order
-mem src/lib/core/rule-actions/rule-actions.store.svelte.ts:45 do ruleActionsStore.get w:src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:126,src/lib/features/auto-organize/auto-organize.service.ts:435 | The registered action with `id`, or undefined
+mem src/lib/core/rule-actions/rule-actions.store.svelte.ts:40 get ruleActionsStore.list r:src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:175,src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:181 w-via:register,reset | Every registered action, in registration order
+mem src/lib/core/rule-actions/rule-actions.store.svelte.ts:45 do ruleActionsStore.get w:src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:177,src/lib/features/auto-organize/auto-organize.service.ts:435 | The registered action with `id`, or undefined
 mem src/lib/core/rule-actions/rule-actions.store.svelte.ts:50 do ruleActionsStore.register w:src/lib/plugins/mods/mods-host.service.ts:563 | Registers an action, replacing one with its id; the cleanup removes only this registration
 mem src/lib/core/rule-actions/rule-actions.store.svelte.ts:59 do ruleActionsStore.reset w:- | Drops every registration

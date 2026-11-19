@@ -265,11 +265,11 @@ describe('auto-organize.service', () => {
 			expect(error).toHaveBeenCalledTimes(4);
 			expect(error).toHaveBeenCalledWith(
 				'AUTO-ORGANIZE',
-				'Rule "Stamp" ignores updated: now() changes on every save, so it works only with "if missing"',
+				'Rule "Stamp" ignores updated: now() changes on every save, so it works only with "Set if missing"',
 			);
 			expect(error).toHaveBeenCalledWith(
 				'AUTO-ORGANIZE',
-				'Rule "Stamp" ignores seen: file.mtime changes on every save, so it works only with "if missing"',
+				'Rule "Stamp" ignores seen: file.mtime changes on every save, so it works only with "Set if missing"',
 			);
 		});
 

@@ -20,6 +20,7 @@ test src/tests/help/auto-organize-doc-examples.test.ts imports-type src/lib/feat
 test src/tests/help/auto-organize-switch-back.test.ts imports-type src/lib/features/auto-organize/auto-organize.types.ts
 test src/tests/help/examples-scoping.test.ts imports-type src/lib/features/auto-organize/auto-organize.types.ts
 test src/tests/lib/features/auto-organize/AutoOrganizeRuleRow.test.ts imports-type src/lib/features/auto-organize/auto-organize.types.ts
+test src/tests/lib/features/auto-organize/AutoOrganizeSection.test.ts imports-type src/lib/features/auto-organize/auto-organize.types.ts
 test src/tests/lib/features/auto-organize/auto-organize.logic.test.ts imports-type src/lib/features/auto-organize/auto-organize.types.ts
 test src/tests/lib/features/auto-organize/auto-organize.no-chain.test.ts imports-type src/lib/features/auto-organize/auto-organize.types.ts
 test src/tests/lib/features/auto-organize/auto-organize.service.test.ts imports-type src/lib/features/auto-organize/auto-organize.types.ts

@@ -856,8 +856,8 @@ describe('sanitizeRuleProperties', () => {
 			{ key: 'd', expr: '', mode: 'always' },
 		], (key, reason) => refused.push(`${key}: ${reason}`))).toEqual([{ key: 'c', expr: 'file.ctime', mode: 'if-missing' }]);
 		expect(refused).toEqual([
-			'a: now() changes on every save, so it works only with "if missing"',
-			'b: file.size changes on every save, so it works only with "if missing"',
+			'a: now() changes on every save, so it works only with "Set if missing"',
+			'b: file.size changes on every save, so it works only with "Set if missing"',
 		]);
 	});
 });
@@ -1244,8 +1244,8 @@ describe('exprProblem', () => {
 	});
 
 	it('refuses a volatile input with always or add, and accepts it with if-missing', () => {
-		expect(exprProblem('now()', 'always')).toBe('now() changes on every save, so it works only with "if missing"');
-		expect(exprProblem('file.size', 'add')).toBe('file.size changes on every save, so it works only with "if missing"');
+		expect(exprProblem('now()', 'always')).toBe('now() changes on every save, so it works only with "Set if missing"');
+		expect(exprProblem('file.size', 'add')).toBe('file.size changes on every save, so it works only with "Set if missing"');
 		expect(exprProblem('file.ctime', 'if-missing')).toBeNull();
 	});
 });

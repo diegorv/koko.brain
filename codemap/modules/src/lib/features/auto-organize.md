@@ -1,6 +1,6 @@
 # module card src/lib/features/auto-organize
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/features/auto-organize ' codemap/modules
-module src/lib/features/auto-organize features files 8 in-modules 1 out-modules 12 pub 4/63 ipc 0/0 card ~1.2k
+module src/lib/features/auto-organize features files 8 in-modules 1 out-modules 12 pub 4/65 ipc 0/0 card ~1.2k
 ## neighbors
 dep src/lib/app -> src/lib/features/auto-organize 2
 dep src/lib/features/auto-organize -> src/lib/components 11
@@ -22,22 +22,22 @@ entry src/lib/features/auto-organize/AutoOrganizeSection.svelte ext-in1 src/lib/
 entry src/lib/features/auto-organize/auto-organize.service.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 ## files
 file src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte component L378 module src/lib/features/auto-organize in1 t0
-file src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte component L549 module src/lib/features/auto-organize in1 t1
-file src/lib/features/auto-organize/AutoOrganizeSection.svelte component L280 module src/lib/features/auto-organize in1 t1
-file src/lib/features/auto-organize/auto-organize.logic.ts logic L994 module src/lib/features/auto-organize in4 t5
+file src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte component L671 module src/lib/features/auto-organize in1 t1
+file src/lib/features/auto-organize/AutoOrganizeSection.svelte component L285 module src/lib/features/auto-organize in1 t1
+file src/lib/features/auto-organize/auto-organize.logic.ts logic L1007 module src/lib/features/auto-organize in4 t5
 file src/lib/features/auto-organize/auto-organize.service.ts service L777 module src/lib/features/auto-organize in2 t4
 file src/lib/features/auto-organize/auto-organize.store.svelte.ts store L59 module src/lib/features/auto-organize in3 t5
 file src/lib/features/auto-organize/auto-organize.types.ts types L116 module src/lib/features/auto-organize in7 t0
 file src/lib/features/auto-organize/type-lifecycle-rules.ts other L62 module src/lib/features/auto-organize in1 t1
 ## public
-sym src/lib/features/auto-organize/AutoOrganizeSection.svelte:1 component AutoOrganizeSection L280
+sym src/lib/features/auto-organize/AutoOrganizeSection.svelte:1 component AutoOrganizeSection L285
 sym src/lib/features/auto-organize/auto-organize.service.ts:113 fn loadAutoOrganizeConfig(vaultPath: string): Promise<void> L24 | Loads auto-organize config from .kokobrain/auto-organize-rules.json.
 sym src/lib/features/auto-organize/auto-organize.service.ts:250 fn toggleAutoOrganizeHook(enabled: boolean): (() => void) | null L13 | Dynamically enables or disables the auto-organize after-save hook.
 sym src/lib/features/auto-organize/auto-organize.service.ts:755 fn resetAutoOrganize(): void L23 | Resets all auto-organize state (called during vault teardown)
 ## stores
 store src/lib/features/auto-organize/auto-organize.store.svelte.ts:9 autoOrganizeStore esc:0
 ## effects
-fx-count svelte.$effect 2
+fx-count svelte.$effect 4
 fx-count tauri-fs.exists 11
 fx-count tauri-fs.mkdir 3
 fx-count tauri-fs.readTextFile 2

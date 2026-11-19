@@ -82,7 +82,7 @@ describe('AutoOrganizeRuleRow icon picker', () => {
 			props: { rule: RULE, isFirst: true, isLast: true, onupdate, onremove: () => {}, onmoveup: () => {}, onmovedown: () => {} },
 		});
 		await settle();
-		document.querySelector<HTMLButtonElement>('button[title="Icon: lucide:star"]')!.click();
+		document.querySelector<HTMLButtonElement>('button[title="Legacy icon on move: lucide:star"]')!.click();
 		await settle();
 		expect(dialogContent()!.textContent).toContain('Change icon');
 		return onupdate;
@@ -184,6 +184,27 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		flushSync();
 	}
 
+	/** An option's label: its label element when it also shows a description, else its whole text. */
+	function optionLabel(option: HTMLElement): string | undefined {
+		return (option.querySelector('[data-option-label]') ?? option).textContent?.trim();
+	}
+
+	/** Opens the Select labelled `label` in `row` and returns its options' labels and descriptions, in order. */
+	async function openOptions(row: HTMLElement, label: string) {
+		const trigger = row.querySelector<HTMLElement>(`[data-slot="select-trigger"][aria-label="${label}"]`)!;
+		trigger.focus();
+		trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		flushSync();
+		return vi.waitFor(() => {
+			const found = [...document.querySelectorAll<HTMLElement>('[role="option"]')].map((o) => ({
+				label: optionLabel(o),
+				description: o.querySelector('[data-option-description]')?.textContent?.trim(),
+			}));
+			if (found.length === 0) throw new Error(`menu ${label} not open`);
+			return found;
+		});
+	}
+
 	/** Opens the Select labelled `label` in `row` and picks `option`. */
 	async function choose(row: HTMLElement, label: string, option: string) {
 		const trigger = row.querySelector<HTMLElement>(`[data-slot="select-trigger"][aria-label="${label}"]`)!;
@@ -191,7 +212,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 		flushSync();
 		const item = await vi.waitFor(() => {
-			const found = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find((o) => o.textContent?.trim() === option);
+			const found = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find((o) => optionLabel(o) === option);
 			if (!found) throw new Error(`no option ${option}`);
 			return found;
 		});
@@ -217,7 +238,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			const [row] = propertyRows();
 			commit(field(row, 'Property key'), 'status');
 			commit(field(row, 'Property value'), 'done');
-			await choose(row, 'Property mode', 'always');
+			await choose(row, 'Property mode', 'Always overwrite');
 
 			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'status', value: 'done', mode: 'always' }] });
 		});
@@ -229,7 +250,28 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			await settle();
 
 			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: '', value: '', mode: 'if-missing' }] });
-			expect(propertyRows()[0].querySelector('[aria-label="Property mode"]')!.textContent).toContain('if missing');
+			expect(propertyRows()[0].querySelector('[aria-label="Property mode"]')!.textContent).toContain('Set if missing');
+		});
+
+		it('offers the four modes as verbs, each with what it does', async () => {
+			await render({ ...BLANK, properties: [{ key: 'status', value: 'done', mode: 'if-missing' }] });
+
+			expect(await openOptions(propertyRows()[0], 'Property mode')).toEqual([
+				{ label: 'Set if missing', description: 'Writes only when the note has no value' },
+				{ label: 'Always overwrite', description: "Replaces the note's value on every save" },
+				{ label: 'Remove', description: 'Deletes the property' },
+				{ label: 'Add to list', description: 'Adds items to a list' },
+			]);
+		});
+
+		it('shows the picked mode by its label and saves its stored value', async () => {
+			const onupdate = await render({ ...BLANK, properties: [{ key: 'status', value: 'done', mode: 'if-missing' }] });
+
+			await choose(propertyRows()[0], 'Property mode', 'Always overwrite');
+
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'status', value: 'done', mode: 'always' }] });
+			const trigger = propertyRows()[0].querySelector('[aria-label="Property mode"] [data-slot="select-value"]')!;
+			expect(trigger.textContent?.trim()).toBe('Always overwrite');
 		});
 
 		it('removes a row', async () => {
@@ -348,7 +390,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		it('saves a remove row without a value and shows no value field', async () => {
 			const onupdate = await render({ ...BLANK, properties: [{ key: 'status', value: 'done', mode: 'always' }] });
 
-			await choose(propertyRows()[0], 'Property mode', 'remove');
+			await choose(propertyRows()[0], 'Property mode', 'Remove');
 
 			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'status', mode: 'remove' }] });
 			expect(propertyRows()[0].querySelector('[aria-label="Property value"]')).toBeNull();
@@ -368,7 +410,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		it('gives a remove row a value again when it goes back to always', async () => {
 			const onupdate = await render({ ...BLANK, properties: [{ key: '_archived', mode: 'remove' }] });
 
-			await choose(propertyRows()[0], 'Property mode', 'always');
+			await choose(propertyRows()[0], 'Property mode', 'Always overwrite');
 
 			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: '_archived', value: false, mode: 'always' }] });
 		});
@@ -376,7 +418,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		it('turns a text value into list items when the row becomes add to list', async () => {
 			const onupdate = await render({ ...BLANK, properties: [{ key: 'tags', value: 'work', mode: 'always' }] });
 
-			await choose(propertyRows()[0], 'Property mode', 'add to list');
+			await choose(propertyRows()[0], 'Property mode', 'Add to list');
 
 			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'tags', value: ['work'], mode: 'add' }] });
 			expect(field(propertyRows()[0], 'Property value').value).toBe('work');
@@ -385,7 +427,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		it('turns an empty add row back into an editable text value when it goes to always', async () => {
 			const onupdate = await render({ ...BLANK, properties: [{ key: 'tags', value: [], mode: 'add' }] });
 
-			await choose(propertyRows()[0], 'Property mode', 'always');
+			await choose(propertyRows()[0], 'Property mode', 'Always overwrite');
 
 			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'tags', value: '', mode: 'always' }] });
 			expect(field(propertyRows()[0], 'Property value').disabled).toBe(false);
@@ -394,7 +436,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		it('turns a one-item add row back into its text when it goes to if missing', async () => {
 			const onupdate = await render({ ...BLANK, properties: [{ key: 'tags', value: ['work'], mode: 'add' }] });
 
-			await choose(propertyRows()[0], 'Property mode', 'if missing');
+			await choose(propertyRows()[0], 'Property mode', 'Set if missing');
 
 			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'tags', value: 'work', mode: 'if-missing' }] });
 			expect(field(propertyRows()[0], 'Property value').value).toBe('work');
@@ -402,17 +444,9 @@ describe('AutoOrganizeRuleRow consequences', () => {
 
 		it('does not offer add to list on a lifecycle key', async () => {
 			await render({ ...BLANK, properties: [{ key: '_archived', value: false, mode: 'always' }] });
-			const trigger = propertyRows()[0].querySelector<HTMLElement>('[data-slot="select-trigger"][aria-label="Property mode"]')!;
-			trigger.focus();
-			trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-			flushSync();
 
-			const options = await vi.waitFor(() => {
-				const found = [...document.querySelectorAll<HTMLElement>('[role="option"]')].map((o) => o.textContent?.trim());
-				if (!found.includes('remove')) throw new Error('mode menu not open');
-				return found;
-			});
-			expect(options).not.toContain('add to list');
+			const options = (await openOptions(propertyRows()[0], 'Property mode')).map((o) => o.label);
+			expect(options).toEqual(['Set if missing', 'Always overwrite', 'Remove']);
 		});
 
 		it('turns an add row renamed to a lifecycle key into an if missing yes/no', async () => {
@@ -488,7 +522,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 				await settle();
 
 				expect(onupdate).not.toHaveBeenCalled();
-				expect(exprError()).toBe('Unknown function: nope');
+				expect(exprError()).toBe('Not saved: Unknown function: nope');
 			});
 
 			it('refuses now() with always, as typed or by a mode change, and accepts it with if missing', async () => {
@@ -497,18 +531,18 @@ describe('AutoOrganizeRuleRow consequences', () => {
 				commit(field(propertyRows()[0], 'Property expression'), 'now()');
 				await settle();
 				expect(onupdate).not.toHaveBeenCalled();
-				expect(exprError()).toBe('now() changes on every save, so it works only with "if missing"');
+				expect(exprError()).toBe('Not saved: now() changes on every save, so it works only with "Set if missing"');
 
-				await choose(propertyRows()[0], 'Property mode', 'if missing');
+				await choose(propertyRows()[0], 'Property mode', 'Set if missing');
 				commit(field(propertyRows()[0], 'Property expression'), 'now()');
 				await settle();
 				expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'updated', expr: 'now()', mode: 'if-missing' }] });
 				expect(exprError()).toBeNull();
 
 				onupdate.mockClear();
-				await choose(propertyRows()[0], 'Property mode', 'always');
+				await choose(propertyRows()[0], 'Property mode', 'Always overwrite');
 				expect(onupdate).not.toHaveBeenCalled();
-				expect(exprError()).toBe('now() changes on every save, so it works only with "if missing"');
+				expect(exprError()).toBe('Not saved: now() changes on every save, so it works only with "Set if missing"');
 			});
 
 			it('saves a refused expression with the mode the user switches to', async () => {
@@ -516,7 +550,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 
 				commit(field(propertyRows()[0], 'Property expression'), 'now()');
 				await settle();
-				await choose(propertyRows()[0], 'Property mode', 'if missing');
+				await choose(propertyRows()[0], 'Property mode', 'Set if missing');
 
 				expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'updated', expr: 'now()', mode: 'if-missing' }] });
 				expect(field(propertyRows()[0], 'Property expression').value).toBe('now()');
@@ -532,7 +566,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 				await settle();
 				expect(exprError()).toBeNull();
 
-				await choose(propertyRows()[0], 'Property mode', 'if missing');
+				await choose(propertyRows()[0], 'Property mode', 'Set if missing');
 				expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'updated', expr: 'file.basename', mode: 'if-missing' }] });
 			});
 
@@ -547,7 +581,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 				expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'stamp', expr: 'file.basename', mode: 'always' }] });
 				expect(field(propertyRows()[0], 'Property key').value).toBe('stamp');
 				expect(field(propertyRows()[0], 'Property expression').value).toBe('now()');
-				expect(exprError()).toBe('now() changes on every save, so it works only with "if missing"');
+				expect(exprError()).toBe('Not saved: now() changes on every save, so it works only with "Set if missing"');
 			});
 
 			it('keeps the expression when the key is renamed', async () => {
@@ -677,7 +711,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			await settle();
 
 			expect(onupdate).not.toHaveBeenCalled();
-			expect(document.querySelector('[data-rule-filter-error]')?.textContent).toContain('Every filter needs a value');
+			expect(document.querySelector('[data-rule-filter-error]')?.textContent?.trim()).toBe('Not saved: Every filter needs a value');
 			expect(matchCount()).toBeNull();
 
 			commit(valueInputs()[0], 'Alpha');
@@ -810,16 +844,8 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		it('does not offer remove on a note property', async () => {
 			await render({ ...BLANK, createNote: { path: FOLLOW_UP, properties: [{ key: 'status', value: 'todo', mode: 'if-missing' }] } });
 
-			const trigger = propertyRows()[0].querySelector<HTMLElement>('[data-slot="select-trigger"][aria-label="Property mode"]')!;
-			trigger.focus();
-			trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-			flushSync();
-			const options = await vi.waitFor(() => {
-				const found = [...document.querySelectorAll<HTMLElement>('[role="option"]')].map((o) => o.textContent?.trim());
-				if (found.length === 0) throw new Error('menu not open');
-				return found;
-			});
-			expect(options).toEqual(['if missing', 'always', 'add to list']);
+			const options = (await openOptions(propertyRows()[0], 'Property mode')).map((o) => o.label);
+			expect(options).toEqual(['Set if missing', 'Always overwrite', 'Add to list']);
 		});
 
 		it('does not save a path the loader would refuse, and says so', async () => {
@@ -828,7 +854,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			commit(createField('Create note path'), 'notes/x');
 			await settle();
 			expect(onupdate).not.toHaveBeenCalled();
-			expect(document.querySelector('[data-create-error]')?.textContent).toContain('not saved');
+			expect(document.querySelector('[data-create-error]')?.textContent?.trim()).toMatch(/^Not saved: /);
 
 			commit(createField('Create note path'), 'notes/x.md');
 			await settle();
@@ -842,7 +868,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			commit(createField('Create note template'), '../outside.md');
 			await settle();
 			expect(onupdate).not.toHaveBeenCalled();
-			expect(document.querySelector('[data-create-template-error]')?.textContent).toContain('not saved');
+			expect(document.querySelector('[data-create-template-error]')?.textContent?.trim()).toMatch(/^Not saved: /);
 		});
 
 		it('says when a stored template is outside the vault, as soon as the row renders', async () => {
@@ -924,7 +950,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			commit(renameField(), '{year} {basename}');
 			await settle();
 			expect(onupdate).not.toHaveBeenCalled();
-			expect(renameError()).toBe(GROWS);
+			expect(renameError()).toBe(`Not saved: ${GROWS}`);
 
 			commit(renameField(), '{year} Meeting');
 			await settle();
@@ -941,14 +967,14 @@ describe('AutoOrganizeRuleRow consequences', () => {
 
 			commit(renameField(), 'file.basename');
 			await settle();
-			expect(renameError()).toBe(GROWS);
+			expect(renameError()).toBe(`Not saved: ${GROWS}`);
 			expect(onupdate).not.toHaveBeenCalled();
 		});
 
 		it('says what is wrong with a stored rename the loader would drop, as soon as the row renders', async () => {
 			await render({ ...BLANK, rename: { name: '{basename} x' } });
 
-			expect(renameError()).toBe(GROWS);
+			expect(renameError()).toBe(`A run ignores this rename: ${GROWS}`);
 			expect(hint()).not.toBeNull();
 		});
 
@@ -956,7 +982,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			await render(await loaded({ ...BLANK, rename: { name: '{basename} x' } }));
 
 			expect(renameField().value).toBe('{basename} x');
-			expect(renameError()).toBe(GROWS);
+			expect(renameError()).toBe(`A run ignores this rename: ${GROWS}`);
 		});
 
 		it('follows a stored rename that switches between name and expression while the row is mounted', async () => {
@@ -1225,7 +1251,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 	}
 
 	describe('stable property rows', () => {
-		const REFUSED = 'now() changes on every save, so it works only with "if missing"';
+		const REFUSED = 'Not saved: now() changes on every save, so it works only with "Set if missing"';
 		const exprError = () => document.querySelector('[data-expr-error]')?.textContent?.trim() ?? null;
 
 		afterEach(() => {
@@ -1247,7 +1273,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			expect(exprError()).toBeNull();
 			expect(field(propertyRows()[0], 'Property expression').value).toBe('file.path');
 
-			await choose(propertyRows()[0], 'Property mode', 'if missing');
+			await choose(propertyRows()[0], 'Property mode', 'Set if missing');
 			expect(autoOrganizeStore.rules[0].properties).toEqual([{ key: 'b', expr: 'file.path', mode: 'if-missing' }]);
 		});
 
@@ -1278,7 +1304,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			await settle();
 			expect(exprError()).toBeNull();
 
-			await choose(propertyRows()[0], 'Property mode', 'if missing');
+			await choose(propertyRows()[0], 'Property mode', 'Set if missing');
 			expect(autoOrganizeStore.rules[0].createNote?.properties).toEqual([{ key: 'b', expr: 'file.path', mode: 'if-missing' }]);
 		});
 
@@ -1374,6 +1400,126 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		});
 	});
 
+	describe('errors tied to their fields', () => {
+		const input = (label: string, root: ParentNode = document) => root.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!;
+		/** The message `el` points to through `aria-describedby`, or null when it is not marked invalid. */
+		function fieldError(el: HTMLElement): string | null {
+			if (el.getAttribute('aria-invalid') !== 'true') return null;
+			const id = el.getAttribute('aria-describedby');
+			if (!id) throw new Error(`${el.getAttribute('aria-label')} is invalid without a message`);
+			return document.getElementById(id)?.textContent?.trim() ?? null;
+		}
+		/** True when `el` carries neither attribute. */
+		const unmarked = (el: HTMLElement) => !el.hasAttribute('aria-invalid') && !el.hasAttribute('aria-describedby');
+
+		it('marks a refused Create note path, and a valid path clears it', async () => {
+			await render({ ...BLANK, createNote: { path: 'a.md' } });
+			expect(unmarked(input('Create note path'))).toBe(true);
+
+			commit(input('Create note path'), 'notes/bad');
+			await settle();
+			expect(fieldError(input('Create note path'))).toMatch(/^Not saved: /);
+
+			commit(input('Create note path'), 'notes/x.md');
+			await settle();
+			expect(unmarked(input('Create note path'))).toBe(true);
+		});
+
+		it('marks a refused template, and a valid template clears it', async () => {
+			await render({ ...BLANK, createNote: { path: 'a.md' } });
+
+			commit(input('Create note template'), '../outside.md');
+			await settle();
+			expect(fieldError(input('Create note template'))).toMatch(/^Not saved: /);
+
+			commit(input('Create note template'), 'T.md');
+			await settle();
+			expect(unmarked(input('Create note template'))).toBe(true);
+		});
+
+		it('marks a refused rename, and a valid one clears it', async () => {
+			await render(BLANK);
+			expect(unmarked(input('Rename to'))).toBe(true);
+
+			commit(input('Rename to'), '{year} {basename}');
+			await settle();
+			expect(fieldError(input('Rename to'))).toMatch(/^Not saved: /);
+
+			commit(input('Rename to'), '{year} Meeting');
+			await settle();
+			expect(unmarked(input('Rename to'))).toBe(true);
+		});
+
+		it('marks a refused expression, and a valid one clears it', async () => {
+			await render({ ...BLANK, properties: [{ key: 'title', expr: 'file.basename', mode: 'if-missing' }] });
+			expect(unmarked(input('Property expression'))).toBe(true);
+
+			commit(input('Property expression'), 'nope(1)');
+			await settle();
+			expect(fieldError(input('Property expression'))).toBe('Not saved: Unknown function: nope');
+
+			commit(input('Property expression'), 'file.name');
+			await settle();
+			expect(unmarked(input('Property expression'))).toBe(true);
+		});
+
+		it('marks a refused property key with why a rule never writes it', async () => {
+			await render({ ...BLANK, properties: [{ key: 'status', value: 'x', mode: 'always' }] });
+			expect(unmarked(input('Property key'))).toBe(true);
+
+			commit(input('Property key'), 'todoist_project');
+			await settle();
+			expect(fieldError(input('Property key'))).toContain('never sets or removes todoist_project');
+		});
+
+		it('gives each property row its own message id', async () => {
+			await render({ ...BLANK, properties: [
+				{ key: 'a', expr: 'file.basename', mode: 'if-missing' },
+				{ key: 'b', expr: 'file.basename', mode: 'if-missing' },
+			] });
+			const [first, second] = propertyRows();
+
+			commit(input('Property expression', first), 'nope(1)');
+			commit(input('Property expression', second), 'nada(1)');
+			await settle();
+
+			const ids = [first, second].map((row) => input('Property expression', row).getAttribute('aria-describedby'));
+			expect(ids[0]).not.toBe(ids[1]);
+			expect(fieldError(input('Property expression', first))).toBe('Not saved: Unknown function: nope');
+			expect(fieldError(input('Property expression', second))).toBe('Not saved: Unknown function: nada');
+		});
+
+		it('says a run ignores a stored invalid path, template or rename, never that it was not saved', async () => {
+			await render({ ...BLANK, createNote: { path: 'notes/x.txt', template: '../outside.md' }, rename: { name: '{basename} x' } });
+
+			for (const label of ['Create note path', 'Create note template', 'Rename to']) {
+				const message = fieldError(input(label));
+				expect(message, label).toMatch(/^A run ignores this /);
+				expect(message, label).not.toContain('Not saved');
+			}
+		});
+
+		it('keeps saying a run ignores a stored invalid path or template when it is committed again', async () => {
+			await render({ ...BLANK, createNote: { path: 'notes/x.txt', template: '../outside.md' } });
+
+			commit(input('Create note path'), 'notes/x.txt');
+			commit(input('Create note template'), '../outside.md');
+			await settle();
+
+			for (const label of ['Create note path', 'Create note template']) {
+				expect(fieldError(input(label)), label).toMatch(/^A run ignores this /);
+			}
+		});
+
+		it('says a run ignores a stored filter with a blank value, never that it was not saved', async () => {
+			await render({ ...BLANK, expression: "status != ''" });
+
+			expect(document.querySelector('[data-rule-filter-error]')?.textContent?.trim()).toBe(
+				'A run ignores this filter: Every filter needs a value',
+			);
+		});
+	});
+
 	describe('header', () => {
 		/** The element with `role` (its tag or explicit role) whose accessible name is `name`. */
 		function byRole(role: 'textbox' | 'switch' | 'button', name: string): HTMLElement | null {
@@ -1382,20 +1528,14 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		}
 		const card = () => document.querySelector<HTMLElement>('[data-rule-card]')!;
 
-		it('names the header controls, the folder field and the icon button', async () => {
+		it('names the header controls and the folder field', async () => {
 			await render({ ...BLANK, enabled: true });
 
 			for (const name of ['Rule name', 'Move to folder']) expect(byRole('textbox', name), name).not.toBeNull();
 			expect(byRole('switch', 'Enable rule')).not.toBeNull();
-			for (const name of ['Move rule up', 'Move rule down', 'Delete rule', 'Set file icon']) {
+			for (const name of ['Move rule up', 'Move rule down', 'Delete rule']) {
 				expect(byRole('button', name), name).not.toBeNull();
 			}
-		});
-
-		it('names the icon button after the icon it shows', async () => {
-			await render({ ...BLANK, icon: { iconPack: 'lucide', iconName: 'star' } });
-
-			expect(byRole('button', 'Icon: lucide:star')).not.toBeNull();
 		});
 
 		it('marks a disabled rule Off with a dashed border, and an enabled one with neither', async () => {
@@ -1416,6 +1556,40 @@ describe('AutoOrganizeRuleRow consequences', () => {
 
 			expect((byRole('textbox', 'Rule name') as HTMLInputElement).disabled).toBe(false);
 			expect((byRole('textbox', 'Move to folder') as HTMLInputElement).disabled).toBe(false);
+		});
+	});
+
+	describe('legacy icon', () => {
+		const legacyButton = () => [...document.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.trim() === 'Legacy icon on move') ?? null;
+		const legacyHint = () => document.querySelector('[data-legacy-icon-hint]');
+
+		it('shows no icon button and no hint on a rule without a legacy icon', async () => {
+			await render(BLANK);
+
+			expect(legacyButton()).toBeNull();
+			expect(legacyHint()).toBeNull();
+		});
+
+		it('shows the button with the icon in its title, and the _icon hint, on a rule that has one', async () => {
+			await render({ ...BLANK, icon: { iconPack: 'lucide', iconName: 'star' } });
+
+			expect(legacyButton()?.title).toContain('lucide:star');
+			expect(legacyHint()?.textContent).toContain('_icon');
+		});
+
+		it('opens the picker, and removing the icon hides the button and the hint', async () => {
+			const onupdate = await render({ ...BLANK, icon: { iconPack: 'lucide', iconName: 'star' } });
+
+			legacyButton()!.click();
+			await settle();
+			expect(dialogContent()!.textContent).toContain('Change icon');
+
+			button('Remove custom icon').click();
+			await settle();
+
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { icon: undefined });
+			expect(legacyButton()).toBeNull();
+			expect(legacyHint()).toBeNull();
 		});
 	});
 });
