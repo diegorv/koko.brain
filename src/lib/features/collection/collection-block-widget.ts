@@ -267,13 +267,11 @@ export class CollectionBlockWidget extends WidgetType {
 				const td = document.createElement('td');
 				td.style.cssText = 'vertical-align: top; padding: 2px 4px; min-height: 40px; height: 40px;';
 
-				if (!day.isCurrentMonth) {
-					td.style.opacity = '0.35';
-				}
-
-				// Day number
+				// Day number. An adjacent-month day is told apart by its muted number only:
+				// opacity on the cell would also fade its clickable event pills.
 				const dayNum = document.createElement('div');
 				dayNum.style.cssText = 'font-size: 0.9em; text-align: right; margin-bottom: 2px;';
+				if (!day.isCurrentMonth) dayNum.style.color = 'var(--muted-foreground)';
 				const dateKey = formatDateKey(day.date);
 				if (dateKey === todayKey) {
 					dayNum.style.cssText += 'font-weight: 700; color: var(--primary);';

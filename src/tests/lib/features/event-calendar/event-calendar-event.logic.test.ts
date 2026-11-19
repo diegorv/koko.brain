@@ -636,6 +636,15 @@ describe('small helpers', () => {
 
 	it('eventColorStyle points at the color tokens', () => {
 		expect(eventColorStyle('cyan')).toBe('background: var(--event-cyan-bg); color: var(--event-cyan-fg)');
+		expect(eventColorStyle('cyan', false)).toBe(eventColorStyle('cyan'));
+	});
+
+	it('eventColorStyle draws an archived chip as muted text on the editor surface, outlined in its own hue, with no opacity', () => {
+		const style = eventColorStyle('cyan', true);
+		expect(style).toBe(
+			'background: var(--editor-bg); color: var(--muted-foreground); outline: 1px solid var(--event-cyan-fg); outline-offset: -1px',
+		);
+		expect(style).not.toContain('opacity');
 	});
 });
 

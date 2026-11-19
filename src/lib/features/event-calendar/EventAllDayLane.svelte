@@ -77,9 +77,8 @@
 					<button
 						type="button"
 						class="flex h-7 w-full shrink-0 items-center overflow-hidden rounded-md px-2 text-left outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring
-							{selectedPath === chip.path ? 'ring-2 ring-primary/70' : ''}
-							{chip.archived ? 'opacity-50' : ''}"
-						style={eventColorStyle(chip.color)}
+							{selectedPath === chip.path ? 'ring-2 ring-primary/70' : ''}"
+						style={eventColorStyle(chip.color, chip.archived)}
 						data-event-path={chip.path}
 						data-readonly={chip.readOnly || undefined}
 						data-archived={chip.archived || undefined}
@@ -88,7 +87,7 @@
 						<!-- The chip's name is its text, so the read-only suffix is sr-only text, with no space before it. -->
 						<span class="min-w-0 flex-1 truncate text-sm font-medium">{chip.title}</span>{#if chip.readOnly}<span class="sr-only"
 								>, read-only</span
-							><Lock class="ml-1 size-3.5 shrink-0 opacity-70" aria-hidden="true" data-readonly-lock />{/if}
+							><Lock class="ml-1 size-3.5 shrink-0" aria-hidden="true" data-readonly-lock />{/if}
 					</button>
 				{/each}
 				{#if cell.overflow > 0}

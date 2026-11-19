@@ -542,7 +542,7 @@ describe('EventCalendarView: needs attention', () => {
 		expect(text('[data-archived-footer]')).toBe('2 archived events hidden Show');
 	});
 
-	it('shows the archived events dimmed from the footer, and hides them again', async () => {
+	it('shows the archived events, muted, from the footer, and hides them again', async () => {
 		vi.mocked(invoke).mockResolvedValue([
 			eventEntry(P('Done'), { date: '2026-11-10', start: '09:00' }, { archived: true }),
 			eventEntry(P('Live'), { date: '2026-11-10', start: '11:00' }),
@@ -557,6 +557,8 @@ describe('EventCalendarView: needs attention', () => {
 		await settle();
 		expect(block('Done')?.dataset.archived).toBe('true');
 		expect(block('Live')?.dataset.archived).toBeUndefined();
+		expectArchivedChip(block('Done')!);
+		expect(block('Live')!.getAttribute('style')).toContain('var(--event-');
 		expect(text('[data-archived-footer]')).toBe('1 archived event shown Hide');
 
 		target.querySelector<HTMLButtonElement>('[data-archived-toggle]')!.click();
@@ -565,12 +567,14 @@ describe('EventCalendarView: needs attention', () => {
 		expect(text('[data-archived-footer]')).toBe('1 archived event hidden Show');
 	});
 
-	it('shows an archived all-day event dimmed in the all-day lane', async () => {
+	it('shows an archived all-day event, muted, in the all-day lane', async () => {
 		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Trip'), { date: '2026-11-10', all_day: true }, { archived: true })]);
 		eventCalendarViewStore.setShowArchived(true);
 		mountView();
 		await settle();
-		expect(target.querySelector<HTMLElement>(`[data-all-day-cell="2026-11-10"] [data-event-path="${P('Trip')}"]`)?.dataset.archived).toBe('true');
+		const chip = target.querySelector<HTMLElement>(`[data-all-day-cell="2026-11-10"] [data-event-path="${P('Trip')}"]`)!;
+		expect(chip.dataset.archived).toBe('true');
+		expectArchivedChip(chip);
 	});
 
 	it('shows archived events in the month grid too', async () => {
@@ -580,8 +584,17 @@ describe('EventCalendarView: needs attention', () => {
 		await settle();
 		eventCalendarViewStore.setView('month');
 		flushSync();
-		expect(target.querySelector<HTMLElement>(`[data-month-cell="2026-11-10"] [data-event-path="${P('Done')}"]`)?.dataset.archived).toBe('true');
+		const chip = target.querySelector<HTMLElement>(`[data-month-cell="2026-11-10"] [data-event-path="${P('Done')}"]`)!;
+		expect(chip.dataset.archived).toBe('true');
+		expectArchivedChip(chip);
 	});
+
+	/** An archived chip is muted text at full opacity, not a faded colored chip. */
+	function expectArchivedChip(chip: HTMLElement): void {
+		expect(chip.className).not.toMatch(/(^|\s)opacity-/);
+		expect(chip.getAttribute('style')).toContain('color: var(--muted-foreground)');
+		expect(chip.getAttribute('style')).not.toMatch(/var\(--event-[a-z]+-bg\)/);
+	}
 });
 
 describe('EventCalendarView: popover', () => {

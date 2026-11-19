@@ -70,7 +70,7 @@
 							{@const value = getPropertyValue(record, col.key)}
 							<td class="whitespace-nowrap px-3 py-1.5">
 								{#if value === null || value === undefined}
-									<span class="text-muted-foreground/50">{'\u2014'}</span>
+									<span class="text-muted-foreground">{'\u2014'}</span>
 								{:else if typeof value === 'boolean'}
 									<input type="checkbox" checked={value} disabled class="pointer-events-none" />
 								{:else if isDisplayValue(value)}

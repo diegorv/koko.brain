@@ -130,9 +130,10 @@
 					{@const visibleEvents = events.slice(0, MAX_EVENTS_PER_CELL)}
 					{@const overflowCount = events.length - MAX_EVENTS_PER_CELL}
 					{@const isLastRow = weekIdx === grid.length - 1}
+					<!-- An adjacent-month day is told apart by its muted day number only: a muted
+						tint on the cell drops muted-foreground under 4.5:1 on some themes. -->
 					<div
 						class="min-h-24 p-1
-							{day.isCurrentMonth ? '' : 'bg-muted/20'}
 							{day.isToday ? 'bg-primary/5' : ''}"
 						style="{dayIdx < 6 ? 'border-right: 1px dashed color-mix(in oklab, var(--divider) 50%, transparent);' : ''}{!isLastRow ? 'border-bottom: 1px dashed color-mix(in oklab, var(--divider) 50%, transparent);' : ''}"
 					>
@@ -141,7 +142,7 @@
 							<span
 								class="inline-flex size-6 items-center justify-center rounded-full text-xs
 									{day.isToday ? 'bg-primary text-primary-foreground font-bold' : ''}
-									{day.isCurrentMonth ? 'text-foreground/80' : 'text-muted-foreground/40'}"
+									{day.isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'}"
 							>
 								{day.date.getDate()}
 							</span>

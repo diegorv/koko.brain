@@ -477,8 +477,8 @@ input[type="date"]::-webkit-datetime-edit-text,
 input[type="date"]::-webkit-datetime-edit-month-field,
 input[type="date"]::-webkit-datetime-edit-day-field,
 input[type="date"]::-webkit-datetime-edit-year-field {
-	color: color-mix(in srgb, var(--date-input-fg, var(--foreground)) 70%, transparent) !important;
-	-webkit-text-fill-color: color-mix(in srgb, var(--date-input-fg, var(--foreground)) 70%, transparent) !important;
+	color: var(--date-input-fg, var(--foreground)) !important;
+	-webkit-text-fill-color: var(--date-input-fg, var(--foreground)) !important;
 }
 
 /*

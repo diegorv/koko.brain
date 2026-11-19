@@ -646,6 +646,14 @@ describe('CollectionView - a .view lists its row set', () => {
 		expect(counts.get(RECENT_VIEW)).toEqual({ count: 3 });
 	});
 
+	it('draws the results count in the full muted token, with no alpha', () => {
+		mountAt(RECENT_VIEW, RECENT_VIEW_YAML);
+
+		const count = [...target.querySelectorAll('span')].find((s) => s.textContent?.trim() === '3 results')!;
+		expect(count.classList).toContain('text-muted-foreground');
+		expect(count.className).not.toMatch(/text-muted-foreground\/\d+/);
+	});
+
 	it('lists the archived note of a .view whose filter cites archived, with the count countViewNotes gives', async () => {
 		const yaml = 'filters:\n  or:\n    - archived == true\n    - file.name == "n5.md"\nviews:\n  - type: table\n    name: Recent\n';
 		vi.mocked(readTextFile).mockImplementation(async (p) => {

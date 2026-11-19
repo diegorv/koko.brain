@@ -71,7 +71,8 @@
 								</div>
 							</button>
 						{:else}
-							<div class="flex items-center gap-1.5 rounded-md px-2 py-1 opacity-60">
+							<!-- The destructive name and icon mark the state; opacity would fade them under 4.5:1. -->
+							<div class="flex items-center gap-1.5 rounded-md px-2 py-1" data-unresolved>
 								<AlertCircle class="size-3.5 shrink-0 text-destructive" />
 								<span class="text-row truncate text-destructive">{link.alias ?? link.target}</span>
 								{#if link.heading}

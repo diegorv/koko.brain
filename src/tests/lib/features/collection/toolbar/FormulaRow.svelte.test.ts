@@ -162,4 +162,13 @@ describe('FormulaRow — remove button name', () => {
 
 		expect(removeButton('Remove formula').title).toBe('Remove formula');
 	});
+
+	it('draws the edit and remove icon buttons in the full muted color, hovering to their action color', () => {
+		render({ id: 'f1', name: 'double', expression: 'priority * 2', editing: false });
+
+		const edit = removeButton('Edit formula');
+		const remove = removeButton('Remove formula double');
+		expect([...edit.classList]).toEqual(['text-muted-foreground', 'hover:text-foreground']);
+		expect([...remove.classList]).toEqual(['text-muted-foreground', 'hover:text-destructive']);
+	});
 });

@@ -131,9 +131,8 @@
 							type="button"
 							class="flex h-[22px] w-full shrink-0 items-center overflow-hidden rounded-md px-1.5 text-left text-xs font-medium outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring
 								{item.event.pending ? 'border border-dashed border-current' : ''}
-								{selectedPath === item.event.path ? 'ring-2 ring-primary/70' : ''}
-								{item.event.archived ? 'opacity-50' : ''}"
-							style={eventColorStyle(item.event.color)}
+								{selectedPath === item.event.path ? 'ring-2 ring-primary/70' : ''}"
+							style={eventColorStyle(item.event.color, item.event.archived)}
 							data-event-path={item.event.path}
 							data-pending={item.event.pending || undefined}
 							data-readonly={item.event.readOnly || undefined}
@@ -143,7 +142,7 @@
 							<!-- The chip's name is its text, so the read-only suffix is sr-only text, with no space before it. -->
 							<span class="min-w-0 flex-1 truncate">{item.label}</span>{#if item.event.readOnly}<span class="sr-only"
 									>, read-only</span
-								><Lock class="ml-1 size-3 shrink-0 opacity-70" aria-hidden="true" data-readonly-lock />{/if}
+								><Lock class="ml-1 size-3 shrink-0" aria-hidden="true" data-readonly-lock />{/if}
 						</button>
 					{/each}
 					{#each tasks.slice(0, slots.tasks) as task (`${task.path}:${task.line}`)}

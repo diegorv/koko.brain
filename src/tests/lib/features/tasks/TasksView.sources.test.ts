@@ -128,6 +128,8 @@ describe('TasksView: the Sources panel', () => {
 		const panel = document.getElementById(edit.getAttribute('aria-controls')!);
 		expect(panel).not.toBeNull();
 		expect(panel!.closest('.pane-toolbar')).toBeNull();
+		// The hints are muted-foreground, which holds 4.5:1 on the editor surface but not on a muted tint.
+		expect(panel!.className).not.toMatch(/(^|\s)bg-muted/);
 
 		only('button', 'Add card').click();
 		flushSync();

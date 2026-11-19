@@ -1,0 +1,27 @@
+# Validation 06 (adversarial)
+
+Scripts: /private/tmp/claude-501/-Users-diegorv-Dev-pet-projects-koko-brain/d34954df-1fbf-4743-96fe-27db3527c128/scratchpad/audit-validate-06/ (lib.mts, t1-t9.mts). Surfaces resolved from theme-tokens.json cssVars; rail/nav/list per app.css:380-393 (light: color-mix toward black / editor; dark: oklch L-0.06/-0.03); alpha composited over the real surface; APCA per APCA-W3 0.0.98G.
+
+## Verdicts
+
+1. Focus ring ring-ring/50 (FilesNavigator.svelte:348 and 19 files) - CONFIRMED medium, app. 50% ring vs rail 24/28 under 3:1 (Zettlr Bielefeld Light 1.80, Willemstad Dark 1.93), editor 24/28, popover 25/28, active row tint 28/28 (1.67-2.76). KokoBrain Default 2.52 editor, Lavender Haze 2.20. Solid --ring: rail min 3.62, editor 4.52, popover 3.73, but active row 2.97 (Shimmering Focus Light), 2.98 (Zettlr KMS Light). Button already uses solid ring-ring (button.svelte:7). Fix: solid ring, 2px; inset on active row needs 2px plus the solid ring, or an outline-offset so the ring sits on the surface.
+2. Field boundary (SearchPanel.svelte:334) - CONFIRMED medium, both. file-explorer-border vs list-bg 28/28 (1.02 KokoBrain Default to 2.07); fill vs list 1.00-1.14; border vs background 28/28. Scout fix is wrong: --input fails 26/28 too (KokoBrain Default 1.07, Sakura 1.28). Needs a derived field edge (foreground mix) at 3:1.
+3+4. muted-foreground on bg-muted - CONFIRMED (4 is a duplicate of 3). 14/28: Zettlr dark 2.52-2.58 (Lc 27-28), Zettlr light 3.68, Twilight Violet 3.87 (Lc 36), Tolaria Light 4.15, Lavender Haze 4.20, Sakura 4.26. Collection weekday headers bg-muted/60 12/28 (3.26). Select placeholder dark:bg-input/30 measured 5/13 dark at 4.30-4.41 (scout said 3.85: not reproduced, borderline). Root: theme-builder.logic.ts:234 muted = p.hover, not in READABILITY_PAIRS. Lifting mutedFg is the wrong fix: on Zettlr Bordeaux Dark it lands at #c2c2c7, 1.06:1 from fg (muted and body collapse). Darken/derive muted (and activeLineGutter, line 266) from the surface instead, or put foreground on the pills.
+5. EventTaskChip hover (EventTaskChip.svelte:27) - CONFIRMED low, both. Same root as 3; hover only.
+6. Canvas low-opacity hints - CONFIRMED medium, app. Shortcut (fg .4 on background) 28/28, 1.92-3.67, Lc 19.5-49.5; picker path 28/28; image path 28/28 1.99-3.02. Missed sibling: LinkNode.svelte:184 .link-full-url 28/28 1.96-3.65.
+7. Canvas white-alpha borders - CONFIRMED medium, app. Menu border 1.01 Sakura; input edge 1.01-1.63; node border 1.00 light; menu hover 1.01-1.28. Shares root with 11, 13 (uncolored), 17.
+8. Raw presets as stroke/border/swatch - CONFIRMED medium, app. Light 15/15: edge min 1.15 Lavender Haze, swatch 1.09 Sepia; red fails on Lavender Haze and Sakura only; dark all pass (min 3.48). Shares root with 9, 13 (colored).
+9. Markdown on tinted nodes - CONFIRMED medium, both. Blockquote (syntax-quote on lp-blockquote-bg over card+12.5% preset) 20/28, worst 2.87 Zettlr Bielefeld Dark yellow Lc 30.5; plain-node failures on 8 themes (same root as scout-05 #3 blockquote tint). Link 17 themes worst 3.30; LinkNode title (primary) 15 worst 3.05 Twilight Violet; Sakura h2 2.39 on red, fails 3:1 even uncolored; mark 3.25 Zettlr Berlin Dark.
+10. Delete hover #fb464c - CONFIRMED medium, app. 25/28 under 4.5, light all under 3 (Sepia 2.26). Scout fix insufficient: var(--destructive) on its own 15% tint fails 23/28 (Willemstad Light 2.96, Zettlr Bordeaux Dark 3.02).
+11. Default edge rgba(255,255,255,.3) - CONFIRMED high, app. Light 1.00-1.07, dark 2.51-2.71 (28/28).
+12. '+ Add card' - CONFIRMED low, app. 8/13 dark (3.86 Zettlr dark, 4.43 KokoBrain Default). Muted on plain card is guarded by READABILITY_PAIRS, so dropping the white overlay suffices: app only.
+13. Groups - CONFIRMED medium (not high: the label still marks the group), app. Uncolored border 1.00-1.92 (28/28), colored border 1.06-1.71 (28/28).
+14. Minimap nodes - CONFIRMED low, app. 1.00-2.07, 28/28.
+15. Attribution - CONFIRMED as measured (dark 1.02-1.26, light 2.59-2.85), severity low: WCAG 1.4.3 exempts brand names/logotypes; still a bright patch on dark. colorMode="dark" alone leaves 12/13 dark under 4.5 (2.90-4.57).
+16. Controls hover #f4f4f4 - CONFIRMED medium (not high: hover only, icon), app. Inherited fg on #f4f4f4: 13/13 dark 1.03-1.52. colorMode default 'light' (initial-store.svelte.js:300), not passed in CanvasInner.svelte:609.
+17. Edge-label frame / connection line / marquee - CONFIRMED low, app. Connection line #b1b1b7 15/15 light (1.74 Lavender Haze); marquee 13/13 dark (1.68 Graphite Violet); white 2px frame (EdgeLabel padding 2px, style.css:626). Passing colorMode from the theme fixes controls hover and marquee; connection line needs an explicit var (dark default is also #b1b1b7).
+18. Active-line gutter - CONFIRMED low, owner both (not themes-repo only). Source mode only (editor-extensions.ts:104-105). 11/28, 2.52 Zettlr Bordeaux Dark. theme-builder.logic.ts:266 activeLineGutter = p.hover = muted, same root as 3.
+
+## Missed
+- shadcn destructive menu item highlighted (context-menu-item.svelte:23, dropdown-menu-item.svelte:23; used by Files/Types Delete, kanban, task views): text-destructive on destructive/10 (light) or /20 (dark) over popover 18/28 under 4.5, Zettlr dark 2.56-2.62 (Lc 23), KokoBrain Default 2.63 (Lc 27); resting 12/28 (KokoBrain Default 3.02).
+- LinkNode .link-full-url (LinkNode.svelte:184) fg at .4 on card: 28/28, 1.96-3.65.

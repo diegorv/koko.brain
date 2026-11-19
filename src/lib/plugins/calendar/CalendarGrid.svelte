@@ -55,7 +55,7 @@
 				{@const count = dayFileCounts.get(day.dateKey) ?? 0}
 				<button
 					class="relative flex items-center justify-center h-7 text-[13px] rounded-md transition-colors cursor-pointer
-						{day.isCurrentMonth ? (day.isWeekend ? 'text-file-explorer-primary' : 'text-file-explorer-fg') : 'text-file-explorer-muted-fg/40'}
+						{day.isCurrentMonth ? (day.isWeekend ? 'text-file-explorer-primary' : 'text-file-explorer-fg') : 'text-file-explorer-muted-fg'}
 						{day.isToday ? 'font-bold ring-1 ring-file-explorer-primary' : ''}
 						{selectedDateKey === day.dateKey ? 'bg-file-explorer-primary text-primary-foreground' : 'hover:bg-file-explorer-accent'}"
 					data-date={day.dateKey}
@@ -65,7 +65,7 @@
 					{#if count > 0}
 						<span class="absolute bottom-0.5 flex gap-px">
 							{#each { length: dotCount(count) } as _}
-								<span class="w-1 h-1 rounded-full bg-file-explorer-primary"></span>
+								<span class="w-1 h-1 rounded-full {selectedDateKey === day.dateKey ? 'bg-primary-foreground' : 'bg-file-explorer-primary'}"></span>
 							{/each}
 						</span>
 					{/if}

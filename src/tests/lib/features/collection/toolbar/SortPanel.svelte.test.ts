@@ -56,4 +56,13 @@ describe('SortPanel', () => {
 		expect(rowLabels()).toEqual([]);
 		expect(target.textContent).toContain('No sorts applied');
 	});
+
+	it('draws the drag handle in the full muted color, hovering to the foreground', () => {
+		render([{ column: 'status', direction: 'ASC' }]);
+
+		const grip = target.querySelector('[role="listitem"] span.cursor-grab')!;
+		expect(grip.classList).toContain('text-muted-foreground');
+		expect(grip.classList).toContain('hover:text-foreground');
+		expect(grip.className).not.toMatch(/text-muted-foreground\/\d+/);
+	});
 });

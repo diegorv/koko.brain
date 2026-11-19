@@ -415,7 +415,7 @@
 					oninput={updateAddCursorPos}
 					onclick={updateAddCursorPos}
 					placeholder="Add a card..."
-					class="w-full rounded-xs border border-border bg-background px-2 py-1 text-sm outline-none placeholder:text-muted-foreground/50 focus:border-primary"
+					class="w-full rounded-xs border border-border bg-background px-2 py-1 text-sm outline-none placeholder:text-muted-foreground focus:border-primary"
 				/>
 				<KanbanWikilinkSuggestions
 					bind:this={addSuggestionsRef}

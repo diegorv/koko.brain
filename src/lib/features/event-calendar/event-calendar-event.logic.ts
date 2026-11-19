@@ -429,9 +429,17 @@ export function resolveEventTypeName(typeNames: readonly string[], configured: s
 /**
  * Inline style for an event chip.
  * @param color - event color
- * @returns `background` and `color` pointing at the `--event-<c>-*` tokens
+ * @param archived - the event is archived: muted text on the editor surface,
+ *   since muted-foreground holds 4.5:1 there but not on a colored fill, with a
+ *   1px outline in the event's hue. An outline takes no layout space (an
+ *   `@container` block keeps its width) and leaves the box-shadow rings alone.
+ * @returns `background` and `color` pointing at the `--event-<c>-*` tokens,
+ *   or the archived style
  */
-export function eventColorStyle(color: EventColor): string {
+export function eventColorStyle(color: EventColor, archived = false): string {
+	if (archived) {
+		return `background: var(--editor-bg); color: var(--muted-foreground); outline: 1px solid var(--event-${color}-fg); outline-offset: -1px`;
+	}
 	return `background: var(--event-${color}-bg); color: var(--event-${color}-fg)`;
 }
 

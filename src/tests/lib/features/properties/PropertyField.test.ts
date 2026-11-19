@@ -73,8 +73,8 @@ describe('PropertyField text roles', () => {
 
 	const key = () => target.querySelector<HTMLElement>('[data-property-key]')!;
 	const value = () => target.querySelector<HTMLElement>('[data-property-value]')!;
-	/** The value color token every value type shares. */
-	const VALUE_COLOR = /(^|\s)!?text-right-sidebar-fg\/70(\s|$)/;
+	/** The value color token every value type shares, at full strength: values are content. */
+	const VALUE_COLOR = /(^|\s)!?text-right-sidebar-fg(\s|$)/;
 
 	afterEach(() => {
 		if (component) unmount(component);
@@ -109,7 +109,14 @@ describe('PropertyField text roles', () => {
 		// The WebKit date fields are colored by app.css through this variable.
 		expect(value().style.getPropertyValue('--date-input-fg')).toBe('var(--right-sidebar-fg)');
 		const css = readFileSync(resolve(process.cwd(), 'src/app.css'), 'utf8');
-		expect(css).toMatch(/input\[type="date"\][^{]*\{[^}]*var\(--date-input-fg, var\(--foreground\)\)/);
+		expect(css).toMatch(/input\[type="date"\][^{]*\{[^}]*color: var\(--date-input-fg, var\(--foreground\)\) !important/);
+		expect(css).not.toMatch(/color-mix\(in srgb, var\(--date-input-fg/);
+	});
+
+	it('draws the key placeholder in the full muted token, not the 50% preflight default', () => {
+		render({ key: '', value: 'x', type: 'text' });
+
+		expect(key().classList).toContain('placeholder:text-right-sidebar-muted-fg');
 	});
 });
 
@@ -165,6 +172,16 @@ describe('PropertyField list items', () => {
 		items()[1].querySelector<HTMLButtonElement>('button[title="Remove item"]')!.click();
 
 		expect(updates).toEqual([['tags', ['newsletter', 'career']]]);
+	});
+
+	it('draws the Add item placeholder in the full muted token', () => {
+		render(['newsletter']);
+
+		target.querySelector<HTMLButtonElement>('button[title="Add item"]')!.click();
+		flushSync();
+		const input = target.querySelector<HTMLInputElement>('input[placeholder="Add item..."]')!;
+		expect(input.classList).toContain('placeholder:text-right-sidebar-muted-fg');
+		expect(input.className).not.toMatch(/placeholder:text-[\w-]+\/\d+/);
 	});
 
 	it('renders no block for an empty list', () => {
