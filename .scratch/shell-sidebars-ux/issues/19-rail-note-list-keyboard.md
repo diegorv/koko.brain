@@ -22,18 +22,18 @@ Not in this ticket: Cmd+Enter (it would do what Enter does; ticket 31 sets wheth
 
 **Blocked by:** 12, 15, 18
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` for the touched specs (`e2e/specs/rail-shell.spec.ts`, `e2e/specs/focus-ring.spec.ts`)
 
-- [ ] Failing test first, new `src/tests/lib/features/rail-shell/RailNoteList.keyboard.test.ts` (real stores, the virtua shim from `RailNoteList.test.ts`): with 12 notes exactly one `[data-note-row]` has `tabindex="0"`; ArrowDown and ArrowUp move focus and the tab stop; Home and End go to the ends. If jsdom cannot mount a row after `scrollToIndex`, the 40-note End case moves to E2E and the commit says so.
-- [ ] Failing test first: neighbourhood lens with one note under both Outgoing links and Backlinks: one tab stop, ArrowDown walks each item once in display order, headers skipped. In Today, the section components are not in the roving order.
-- [ ] Failing test first: arrows in the rename input move the caret; a committed rename leaves focus on the renamed row (new path); Escape returns focus to the row; Enter on a focused row opens the note once.
-- [ ] Failing test first: ArrowDown in the open search input focuses the first row; ArrowUp on the first returns to the input; `src/tests/lib/features/rail-shell/RailListSearch.test.ts:141-146` stays unchanged.
-- [ ] Failing test first: when the focused row leaves (the test feeds an entries snapshot without it through `typeDefinitionsStore.setEntries`), focus moves to the next row; with focus in the search input it stays there.
-- [ ] On the Inbox lens only the tab-stop row's check has `tabindex="0"`.
-- [ ] E2E: Tab into the list lands on one row, arrows move, Tab leaves the list; `focus-ring.spec.ts:121-125` and `rail-shell.spec.ts` stay green.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, new `src/tests/lib/features/rail-shell/RailNoteList.keyboard.test.ts` (real stores, the virtua shim from `RailNoteList.test.ts`): with 12 notes exactly one `[data-note-row]` has `tabindex="0"`; ArrowDown and ArrowUp move focus and the tab stop; Home and End go to the ends. If jsdom cannot mount a row after `scrollToIndex`, the 40-note End case moves to E2E and the commit says so.
+- [x] Failing test first: neighbourhood lens with one note under both Outgoing links and Backlinks: one tab stop, ArrowDown walks each item once in display order, headers skipped. In Today, the section components are not in the roving order.
+- [x] Failing test first: arrows in the rename input move the caret; a committed rename leaves focus on the renamed row (new path); Escape returns focus to the row; Enter on a focused row opens the note once.
+- [x] Failing test first: ArrowDown in the open search input focuses the first row; ArrowUp on the first returns to the input; `src/tests/lib/features/rail-shell/RailListSearch.test.ts:141-146` stays unchanged.
+- [x] Failing test first: when the focused row leaves (the test feeds an entries snapshot without it through `typeDefinitionsStore.setEntries`), focus moves to the next row; with focus in the search input it stays there.
+- [x] On the Inbox lens only the tab-stop row's check has `tabindex="0"`.
+- [x] E2E: Tab into the list lands on one row, arrows move, Tab leaves the list; `focus-ring.spec.ts:121-125` and `rail-shell.spec.ts` stay green.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -71,3 +71,4 @@ Checked at `ab143a411`.
 
 - 2026-11-17, triage: ready-for-agent. Decided by the owner: the 34-ticket split. Defaults (not individually answered): none specific to this ticket beyond 18.1 (the first Escape in Search clears, which lives in ticket 18).
 - 2026-11-18, from Issue 18's review (finding 3): in Search results the Show in Calendar button beside an event-note card (`SearchResult.svelte:179-182`) is still its own Tab stop, so the "one Tab stop" line in `help/documentation/06-search-and-navigation.md:94` holds only for lists without event notes. Not this ticket's list; take it up when a secondary row action gets a keyboard model here (or in the later roving-list wave) and apply the same choice to Search.
+- 2026-11-19, branch issue/19-rail-note-list-keyboard: rail note list gets one Tab stop with roving tabindex, arrow/Home/End navigation, search-input hand-off, focus follows removed rows and a committed rename; Inbox check follows the tab stop. Fixes from review 1 (3 findings) landed before round 2. Tests: full vitest suite at 80a77355d exit 0 (672 files, 17958 passed); pnpm check 0 errors; rail-shell E2E 43 passed. Reviews: round 1 APPROVED, round 2 APPROVED (one optional nit on the `renamed` record, left as is).

@@ -284,6 +284,53 @@ test.describe('Rail shell', () => {
 		await expect(page.locator('.editor-tabs-bar [role="tab"]', { hasText: title })).toHaveCount(0);
 	});
 
+	test('Tab enters the note list on one row, the arrows move between rows, and Tab leaves the list', async ({ vaultPage: page }) => {
+		await openInbox(page);
+		const rows = noteList(page).locator('[data-note-row]');
+		await expect(rows.nth(2)).toBeVisible();
+		await expect(noteList(page).locator('[data-note-row][tabindex="0"]')).toHaveCount(1);
+
+		// New here is the header's last control: the next Tab enters the list.
+		await noteList(page).locator('[data-note-list-new]').focus();
+		await page.keyboard.press('Tab');
+		await expect(rows.first()).toBeFocused();
+
+		await page.keyboard.press('ArrowDown');
+		await expect(rows.nth(1)).toBeFocused();
+		await page.keyboard.press('End');
+		await expect(rows.last()).toBeFocused();
+		await page.keyboard.press('Home');
+		await expect(rows.first()).toBeFocused();
+		await page.keyboard.press('ArrowDown');
+		await expect(rows.nth(1)).toBeFocused();
+		await expect(noteList(page).locator('[data-note-row][tabindex="0"]')).toHaveCount(1);
+
+		// On the Inbox the Tab-stop row's check is the list's only other stop.
+		await page.keyboard.press('Tab');
+		await expect(rows.nth(1).locator('xpath=..').locator('[data-note-row-organize]')).toBeFocused();
+		await page.keyboard.press('Tab');
+		expect(await page.evaluate(() => !!document.activeElement?.closest('[data-rail-note-list] [data-note-row-organize], [data-rail-note-list] [data-note-row]'))).toBe(false);
+
+		// Shift+Tab comes back to the row that was current.
+		await page.keyboard.press('Shift+Tab');
+		await page.keyboard.press('Shift+Tab');
+		await expect(rows.nth(1)).toBeFocused();
+	});
+
+	test('F2, a new name and Enter leave focus on the renamed row', async ({ vaultPage: page }) => {
+		await openInbox(page);
+
+		await listRow(page, 'Roadmap').focus();
+		await page.keyboard.press('F2');
+		const input = noteList(page).locator('input');
+		await expect(input).toHaveValue('Roadmap');
+		await input.fill('Roadmap 3');
+		await input.press('Enter');
+
+		await expect.poll(() => exists(page, `${TEST_VAULT_PATH}/Projects/Roadmap 3.md`)).toBe(true);
+		await expect(listRow(page, 'Roadmap 3')).toBeFocused();
+	});
+
 	test('New here in the Inbox creates an unorganized note in the Cmd+N folder, opens it and lists it', async ({ vaultPage: page }) => {
 		await openInbox(page);
 		// The test vault's Cmd+N folder: periodicNotes.folder `Daily` + the default `YYYY/MM-MMM`.

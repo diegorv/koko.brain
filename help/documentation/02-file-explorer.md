@@ -11,6 +11,8 @@ Click **Files** in the rail. Two columns open between the rail and the editor:
 
 Click a row to open the file in the editor. Kokobrain remembers the folder you picked, and opens on it after a restart. If that folder no longer exists, the rail opens on **Today** instead.
 
+From the keyboard, the note list (this one and every list the rail fills) is one Tab stop: **Tab** lands on one row and the next **Tab** leaves the list. **Up** and **Down** move between rows, **Home** and **End** go to the first and the last, and **Enter** opens the focused row. Group headers and the Today sections (such as My people) are skipped by the arrows; their buttons stay in the Tab order. With the list search open, **Down** in the search field moves to the first row and **Up** on the first row goes back to the field. When the focused row leaves the list (archived, organized or moved), focus moves to the next row.
+
 `Cmd+1` hides the navigator and the note list, `Cmd+2` shows them again, and `Cmd+Shift+B` toggles them. Clicking a rail item also shows them again. The rail itself never hides.
 
 ## Creating Files and Folders
@@ -25,7 +27,7 @@ Click a row to open the file in the editor. Kokobrain remembers the folder you p
 - **A note or file**: right-click its row in the note list and choose **Rename**, or press **F2** while the row has focus. An inline field opens in the row.
 - **A folder**: right-click it in the navigator and choose **Rename**. If the folder was picked, it stays picked under its new name, and stays expanded.
 
-Press **Enter** to confirm or **Escape** to cancel.
+Press **Enter** to confirm or **Escape** to cancel. In the note list, focus goes back to the row, and a renamed row keeps it under its new name.
 
 ### Automatic wikilink updates on rename
 
