@@ -508,6 +508,59 @@ describe('ModActionPicker', () => {
 		});
 	});
 
+	describe('the log box before its first line', () => {
+		const logBox = () => runView()?.querySelector<HTMLElement>('[data-mod-run-log]') ?? null;
+
+		beforeEach(async () => {
+			stopModsHost();
+			fsFiles.set(
+				`${VAULT}/_system/mods/hello/main.js`,
+				`export default {
+	onload(ctx) {
+		ctx.addAction({ id: 'later', title: 'Later job', run: async (input, run) => {
+			await new Promise((resolve) => { globalThis.__modRelease = resolve; });
+			run.log('First line');
+		} });
+		ctx.addRailButton({ id: 'main', title: 'Hello mod', icon: 'sparkles' });
+	},
+};`,
+			);
+			await startModsHost(VAULT);
+			// A single-action button runs its action straight into the run view.
+			clickRailButton();
+			expect(status()).toBe('Running');
+		});
+
+		// Some screen readers skip content that arrives in the same update as a new live region.
+		it('is a log region already, and the first line lands inside that same element', async () => {
+			const box = logBox();
+			expect(box?.getAttribute('role')).toBe('log');
+			expect(box?.children).toHaveLength(0);
+
+			globals.__modRelease();
+			await vi.waitFor(() => expect(logLines()).toEqual(['First line']));
+			flushSync();
+
+			expect(logBox()).toBe(box);
+		});
+
+		it('shows no box while empty, and the padded box once a line arrives', async () => {
+			const box = logBox()!;
+			// sr-only keeps it in the accessibility tree and out of the run view's flex gap.
+			expect(box.classList.contains('sr-only')).toBe(true);
+			expect(box.classList.contains('p-2')).toBe(false);
+			expect(box.classList.contains('bg-muted/50')).toBe(false);
+
+			globals.__modRelease();
+			await vi.waitFor(() => expect(logLines()).toEqual(['First line']));
+			flushSync();
+
+			expect(box.classList.contains('sr-only')).toBe(false);
+			expect(box.classList.contains('p-2')).toBe(true);
+			expect(box.classList.contains('bg-muted/50')).toBe(true);
+		});
+	});
+
 	describe('an action with input', () => {
 		const field = () => document.querySelector<HTMLInputElement>('[data-mod-input]');
 

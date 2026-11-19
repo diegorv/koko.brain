@@ -132,13 +132,19 @@
 			{#if modsRunsStore.isReloadPending(run.modId)}
 				<span class="text-xs text-muted-foreground" data-mod-reload-pending>Reload pending</span>
 			{/if}
-			{#if run.lines.length > 0}
-				<div class="max-h-64 overflow-y-auto rounded-md bg-muted/50 p-2 font-mono text-xs whitespace-pre-wrap" role="log" data-mod-run-log bind:this={logBox} onscroll={handleLogScroll}>
-					{#each run.lines as line, i (i)}
-						<div>{line}</div>
-					{/each}
-				</div>
-			{/if}
+			<!-- The live region exists before its first line, which some screen readers skip when both arrive in one update.
+			     While empty it is sr-only, not hidden: display:none takes it out of the accessibility tree, and sr-only is out of flow, so the flex gap does not count it. -->
+			<div
+				class={['font-mono text-xs whitespace-pre-wrap', run.lines.length > 0 ? 'max-h-64 overflow-y-auto rounded-md bg-muted/50 p-2' : 'sr-only']}
+				role="log"
+				data-mod-run-log
+				bind:this={logBox}
+				onscroll={handleLogScroll}
+			>
+				{#each run.lines as line, i (i)}
+					<div>{line}</div>
+				{/each}
+			</div>
 			{#if run.status === 'failed' && run.error}
 				<p class="text-sm text-destructive" data-mod-run-error>{run.error.message}</p>
 				{#if run.error.stack}
