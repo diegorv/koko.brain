@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Faded text and icons use full-strength tokens](issues/01-faded-text-icons-full-strength-tokens.md) | none | todo | | |
+| 01 | [Faded text and icons use full-strength tokens](issues/01-faded-text-icons-full-strength-tokens.md) | none | in-progress | | |
 | 02 | [Rail, tag and icon palettes stay visible on every theme](issues/02-rail-tag-icon-palettes-follow-theme.md) | none | todo | | |
 | 03 | [Accent and status text on its own tint: rows, search, menus](issues/03-accent-text-own-tint-rows-search-menus.md) | none | todo | | |
 | 04 | [Accent and status text on its own tint: kanban, collection functions, file history](issues/04-accent-text-own-tint-kanban-collection-diff.md) | 03 | todo | | |
@@ -52,3 +52,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 ## Log
 
 - 2026-11-19 16:09 — ledger created (13 Issues)
+- 2026-11-19 16:09 — 01 — start — launched by /relay-lite:run — 7bfdaddb8
