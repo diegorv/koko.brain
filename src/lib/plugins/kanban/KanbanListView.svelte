@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Check from '@lucide/svelte/icons/check';
 	import type { KanbanBoard, KanbanItem } from './kanban.types';
-	import { stripCardMetadata, extractCardDate, extractCardColor, cardProximity, PROXIMITY_CLASSES } from './kanban.logic';
+	import { stripCardMetadata, extractCardDate, extractCardColor, cardProximity, PROXIMITY_CLASSES, secondaryTextClass } from './kanban.logic';
 	import { formatNow } from '#lib/utils/date.js';
 	import { COLOR_PRESET_BG } from '#lib/utils/color-presets.js';
 	import KanbanCardText from './KanbanCardText.svelte';
@@ -42,7 +42,7 @@
 								<Check class="size-3" />
 							{/if}
 						</button>
-						<span class="{item.checked ? 'text-muted-foreground line-through' : ''} flex-1">
+						<span class="{item.checked ? `${secondaryTextClass(cardColor)} line-through` : ''} flex-1">
 							<KanbanCardText text={displayText} tagColors={board.settings.tagColors ?? {}} {onWikilinkClick} />
 						</span>
 						{#if cardDate}

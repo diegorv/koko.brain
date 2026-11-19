@@ -4,6 +4,7 @@ import { dispatchMethod, dispatchField } from '#lib/features/collection/expressi
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { isDisplayValue } from '#lib/features/collection/expression/expression.types.js';
 import type { DisplayLink, DisplayImage, DisplayIcon, DisplayHTML } from '#lib/features/collection/expression/expression.types.js';
+import { COLOR_PRESET_BAR, COLOR_PRESET_BG, COLOR_PRESET_CHIP_TEXT, COLOR_PRESET_PLAIN_TEXT } from '#lib/utils/color-presets.js';
 
 function makeRecord(overrides: Partial<PropertyIndexRecord> = {}): PropertyIndexRecord {
 	return {
@@ -576,14 +577,14 @@ describe('display functions — Task 7', () => {
 		expect(result.__display).toBe('html');
 		expect(result.html).toContain('active');
 		expect(result.html).toContain('border-radius:9999px');
-		expect(result.html).toContain('rgb(72,187,120)');
+		expect(result.html).toContain(`background:${COLOR_PRESET_BG.green};color:${COLOR_PRESET_CHIP_TEXT.green}`);
 	});
 
 	it('badge() defaults to gray when no color', () => {
 		const result = evaluateExpression('badge("pending")', makeCtx()) as DisplayHTML;
 		expect(result.__display).toBe('html');
 		expect(result.html).toContain('pending');
-		expect(result.html).toContain('rgb(160,160,160)');
+		expect(result.html).toContain(`background:${COLOR_PRESET_BG.gray};color:${COLOR_PRESET_CHIP_TEXT.gray}`);
 	});
 
 	it('badge() escapes HTML in text', () => {
@@ -596,7 +597,7 @@ describe('display functions — Task 7', () => {
 		const ctx = makeCtx({ status: 'active' });
 		const result = evaluateExpression('badge(status, "blue")', ctx) as DisplayHTML;
 		expect(result.html).toContain('active');
-		expect(result.html).toContain('rgb(66,153,225)');
+		expect(result.html).toContain(`background:${COLOR_PRESET_BG.blue};color:${COLOR_PRESET_CHIP_TEXT.blue}`);
 	});
 
 	it.each(['badge("active", "green")', 'progress(75, 100)'])('%s sizes its text in em to scale with the cell', (expr) => {
@@ -627,7 +628,8 @@ describe('display functions — Task 7', () => {
 
 	it('progress() accepts custom color', () => {
 		const result = evaluateExpression('progress(50, 100, "red")', makeCtx()) as DisplayHTML;
-		expect(result.html).toContain('rgb(239,68,68)');
+		expect(result.html).toContain(`border:1px solid ${COLOR_PRESET_BAR.red}`);
+		expect(result.html).toContain(`background:${COLOR_PRESET_BAR.red}`);
 	});
 
 	it('progress() with property reference', () => {
@@ -640,12 +642,12 @@ describe('display functions — Task 7', () => {
 		const result = evaluateExpression('color("urgent", "red")', makeCtx()) as DisplayHTML;
 		expect(result.__display).toBe('html');
 		expect(result.html).toContain('urgent');
-		expect(result.html).toContain('rgb(239,68,68)');
+		expect(result.html).toContain(`color:${COLOR_PRESET_PLAIN_TEXT.red}"`);
 	});
 
 	it('color() defaults to gray', () => {
 		const result = evaluateExpression('color("text")', makeCtx()) as DisplayHTML;
-		expect(result.html).toContain('rgb(160,160,160)');
+		expect(result.html).toContain(`color:${COLOR_PRESET_PLAIN_TEXT.gray}"`);
 	});
 
 	it('color() escapes HTML in text', () => {
@@ -656,7 +658,7 @@ describe('display functions — Task 7', () => {
 
 	it('color() falls back to gray for unknown color name', () => {
 		const result = evaluateExpression('color("text", "neon")', makeCtx()) as DisplayHTML;
-		expect(result.html).toContain('rgb(160,160,160)');
+		expect(result.html).toContain(`color:${COLOR_PRESET_PLAIN_TEXT.gray}"`);
 	});
 });
 

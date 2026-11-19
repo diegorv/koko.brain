@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Check from '@lucide/svelte/icons/check';
 	import type { KanbanBoard } from './kanban.types';
-	import { stripCardMetadata, extractCardDate, extractCardColor, extractCardTags, cardProximity, PROXIMITY_CLASSES } from './kanban.logic';
+	import { stripCardMetadata, extractCardDate, extractCardColor, extractCardTags, cardProximity, PROXIMITY_CLASSES, secondaryTextClass } from './kanban.logic';
 	import { formatNow } from '#lib/utils/date.js';
 	import { COLOR_PRESET_BG, COLOR_PRESET_CHIP_TEXT } from '#lib/utils/color-presets.js';
 	import KanbanCardText from './KanbanCardText.svelte';
@@ -54,8 +54,8 @@
 								{/if}
 							</button>
 						</td>
-						<td class="px-2 py-1.5 text-xs text-muted-foreground">{lane.title}</td>
-						<td class="px-2 py-1.5 {item.checked ? 'text-muted-foreground line-through' : ''}">
+						<td class="px-2 py-1.5 text-xs {secondaryTextClass(cardColor)}">{lane.title}</td>
+						<td class="px-2 py-1.5 {item.checked ? `${secondaryTextClass(cardColor)} line-through` : ''}">
 							<KanbanCardText text={displayText} {onWikilinkClick} hideTags />
 						</td>
 						<td class="px-2 py-1.5">
@@ -77,7 +77,7 @@
 								</span>
 							{/if}
 						</td>
-						<td class="px-2 py-1.5 text-xs {item.checked ? 'text-success' : 'text-muted-foreground'}">
+						<td class="px-2 py-1.5 text-xs {item.checked ? 'text-success-tint-fg' : secondaryTextClass(cardColor)}">
 							{item.checked ? 'Done' : 'Open'}
 						</td>
 					</tr>

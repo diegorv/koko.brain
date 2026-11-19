@@ -9,10 +9,11 @@
 
 	let { diffLines, isLoading }: Props = $props();
 
+	/** A changed line's tint, and the text-on-tint color of the same token for its text and line numbers. */
 	function lineClass(type: DiffLine['type']): string {
 		switch (type) {
-			case 'insert': return 'bg-success/15 text-success';
-			case 'delete': return 'bg-destructive/15 text-destructive';
+			case 'insert': return 'bg-success/15 text-success-tint-fg';
+			case 'delete': return 'bg-destructive/15 text-destructive-tint-fg';
 			default: return '';
 		}
 	}
@@ -40,10 +41,10 @@
 			<tbody>
 				{#each diffLines as line}
 					<tr class={lineClass(line.type)}>
-						<td class="w-10 select-none px-2 text-right text-muted-foreground">
+						<td class="w-10 select-none px-2 text-right {line.type === 'equal' ? 'text-muted-foreground' : ''}">
 							{line.oldLineNum ?? ''}
 						</td>
-						<td class="w-10 select-none px-2 text-right text-muted-foreground">
+						<td class="w-10 select-none px-2 text-right {line.type === 'equal' ? 'text-muted-foreground' : ''}">
 							{line.newLineNum ?? ''}
 						</td>
 						<td class="w-4 select-none text-center">{linePrefix(line.type)}</td>

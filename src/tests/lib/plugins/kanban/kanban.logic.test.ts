@@ -33,6 +33,7 @@ import {
 	getDateProximity,
 	cardProximity,
 	PROXIMITY_CLASSES,
+	secondaryTextClass,
 	type DateProximity,
 	extractCardColor,
 	setCardColor,
@@ -1367,13 +1368,24 @@ describe('PROXIMITY_CLASSES', () => {
 		}
 	});
 
-	it('maps each tone to its theme token', () => {
-		expect(PROXIMITY_CLASSES.overdue).toEqual({ badge: 'bg-destructive/15 text-destructive', border: 'border-l-4 border-l-destructive' });
-		expect(PROXIMITY_CLASSES.today).toEqual({ badge: 'bg-warning/15 text-warning', border: 'border-l-4 border-l-warning' });
-		expect(PROXIMITY_CLASSES.tomorrow).toEqual({ badge: 'bg-type-orange/15 text-type-orange', border: 'border-l-4 border-l-type-orange' });
-		expect(PROXIMITY_CLASSES.upcoming).toEqual({ badge: 'bg-type-blue/15 text-type-blue', border: 'border-l-4 border-l-type-blue' });
+	it('maps each tone to its theme token, with the text-on-tint color on a tinted badge', () => {
+		expect(PROXIMITY_CLASSES.overdue).toEqual({ badge: 'bg-destructive/15 text-destructive-tint-fg', border: 'border-l-4 border-l-destructive' });
+		expect(PROXIMITY_CLASSES.today).toEqual({ badge: 'bg-warning/15 text-warning-tint-fg', border: 'border-l-4 border-l-warning' });
+		expect(PROXIMITY_CLASSES.tomorrow).toEqual({ badge: 'bg-type-orange/15 text-type-orange-tint-fg', border: 'border-l-4 border-l-type-orange' });
+		expect(PROXIMITY_CLASSES.upcoming).toEqual({ badge: 'bg-type-blue/15 text-type-blue-tint-fg', border: 'border-l-4 border-l-type-blue' });
 		expect(PROXIMITY_CLASSES.future).toEqual({ badge: 'bg-muted text-muted-foreground', border: '' });
 		expect(PROXIMITY_CLASSES.none).toEqual({ badge: 'bg-muted text-muted-foreground', border: '' });
+	});
+});
+
+describe('secondaryTextClass', () => {
+	it('is the text-on-tint muted color on a coloured card', () => {
+		expect(secondaryTextClass('red')).toBe('text-muted-tint-fg');
+	});
+
+	it('is muted-foreground on a card with no color', () => {
+		expect(secondaryTextClass(null)).toBe('text-muted-foreground');
+		expect(secondaryTextClass('')).toBe('text-muted-foreground');
 	});
 });
 

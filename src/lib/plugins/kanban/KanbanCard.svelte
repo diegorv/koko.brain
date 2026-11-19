@@ -9,7 +9,7 @@
 	import Tag from '@lucide/svelte/icons/tag';
 	import ArrowRightLeft from '@lucide/svelte/icons/arrow-right-left';
 	import type { KanbanItem } from './kanban.types';
-	import { extractCardDate, setCardDate, removeCardDate, cardProximity, PROXIMITY_CLASSES, extractCardWikilinks, extractCardColor, setCardColor, removeCardColor, stripCardMetadata, extractCardTags } from './kanban.logic';
+	import { extractCardDate, setCardDate, removeCardDate, cardProximity, PROXIMITY_CLASSES, secondaryTextClass, extractCardWikilinks, extractCardColor, setCardColor, removeCardColor, stripCardMetadata, extractCardTags } from './kanban.logic';
 	import { loadLinkedFileContent } from './kanban.service';
 	import { formatNow } from '#lib/utils/date.js';
 	import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
@@ -201,7 +201,7 @@
 		{#snippet children()}
 			<div
 				class="group flex items-start gap-1.5 rounded-md border border-border bg-background p-2 text-sm shadow-sm transition-colors hover:border-primary/30 {PROXIMITY_CLASSES[dateProximity].border} {isDragging ? 'opacity-50' : ''} {isFocused ? 'ring-2 ring-primary' : ''}"
-				style={cardColor ? `background: ${COLOR_PRESET_BG[cardColor]}` : ''}
+				style={cardColor ? `background-image: linear-gradient(${COLOR_PRESET_BG[cardColor]}, ${COLOR_PRESET_BG[cardColor]})` : ''}
 				draggable={!disableDrag}
 				ondragstart={disableDrag ? undefined : onDragStart}
 				ondragend={disableDrag ? undefined : onDragEnd}
@@ -244,7 +244,7 @@
 						<div class="flex items-start gap-1">
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<span
-								class="min-w-0 flex-1 leading-5 cursor-pointer select-none {item.checked ? 'text-muted-foreground line-through' : ''}"
+								class="min-w-0 flex-1 leading-5 cursor-pointer select-none {item.checked ? `${secondaryTextClass(cardColor)} line-through` : ''}"
 								ondblclick={onStartEdit}
 							>
 								<KanbanCardText text={displayText} {tagColors} {onWikilinkClick} {onTagClick} />
@@ -262,7 +262,7 @@
 							</div>
 						{/if}
 						{#if linkedContent}
-							<div class="line-clamp-3 border-t border-border/50 pt-1 text-xs leading-relaxed text-muted-foreground whitespace-pre-wrap break-words">
+							<div class="line-clamp-3 border-t border-border/50 pt-1 text-xs leading-relaxed {secondaryTextClass(cardColor)} whitespace-pre-wrap break-words">
 								{linkedContent}
 							</div>
 						{/if}

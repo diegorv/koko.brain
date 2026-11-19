@@ -253,7 +253,7 @@
 >
 	{#snippet count()}
 		<!-- A generic span cannot be named (ARIA 1.2), so the spoken label is sr-only text -->
-		<span class="text-xs {atLimit ? 'font-semibold text-destructive' : 'text-muted-foreground'}" data-lane-count>
+		<span class="text-xs {atLimit ? 'font-semibold text-destructive-tint-fg' : 'text-muted-foreground'}" data-lane-count>
 			<span aria-hidden="true">{countText}</span><span class="sr-only">{countLabel}</span>
 		</span>
 	{/snippet}

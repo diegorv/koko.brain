@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { COLOR_PRESET_BG, COLOR_PRESET_CHIP_TEXT, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
+import { COLOR_PRESET_BG, COLOR_PRESET_CHIP_TEXT, COLOR_PRESET_PLAIN_TEXT, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
 import { contrastRatio, flatten, mixColors } from '#lib/utils/color.js';
 import { BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
+import { HARD_PALETTE_THEMES } from '../../fixtures/hard-palette-themes.fixture';
 
 const EXPECTED_KEYS = ['blue', 'green', 'red', 'orange', 'purple', 'yellow', 'gray'];
 
@@ -42,47 +43,53 @@ describe('color-presets', () => {
 			return mixColors(m[1], editorFg, 1 - Number(m[2]) / 100)!;
 		}
 
-		/** `color` at 30% alpha (Tailwind `/30`) as an 8-digit hex, made opaque over `base` first. */
-		function at30(color: string, base: string): string {
-			return `${flatten(color, base)}4d`;
-		}
-
 		it('mixes each preset toward --editor-fg', () => {
 			expect(Object.keys(COLOR_PRESET_CHIP_TEXT).sort()).toEqual([...EXPECTED_KEYS].sort());
-			expect(COLOR_PRESET_CHIP_TEXT.blue).toBe('color-mix(in oklab, rgb(66,153,225) 30%, var(--editor-fg))');
+			expect(COLOR_PRESET_CHIP_TEXT.blue).toBe('color-mix(in oklab, rgb(66,153,225) 13%, var(--editor-fg))');
 		});
 
 		/**
 		 * Every tag chip below 4.5:1, with `textFor` giving the chip text for a tag on a theme.
-		 * The stack is the tag tint over an uncoloured card and over every coloured card on its lane.
+		 * The stack is the tag tint over a board card and over a list or table row, each
+		 * uncoloured and in every `{color:x}` (KanbanCard layers that tint over its bg-background).
 		 */
 		function chipFailures(textFor: (tag: string, editorFg: string) => string): string[] {
 			const failures: string[] = [];
-			for (const theme of BUILTIN_THEMES) {
+			for (const theme of [...BUILTIN_THEMES, ...HARD_PALETTE_THEMES]) {
 				const { ui } = theme.colors;
-				const lane = flatten(at30(ui.muted, ui.editorBg), ui.editorBg)!;
-				const cards: [string, string][] = [
-					['plain', flatten(ui.background, ui.editorBg)!],
-					...Object.entries(COLOR_PRESET_BG).map(([name, bg]): [string, string] => [name, flatten(bg, lane)!]),
+				const surfaces: [string, string][] = [
+					['plain card', ui.background],
+					['plain row', ui.editorBg],
+					...Object.entries(COLOR_PRESET_BG).flatMap(([name, bg]): [string, string][] => [
+						[`${name} card`, flatten(bg, ui.background)!],
+						[`${name} row`, flatten(bg, ui.editorBg)!],
+					]),
 				];
 				for (const tag of EXPECTED_KEYS) {
 					const text = textFor(tag, ui.editorFg);
-					for (const [card, surface] of cards) {
-						const ratio = contrastRatio(text, flatten(COLOR_PRESET_BG[tag], surface)!)!;
-						if (ratio < 4.5) failures.push(`${theme.name} ${tag} on ${card} card ${ratio.toFixed(2)}`);
+					for (const [surface, bg] of surfaces) {
+						const ratio = contrastRatio(text, flatten(COLOR_PRESET_BG[tag], bg)!)!;
+						if (ratio < 4.5) failures.push(`${theme.name} ${tag} on ${surface} ${ratio.toFixed(2)}`);
 					}
 				}
 			}
 			return failures;
 		}
 
-		it('reads at 4.5:1 on its tag tint over an uncoloured card and over every coloured card on its lane, on every built-in theme', () => {
+		it('reads at 4.5:1 on its tag tint over every card and row, on every built-in and hard-palette theme', () => {
 			expect(chipFailures((tag, editorFg) => resolveChipText(COLOR_PRESET_CHIP_TEXT[tag], editorFg))).toEqual([]);
 		});
 
-		it('fails the same stack at a 40% preset share, so the stack is the real one', () => {
-			const failures = chipFailures((tag, editorFg) => mixColors(COLOR_PRESET_TEXT[tag], editorFg, 0.6)!);
-			expect(failures.length).toBeGreaterThan(0);
+		it('fails the same stack at a 30% preset share on a Zettlr light palette, so the stack is the real one', () => {
+			const failures = chipFailures((tag, editorFg) => mixColors(COLOR_PRESET_TEXT[tag], editorFg, 0.7)!);
+			expect(failures.some((f) => f.startsWith('Zettlr Bielefeld Light'))).toBe(true);
+		});
+	});
+
+	describe('COLOR_PRESET_PLAIN_TEXT', () => {
+		it('mixes each preset toward --editor-fg with a larger preset share than chip text', () => {
+			expect(Object.keys(COLOR_PRESET_PLAIN_TEXT).sort()).toEqual([...EXPECTED_KEYS].sort());
+			expect(COLOR_PRESET_PLAIN_TEXT.blue).toBe('color-mix(in oklab, rgb(66,153,225) 20%, var(--editor-fg))');
 		});
 	});
 
