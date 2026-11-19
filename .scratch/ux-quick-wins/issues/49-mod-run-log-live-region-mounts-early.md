@@ -10,7 +10,7 @@ Not in this ticket: the load time shown only in a tooltip (`ModsStatusList.svelt
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
@@ -22,3 +22,7 @@ Not in this ticket: the load time shown only in a tooltip (`ModsStatusList.svelt
 
 - `ModActionPicker.svelte` at a52bc3d78: `{#if run.lines.length > 0}` wraps the `role="log"` div, so the live region and its first child are inserted in one update.
 - Review 37 marked it optional and outside Issue 37's criteria, which only asked for `role="log"`.
+
+## Comments
+
+- 2026-11-18, triage: ready-for-agent. Accepted by the owner as written.

@@ -73,7 +73,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 36 | [Periodic Notes and 1:1: live path examples and missing-template marks](issues/36-periodic-notes-11-live-path-examples.md) | 22 | done | issue/36-periodic-notes-11-live-path-examples (632893c70) | 2026-11-18 |
 | 37 | [Mods: each mod says what it does; the run view shows status and progress clearly](issues/37-mods-each-mod-run-view-shows.md) | none | done | issue/37-mods-each-mod-run-view-shows (a52bc3d78) | 2026-11-18 |
 | 38 | [Settings: text you can select, the Todoist root row fits, the update button says it downloads](issues/38-settings-text-you-can-select-todoist.md) | none | todo | | |
-| 39 | [Readable text on coloured fills and faded text in the note list and search](issues/39-readable-chips-faded-text.md) | 12 | blocked | | |
+| 39 | [Readable text on coloured fills: kanban tag chips, linear-calendar bars, the rail badge](issues/39-readable-chips-faded-text.md) | 12 | blocked | | |
 | 40 | [Default theme: a darker tab strip with a visible tab hover, bold and italic off the link blue](issues/40-default-theme-darker-tab-strip-visible.md) | 20, 39 | todo | | |
 | 41 | [Word count and graph stats read correctly for 0 and 1; graph mode buttons show their state](issues/41-word-count-graph-stats-read-correctly.md) | none | todo | | |
 | 42 | [Kanban cards move between lanes from the card menu](issues/42-kanban-cards-move-between-lanes-card.md) | 10, 11, 12 | done | issue/42-kanban-cards-move-between-lanes-card (8258ffac3) | 2026-11-18 |
@@ -82,6 +82,11 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 45 | [Quick Capture keeps the draft until it is written, with Discard and a short hold](issues/45-quick-capture-draft-discard.md) | 07 | done | issue/45-quick-capture-draft-discard (c95d30c4e) | 2026-11-18 |
 | 46 | [Frontmatter reads as metadata in source mode](issues/46-frontmatter-reads-as-metadata-source-mode.md) | none | done | issue/46-frontmatter-reads-as-metadata-source-mode (9d897ac41) | 2026-11-18 |
 | 47 | [Calendars count undated notes; view tabs show their type](issues/47-calendars-count-undated-notes-view-tabs.md) | 09, 14 | done | issue/47-calendars-count-undated-notes-view-tabs (a2a1e1997) | 2026-11-18 |
+| 48 | [New File from Template keeps a typed name inside the vault](issues/48-template-file-name-stays-inside-vault.md) | none | todo | | |
+| 49 | [The mod run log is a live region before its first line arrives](issues/49-mod-run-log-live-region-mounts-early.md) | none | todo | | |
+| 50 | [The Kanban card menu opens from the keyboard](issues/50-kanban-card-menu-opens-from-keyboard.md) | none | todo | | |
+| 51 | [The Create note path warning names a path and follows the typed text](issues/51-auto-organize-create-path-warning-reads-draft.md) | none | todo | | |
+| 52 | [Readable note list chips, archived rows and search snippet](issues/52-note-list-chips-archived-rows-search-snippet.md) | none | todo | | |
 
 ## Log
 
@@ -152,3 +157,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 21:36 — 34 — deliver — merged after review 1 APPROVED with findings, fix round (help says Add condition > Property filter), re-review 2 APPROVED (claude); full vitest suite passed (17805 tests); shell-sidebars-ux 16 and 24 sequencing note left to main session — f500f6f87
 - 2026-11-18 21:37 — 45 — start — launched by /relay-lite:run — 6e734dbce
 - 2026-11-18 21:54 — 45 — deliver — merged after review 1 APPROVED, fix round (Discard focus test, late confirmed save test), re-review 2 APPROVED (claude); full vitest suite passed (17818 tests); by-hand Discard window-drag check still open — c95d30c4e
+- 2026-11-18 23:07 — ledger updated (added 48, 49, 50, 51, 52; title of 39)
