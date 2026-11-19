@@ -104,6 +104,7 @@ call src/lib/features/canvas/CanvasInner.svelte:485 in addTextCard -> src/lib/fe
 call src/lib/features/canvas/CanvasInner.svelte:487 in addTextCard -> src/lib/features/canvas/CanvasInner.svelte:persistChanges call
 call src/lib/features/canvas/CanvasInner.svelte:497 in handleFileSelected -> src/lib/features/canvas/CanvasInner.svelte:getViewportCenter call
 call src/lib/features/canvas/CanvasInner.svelte:498 in handleFileSelected -> src/lib/features/canvas/canvas.logic.ts:createFileNode call
+call src/lib/features/canvas/CanvasInner.svelte:498 in handleFileSelected -> src/lib/features/canvas/canvas.logic.ts:toVaultRelativePath call
 call src/lib/features/canvas/CanvasInner.svelte:499 in handleFileSelected -> src/lib/features/canvas/canvas.logic.ts:canvasNodeToFlowNode call
 call src/lib/features/canvas/CanvasInner.svelte:501 in handleFileSelected -> src/lib/features/canvas/CanvasInner.svelte:persistChanges call
 call src/lib/features/canvas/CanvasInner.svelte:506 in handleImageSelected -> src/lib/features/canvas/CanvasInner.svelte:getViewportCenter call
@@ -126,7 +127,7 @@ call src/lib/features/canvas/CanvasInner.svelte:553 in addGroup -> src/lib/featu
 call src/lib/features/canvas/CanvasInner.svelte:580 in handleDrop -> src/lib/core/editor/editor.service.ts:openFileInEditor call
 call src/lib/features/canvas/CanvasInner.svelte:587 in handleDrop -> src/lib/features/canvas/canvas-image.service.ts:isImageFile call
 call src/lib/features/canvas/CanvasInner.svelte:588 in handleDrop -> src/lib/features/canvas/canvas.logic.ts:createImageNode call
-call src/lib/features/canvas/CanvasInner.svelte:588 in handleDrop -> src/lib/features/canvas/canvas.logic.ts:toVaultRelativePath call
+call src/lib/features/canvas/CanvasInner.svelte:588 in handleDrop -> src/lib/features/canvas/canvas.logic.ts:toVaultRelativePath call +1
 call src/lib/features/canvas/CanvasInner.svelte:590 in handleDrop -> src/lib/features/canvas/canvas.logic.ts:createFileNode call
 call src/lib/features/canvas/CanvasInner.svelte:595 in handleDrop -> src/lib/features/canvas/canvas.logic.ts:canvasNodeToFlowNode call
 call src/lib/features/canvas/CanvasInner.svelte:597 in handleDrop -> src/lib/features/canvas/CanvasInner.svelte:persistChanges call

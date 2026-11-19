@@ -93,7 +93,7 @@ fx src/lib/core/trash/trash.service.ts:33 tauri-fs.readTextFile in loadTrash
 fx src/lib/core/trash/trash.service.ts:251 tauri-fs.readTextFile in indexRestoredNotes
 fx src/lib/features/auto-organize/auto-organize.service.ts:121 tauri-fs.readTextFile in loadAutoOrganizeConfig
 fx src/lib/features/auto-organize/auto-organize.service.ts:272 tauri-fs.readTextFile in readCurrentContent
-fx src/lib/features/canvas/FileNode.svelte:41 tauri-fs.readTextFile in $effect@31
+fx src/lib/features/canvas/FileNode.svelte:40 tauri-fs.readTextFile in $effect@31
 fx src/lib/features/deep-link/deep-link.service.ts:271 tauri-fs.readTextFile in executeNewAction
 fx src/lib/features/deep-link/deep-link.service.ts:290 tauri-fs.readTextFile in executeNewAction
 fx src/lib/features/event-calendar/event-calendar.service.ts:999 tauri-fs.readTextFile in duplicateEvent
