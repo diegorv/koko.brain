@@ -301,3 +301,10 @@ export function graphPalette(tokens: GraphThemeTokens): GraphPalette {
 		labelDimmed,
 	};
 }
+
+/** Footer text for the graph, e.g. "1 note · 1 link" or "2 notes · 3 links". */
+export function formatGraphStats(noteCount: number, linkCount: number): string {
+	const notes = `${noteCount} ${noteCount === 1 ? 'note' : 'notes'}`;
+	const links = `${linkCount} ${linkCount === 1 ? 'link' : 'links'}`;
+	return `${notes} · ${links}`;
+}

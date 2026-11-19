@@ -1,7 +1,7 @@
 # file card src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, mounts, mounted-at, calls, effects
-file src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte component L725 module src/lib/features/auto-organize in1 t1
+file src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte component L743 module src/lib/features/auto-organize in1 t1
 ## imports
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:3 -> src/lib/components/ui/input/index.ts Input
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:4 -> src/lib/components/ui/switch/index.ts Switch
@@ -33,7 +33,7 @@ out2 src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte 52 files in 9 mod
 ## tests
 test src/tests/lib/features/auto-organize/AutoOrganizeRuleRow.test.ts imports src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte mirror
 ## symbols
-sym src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:1 component AutoOrganizeRuleRow props:rule,isFirst,isLast,focusName=,onupdate,onremove,onmoveup,onmovedown L725
+sym src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:1 component AutoOrganizeRuleRow props:rule,isFirst,isLast,focusName=,onupdate,onremove,onmoveup,onmovedown L743
 by src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:default <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:214 in (markup) mount
 ## locals
 local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:113 fn focusAdded(box: HTMLElement | undefined, add: () => void) L6
@@ -46,41 +46,41 @@ local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:228 fn commitFil
 local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:233 fn setProperties(next: RuleProperty[]) L3
 local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:237 fn addProperty() L4
 local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:242 fn removeProperty(i: number) L4
-local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:279 fn commitCreatePath(raw: string) L8
-local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:288 fn updateCreateNote(changes: Partial<RuleCreateNote>) L3
-local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:292 fn commitCreateTemplate(raw: string) L7
-local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:300 fn setCreateProperties(next: RuleProperty[]) L3
-local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:304 fn addCreateProperty() L4
-local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:309 fn removeCreateProperty(i: number) L4
-local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:344 fn variableWarnings(template: string, into: 'folder' | 'name'): string[] L8
-local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:358 fn commitRename(raw: string, source: keyof typeof RENAME_SOURCES) L14
-local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:373 fn setRenameSource(source: keyof typeof RENAME_SOURCES) L5
-local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:380 fn setRunAction(value: string) L4
-local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:386 fn commitActionInput(value: string) L4
-local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:391 fn handleIconSelect(pack: IconPackId, name: string, color?: string, textColor?: string) L3
-local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:395 fn handleIconRemove() L4
-local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:401 fn getResolvedIcon() L5
+local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:293 fn commitCreatePath(raw: string) L10
+local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:304 fn updateCreateNote(changes: Partial<RuleCreateNote>) L3
+local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:308 fn commitCreateTemplate(raw: string) L7
+local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:316 fn setCreateProperties(next: RuleProperty[]) L3
+local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:320 fn addCreateProperty() L4
+local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:325 fn removeCreateProperty(i: number) L4
+local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:360 fn variableWarnings(template: string, into: 'folder' | 'name' | 'path'): string[] L8
+local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:375 fn commitRename(raw: string, source: keyof typeof RENAME_SOURCES) L14
+local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:390 fn setRenameSource(source: keyof typeof RENAME_SOURCES) L5
+local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:397 fn setRunAction(value: string) L4
+local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:403 fn commitActionInput(value: string) L4
+local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:408 fn handleIconSelect(pack: IconPackId, name: string, color?: string, textColor?: string) L3
+local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:412 fn handleIconRemove() L4
+local src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:418 fn getResolvedIcon() L5
 ## mounts
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:418 Input -> src/lib/components/ui/input/input.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:429 Switch -> src/lib/components/ui/switch/switch.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:434 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:444 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:454 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:471 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:486 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:533 Input -> src/lib/components/ui/input/input.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:558 Input -> src/lib/components/ui/input/input.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:567 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:576 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:601 AutoOrganizeRuleProperty -> src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:608 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:618 Input -> src/lib/components/ui/input/input.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:633 Input -> src/lib/components/ui/input/input.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:645 AutoOrganizeRuleProperty -> src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:653 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:663 Switch -> src/lib/components/ui/switch/switch.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:688 Input -> src/lib/components/ui/input/input.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:716 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:435 Input -> src/lib/components/ui/input/input.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:446 Switch -> src/lib/components/ui/switch/switch.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:451 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:461 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:471 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:488 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:503 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:550 Input -> src/lib/components/ui/input/input.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:575 Input -> src/lib/components/ui/input/input.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:584 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:593 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:618 AutoOrganizeRuleProperty -> src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:625 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:635 Input -> src/lib/components/ui/input/input.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:651 Input -> src/lib/components/ui/input/input.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:663 AutoOrganizeRuleProperty -> src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:671 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:681 Switch -> src/lib/components/ui/switch/switch.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:706 Input -> src/lib/components/ui/input/input.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:734 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 ## mounted-at
 mount src/lib/features/auto-organize/AutoOrganizeSection.svelte:214 AutoOrganizeRuleRow -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte
 ## calls
@@ -108,49 +108,50 @@ call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:224 in addPropert
 call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:238 in addProperty -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:newRowKeys call
 call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:239 in addProperty -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:setProperties call
 call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:244 in removeProperty -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:setProperties call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:255 in pathInvalid=$derived -> src/lib/features/auto-organize/auto-organize.logic.ts:isValidCreatePath call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:258 in templateInvalid=$derived -> src/lib/features/auto-organize/auto-organize.logic.ts:isValidTemplatePath call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:283 in commitCreatePath -> src/lib/features/auto-organize/auto-organize.logic.ts:isValidCreatePath call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:295 in commitCreateTemplate -> src/lib/features/auto-organize/auto-organize.logic.ts:isValidTemplatePath call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:297 in commitCreateTemplate -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:updateCreateNote call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:301 in setCreateProperties -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:updateCreateNote call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:305 in addCreateProperty -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:newRowKeys call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:306 in addCreateProperty -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:setCreateProperties call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:311 in removeCreateProperty -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:setCreateProperties call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:328 in storedRenameProblem=$derived -> src/lib/features/auto-organize/auto-organize.logic.ts:renameProblem call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:341 in VARIABLES_LINE -> src/lib/features/auto-organize/auto-organize.logic.ts:TEMPLATE_VARIABLES mcall
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:345 in variableWarnings -> src/lib/features/auto-organize/auto-organize.logic.ts:unknownTemplateVariables call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:352 in destinationWarnings=$derived -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:variableWarnings call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:353 in createPathWarnings=$derived -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:variableWarnings call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:355 in renameWarnings=$derived -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:variableWarnings call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:367 in commitRename -> src/lib/features/auto-organize/auto-organize.logic.ts:renameProblem call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:376 in setRenameSource -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:commitRename call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:404 in getResolvedIcon -> src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync call
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:470 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:commitFilter markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:479 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:handleFiltersChange markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:494 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:addPropertyFilter markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:494 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:focusAdded markup +3
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:495 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:addExpression markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:523 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:setRenameSource markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:541 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:commitRename markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:574 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:getResolvedIcon markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:604 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:setProperties markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:605 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:removeProperty markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:608 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:addProperty markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:624 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:commitCreatePath markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:639 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:commitCreateTemplate markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:649 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:setCreateProperties markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:650 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:removeCreateProperty markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:657 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:addCreateProperty markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:666 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:updateCreateNote markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:677 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:setRunAction markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:690 in (markup) -> src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeRunAction markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:692 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:commitActionInput markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:722 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:handleIconSelect markup
-call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:723 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:handleIconRemove markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:269 in pathInvalid=$derived -> src/lib/features/auto-organize/auto-organize.logic.ts:isValidCreatePath call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:272 in templateInvalid=$derived -> src/lib/features/auto-organize/auto-organize.logic.ts:isValidTemplatePath call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:297 in commitCreatePath -> src/lib/features/auto-organize/auto-organize.logic.ts:isValidCreatePath call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:311 in commitCreateTemplate -> src/lib/features/auto-organize/auto-organize.logic.ts:isValidTemplatePath call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:313 in commitCreateTemplate -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:updateCreateNote call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:317 in setCreateProperties -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:updateCreateNote call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:321 in addCreateProperty -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:newRowKeys call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:322 in addCreateProperty -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:setCreateProperties call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:327 in removeCreateProperty -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:setCreateProperties call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:344 in storedRenameProblem=$derived -> src/lib/features/auto-organize/auto-organize.logic.ts:renameProblem call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:357 in VARIABLES_LINE -> src/lib/features/auto-organize/auto-organize.logic.ts:TEMPLATE_VARIABLES mcall
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:361 in variableWarnings -> src/lib/features/auto-organize/auto-organize.logic.ts:unknownTemplateVariables call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:368 in destinationWarnings=$derived -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:variableWarnings call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:370 in createPathWarnings=$derived -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:variableWarnings call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:372 in renameWarnings=$derived -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:variableWarnings call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:384 in commitRename -> src/lib/features/auto-organize/auto-organize.logic.ts:renameProblem call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:393 in setRenameSource -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:commitRename call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:421 in getResolvedIcon -> src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync call
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:487 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:commitFilter markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:496 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:handleFiltersChange markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:511 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:addPropertyFilter markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:511 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:focusAdded markup +3
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:512 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:addExpression markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:540 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:setRenameSource markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:558 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:commitRename markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:591 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:getResolvedIcon markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:621 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:setProperties markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:622 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:removeProperty markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:625 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:addProperty markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:642 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:commitCreatePath markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:657 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:commitCreateTemplate markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:667 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:setCreateProperties markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:668 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:removeCreateProperty markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:675 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:addCreateProperty markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:684 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:updateCreateNote markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:695 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:setRunAction markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:708 in (markup) -> src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeRunAction markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:710 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:commitActionInput markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:740 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:handleIconSelect markup
+call src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:741 in (markup) -> src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:handleIconRemove markup
 ## effects
 fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:122 svelte.$effect in (script)
 fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:124 timer.setTimeout delay=COUNT_DELAY_MS in $effect@122
 fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:160 svelte.$effect in (script)
 fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:164 svelte.$effect in (script)
-fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:321 svelte.$effect in (script)
+fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:261 svelte.$effect in (script)
+fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:337 svelte.$effect in (script)

@@ -75,7 +75,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 38 | [Settings: text you can select, the Todoist root row fits, the update button says it downloads](issues/38-settings-text-you-can-select-todoist.md) | none | done | issue/38-settings-text-you-can-select-todoist (4f5991c94) | 2026-11-19 |
 | 39 | [Readable text on coloured fills: kanban tag chips, linear-calendar bars, the rail badge](issues/39-readable-chips-faded-text.md) | 12 | done | issue/39-readable-chips-faded-text (f6ef510a0) | 2026-11-18 |
 | 40 | [Default theme: a darker tab strip with a visible tab hover](issues/40-default-theme-darker-tab-strip-visible.md) | 20, 39 | done | issue/40-default-theme-darker-tab-strip-visible (7742f0a81) | 2026-11-18 |
-| 41 | [Word count and graph stats read correctly for 0 and 1; graph mode buttons show their state](issues/41-word-count-graph-stats-read-correctly.md) | none | todo | | |
+| 41 | [Word count and graph stats read correctly for 0 and 1; graph mode buttons show their state](issues/41-word-count-graph-stats-read-correctly.md) | none | done | issue/41-word-count-graph-stats-read-correctly (9068eb154) | 2026-11-19 |
 | 42 | [Kanban cards move between lanes from the card menu](issues/42-kanban-cards-move-between-lanes-card.md) | 10, 11, 12 | done | issue/42-kanban-cards-move-between-lanes-card (8258ffac3) | 2026-11-18 |
 | 43 | [New canvas text cards open ready to type and cascade; Enter or F2 edits a selected card](issues/43-new-canvas-text-cards-open-ready.md) | 06, 16 | todo | | |
 | 44 | [Sort order can be changed from the keyboard](issues/44-sort-keyboard-reorder.md) | 15 | todo | | |
@@ -85,7 +85,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 48 | [New File from Template keeps a typed name inside the vault](issues/48-template-file-name-stays-inside-vault.md) | none | done | issue/48-template-file-name-stays-inside-vault (f0654735a) | 2026-11-18 |
 | 49 | [The mod run log is a live region before its first line arrives](issues/49-mod-run-log-live-region-mounts-early.md) | none | done | issue/49-mod-run-log-live-region-mounts-early (0c4692315) | 2026-11-19 |
 | 50 | [The Kanban card menu opens from the keyboard](issues/50-kanban-card-menu-opens-from-keyboard.md) | none | todo | | |
-| 51 | [The Create note path warning names a path and follows the typed text](issues/51-auto-organize-create-path-warning-reads-draft.md) | none | in-progress | | |
+| 51 | [The Create note path warning names a path and follows the typed text](issues/51-auto-organize-create-path-warning-reads-draft.md) | none | done | issue/51-auto-organize-create-path-warning-reads-draft (29563b109) | 2026-11-19 |
 | 52 | [Readable note list chips, archived rows and search snippet](issues/52-note-list-chips-archived-rows-search-snippet.md) | none | todo | | |
 | 53 | [Default theme: bold and italic off the link blue](issues/53-default-bold-italic-off-link-blue.md) | 40 | todo | | |
 
@@ -175,3 +175,6 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 00:07 — 49 — start — launched by /relay-lite:run — 3f1ce101f
 - 2026-11-19 00:17 — 49 — deliver — merged after review 1 APPROVED with two findings, fix round (sr-only comment reworded; layout E2E not added), re-review 2 APPROVED (claude); full vitest suite passed (17863 tests) — 0c4692315
 - 2026-11-19 00:17 — 51 — start — launched by /relay-lite:run — cc071a7c6
+- 2026-11-19 00:27 — 51 — deliver — merged after review 1 APPROVED with two findings, fix round (effect clears a refused draft when the stored path changes, live warning test), re-review 2 APPROVED (claude); full vitest suite passed (17868 tests) — 29563b109
+- 2026-11-19 00:27 — 41 — start — launched by /relay-lite:run — b53009810
+- 2026-11-19 00:35 — 41 — deliver — merged after review 1 APPROVED with 3 nits, none changed (claude); full vitest suite passed (17877 tests); word-count E2E not run — 9068eb154

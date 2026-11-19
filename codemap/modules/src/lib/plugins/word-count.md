@@ -9,10 +9,10 @@ out2 src/lib/plugins/word-count 1 modules: src/lib/utils(1)
 ## entry files
 entry src/lib/plugins/word-count/WordCount.svelte ext-in1 src/lib/app/AppShell.svelte
 ## files
-file src/lib/plugins/word-count/WordCount.svelte component L46 module src/lib/plugins/word-count in1 t0
+file src/lib/plugins/word-count/WordCount.svelte component L47 module src/lib/plugins/word-count in1 t1
 file src/lib/plugins/word-count/word-count.logic.ts logic L20 module src/lib/plugins/word-count in1 t1
 ## public
-sym src/lib/plugins/word-count/WordCount.svelte:1 component WordCount L46
+sym src/lib/plugins/word-count/WordCount.svelte:1 component WordCount L47
 ## effects
 fx-count svelte.$effect 1
 fx-count timer.setTimeout 1

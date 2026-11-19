@@ -70,7 +70,8 @@ describe('GraphView local mode', () => {
 		mountGraph();
 
 		await vi.waitFor(() => expect(target.textContent).toContain('2 notes'));
-		expect(target.textContent).toContain('1 links');
+		expect(target.textContent).toContain('1 link');
+		expect(target.textContent).not.toContain('1 links');
 		expect(target.textContent).not.toContain(HINT);
 	});
 
@@ -198,7 +199,7 @@ describe('GraphView states', () => {
 
 		mountGraph();
 
-		await vi.waitFor(() => expect(target.textContent).toContain('1 notes'));
+		await vi.waitFor(() => expect(target.textContent).toContain('1 note · 0 links'));
 		expect(target.textContent).toContain(ISOLATED);
 	});
 

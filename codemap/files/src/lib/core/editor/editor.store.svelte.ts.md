@@ -1,7 +1,7 @@
 # file card src/lib/core/editor/editor.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/editor/editor.store.svelte.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, store, calls
-file src/lib/core/editor/editor.store.svelte.ts store L180 module src/lib/core/editor in49 t113
+file src/lib/core/editor/editor.store.svelte.ts store L180 module src/lib/core/editor in49 t114
 ## imports
 imp src/lib/core/editor/editor.store.svelte.ts:2 -> src/lib/core/editor/editor.types.ts type:EditorTab
 imp src/lib/core/editor/editor.store.svelte.ts:3 -> src/lib/core/editor/editor.logic.ts reorderTabsAfterPinChange,getPinnedBoundary,moveTab
@@ -91,7 +91,7 @@ test src/tests/lib/features/backlinks/backlinks.service.test.ts imports src/lib/
 test src/tests/lib/features/canvas/canvas-tab-switch.test.ts imports src/lib/core/editor/editor.store.svelte.ts
 test src/tests/lib/features/collection/CollectionView.view-writes.test.ts imports src/lib/core/editor/editor.store.svelte.ts
 test src/tests/lib/features/collection/collection-block-click.test.ts imports src/lib/core/editor/editor.store.svelte.ts
-more tests 73 not shown: src/tests/lib/features/properties(11) src/tests/lib/features/tasks(10) src/tests/lib/features/rail-shell(8) src/tests/lib/plugins/mods(7) src/tests/lib/features/event-calendar(5) src/tests/lib/features/todoist-sync(4) src/tests/lib/plugins/graph-view(4) src/tests/lib/features/deep-link(3) +15 modules: q tests src/lib/core/editor/editor.store.svelte.ts
+more tests 74 not shown: src/tests/lib/features/properties(11) src/tests/lib/features/tasks(10) src/tests/lib/features/rail-shell(8) src/tests/lib/plugins/mods(7) src/tests/lib/features/event-calendar(5) src/tests/lib/features/todoist-sync(4) src/tests/lib/plugins/graph-view(4) src/tests/lib/features/deep-link(3) +16 modules: q tests src/lib/core/editor/editor.store.svelte.ts
 ## symbols
 sym src/lib/core/editor/editor.store.svelte.ts:33 store editorStore L148 | Central store for all editor tab state.
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/AppShell.svelte:61 in rightSidebarShown=$derived member +1

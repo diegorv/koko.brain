@@ -27,7 +27,7 @@ test src/tests/lib/features/file-icons/IconRenderer.test.ts imports src/lib/feat
 sym src/lib/features/file-icons/IconRenderer.svelte:1 component IconRenderer props:icon,class=,color L38
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/app/EditorView.svelte:59 in (markup) mount
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:299 in (markup) mount
-by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:576 in (markup) mount
+by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:593 in (markup) mount
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/file-icons/IconPicker.svelte:224 in (markup) mount +1
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/note-list/NoteRow.svelte:54 in (markup) mount +1
 by src/lib/features/file-icons/IconRenderer.svelte:default <- src/lib/features/properties/PropertiesView.svelte:179 in (markup) mount +2
@@ -37,7 +37,7 @@ more by 4 not shown: src/lib/features/rail-shell(3) src/lib/features/tasks(1): q
 ## mounted-at
 mount src/lib/app/EditorView.svelte:59 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:299 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:576 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:593 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/file-icons/IconPicker.svelte:224 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/file-icons/IconPicker.svelte:239 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/note-list/NoteRow.svelte:54 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
