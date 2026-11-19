@@ -49,7 +49,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 12 | [The rail note list says why it is empty and what to do next](issues/12-note-list-empty-states-cause.md) | none | done | issue/12-note-list-empty-states-cause (46135b097) | 2026-11-18 |
 | 13 | [Files header gets a "+" menu, and every creator says "New <kind>"](issues/13-files-plus-menu-new-kind.md) | none | done | issue/13-files-plus-menu-new-kind (f045dead0) | 2026-11-18 |
 | 14 | [Folder-lens rows stop repeating the folder; the Files tree puts system folders last and muted, with direct file counts](issues/14-folder-rows-system-folders-counts.md) | 13 | done | issue/14-folder-rows-system-folders-counts (1be913d25) | 2026-11-18 |
-| 15 | [One note-actions group in the row menu, the More menu and the palette, with a one-click Mark organized on Inbox rows](issues/15-note-actions-group-inbox-organized.md) | 12, 14 | in-progress | | |
+| 15 | [One note-actions group in the row menu, the More menu and the palette, with a one-click Mark organized on Inbox rows](issues/15-note-actions-group-inbox-organized.md) | 12, 14 | done | issue/15-note-actions-group-inbox-organized (c52c7475e) | 2026-11-19 |
 | 16 | [Filters show their count and can be cleared; the .view tab's triggers are named single buttons; an empty table says filters hid its rows](issues/16-filters-count-clear-view-triggers.md) | 12 | todo | | |
 | 17 | [Note-list header: one Display popover, a state dot, and "+" visible down to 150 px](issues/17-note-list-display-popover.md) | 16 | todo | | |
 | 18 | [Shared roving-list util and arrow keys in Search results](issues/18-roving-list-search-arrows.md) | none | done | issue/18-roving-list-search-arrows (946fa2132) | 2026-11-18 |
@@ -96,3 +96,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 05:25 — 29 — start — launched by /relay-lite:run — f112fd79f
 - 2026-11-18 05:51 — 29 — deliver — review 1 APPROVED with findings (help pages name the rail entries, Days wording in comments and an E2E title), fixed; round 2 APPROVED; full suite 17369 passed; E2E not run; squashed and pushed — e5e08038f
 - 2026-11-19 05:29 — 15 — start — launched by /relay-lite:run — ec6d74f68
+- 2026-11-19 05:56 — 15 — deliver — merged c52c7475e; review 1 APPROVED (1 minor, 2 nits, fix round), review 2 APPROVED no findings; full suite 17929 passed — c52c7475e
