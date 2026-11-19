@@ -124,6 +124,7 @@
 		<SettingItem
 			label="Root project"
 			description="This vault syncs this project and every project nested under it. With none chosen, the sync stays off."
+			layout="stacked"
 		>
 			<div class="flex items-center gap-2">
 				<Button variant="outline" size="sm" data-load-projects disabled={loadingProjects} onclick={loadProjects}>

@@ -23,9 +23,9 @@
 		: 'items-center justify-between gap-4'}"
 >
 	<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-		<span class="text-row font-medium text-settings-text">{label}</span>
+		<span class="select-text text-row font-medium text-settings-text">{label}</span>
 		{#if description}
-			<span class="text-meta text-muted-foreground text-pretty">{description}</span>
+			<span class="select-text text-meta text-muted-foreground text-pretty">{description}</span>
 		{/if}
 	</div>
 	{#if layout === 'stacked'}

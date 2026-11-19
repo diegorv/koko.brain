@@ -47,8 +47,8 @@ describe('UpdateSection layout', () => {
 	}
 
 	function checkButton(root: HTMLElement): HTMLButtonElement {
-		const btn = [...root.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Check');
-		if (!btn) throw new Error(`Check button not found in: ${root.textContent}`);
+		const btn = [...root.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Check and download');
+		if (!btn) throw new Error(`Check and download button not found in: ${root.textContent}`);
 		return btn;
 	}
 

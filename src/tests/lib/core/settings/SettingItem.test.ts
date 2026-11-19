@@ -66,6 +66,14 @@ describe('SettingItem', () => {
 		expect(description.className).toContain('text-pretty');
 	});
 
+	it('lets the label and the description be selected, against the body-wide user-select: none', () => {
+		const row = render({ label: 'Font family', description: 'CSS font-family value' });
+		const { text } = parts(row);
+		const [label, description] = [...text.children] as HTMLElement[];
+		expect(label.classList.contains('select-text')).toBe(true);
+		expect(description.classList.contains('select-text')).toBe(true);
+	});
+
 	it('renders no description element for an empty description', () => {
 		const row = render({ label: 'Font family', description: '' });
 		const { text } = parts(row);

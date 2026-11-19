@@ -120,7 +120,6 @@
 	 * a tiny delta installer.
 	 */
 	function formatBytes(bytes: number): string {
-		if (bytes <= 0) return '?';
 		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
 		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 	}
@@ -273,13 +272,32 @@
 		description={`${channelOptionLabel(settingsStore.updates.channel)} channel. Last checked: ${formatLastChecked(settingsStore.updates.lastCheckedAt)}.`}
 	>
 		{#if status === 'idle'}
-			<Button variant="outline" size="sm" onclick={checkForUpdates}>
-				Check
+			<Button variant="outline" size="sm" onclick={() => checkForUpdates()}>
+				Check and download
 			</Button>
 		{:else if status === 'checking'}
 			<span class="text-meta text-muted-foreground">Checking...</span>
 		{:else if status === 'downloading'}
-			<span class="text-meta text-muted-foreground">Downloading v{pendingUpdate?.version} ({formatBytes(totalBytes)})... {downloadProgress}%</span>
+			<!-- The size and percent show only once `Started` reports a content length; without one the bar pulses. -->
+			<div class="flex w-48 flex-col gap-1.5">
+				<span class="text-meta text-muted-foreground">
+					{#if totalBytes > 0}
+						Downloading v{pendingUpdate?.version} ({formatBytes(totalBytes)})... {downloadProgress}%
+					{:else}
+						Downloading v{pendingUpdate?.version}...
+					{/if}
+				</span>
+				<div
+					class="h-1.5 w-full overflow-hidden rounded-full bg-muted {totalBytes > 0 ? '' : 'animate-pulse'}"
+					role="progressbar"
+					aria-label="Download of update v{pendingUpdate?.version}"
+					aria-valuemin={0}
+					aria-valuemax={100}
+					aria-valuenow={totalBytes > 0 ? downloadProgress : undefined}
+				>
+					<div class="h-full bg-primary transition-[width]" style:width="{totalBytes > 0 ? downloadProgress : 0}%"></div>
+				</div>
+			</div>
 		{:else if status === 'ready'}
 			<Button variant="default" size="sm" onclick={restartApp}>
 				Restart to update
@@ -288,8 +306,8 @@
 			<span class="text-meta text-success">You're up to date</span>
 		{:else if status === 'error'}
 			<div class="flex items-center gap-2">
-				<span class="text-meta text-destructive">{errorMessage}</span>
-				<Button variant="outline" size="sm" onclick={checkForUpdates}>
+				<span class="select-text text-meta text-destructive">{errorMessage}</span>
+				<Button variant="outline" size="sm" onclick={() => checkForUpdates()}>
 					Retry
 				</Button>
 			</div>
@@ -350,7 +368,7 @@
 		<h3 class="section-label mt-6 mb-2">Changes in this build</h3>
 
 		<div class="flex flex-col gap-2 rounded-lg bg-setting-item-bg px-4 py-3">
-			<span class="text-meta text-muted-foreground">
+			<span class="select-text text-meta text-muted-foreground">
 				Since {changelog.since}. Docs, tests, CI and tooling commits are hidden.
 			</span>
 			{#if changelog.commits.length === 0}
