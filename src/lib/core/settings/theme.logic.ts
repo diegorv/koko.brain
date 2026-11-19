@@ -152,7 +152,6 @@ export const KOKOBRAIN_DEFAULT_THEME: Theme = buildTheme(DEFAULT_THEME_NAME, {
 		secondaryForeground: '#f9f9f5',
 		accent: '#242835',
 		accentForeground: '#f9f9f5',
-		tabBar: '#5a5c79',
 		divider: '#383a4f',
 		fileExplorerBg: '#262938',
 		fileExplorerMutedFg: 'oklch(0.55 0.06 268)',

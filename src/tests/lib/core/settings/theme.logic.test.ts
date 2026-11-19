@@ -37,7 +37,7 @@ describe('themeColorsToCssVars', () => {
 	it('maps UI colors without prefix', () => {
 		const vars = themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors);
 		expect(vars['--background']).toBe('#21222e');
-		expect(vars['--tab-bar']).toBe('#5a5c79');
+		expect(vars['--tab-bar']).toBe('#21222e');
 		expect(vars['--file-explorer-bg']).toBe('#262938');
 	});
 

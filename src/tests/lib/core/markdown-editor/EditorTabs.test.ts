@@ -600,6 +600,20 @@ describe('EditorTabs labels, names and hover text', () => {
 		expect(dots).toHaveLength(1);
 		expect(dots[0].classList).toContain('rounded-full');
 	});
+
+	it('gives an inactive tab a hover tinted by its text color, and the active tab none', () => {
+		mountTabs([
+			{ path: '/vault/One.md', name: 'One.md', content: '', savedContent: '' },
+			{ path: '/vault/Two.md', name: 'Two.md', content: '', savedContent: '' },
+		]);
+		editorStore.setActiveIndex(1);
+		flushSync();
+
+		const [inactive, active] = tabs();
+		expect(inactive.classList).toContain('hover:bg-tab-text-inactive/10');
+		expect(inactive.classList).not.toContain('hover:bg-muted/30');
+		expect(active.classList).not.toContain('hover:bg-tab-text-inactive/10');
+	});
 });
 
 describe('EditorTabs drag to reorder', () => {

@@ -210,7 +210,7 @@
 										{pinned ? 'px-2' : 'px-3'}
 										{index === editorStore.activeIndex
 											? 'bg-editor-bg text-tab-text-active border-b-primary'
-											: 'bg-tab-bar text-tab-text-inactive border-b-transparent hover:bg-muted/30'}"
+											: 'bg-tab-bar text-tab-text-inactive border-b-transparent hover:bg-tab-text-inactive/10'}"
 									role="tab"
 									tabindex="0"
 									aria-selected={index === editorStore.activeIndex}
