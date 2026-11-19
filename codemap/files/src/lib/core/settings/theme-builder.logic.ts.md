@@ -1,6 +1,6 @@
 # file card src/lib/core/settings/theme-builder.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/settings/theme-builder.logic.ts ' codemap/files
-file src/lib/core/settings/theme-builder.logic.ts logic L318 module src/lib/core/settings in3 t11
+file src/lib/core/settings/theme-builder.logic.ts logic L318 module src/lib/core/settings in3 t12
 ## imports
 imp src/lib/core/settings/theme-builder.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:Theme,type:ThemeColors
 imp src/lib/core/settings/theme-builder.logic.ts:2 -> src/lib/utils/color.ts ensureContrast,flatten,mixColors
@@ -23,6 +23,7 @@ test src/tests/lib/core/settings/theme-package.logic.test.ts imports src/lib/cor
 test src/tests/lib/core/settings/theme-validation.logic.test.ts imports src/lib/core/settings/theme-builder.logic.ts
 test src/tests/lib/core/settings/theme.logic.test.ts imports src/lib/core/settings/theme-builder.logic.ts
 test src/tests/lib/features/rail-shell/RailNoteList.test.ts imports src/lib/core/settings/theme-builder.logic.ts
+test src/tests/lib/tint-text-tokens.test.ts imports src/lib/core/settings/theme-builder.logic.ts
 ## symbols
 sym src/lib/core/settings/theme-builder.logic.ts:8 const TYPE_PALETTE_NAMES L1 | Names of the categorical type palette.
 by src/lib/core/settings/theme-builder.logic.ts:TYPE_PALETTE_NAMES <- src/lib/features/file-icons/file-icons.logic.ts:223 in iconColorCss ref

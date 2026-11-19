@@ -83,7 +83,7 @@ by src/lib/features/type-definitions/type-sidebar.logic.ts:formatRelativeTime <-
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:283 fn formatPropertyValue(value: unknown): string L7 | Formats a frontmatter value for display.
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:291 interface PropertyPill L4
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:297 fn splitPropertyIntoPills(value: unknown): PropertyPill[] L22 | Splits a property value into pills, extracting wikilinks as separate entries.
-by src/lib/features/type-definitions/type-sidebar.logic.ts:splitPropertyIntoPills <- src/lib/features/note-list/NoteRow.svelte:154 in (markup) markup
+by src/lib/features/type-definitions/type-sidebar.logic.ts:splitPropertyIntoPills <- src/lib/features/note-list/NoteRow.svelte:158 in (markup) markup
 by src/lib/features/type-definitions/type-sidebar.logic.ts:splitPropertyIntoPills <- src/lib/features/rail-shell/list-search.logic.ts:28 in noteMatchesListQuery call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:321 interface ViewFileEntry L6 | A .view file entry for sidebar rendering.
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:329 fn collectViewFiles(tree: FileTreeNode[]): ViewFileEntry[] L6 | Collects .view files from the file tree, sorted by name in natural order ("Week 2" before "Week 10").

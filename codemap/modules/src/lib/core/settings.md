@@ -101,13 +101,13 @@ file src/lib/core/settings/settings.logic.ts logic L323 module src/lib/core/sett
 file src/lib/core/settings/settings.service.ts service L297 module src/lib/core/settings in3 t6
 file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in85 t139
 file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in26 t0
-file src/lib/core/settings/theme-builder.logic.ts logic L318 module src/lib/core/settings in3 t11
+file src/lib/core/settings/theme-builder.logic.ts logic L318 module src/lib/core/settings in3 t12
 file src/lib/core/settings/theme-catalog.service.ts service L45 module src/lib/core/settings in1 t1
 file src/lib/core/settings/theme-editor.logic.ts logic L303 module src/lib/core/settings in3 t1
 file src/lib/core/settings/theme-package.logic.ts logic L404 module src/lib/core/settings in4 t3
 file src/lib/core/settings/theme-surfaces.logic.ts logic L80 module src/lib/core/settings in8 t9
 file src/lib/core/settings/theme-validation.logic.ts logic L76 module src/lib/core/settings in2 t1
-file src/lib/core/settings/theme.logic.ts logic L408 module src/lib/core/settings in7 t31
+file src/lib/core/settings/theme.logic.ts logic L408 module src/lib/core/settings in7 t32
 file src/lib/core/settings/theme.service.ts service L89 module src/lib/core/settings in5 t14
 file src/lib/core/settings/theme.types.ts types L251 module src/lib/core/settings in10 t0
 file src/lib/core/settings/update-check.service.ts service L37 module src/lib/core/settings in1 t2
