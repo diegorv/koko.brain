@@ -53,7 +53,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 16 | [Canvas handles show on selected nodes; image cards get 8 handles and real loading and error states](issues/16-canvas-handles-show-selected-nodes-image.md) | 06 | todo | | |
 | 17 | [The canvas context menu and pickers work from the keyboard and show Mac shortcut glyphs](issues/17-canvas-context-menu-pickers-work-keyboard.md) | 06 | todo | | |
 | 18 | [Note action bar: Mac glyph tooltips, and the width toggle says when it cannot work](issues/18-note-action-bar-mac-glyph-tooltips.md) | 17 | todo | | |
-| 19 | [Toasts follow the theme; Copy block link confirms](issues/19-toasts-follow-theme-copy-block-link.md) | none | todo | | |
+| 19 | [Toasts follow the theme; Copy block link confirms](issues/19-toasts-follow-theme-copy-block-link.md) | none | in-progress | | |
 | 20 | [Keyboard focus shows at full strength; spinners and pulses respect Reduce motion](issues/20-keyboard-focus-shows-at-full-strength.md) | none | done | issue/20-keyboard-focus-shows-at-full-strength (70af959e5) | 2026-11-18 |
 | 21 | [Settings number fields write only valid values and clamp on commit](issues/21-settings-number-fields-write-only-valid.md) | none | done | issue/21-settings-number-fields-write-only-valid (725b3f677) | 2026-11-18 |
 | 22 | [Settings switches: dependents disable while their parent is off, and a switch that failed to start turns back off](issues/22-settings-switches-dependents-disable-while-parent.md) | none | done | issue/22-settings-switches-dependents-disable-while-parent (7adcde4d4) | 2026-11-18 |
@@ -168,3 +168,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 23:36 — ledger updated (added 53; title of 40)
 - 2026-11-18 23:36 — 40 — start — launched by /relay-lite:run — 740e3269c
 - 2026-11-18 23:46 — 40 — deliver — merged (tab strip and hover after the split) after review 1 APPROVED with one minor and two nits, none changed (hovered tab near active tab colour left for owner eye check) (claude); full vitest suite passed (17843 tests) — 7742f0a81
+- 2026-11-18 23:46 — 19 — start — launched by /relay-lite:run — 6c73106bc
