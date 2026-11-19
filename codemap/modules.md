@@ -58,7 +58,7 @@ module src/lib/plugins/table-of-contents plugins files 5 in-modules 1 out-module
 module src/lib/plugins/templates plugins files 4 in-modules 1 out-modules 7 pub 4/14 ipc 1/0 card ~0.8k
 module src/lib/plugins/word-count plugins files 2 in-modules 1 out-modules 1 pub 1/4 ipc 0/0 card ~0.4k
 module src/lib/types types files 1 in-modules 17 out-modules 1 pub 8/17 ipc 0/0 card ~1k
-module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 90/110 ipc 3/0 card ~10k
+module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 90/111 ipc 3/0 card ~10k
 module src/lib/utils.ts lib-root files 1 in-modules 1 out-modules 1 pub 4/4 ipc 0/0 card ~0.4k
 module src/routes routes files 5 in-modules 0 out-modules 14 pub 0/5 ipc 2/0 card ~0.6k
 ## layers (distinct file pairs)
