@@ -14,17 +14,17 @@ Not in this ticket: errors that stay until closed, a close button, "Copy details
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run. `e2e/specs/copy-block-link.spec.ts` (asserts clipboard and marker) and the specs that find `[data-sonner-toast]` by text are unaffected; run the first once if the service's early returns changed.
 
-- [ ] Failing test first (`src/tests/lib/app/AppOverlays.test.ts`, same `toast` mount as the theme test at `:44-78`): after `toast.error('x')` the toast has `data-rich-colors="false"`. It fails today.
-- [ ] The toaster element's inline style declares the three `--normal-*` variables with `var(--popover)`, `var(--popover-foreground)` and `var(--border)`; an error toast carries the error accent class and a success toast the success class (assert the class configured for its type, not a snapshot of all classes).
-- [ ] Failing test first (`src/tests/lib/features/copy-block-link/copy-block-link.service.test.ts`; extend the `svelte-sonner` mock at `:3-5` with `success` and `info`): a heading line with a working clipboard fires `toast.success`; a block line with `embed` true fires it with the embed text; an empty line fires `toast.info('Place the cursor on a block')` and writes nothing.
-- [ ] A rejected clipboard write keeps `toast.error` and no success toast, for the heading and the block path.
-- [ ] The `^id` `view.dispatch` still happens before `writeText` (assert call order with the existing mock view).
+- [x] Failing test first (`src/tests/lib/app/AppOverlays.test.ts`, same `toast` mount as the theme test at `:44-78`): after `toast.error('x')` the toast has `data-rich-colors="false"`. It fails today.
+- [x] The toaster element's inline style declares the three `--normal-*` variables with `var(--popover)`, `var(--popover-foreground)` and `var(--border)`; an error toast carries the error accent class and a success toast the success class (assert the class configured for its type, not a snapshot of all classes).
+- [x] Failing test first (`src/tests/lib/features/copy-block-link/copy-block-link.service.test.ts`; extend the `svelte-sonner` mock at `:3-5` with `success` and `info`): a heading line with a working clipboard fires `toast.success`; a block line with `embed` true fires it with the embed text; an empty line fires `toast.info('Place the cursor on a block')` and writes nothing.
+- [x] A rejected clipboard write keeps `toast.error` and no success toast, for the heading and the block path.
+- [x] The `^id` `view.dispatch` still happens before `writeText` (assert call order with the existing mock view).
 - [ ] Manual, recorded in the commit body: in `pnpm tauri dev`, a toast in light and dark uses the popover colours with the accent.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -53,3 +53,4 @@ Checked at 085b23c5d.
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. No owner questions on this ticket.
+- 2026-11-18, deliver (branch `issue/19-toasts-follow-theme-copy-block-link`): the Toaster drops `richColors`, takes the popover tokens through `--normal-*` and gets a per-type left accent; Copy block link confirms a copy with a success toast and explains an empty line with an info toast. Tests: full vitest suite 663 files, 17852 passed, 56 skipped, exit 0; `e2e/specs/copy-block-link.spec.ts` 3 passed. Review round 1: APPROVED (no code fixes needed). The manual light/dark check in `pnpm tauri dev` is unverified and stays open for the owner.

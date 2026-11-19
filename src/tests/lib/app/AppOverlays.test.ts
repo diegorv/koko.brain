@@ -68,6 +68,47 @@ describe('AppOverlays toaster theme', () => {
 		flushSync();
 		expect(toasterTheme()).toBe('dark');
 	});
+
+	/** The rendered toast whose text is `text`. */
+	async function showToast(show: (text: string) => unknown, text: string): Promise<HTMLElement> {
+		show(text);
+		await tick();
+		flushSync();
+		const el = [...document.querySelectorAll<HTMLElement>('[data-sonner-toast]')].find((t) =>
+			t.textContent?.includes(text),
+		);
+		if (!el) throw new Error(`toast "${text}" not rendered`);
+		return el;
+	}
+
+	it('does not use rich colors', async () => {
+		const el = await showToast(toast.error, 'x');
+		expect(el.getAttribute('data-rich-colors')).toBe('false');
+	});
+
+	it('takes the normal colors from the theme tokens', async () => {
+		await showToast(toast, 'x');
+		const toaster = document.querySelector<HTMLElement>('[data-sonner-toaster]');
+		expect(toaster?.style.getPropertyValue('--normal-bg')).toBe('var(--popover)');
+		expect(toaster?.style.getPropertyValue('--normal-text')).toBe('var(--popover-foreground)');
+		expect(toaster?.style.getPropertyValue('--normal-border')).toBe('var(--border)');
+	});
+
+	it('gives each toast type its accent class', async () => {
+		const error = await showToast(toast.error, 'failed');
+		expect(error.classList).toContain('!border-l-destructive');
+		expect(error.classList).not.toContain('!border-l-success');
+
+		const success = await showToast(toast.success, 'done');
+		expect(success.classList).toContain('!border-l-success');
+		expect(success.classList).not.toContain('!border-l-destructive');
+
+		const warning = await showToast(toast.warning, 'careful');
+		expect(warning.classList).toContain('!border-l-warning');
+
+		const info = await showToast(toast.info, 'note');
+		expect(info.classList).toContain('!border-l-primary');
+	});
 });
 
 describe('AppOverlays live mod palette commands', () => {

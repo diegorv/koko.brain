@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('svelte-sonner', () => ({
-	toast: { error: vi.fn() },
+	toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
 }));
 
 // No mocks for stores or logic files — use real implementations per CLAUDE.md
@@ -140,6 +140,57 @@ describe('copyBlockLink', () => {
 			expect.any(Error),
 		);
 		consoleErrorSpy.mockRestore();
+	});
+
+	it('confirms a copied heading link', async () => {
+		await copyBlockLink(createMockView('## Heading'), false);
+
+		expect(toast.success).toHaveBeenCalledWith('Block link copied');
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	it('confirms a copied block embed', async () => {
+		await copyBlockLink(createMockView('some block ^existing'), true);
+
+		expect(mockWriteText).toHaveBeenCalledWith('![[note#^existing]]');
+		expect(toast.success).toHaveBeenCalledWith('Block embed copied');
+	});
+
+	it('confirms a copied block link', async () => {
+		await copyBlockLink(createMockView('- [ ] a task'), false);
+
+		expect(toast.success).toHaveBeenCalledWith('Block link copied');
+	});
+
+	it('tells the user to place the cursor on a block on an empty line', async () => {
+		const view = createMockView('   ');
+
+		await copyBlockLink(view, false);
+
+		expect(toast.info).toHaveBeenCalledWith('Place the cursor on a block');
+		expect(mockWriteText).not.toHaveBeenCalled();
+		expect(view.dispatch).not.toHaveBeenCalled();
+		expect(toast.success).not.toHaveBeenCalled();
+	});
+
+	it('fires no success toast when the clipboard write fails', async () => {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		mockWriteText.mockRejectedValue(new Error('Clipboard access denied'));
+
+		await copyBlockLink(createMockView('## Heading'), false);
+		await copyBlockLink(createMockView('- [ ] a task'), false);
+
+		expect(toast.error).toHaveBeenCalledTimes(2);
+		expect(toast.success).not.toHaveBeenCalled();
+		vi.mocked(console.error).mockRestore();
+	});
+
+	it('inserts the block id before writing to the clipboard', async () => {
+		const view = createMockView('- [ ] a task');
+
+		await copyBlockLink(view, false);
+
+		expect(view.dispatch.mock.invocationCallOrder[0]).toBeLessThan(mockWriteText.mock.invocationCallOrder[0]);
 	});
 });
 

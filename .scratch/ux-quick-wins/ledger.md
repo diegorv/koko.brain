@@ -53,7 +53,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 16 | [Canvas handles show on selected nodes; image cards get 8 handles and real loading and error states](issues/16-canvas-handles-show-selected-nodes-image.md) | 06 | todo | | |
 | 17 | [The canvas context menu and pickers work from the keyboard and show Mac shortcut glyphs](issues/17-canvas-context-menu-pickers-work-keyboard.md) | 06 | todo | | |
 | 18 | [Note action bar: Mac glyph tooltips, and the width toggle says when it cannot work](issues/18-note-action-bar-mac-glyph-tooltips.md) | 17 | todo | | |
-| 19 | [Toasts follow the theme; Copy block link confirms](issues/19-toasts-follow-theme-copy-block-link.md) | none | todo | | |
+| 19 | [Toasts follow the theme; Copy block link confirms](issues/19-toasts-follow-theme-copy-block-link.md) | none | in-progress | | |
 | 20 | [Keyboard focus shows at full strength; spinners and pulses respect Reduce motion](issues/20-keyboard-focus-shows-at-full-strength.md) | none | done | issue/20-keyboard-focus-shows-at-full-strength (70af959e5) | 2026-11-18 |
 | 21 | [Settings number fields write only valid values and clamp on commit](issues/21-settings-number-fields-write-only-valid.md) | none | done | issue/21-settings-number-fields-write-only-valid (725b3f677) | 2026-11-18 |
 | 22 | [Settings switches: dependents disable while their parent is off, and a switch that failed to start turns back off](issues/22-settings-switches-dependents-disable-while-parent.md) | none | done | issue/22-settings-switches-dependents-disable-while-parent (7adcde4d4) | 2026-11-18 |
@@ -74,7 +74,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 37 | [Mods: each mod says what it does; the run view shows status and progress clearly](issues/37-mods-each-mod-run-view-shows.md) | none | done | issue/37-mods-each-mod-run-view-shows (a52bc3d78) | 2026-11-18 |
 | 38 | [Settings: text you can select, the Todoist root row fits, the update button says it downloads](issues/38-settings-text-you-can-select-todoist.md) | none | todo | | |
 | 39 | [Readable text on coloured fills: kanban tag chips, linear-calendar bars, the rail badge](issues/39-readable-chips-faded-text.md) | 12 | done | issue/39-readable-chips-faded-text (f6ef510a0) | 2026-11-18 |
-| 40 | [Default theme: a darker tab strip with a visible tab hover](issues/40-default-theme-darker-tab-strip-visible.md) | 20, 39 | in-progress | | |
+| 40 | [Default theme: a darker tab strip with a visible tab hover](issues/40-default-theme-darker-tab-strip-visible.md) | 20, 39 | done | issue/40-default-theme-darker-tab-strip-visible (7742f0a81) | 2026-11-18 |
 | 41 | [Word count and graph stats read correctly for 0 and 1; graph mode buttons show their state](issues/41-word-count-graph-stats-read-correctly.md) | none | todo | | |
 | 42 | [Kanban cards move between lanes from the card menu](issues/42-kanban-cards-move-between-lanes-card.md) | 10, 11, 12 | done | issue/42-kanban-cards-move-between-lanes-card (8258ffac3) | 2026-11-18 |
 | 43 | [New canvas text cards open ready to type and cascade; Enter or F2 edits a selected card](issues/43-new-canvas-text-cards-open-ready.md) | 06, 16 | todo | | |
@@ -167,3 +167,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 23:36 — 40 — deliver — blocked: deleting Default inlineFg makes bold equal body text, failing the Issue 05 bold-apart test; owner decision on bold colour — 729dbe68b
 - 2026-11-18 23:36 — ledger updated (added 53; title of 40)
 - 2026-11-18 23:36 — 40 — start — launched by /relay-lite:run — 740e3269c
+- 2026-11-18 23:46 — 40 — deliver — merged (tab strip and hover after the split) after review 1 APPROVED with one minor and two nits, none changed (hovered tab near active tab colour left for owner eye check) (claude); full vitest suite passed (17843 tests) — 7742f0a81
+- 2026-11-18 23:46 — 19 — start — launched by /relay-lite:run — 6c73106bc

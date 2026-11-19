@@ -21,11 +21,14 @@ export async function copyBlockLink(view: EditorView, embed: boolean): Promise<v
 	const cursorPos = view.state.selection.main.head;
 	const line = view.state.doc.lineAt(cursorPos);
 
-	// Skip empty lines
-	if (line.text.trim() === '') return;
+	if (line.text.trim() === '') {
+		toast.info('Place the cursor on a block');
+		return;
+	}
 
 	const element = detectBlockElement(line.text);
 	const noteName = getNoteName(filePath);
+	const successMessage = embed ? 'Block embed copied' : 'Block link copied';
 
 	let blockId: string | null = null;
 
@@ -39,6 +42,7 @@ export async function copyBlockLink(view: EditorView, embed: boolean): Promise<v
 			toast.error('Failed to copy link to clipboard.');
 			return;
 		}
+		toast.success(successMessage);
 		return;
 	}
 
@@ -59,7 +63,9 @@ export async function copyBlockLink(view: EditorView, embed: boolean): Promise<v
 	} catch (err) {
 		error('COPY-BLOCK-LINK', 'Failed to copy link to clipboard:', err);
 		toast.error('Failed to copy link to clipboard.');
+		return;
 	}
+	toast.success(successMessage);
 }
 
 /** Copies a wikilink to the block at the current cursor position */
