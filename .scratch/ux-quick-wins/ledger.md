@@ -87,7 +87,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 50 | [The Kanban card menu opens from the keyboard](issues/50-kanban-card-menu-opens-from-keyboard.md) | none | todo | | |
 | 51 | [The Create note path warning names a path and follows the typed text](issues/51-auto-organize-create-path-warning-reads-draft.md) | none | done | issue/51-auto-organize-create-path-warning-reads-draft (29563b109) | 2026-11-19 |
 | 52 | [Readable note list chips, archived rows and search snippet](issues/52-note-list-chips-archived-rows-search-snippet.md) | none | done | issue/52-note-list-chips-archived-rows-search-snippet (79fa2faf4) | 2026-11-19 |
-| 53 | [Default theme: bold and italic off the link blue](issues/53-default-bold-italic-off-link-blue.md) | 40 | todo | | |
+| 53 | [Default theme: bold and italic off the link blue](issues/53-default-bold-italic-off-link-blue.md) | 40 | in-progress | | |
 | 54 | [Note list property pill keeps contrast on hover](issues/54-note-list-pill-hover-contrast.md) | none | todo | | |
 
 ## Log
@@ -182,3 +182,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 06:56 — 52 — start — launched by /relay-lite:run — df393fc18
 - 2026-11-19 07:05 — 52 — deliver — merged 79fa2faf4; review 1 APPROVED (4 findings, no code change; follow-up Issue 54 filed); full suite 17990 passed; by-eye theme check owed by owner — 79fa2faf4
 - 2026-11-19 07:05 — ledger updated (added 54)
+- 2026-11-19 07:05 — 53 — start — launched by /relay-lite:run — fe38b615f
