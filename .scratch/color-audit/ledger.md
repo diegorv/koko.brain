@@ -46,7 +46,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [Canvas text, edges, groups and presets read on light themes](issues/09-canvas-readable-on-light-themes.md) | none | todo | | |
 | 10 | [QueryJS charts, heatmaps and mermaid follow the theme](issues/10-queryjs-charts-mermaid-follow-theme.md) | 08 | todo | | |
 | 11 | [Graph view labels, edges and controls read on every theme](issues/11-graph-view-follows-theme.md) | 07 | todo | | |
-| 12 | [User, edited and imported themes are corrected and the editor warns](issues/12-user-themes-readability-checks.md) | 07 | in-progress | | |
+| 12 | [User, edited and imported themes are corrected and the editor warns](issues/12-user-themes-readability-checks.md) | 07 | done | issue/12-user-themes-readability-checks (9c8ff9717) | 2026-11-19 |
 | 13 | [Themes repo: Zettlr hover and selected surfaces, and a contrast CI](issues/13-themes-repo-zettlr-palettes-contrast-ci.md) | 07 | done | koko.brain-themes eb9f062, bfdd3d8 | 2026-11-19 |
 | 14 | [Kanban date badges read on coloured cards](issues/14-kanban-date-badges-coloured-cards.md) | 04 | todo | | |
 
@@ -67,3 +67,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 18:00 — 07 — deliver — merged; review APPROVED with 3 findings (input pairs on fileExplorerBg/editorBg fixed, per-token lift kept by design, ring/blockquote asserted), round 2 APPROVED; full suite 684 files passed; E2E focus-ring.spec not run — cc6b30159
 - 2026-11-19 18:00 — 12 — start — launched by /relay-lite:run (owner order: after 07) — b7ad075e6
 - 2026-11-19 18:17 — 13 — deliver — done by hand in the themes repo: Zettlr palettes (eb9f062), palette-design checks in pnpm validate plus 13 themes fixed (bfdd3d8); Themes CI green — 3a8eb75f5
+- 2026-11-19 18:29 — 12 — deliver — merged; review APPROVED, fix round, round 2 APPROVED (1 nit); owner to confirm the Default error red #fd746e (typeRed/orange/pink derive from the 4.5 lift); ThemePreview unlifted is a follow-up; full suite 684 files passed — 9c8ff9717
