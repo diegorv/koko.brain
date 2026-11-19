@@ -1,7 +1,7 @@
 # module card src/lib/utils
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/utils ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 90/111 ipc 3/0 card ~10k
+module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 90/112 ipc 3/0 card ~10k
 ## neighbors
 dep src/lib/app -> src/lib/utils 17
 dep src/lib/core/editor -> src/lib/utils 7
@@ -86,7 +86,7 @@ file src/lib/utils/build-info.js other L167 module src/lib/utils in1 t1
 file src/lib/utils/capture-path.ts other L14 module src/lib/utils in3 t1
 file src/lib/utils/clamp.ts other L9 module src/lib/utils in10 t1
 file src/lib/utils/color-presets.ts other L39 module src/lib/utils in6 t1
-file src/lib/utils/color.ts other L172 module src/lib/utils in8 t7
+file src/lib/utils/color.ts other L203 module src/lib/utils in8 t8
 file src/lib/utils/date.ts other L170 module src/lib/utils in17 t3
 file src/lib/utils/debounce.ts other L55 module src/lib/utils in4 t4
 file src/lib/utils/debug.ts other L166 module src/lib/utils in74 t53
@@ -121,9 +121,9 @@ sym src/lib/utils/color-presets.ts:28 const COLOR_PRESET_TEXT: Record<string, st
 sym src/lib/utils/color-presets.ts:37 const COLOR_PRESET_CHIP_TEXT: Record<string, string> L3 | Named color presets for text on a `COLOR_PRESET_BG` chip: the preset moved 70% toward `--editor-fg`, so it keeps its hue and stays readable on the chip tint.
 sym src/lib/utils/color.ts:48 fn flatten(color: string, base: string): string | null L7 | Composites `color` (alpha honored) over the opaque `base` into a 6-digit hex; null when either is unparseable.
 sym src/lib/utils/color.ts:71 fn isDarkColor(color: string): boolean | null L4 | True when a background color is dark (WCAG relative luminance below 0.2), false when light, null when the value is not a hex, rgb() or oklch() color.
-sym src/lib/utils/color.ts:81 fn contrastRatio(a: string, b: string): number | null L8 | WCAG contrast ratio of foreground `a` on background `b`, with a translucent `a` composited over `b` (`b`'s own alpha is ignored; flatten it first).
 sym src/lib/utils/color.ts:127 fn ensureContrast(fg: string, bg: string, min: number): string L20 | Returns `fg` moved in OKLab toward white or black by the smallest 1% step that reaches `min` contrast on `bg`, keeping its hue family and any 8-digit alpha suf…
 sym src/lib/utils/color.ts:152 fn mixColors(a: string, b: string, t = 0.5): string | null L8 | OKLab mix of two colors as a 6-digit hex (alpha ignored): `t` is the share of `b`, 0.5 (the midpoint) by default.
+sym src/lib/utils/color.ts:198 fn labelColors(color: string): { fill: string; text: '#000000' | '#ffffff' } | null L6 | Fill and text for a label drawn on `color` (a badge, an event bar).
 sym src/lib/utils/date.ts:15 fn formatNow(outputFormat: string, offsetDays: number = 0): string L3 | Returns the current datetime formatted, with an optional day offset.
 sym src/lib/utils/date.ts:42 fn formatDate(date: dayjs.ConfigType, format: string): string L3 | Formats a date value (string, Date, dayjs, etc.) into the given format string.
 sym src/lib/utils/date.ts:92 fn formatToCapturingRegex(format: string): RegExp L36 | Converts a dayjs format string into an anchored regex (`^...$`) with named capture groups.

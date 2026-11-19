@@ -3,7 +3,7 @@ cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t
 file src/lib/features/collection/CollectionLinearCalendarView.svelte component L221 module src/lib/features/collection in1 t1
 ## imports
 imp src/lib/features/collection/CollectionLinearCalendarView.svelte:2 -> src/lib/features/collection/collection.types.ts type:QueryResult,type:PropertyIndexRecord
-imp src/lib/features/collection/CollectionLinearCalendarView.svelte:3 -> src/lib/features/collection/linear-calendar.logic.ts buildLinearYearLayout,buildColorMapping,getColorForValue,barTextColor,type:MonthRow,type:ColorMapping
+imp src/lib/features/collection/CollectionLinearCalendarView.svelte:3 -> src/lib/features/collection/linear-calendar.logic.ts buildLinearYearLayout,buildColorMapping,getColorForValue,barColors,type:MonthRow,type:ColorMapping
 ## imported-by
 imp src/lib/features/collection/CollectionView.svelte:26 -> src/lib/features/collection/CollectionLinearCalendarView.svelte default
 ## reach
@@ -36,10 +36,10 @@ call src/lib/features/collection/CollectionLinearCalendarView.svelte:98 in (mark
 call src/lib/features/collection/CollectionLinearCalendarView.svelte:105 in (markup) -> src/lib/features/collection/CollectionLinearCalendarView.svelte:goToCurrentYear markup
 call src/lib/features/collection/CollectionLinearCalendarView.svelte:112 in (markup) -> src/lib/features/collection/CollectionLinearCalendarView.svelte:goToNextYear markup
 call src/lib/features/collection/CollectionLinearCalendarView.svelte:119 in (markup) -> src/lib/features/collection/CollectionLinearCalendarView.svelte:goToFarNextYear markup
+call src/lib/features/collection/CollectionLinearCalendarView.svelte:133 in (markup) -> src/lib/features/collection/linear-calendar.logic.ts:barColors markup +2
 call src/lib/features/collection/CollectionLinearCalendarView.svelte:133 in (markup) -> src/lib/features/collection/linear-calendar.logic.ts:getColorForValue markup
 call src/lib/features/collection/CollectionLinearCalendarView.svelte:162 in (markup) -> src/lib/features/collection/CollectionLinearCalendarView.svelte:getRowHeight markup
 call src/lib/features/collection/CollectionLinearCalendarView.svelte:202 in (markup) -> src/lib/features/collection/CollectionLinearCalendarView.svelte:getBarLeft markup
 call src/lib/features/collection/CollectionLinearCalendarView.svelte:203 in (markup) -> src/lib/features/collection/CollectionLinearCalendarView.svelte:getBarWidth markup
 call src/lib/features/collection/CollectionLinearCalendarView.svelte:204 in (markup) -> src/lib/features/collection/CollectionLinearCalendarView.svelte:getBarTop markup
 call src/lib/features/collection/CollectionLinearCalendarView.svelte:206 in (markup) -> src/lib/features/collection/CollectionLinearCalendarView.svelte:getBarColor markup +1
-call src/lib/features/collection/CollectionLinearCalendarView.svelte:207 in (markup) -> src/lib/features/collection/linear-calendar.logic.ts:barTextColor markup
