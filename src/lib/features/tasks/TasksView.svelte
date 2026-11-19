@@ -631,7 +631,7 @@
 {#snippet refreshAlert(message: string)}
 	<div
 		role="alert"
-		class="my-2 flex items-center justify-between gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-row text-destructive"
+		class="my-2 flex items-center justify-between gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-row text-destructive-tint-fg"
 	>
 		<p>{message}</p>
 		<button

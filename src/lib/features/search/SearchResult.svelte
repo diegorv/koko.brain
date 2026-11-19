@@ -150,10 +150,10 @@
 				<span
 					class="text-label px-1 rounded-xs ml-auto shrink-0
 						{badgeSource === 'both'
-						? 'bg-file-explorer-primary/15 text-file-explorer-primary'
+						? 'bg-file-explorer-primary/15 text-file-explorer-primary-tint-fg'
 						: badgeSource === 'semantic'
-							? 'bg-search-semantic-bg text-search-semantic-fg'
-							: 'bg-muted text-file-explorer-muted-fg'}"
+							? 'bg-search-semantic-bg text-search-semantic-tint-fg'
+							: 'bg-muted text-file-explorer-fg'}"
 				>
 					{badgeSource === 'both' ? 'Both' : badgeSource === 'semantic' ? 'Semantic' : 'Text'}
 				</span>

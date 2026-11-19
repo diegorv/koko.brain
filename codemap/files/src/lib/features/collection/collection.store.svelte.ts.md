@@ -12,7 +12,7 @@ imp src/lib/features/collection/CollectionView.svelte:16 -> src/lib/features/col
 imp src/lib/features/collection/collection-block-widget.ts:7 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/collection/collection.service.ts:8 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/rail-shell/RailNoteList.svelte:32 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
-imp src/lib/features/rail-shell/TypesNavigator.svelte:46 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
+imp src/lib/features/rail-shell/TypesNavigator.svelte:48 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/type-definitions/ViewDialog.svelte:7 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/plugins/mods/mod-app.service.ts:9 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/plugins/mods/mod-query.service.ts:2 -> src/lib/features/collection/collection.store.svelte.ts collectionStore

@@ -1,6 +1,6 @@
 # effects storage: one fx line per site, by sink, file, line
 cols: fx <loc> <sink> [<arg>] in <enclosing> · grep: grep -F -- ' <sink> ' codemap/effects/storage.md
-fx src/lib/core/settings/theme.service.ts:57 storage.getItem in applyStoredTheme
+fx src/lib/core/settings/theme.service.ts:59 storage.getItem in applyStoredTheme
 fx src/lib/core/vault/vault.store.svelte.ts:47 storage.getItem in loadRecentVaults
 fx src/lib/core/zoom/zoom.service.ts:46 storage.getItem in restoreZoom
 fx src/lib/features/command-palette/command-palette.store.svelte.ts:9 storage.getItem in loadRecentCommandIds
@@ -12,7 +12,7 @@ fx src/lib/core/zoom/zoom.service.ts:61 storage.removeItem in applyZoom
 fx src/lib/features/command-palette/command-palette.store.svelte.ts:52 storage.removeItem in commandPaletteStore.reset
 fx src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:51 storage.removeItem in quickSwitcherStore.reset
 fx src/routes/composer/+page.svelte:73 storage.removeItem in writeDraft
-fx src/lib/core/settings/theme.service.ts:82 storage.setItem in applyActiveTheme
+fx src/lib/core/settings/theme.service.ts:84 storage.setItem in applyActiveTheme
 fx src/lib/core/vault/vault.store.svelte.ts:56 storage.setItem in persistRecentVaults
 fx src/lib/core/zoom/zoom.service.ts:62 storage.setItem in applyZoom
 fx src/lib/features/command-palette/command-palette.store.svelte.ts:18 storage.setItem in persistRecentCommandIds

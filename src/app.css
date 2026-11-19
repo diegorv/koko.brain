@@ -74,6 +74,13 @@
 	--color-type-gray: var(--type-gray);
 	--color-warning: var(--warning);
 	--color-success: var(--success);
+	--color-primary-tint-fg: var(--primary-tint-fg);
+	--color-file-explorer-primary-tint-fg: var(--file-explorer-primary-tint-fg);
+	--color-search-semantic-tint-fg: var(--search-semantic-tint-fg);
+	--color-destructive-tint-fg: var(--destructive-tint-fg);
+	--color-success-tint-fg: var(--success-tint-fg);
+	--color-warning-tint-fg: var(--warning-tint-fg);
+	--color-type-purple-tint-fg: var(--type-purple-tint-fg);
 	--color-scrim: var(--elev-scrim);
 
 	/*
@@ -412,6 +419,23 @@
 	--event-pink-fg: color-mix(in oklab, #ec4899 30%, var(--editor-fg));
 	--event-blue-bg: color-mix(in oklab, #3b82f6 25%, var(--editor-bg));
 	--event-blue-fg: color-mix(in oklab, #3b82f6 30%, var(--editor-fg));
+}
+
+/*
+ * Text drawn on a tint of its own color (a selected row on bg-primary/25, a
+ * badge on bg-success/20, a highlighted Delete on bg-destructive/10): the raw
+ * color fails 4.5:1 there on many themes, so the text is that color moved
+ * toward the theme text. Each share is the largest that keeps 4.5:1 on every
+ * surface the token is used on; tint-text-tokens.test.ts holds the surfaces.
+ */
+:root {
+	--primary-tint-fg: color-mix(in oklab, var(--primary) 14%, var(--foreground));
+	--file-explorer-primary-tint-fg: color-mix(in oklab, var(--file-explorer-primary) 20%, var(--file-explorer-fg));
+	--search-semantic-tint-fg: color-mix(in oklab, var(--search-semantic-fg) 45%, var(--file-explorer-fg));
+	--destructive-tint-fg: color-mix(in oklab, var(--destructive) 40%, var(--foreground));
+	--success-tint-fg: color-mix(in oklab, var(--success) 45%, var(--foreground));
+	--warning-tint-fg: color-mix(in oklab, var(--warning) 45%, var(--foreground));
+	--type-purple-tint-fg: color-mix(in oklab, var(--type-purple) 30%, var(--foreground));
 }
 
 /*

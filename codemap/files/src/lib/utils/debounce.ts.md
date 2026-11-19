@@ -4,7 +4,7 @@ file src/lib/utils/debounce.ts other L55 module src/lib/utils in4 t4
 ## imported-by
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:7 -> src/lib/utils/debounce.ts debounce
 imp src/lib/core/editor/editor.service.ts:9 -> src/lib/utils/debounce.ts debounce
-imp src/lib/features/rail-shell/TypesNavigator.svelte:25 -> src/lib/utils/debounce.ts debounce
+imp src/lib/features/rail-shell/TypesNavigator.svelte:27 -> src/lib/utils/debounce.ts debounce
 imp src/lib/features/tags/tags.service.ts:3 -> src/lib/utils/debounce.ts debounce
 ## reach
 in2 src/lib/utils/debounce.ts 56 files in 30 modules: src/lib/app(7) src/lib/features/event-calendar(5) src/lib/core/filesystem(3) src/lib/features/rail-shell(3) src/lib/core/markdown-editor(2) +25 modules: q impact src/lib/utils/debounce.ts --depth 2
@@ -19,7 +19,7 @@ sym src/lib/utils/debounce.ts:2 interface DebounceOptions L8 | Options for `debo
 sym src/lib/utils/debounce.ts:12 fn debounce<T extends (...args: any[]) => void>(fn: T, delay: number, options: DebounceOptions = {}): ((...args: Parameters<T>) =>… L44 | Creates a debounced version of a function that delays execution until after the given delay in ms.
 by src/lib/utils/debounce.ts:debounce <- src/lib/app/lifecycle/app-lifecycle.service.ts:514 in initializeVault call
 by src/lib/utils/debounce.ts:debounce <- src/lib/core/editor/editor.service.ts:276 in debouncedSave call +1
-by src/lib/utils/debounce.ts:debounce <- src/lib/features/rail-shell/TypesNavigator.svelte:88 in recountViews call
+by src/lib/utils/debounce.ts:debounce <- src/lib/features/rail-shell/TypesNavigator.svelte:94 in recountViews call
 by src/lib/utils/debounce.ts:debounce <- src/lib/features/tags/tags.service.ts:91 in debouncedTrigger call
 ## effects
 fx src/lib/utils/debounce.ts:38 timer.setTimeout delay=delay in debounce

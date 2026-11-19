@@ -1,14 +1,20 @@
 # file card src/lib/features/tags/TagColorDot.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/tags/TagColorDot.svelte ' codemap/files
-file src/lib/features/tags/TagColorDot.svelte component L19 module src/lib/features/tags in1 t0
+file src/lib/features/tags/TagColorDot.svelte component L30 module src/lib/features/tags in1 t0
+## imports
+imp src/lib/features/tags/TagColorDot.svelte:3 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
+imp src/lib/features/tags/TagColorDot.svelte:4 -> src/lib/core/settings/theme-surfaces.logic.ts readableOn,themeSurface
 ## imported-by
 imp src/lib/features/tags/TagItem.svelte:7 -> src/lib/features/tags/TagColorDot.svelte default
 ## reach
 in2 src/lib/features/tags/TagColorDot.svelte 1 files in 1 modules: src/lib/features/tags(1)
-out2 src/lib/features/tags/TagColorDot.svelte 0 files in 0 modules: -
+out2 src/lib/features/tags/TagColorDot.svelte 1 files in 1 modules: src/lib/utils(1)
 ## symbols
-sym src/lib/features/tags/TagColorDot.svelte:1 component TagColorDot props:color L19
+sym src/lib/features/tags/TagColorDot.svelte:1 component TagColorDot props:color L30
 by src/lib/features/tags/TagColorDot.svelte:default <- src/lib/features/tags/TagItem.svelte:55 in (markup) mount +1
 ## mounted-at
 mount src/lib/features/tags/TagItem.svelte:55 TagColorDot -> src/lib/features/tags/TagColorDot.svelte
 mount src/lib/features/tags/TagItem.svelte:82 TagColorDot -> src/lib/features/tags/TagColorDot.svelte
+## calls
+call src/lib/features/tags/TagColorDot.svelte:18 in shown=$derived -> src/lib/core/settings/theme-surfaces.logic.ts:readableOn call
+call src/lib/features/tags/TagColorDot.svelte:18 in shown=$derived -> src/lib/core/settings/theme-surfaces.logic.ts:themeSurface call +1

@@ -16,7 +16,7 @@
 	const STATUS_CLASSES: Record<ModRunStatus, string> = {
 		running: 'text-muted-foreground',
 		done: 'text-success',
-		failed: 'text-destructive',
+		failed: 'text-destructive-tint-fg',
 		cancelled: 'text-muted-foreground',
 	};
 

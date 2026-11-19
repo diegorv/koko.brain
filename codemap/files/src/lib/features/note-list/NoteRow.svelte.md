@@ -1,22 +1,24 @@
 # file card src/lib/features/note-list/NoteRow.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/note-list/NoteRow.svelte ' codemap/files
-file src/lib/features/note-list/NoteRow.svelte component L171 module src/lib/features/note-list in1 t5
+file src/lib/features/note-list/NoteRow.svelte component L179 module src/lib/features/note-list in1 t5
 ## imports
 imp src/lib/features/note-list/NoteRow.svelte:6 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/note-list/NoteRow.svelte:7 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/features/note-list/NoteRow.svelte:8 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
-imp src/lib/features/note-list/NoteRow.svelte:9 -> src/lib/features/file-icons/IconRenderer.svelte default
-imp src/lib/features/note-list/NoteRow.svelte:10 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
-imp src/lib/features/note-list/NoteRow.svelte:11 -> src/lib/features/file-icons/icon-resolver.ts type:ResolvedIcon
-imp src/lib/features/note-list/NoteRow.svelte:12 -> src/lib/core/filesystem/wikilink-resolution.logic.ts resolveWikilink
-imp src/lib/features/note-list/NoteRow.svelte:13 -> src/lib/features/type-definitions/type-sidebar.logic.ts splitPropertyIntoPills
-imp src/lib/features/note-list/NoteRow.svelte:14 -> src/lib/features/note-list/note-row-menu.context.ts RENAME_SHORTCUT,useNoteRowMenuContext
-imp src/lib/features/note-list/NoteRow.svelte:15 -> src/lib/features/note-list/note-row.types.ts type:NoteRowNote
+imp src/lib/features/note-list/NoteRow.svelte:9 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
+imp src/lib/features/note-list/NoteRow.svelte:10 -> src/lib/core/settings/theme-surfaces.logic.ts readableOn,rowSurfaces
+imp src/lib/features/note-list/NoteRow.svelte:11 -> src/lib/features/file-icons/IconRenderer.svelte default
+imp src/lib/features/note-list/NoteRow.svelte:12 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle,readableIconColor
+imp src/lib/features/note-list/NoteRow.svelte:13 -> src/lib/features/file-icons/icon-resolver.ts type:ResolvedIcon
+imp src/lib/features/note-list/NoteRow.svelte:14 -> src/lib/core/filesystem/wikilink-resolution.logic.ts resolveWikilink
+imp src/lib/features/note-list/NoteRow.svelte:15 -> src/lib/features/type-definitions/type-sidebar.logic.ts splitPropertyIntoPills
+imp src/lib/features/note-list/NoteRow.svelte:16 -> src/lib/features/note-list/note-row-menu.context.ts RENAME_SHORTCUT,useNoteRowMenuContext
+imp src/lib/features/note-list/NoteRow.svelte:17 -> src/lib/features/note-list/note-row.types.ts type:NoteRowNote
 ## imported-by
 imp src/lib/features/rail-shell/RailNoteList.svelte:60 -> src/lib/features/note-list/NoteRow.svelte default
 ## reach
 in2 src/lib/features/note-list/NoteRow.svelte 1 files in 1 modules: src/lib/app(1)
-out2 src/lib/features/note-list/NoteRow.svelte 22 files in 12 modules: src/lib/core/editor(4) src/lib/utils(4) src/lib/features/file-icons(3) src/lib/core/filesystem(2) src/lib/features/collection(2) +7 modules
+out2 src/lib/features/note-list/NoteRow.svelte 23 files in 12 modules: src/lib/utils(5) src/lib/core/editor(4) src/lib/features/file-icons(3) src/lib/core/filesystem(2) src/lib/features/collection(2) +7 modules
 ## tests
 test src/tests/lib/features/note-list/NoteRow.test.ts harness src/lib/features/note-list/NoteRow.svelte mirror via src/tests/fixtures/NoteRowMenuHarness.svelte
 test src/tests/lib/features/note-list/NoteRowMenu.favorite.test.ts harness src/lib/features/note-list/NoteRow.svelte via src/tests/fixtures/NoteRowMenuHarness.svelte
@@ -24,19 +26,22 @@ test src/tests/lib/features/note-list/NoteRowMenu.lifecycle.test.ts harness src/
 test src/tests/lib/features/note-list/NoteRowMenu.show-in-views.test.ts harness src/lib/features/note-list/NoteRow.svelte via src/tests/fixtures/NoteRowMenuHarness.svelte
 test src/tests/lib/features/note-list/NoteRowMenu.test.ts harness src/lib/features/note-list/NoteRow.svelte via src/tests/fixtures/NoteRowMenuHarness.svelte
 ## symbols
-sym src/lib/features/note-list/NoteRow.svelte:1 component NoteRow props:note,icon,isActive,listProperties,allPaths,typeName=,subtitle,italic=,archived=,fallbackIcon=,draggable=,onOrganize,tabindex L171
+sym src/lib/features/note-list/NoteRow.svelte:1 component NoteRow props:note,icon,isActive,listProperties,allPaths,typeName=,subtitle,italic=,archived=,fallbackIcon=,draggable=,onOrganize,tabindex L179
 by src/lib/features/note-list/NoteRow.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:1146 in (markup) mount
 ## locals
-local src/lib/features/note-list/NoteRow.svelte:55 fn handleRenameKeydown(e: KeyboardEvent) L4
+local src/lib/features/note-list/NoteRow.svelte:63 fn handleRenameKeydown(e: KeyboardEvent) L4
 ## mounts
-mount src/lib/features/note-list/NoteRow.svelte:68 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
-mount src/lib/features/note-list/NoteRow.svelte:122 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/note-list/NoteRow.svelte:76 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
+mount src/lib/features/note-list/NoteRow.svelte:130 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 ## mounted-at
 mount src/lib/features/rail-shell/RailNoteList.svelte:1146 NoteRow -> src/lib/features/note-list/NoteRow.svelte
 ## calls
-call src/lib/features/note-list/NoteRow.svelte:49 in menu -> src/lib/features/note-list/note-row-menu.context.ts:useNoteRowMenuContext call
-call src/lib/features/note-list/NoteRow.svelte:70 in (markup) -> src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle markup +1
-call src/lib/features/note-list/NoteRow.svelte:75 in (markup) -> src/lib/features/note-list/NoteRow.svelte:handleRenameKeydown markup
-call src/lib/features/note-list/NoteRow.svelte:109 in (markup) -> src/lib/core/editor/editor.service.ts:openFileInEditor markup +2
-call src/lib/features/note-list/NoteRow.svelte:146 in (markup) -> src/lib/features/type-definitions/type-sidebar.logic.ts:splitPropertyIntoPills markup
-call src/lib/features/note-list/NoteRow.svelte:149 in (markup) -> src/lib/core/filesystem/wikilink-resolution.logic.ts:resolveWikilink markup
+call src/lib/features/note-list/NoteRow.svelte:51 in rowBgs=$derived -> src/lib/core/settings/theme-surfaces.logic.ts:rowSurfaces call
+call src/lib/features/note-list/NoteRow.svelte:52 in iconColor=$derived -> src/lib/features/file-icons/file-icons.logic.ts:readableIconColor call
+call src/lib/features/note-list/NoteRow.svelte:54 in titleColor=$derived -> src/lib/core/settings/theme-surfaces.logic.ts:readableOn call
+call src/lib/features/note-list/NoteRow.svelte:57 in menu -> src/lib/features/note-list/note-row-menu.context.ts:useNoteRowMenuContext call
+call src/lib/features/note-list/NoteRow.svelte:78 in (markup) -> src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle markup +1
+call src/lib/features/note-list/NoteRow.svelte:83 in (markup) -> src/lib/features/note-list/NoteRow.svelte:handleRenameKeydown markup
+call src/lib/features/note-list/NoteRow.svelte:117 in (markup) -> src/lib/core/editor/editor.service.ts:openFileInEditor markup +2
+call src/lib/features/note-list/NoteRow.svelte:154 in (markup) -> src/lib/features/type-definitions/type-sidebar.logic.ts:splitPropertyIntoPills markup
+call src/lib/features/note-list/NoteRow.svelte:157 in (markup) -> src/lib/core/filesystem/wikilink-resolution.logic.ts:resolveWikilink markup

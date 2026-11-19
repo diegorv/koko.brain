@@ -27,10 +27,10 @@
 	let { variant = 'default' as 'default' | 'footer' }: { variant?: 'default' | 'footer' } = $props();
 
 	const BADGE_CLASSES = {
-		stable: 'bg-success/20 text-success',
-		nightly: 'bg-warning/20 text-warning',
-		preview: 'bg-type-purple/20 text-type-purple',
-		dev: 'bg-primary/20 text-primary',
+		stable: 'bg-success/20 text-success-tint-fg',
+		nightly: 'bg-warning/20 text-warning-tint-fg',
+		preview: 'bg-type-purple/20 text-type-purple-tint-fg',
+		dev: 'bg-primary/20 text-primary-tint-fg',
 	};
 
 	// Both inputs are fixed at build time, so the badge is effectively a

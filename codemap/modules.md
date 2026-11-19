@@ -19,7 +19,7 @@ module src/lib/core/layout core files 3 in-modules 6 out-modules 4 pub 8/10 ipc 
 module src/lib/core/markdown-editor core files 111 in-modules 11 out-modules 9 pub 35/362 ipc 0/0 card ~9.1k
 module src/lib/core/note-creator core files 2 in-modules 12 out-modules 5 pub 4/6 ipc 2/0 card ~1.4k
 module src/lib/core/rule-actions core files 1 in-modules 2 out-modules 0 pub 1/3 ipc 0/0 card ~0.5k
-module src/lib/core/settings core files 38 in-modules 29 out-modules 7 pub 53/176 ipc 3/0 card ~6.7k
+module src/lib/core/settings core files 39 in-modules 30 out-modules 7 pub 58/182 ipc 3/0 card ~7.5k
 module src/lib/core/status-bar core files 2 in-modules 1 out-modules 1 pub 2/2 ipc 0/0 card ~0.4k
 module src/lib/core/trash core files 4 in-modules 4 out-modules 3 pub 9/17 ipc 0/0 card ~1.3k
 module src/lib/core/vault core files 7 in-modules 34 out-modules 5 pub 9/17 ipc 1/0 card ~2.2k
@@ -34,13 +34,13 @@ module src/lib/features/deep-link features files 4 in-modules 4 out-modules 8 pu
 module src/lib/features/dock-badge features files 2 in-modules 1 out-modules 3 pub 2/2 ipc 0/0 card ~0.6k
 module src/lib/features/event-calendar features files 36 in-modules 7 out-modules 12 pub 17/238 ipc 1/0 card ~4.6k
 module src/lib/features/file-history features files 7 in-modules 4 out-modules 7 pub 5/24 ipc 4/0 card ~1.3k
-module src/lib/features/file-icons features files 9 in-modules 9 out-modules 8 pub 22/42 ipc 1/0 card ~3.7k
+module src/lib/features/file-icons features files 9 in-modules 9 out-modules 8 pub 23/43 ipc 1/0 card ~3.8k
 module src/lib/features/note-action-bar features files 4 in-modules 2 out-modules 13 pub 2/19 ipc 0/0 card ~1k
-module src/lib/features/note-list features files 4 in-modules 1 out-modules 10 pub 3/8 ipc 0/0 card ~0.9k
+module src/lib/features/note-list features files 4 in-modules 1 out-modules 11 pub 3/8 ipc 0/0 card ~1k
 module src/lib/features/outgoing-links features files 5 in-modules 2 out-modules 7 pub 3/6 ipc 2/0 card ~0.9k
 module src/lib/features/properties features files 14 in-modules 5 out-modules 13 pub 18/40 ipc 1/0 card ~2.7k
 module src/lib/features/quick-switcher features files 4 in-modules 1 out-modules 11 pub 3/8 ipc 1/0 card ~1k
-module src/lib/features/rail-shell features files 31 in-modules 8 out-modules 17 pub 54/176 ipc 2/0 card ~6.6k
+module src/lib/features/rail-shell features files 31 in-modules 8 out-modules 17 pub 54/178 ipc 2/0 card ~6.6k
 module src/lib/features/search features files 12 in-modules 4 out-modules 9 pub 14/52 ipc 16/0 card ~2.1k
 module src/lib/features/tags features files 8 in-modules 1 out-modules 7 pub 5/24 ipc 1/0 card ~0.9k
 module src/lib/features/tasks features files 14 in-modules 2 out-modules 10 pub 7/135 ipc 2/0 card ~1.5k
@@ -58,7 +58,7 @@ module src/lib/plugins/table-of-contents plugins files 5 in-modules 1 out-module
 module src/lib/plugins/templates plugins files 4 in-modules 1 out-modules 7 pub 4/14 ipc 1/0 card ~0.8k
 module src/lib/plugins/word-count plugins files 2 in-modules 1 out-modules 1 pub 1/4 ipc 0/0 card ~0.4k
 module src/lib/types types files 1 in-modules 17 out-modules 1 pub 8/17 ipc 0/0 card ~1k
-module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 90/112 ipc 3/0 card ~10k
+module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 93/115 ipc 3/0 card ~10.2k
 module src/lib/utils.ts lib-root files 1 in-modules 1 out-modules 1 pub 4/4 ipc 0/0 card ~0.4k
 module src/routes routes files 5 in-modules 0 out-modules 14 pub 0/5 ipc 2/0 card ~0.6k
 ## layers (distinct file pairs)
@@ -76,10 +76,10 @@ layer core -> components 34
 layer core -> contracts 15
 layer core -> core 489
 layer core -> types 5
-layer core -> utils 71
+layer core -> utils 72
 layer features -> components 105
 layer features -> contracts 43
-layer features -> core 346
+layer features -> core 360
 layer features -> features 747
 layer features -> types 23
 layer features -> utils 103

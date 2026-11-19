@@ -25,7 +25,7 @@ imp src/lib/features/properties/PropertiesView.svelte:41 -> src/lib/features/pro
 imp src/lib/app/AppShell.svelte:45 -> src/lib/features/properties/PropertiesView.svelte default
 ## reach
 in2 src/lib/features/properties/PropertiesView.svelte 1 files in 1 modules: src/routes(1)
-out2 src/lib/features/properties/PropertiesView.svelte 46 files in 12 modules: src/lib/components(21) src/lib/utils(8) src/lib/core/editor(3) src/lib/features/file-icons(3) src/lib/core/filesystem(2) +7 modules
+out2 src/lib/features/properties/PropertiesView.svelte 48 files in 12 modules: src/lib/components(21) src/lib/utils(8) src/lib/core/settings(4) src/lib/core/editor(3) src/lib/features/file-icons(3) +7 modules
 ## tests
 test src/tests/lib/features/properties/PropertiesView.test.ts imports src/lib/features/properties/PropertiesView.svelte mirror
 ## symbols

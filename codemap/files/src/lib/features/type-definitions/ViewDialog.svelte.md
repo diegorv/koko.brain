@@ -15,8 +15,8 @@ imp src/lib/features/type-definitions/ViewDialog.svelte:17 -> src/lib/features/t
 imp src/lib/features/type-definitions/ViewDialog.svelte:18 -> src/lib/features/type-definitions/type-definitions.logic.ts validateViewName
 imp src/lib/features/type-definitions/ViewDialog.svelte:19 -> src/lib/features/type-definitions/view-parse-cache.ts refreshViewDefinition
 ## imported-by
-imp src/lib/features/rail-shell/FilesNavigator.svelte:56 -> src/lib/features/type-definitions/ViewDialog.svelte default
-imp src/lib/features/rail-shell/TypesNavigator.svelte:51 -> src/lib/features/type-definitions/ViewDialog.svelte default
+imp src/lib/features/rail-shell/FilesNavigator.svelte:58 -> src/lib/features/type-definitions/ViewDialog.svelte default
+imp src/lib/features/rail-shell/TypesNavigator.svelte:53 -> src/lib/features/type-definitions/ViewDialog.svelte default
 ## reach
 in2 src/lib/features/type-definitions/ViewDialog.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/type-definitions/ViewDialog.svelte 40 files in 12 modules: src/lib/components(15) src/lib/core/editor(4) src/lib/features/collection(4) src/lib/core/filesystem(3) src/lib/features/type-definitions(3) +7 modules
@@ -24,8 +24,8 @@ out2 src/lib/features/type-definitions/ViewDialog.svelte 40 files in 12 modules:
 test src/tests/lib/features/type-definitions/ViewDialog.svelte.test.ts imports src/lib/features/type-definitions/ViewDialog.svelte mirror
 ## symbols
 sym src/lib/features/type-definitions/ViewDialog.svelte:1 component ViewDialog props:open=$bindable,existingLabels,edit=,oncreated,folder L221
-by src/lib/features/type-definitions/ViewDialog.svelte:default <- src/lib/features/rail-shell/FilesNavigator.svelte:478 in (markup) mount
-by src/lib/features/type-definitions/ViewDialog.svelte:default <- src/lib/features/rail-shell/TypesNavigator.svelte:474 in (markup) mount +1
+by src/lib/features/type-definitions/ViewDialog.svelte:default <- src/lib/features/rail-shell/FilesNavigator.svelte:483 in (markup) mount
+by src/lib/features/type-definitions/ViewDialog.svelte:default <- src/lib/features/rail-shell/TypesNavigator.svelte:480 in (markup) mount +1
 ## locals
 local src/lib/features/type-definitions/ViewDialog.svelte:74 fn load(target: { path: string; label: string }) L26
 local src/lib/features/type-definitions/ViewDialog.svelte:102 fn setOpen(next: boolean) L15
@@ -38,9 +38,9 @@ mount src/lib/features/type-definitions/ViewDialog.svelte:202 FilterPanel -> src
 mount src/lib/features/type-definitions/ViewDialog.svelte:217 Button -> src/lib/components/ui/button/button.svelte
 mount src/lib/features/type-definitions/ViewDialog.svelte:218 Button -> src/lib/components/ui/button/button.svelte
 ## mounted-at
-mount src/lib/features/rail-shell/FilesNavigator.svelte:478 ViewDialog -> src/lib/features/type-definitions/ViewDialog.svelte
-mount src/lib/features/rail-shell/TypesNavigator.svelte:474 ViewDialog -> src/lib/features/type-definitions/ViewDialog.svelte
-mount src/lib/features/rail-shell/TypesNavigator.svelte:482 ViewDialog -> src/lib/features/type-definitions/ViewDialog.svelte
+mount src/lib/features/rail-shell/FilesNavigator.svelte:483 ViewDialog -> src/lib/features/type-definitions/ViewDialog.svelte
+mount src/lib/features/rail-shell/TypesNavigator.svelte:480 ViewDialog -> src/lib/features/type-definitions/ViewDialog.svelte
+mount src/lib/features/rail-shell/TypesNavigator.svelte:488 ViewDialog -> src/lib/features/type-definitions/ViewDialog.svelte
 ## calls
 call src/lib/features/type-definitions/ViewDialog.svelte:57 in nameError=$derived -> src/lib/features/type-definitions/type-definitions.logic.ts:validateViewName call
 call src/lib/features/type-definitions/ViewDialog.svelte:58 in availableProperties=$derived -> src/lib/features/collection/toolbar/filter.logic.ts:getAllKnownProperties call

@@ -8,7 +8,7 @@ imp src/lib/features/type-definitions/type-definitions.logic.ts:3 -> src/lib/cor
 ## imported-by
 imp src/lib/features/auto-organize/type-lifecycle-rules.ts:1 -> src/lib/features/type-definitions/type-definitions.logic.ts type:TypeMetadata
 imp src/lib/features/event-calendar/EventCalendarSection.svelte:17 -> src/lib/features/type-definitions/type-definitions.logic.ts buildTypeNoteDir,typeNameTakenMessage,validateTypeName
-imp src/lib/features/rail-shell/TypesNavigator.svelte:49 -> src/lib/features/type-definitions/type-definitions.logic.ts validateTypeName
+imp src/lib/features/rail-shell/TypesNavigator.svelte:51 -> src/lib/features/type-definitions/type-definitions.logic.ts validateTypeName
 imp src/lib/features/rail-shell/lens.logic.ts:19 -> src/lib/features/type-definitions/type-definitions.logic.ts getTypeMetadataFallback,type:TypeMetadata
 imp src/lib/features/rail-shell/rail-shell.types.ts:6 -> src/lib/features/type-definitions/type-definitions.logic.ts type:TypeMetadata
 imp src/lib/features/type-definitions/ViewDialog.svelte:18 -> src/lib/features/type-definitions/type-definitions.logic.ts validateViewName
@@ -64,7 +64,7 @@ by src/lib/features/type-definitions/type-definitions.logic.ts:typeNameTakenMess
 by src/lib/features/type-definitions/type-definitions.logic.ts:typeNameTakenMessage <- src/lib/features/type-definitions/type-definitions.service.ts:187 in createTypeDefinition call
 sym src/lib/features/type-definitions/type-definitions.logic.ts:168 fn validateTypeName(name: string, existingTypeNames: string[]): string | null L10 | Validates a candidate type name for creation/rename dialogs.
 by src/lib/features/type-definitions/type-definitions.logic.ts:validateTypeName <- src/lib/features/event-calendar/EventCalendarSection.svelte:83 in openEventType call
-by src/lib/features/type-definitions/type-definitions.logic.ts:validateTypeName <- src/lib/features/rail-shell/TypesNavigator.svelte:469 in (markup) markup +1
+by src/lib/features/type-definitions/type-definitions.logic.ts:validateTypeName <- src/lib/features/rail-shell/TypesNavigator.svelte:475 in (markup) markup +1
 sym src/lib/features/type-definitions/type-definitions.logic.ts:187 fn validateViewName(name: string, existingLabels: string[], isFileName = true): string | null L10 | Validates a candidate view name for the view dialog.
 by src/lib/features/type-definitions/type-definitions.logic.ts:validateViewName <- src/lib/features/type-definitions/ViewDialog.svelte:57 in nameError=$derived call
 sym src/lib/features/type-definitions/type-definitions.logic.ts:210 fn rewriteTypeInFrontmatter(content: string, oldType: string, newType: string): string | null L32 | TS mirror of Rust's `rewrite_type_in_frontmatter` (parsing.rs): rewrites the value of a top-level `_type:` / `type:` frontmatter key when its (unquoted, casing…

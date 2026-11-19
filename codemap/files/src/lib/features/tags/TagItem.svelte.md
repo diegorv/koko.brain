@@ -12,7 +12,7 @@ imp src/lib/features/tags/TagItem.svelte:8 -> src/lib/features/tags/TagColorPick
 imp src/lib/features/tags/TagsView.svelte:15 -> src/lib/features/tags/TagItem.svelte default
 ## reach
 in2 src/lib/features/tags/TagItem.svelte 1 files in 1 modules: src/lib/app(1)
-out2 src/lib/features/tags/TagItem.svelte 8 files in 2 modules: src/lib/components(4) src/lib/core/settings(4)
+out2 src/lib/features/tags/TagItem.svelte 10 files in 2 modules: src/lib/core/settings(6) src/lib/components(4)
 ## tests
 test src/tests/lib/features/tags/TagItem.test.ts imports src/lib/features/tags/TagItem.svelte mirror
 ## symbols

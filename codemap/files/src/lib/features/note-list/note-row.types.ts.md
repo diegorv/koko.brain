@@ -4,7 +4,7 @@ file src/lib/features/note-list/note-row.types.ts types L19 module src/lib/featu
 ## imports
 imp src/lib/features/note-list/note-row.types.ts:1 -> src/lib/types/vault-v2.types.ts type:FrontmatterValue
 ## imported-by
-imp src/lib/features/note-list/NoteRow.svelte:15 -> src/lib/features/note-list/note-row.types.ts type:NoteRowNote
+imp src/lib/features/note-list/NoteRow.svelte:17 -> src/lib/features/note-list/note-row.types.ts type:NoteRowNote
 imp src/lib/features/note-list/NoteRowMenu.svelte:38 -> src/lib/features/note-list/note-row.types.ts type:NoteRowNote
 imp src/lib/features/note-list/note-row-menu.context.ts:2 -> src/lib/features/note-list/note-row.types.ts type:NoteRowNote
 imp src/lib/features/rail-shell/rail-shell.types.ts:5 -> src/lib/features/note-list/note-row.types.ts type:NoteRowNote
@@ -19,7 +19,7 @@ test src/tests/lib/features/note-list/NoteRowMenu.show-in-views.test.ts imports-
 test src/tests/lib/features/note-list/NoteRowMenu.test.ts imports-type src/lib/features/note-list/note-row.types.ts
 ## symbols
 sym src/lib/features/note-list/note-row.types.ts:4 interface NoteRowNote L16 | The fields a shared note row and its context menu read from a listed note.
-by src/lib/features/note-list/note-row.types.ts:NoteRowNote <- src/lib/features/note-list/NoteRow.svelte:15 in (script) import
+by src/lib/features/note-list/note-row.types.ts:NoteRowNote <- src/lib/features/note-list/NoteRow.svelte:17 in (script) import
 by src/lib/features/note-list/note-row.types.ts:NoteRowNote <- src/lib/features/note-list/NoteRowMenu.svelte:38 in (script) import
 by src/lib/features/note-list/note-row.types.ts:NoteRowNote <- src/lib/features/note-list/note-row-menu.context.ts:2 in (module) import
 by src/lib/features/note-list/note-row.types.ts:NoteRowNote <- src/lib/features/rail-shell/rail-shell.types.ts:5 in (module) import

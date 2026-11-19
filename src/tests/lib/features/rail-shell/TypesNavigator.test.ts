@@ -225,8 +225,12 @@ describe('TypesNavigator', () => {
 	it('highlights the picked row with the region tokens', async () => {
 		await mountNavigator({ kind: 'type', target: 'Meeting' });
 		expect(rowEl('Meeting').getAttribute('aria-current')).toBe('true');
-		expect(rowEl('Meeting').className).toContain('bg-file-explorer-primary/25 text-file-explorer-primary');
+		expect(rowEl('Meeting').className).toContain('bg-file-explorer-primary/25 text-file-explorer-primary-tint-fg');
 		expect(rowEl('Project').hasAttribute('aria-current')).toBe(false);
+		const countOf = (name: string) => rowEl(name).querySelector<HTMLElement>('[data-types-navigator-count]')!.classList;
+		expect(countOf('Meeting')).toContain('text-file-explorer-primary-tint-fg');
+		expect(countOf('Meeting')).not.toContain('text-file-explorer-badge-fg');
+		expect(countOf('Project')).toContain('text-file-explorer-badge-fg');
 		const nav = target.querySelector('[data-types-navigator]')!;
 		expect(nav.className).toContain('bg-nav-bg');
 		expect(nav.innerHTML).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
@@ -774,7 +778,10 @@ describe('TypesNavigator', () => {
 		it('highlights the picked view and hands a clicked view to onPick', async () => {
 			await mountWithViews({ kind: 'view', target: PROJECTS });
 			expect(viewEl(PROJECTS).getAttribute('aria-current')).toBe('true');
-			expect(viewEl(PROJECTS).className).toContain('bg-file-explorer-primary/25 text-file-explorer-primary');
+			expect(viewEl(PROJECTS).className).toContain('bg-file-explorer-primary/25 text-file-explorer-primary-tint-fg');
+			const viewCount = (path: string) => viewEl(path).querySelector<HTMLElement>('[data-types-navigator-count]')!.classList;
+			expect(viewCount(PROJECTS)).toContain('text-file-explorer-primary-tint-fg');
+			expect(viewCount(BROKEN)).toContain('text-file-explorer-badge-fg');
 			viewEl(BROKEN).click();
 			expect(onPick).toHaveBeenCalledWith({ kind: 'view', target: BROKEN });
 		});
@@ -1177,7 +1184,7 @@ describe('TypesNavigator', () => {
 
 				openTab(BOARD);
 				expect(viewEl(BOARD).getAttribute('aria-current')).toBe('true');
-				expect(viewEl(BOARD).className).toContain('bg-file-explorer-primary/25 text-file-explorer-primary');
+				expect(viewEl(BOARD).className).toContain('bg-file-explorer-primary/25 text-file-explorer-primary-tint-fg');
 
 				openTab('/vault/alpha.md');
 				expect(viewEl(BOARD).hasAttribute('aria-current')).toBe(false);

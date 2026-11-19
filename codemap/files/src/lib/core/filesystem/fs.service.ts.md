@@ -36,7 +36,7 @@ imp src/lib/features/file-history/FileHistoryDialog.svelte:7 -> src/lib/core/fil
 imp src/lib/features/note-action-bar/note-action-bar.service.ts:4 -> src/lib/core/filesystem/fs.service.ts createFile
 imp src/lib/features/note-list/NoteRowMenu.svelte:21 -> src/lib/core/filesystem/fs.service.ts duplicateItem,renameItem,revealInSystemExplorer
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:9 -> src/lib/core/filesystem/fs.service.ts createFile
-imp src/lib/features/rail-shell/FilesNavigator.svelte:28 -> src/lib/core/filesystem/fs.service.ts createFile,createFolder,deleteItem,moveItem,renameItem,revealInSystemExplorer
+imp src/lib/features/rail-shell/FilesNavigator.svelte:30 -> src/lib/core/filesystem/fs.service.ts createFile,createFolder,deleteItem,moveItem,renameItem,revealInSystemExplorer
 imp src/lib/features/rail-shell/TypesNavigator.svelte:18 -> src/lib/core/filesystem/fs.service.ts revealInSystemExplorer
 imp src/lib/features/rail-shell/new-note.service.ts:4 -> src/lib/core/filesystem/fs.service.ts createFile
 imp src/lib/features/todoist-sync/closed-note-writer.service.ts:5 -> src/lib/core/filesystem/fs.service.ts addToTree
@@ -116,36 +116,36 @@ by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/canvas/c
 by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/collection/collection.service.ts:34 in createCollectionFile call
 by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/event-calendar/event-calendar.service.ts:1014 in duplicateEvent call
 by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/note-action-bar/note-action-bar.service.ts:80 in createLinkedNote call
-by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/quick-switcher/QuickSwitcher.svelte:103 in createAndOpenNote call
-by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/rail-shell/FilesNavigator.svelte:115 in fileCreators=$derived call
+by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/quick-switcher/QuickSwitcher.svelte:107 in createAndOpenNote call
+by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/rail-shell/FilesNavigator.svelte:117 in fileCreators=$derived call
 more by 3 not shown: src/lib/features/rail-shell(1) src/lib/features/type-definitions(1) src/lib/plugins/kanban(1): q importers src/lib/core/filesystem/fs.service.ts:createFile
 sym src/lib/core/filesystem/fs.service.ts:227 fn createFolder(parentPath: string, folderName: string): Promise<string> L17 | Creates a directory on disk and adds it to the tree.
 by src/lib/core/filesystem/fs.service.ts:createFolder <- src/lib/app/commands.ts:172 in getBuiltInCommands call
-by src/lib/core/filesystem/fs.service.ts:createFolder <- src/lib/features/rail-shell/FilesNavigator.svelte:181 in handleNewFolder call
+by src/lib/core/filesystem/fs.service.ts:createFolder <- src/lib/features/rail-shell/FilesNavigator.svelte:183 in handleNewFolder call
 sym src/lib/core/filesystem/fs.service.ts:246 fn deleteItem(itemPath: string, isDirectory: boolean = false): Promise<void> L24 | Moves a file or folder to trash (soft delete), closes open tabs, and removes it from the tree.
 by src/lib/core/filesystem/fs.service.ts:deleteItem <- src/lib/core/filesystem/delete-note.service.ts:27 in deleteNoteWithConfirm call
 by src/lib/core/filesystem/fs.service.ts:deleteItem <- src/lib/features/event-calendar/event-calendar.service.ts:1050 in deleteNow call
-by src/lib/core/filesystem/fs.service.ts:deleteItem <- src/lib/features/rail-shell/FilesNavigator.svelte:254 in handleDelete call
+by src/lib/core/filesystem/fs.service.ts:deleteItem <- src/lib/features/rail-shell/FilesNavigator.svelte:256 in handleDelete call
 by src/lib/core/filesystem/fs.service.ts:deleteItem <- src/lib/plugins/mods/mod-vault.service.ts:109 in createModVault call
 sym src/lib/core/filesystem/fs.service.ts:275 fn renameItem(oldPath: string, newName: string): Promise<string> L20 | Renames a file or folder and returns the new path.
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/auto-organize/auto-organize.service.ts:517 in applyRename call
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/event-calendar/event-calendar.service.ts:734 in renameAndWrite call
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/note-list/NoteRowMenu.svelte:158 in commitRename call
-by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/rail-shell/FilesNavigator.svelte:231 in commitRename call
+by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/rail-shell/FilesNavigator.svelte:233 in commitRename call
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/todoist-sync/sync-now.service.ts:960 in renameProjectNotes call
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/type-definitions/type-definitions.service.ts:224 in renameType call
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/plugins/mods/mod-vault.service.ts:93 in createModVault call
 sym src/lib/core/filesystem/fs.service.ts:304 fn moveItem(sourcePath: string, targetDirPath: string, fileName = getFileName(sourcePath)): Promise<string | null> L21 | Moves a file or folder into a different directory, as `fileName` there, in one path change (links and tabs follow).
 by src/lib/core/filesystem/fs.service.ts:moveItem <- src/lib/features/auto-organize/auto-organize.service.ts:393 in moveToFreeName call +1
-by src/lib/core/filesystem/fs.service.ts:moveItem <- src/lib/features/rail-shell/FilesNavigator.svelte:340 in handleDrop call
+by src/lib/core/filesystem/fs.service.ts:moveItem <- src/lib/features/rail-shell/FilesNavigator.svelte:342 in handleDrop call
 by src/lib/core/filesystem/fs.service.ts:moveItem <- src/lib/plugins/mods/mod-vault.service.ts:100 in createModVault call
 sym src/lib/core/filesystem/fs.service.ts:342 fn duplicateItem(itemPath: string, isDirectory: boolean): Promise<string> L21 | Duplicates a file or folder, generating a unique "copy" name.
 by src/lib/core/filesystem/fs.service.ts:duplicateItem <- src/lib/features/note-list/NoteRowMenu.svelte:100 in handleDuplicate call
 sym src/lib/core/filesystem/fs.service.ts:365 fn revealInSystemExplorer(itemPath: string): Promise<void> L7 | Opens the system file explorer with the given item selected
 by src/lib/core/filesystem/fs.service.ts:revealInSystemExplorer <- src/lib/features/file-history/FileHistoryDialog.svelte:37 in handleRevealBackup call
 by src/lib/core/filesystem/fs.service.ts:revealInSystemExplorer <- src/lib/features/note-list/NoteRowMenu.svelte:292 in (markup) markup
-by src/lib/core/filesystem/fs.service.ts:revealInSystemExplorer <- src/lib/features/rail-shell/FilesNavigator.svelte:458 in (markup) markup
-by src/lib/core/filesystem/fs.service.ts:revealInSystemExplorer <- src/lib/features/rail-shell/TypesNavigator.svelte:339 in (markup) markup +1
+by src/lib/core/filesystem/fs.service.ts:revealInSystemExplorer <- src/lib/features/rail-shell/FilesNavigator.svelte:463 in (markup) markup
+by src/lib/core/filesystem/fs.service.ts:revealInSystemExplorer <- src/lib/features/rail-shell/TypesNavigator.svelte:345 in (markup) markup +1
 sym src/lib/core/filesystem/fs.service.ts:374 fn resetFileSystem() L3 | Resets all file system state (e.g. when switching vaults)
 by src/lib/core/filesystem/fs.service.ts:resetFileSystem <- src/lib/app/lifecycle/app-lifecycle.service.ts:661 in teardownVault call
 ## locals

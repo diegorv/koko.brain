@@ -8,7 +8,7 @@ fx src-tauri/src/utils/resource_usage.rs:172 rust-timer.sleep in ensure_periodic
 fx src/lib/app/lifecycle/app-lifecycle.service.ts:514 timer-wrap.debounce args=() => { runWatcherBatch().catch((err) => { error('LIFECYCLE… in initializeVault
 fx src/lib/core/editor/editor.service.ts:276 timer-wrap.debounce args=saveDirtyTabs, 2000, { maxWait: 10_000 } as debouncedSave in debouncedSave
 fx src/lib/core/editor/editor.service.ts:279 timer-wrap.debounce args=saveDirtyTabs, 500 as debouncedSaveFrontmatter in debouncedSaveFrontmatter
-fx src/lib/features/rail-shell/TypesNavigator.svelte:88 timer-wrap.debounce args=async (paths: string[], ctx: LensContext, propertyIndex: Ma… as recountViews in recountViews
+fx src/lib/features/rail-shell/TypesNavigator.svelte:94 timer-wrap.debounce args=async (paths: string[], ctx: LensContext, propertyIndex: Ma… as recountViews in recountViews
 fx src/lib/features/tags/tags.service.ts:91 timer-wrap.debounce args=() => { void runScheduledRebuild(); }, 300 as debouncedTrigger in debouncedTrigger
 fx src/lib/features/canvas/CanvasInner.svelte:112 timer.queueMicrotask in $effect@99
 fx src/lib/features/canvas/CanvasInner.svelte:302 timer.queueMicrotask in handleKeydown
@@ -32,7 +32,7 @@ fx src/lib/features/canvas/TextNode.svelte:31 timer.requestAnimationFrame in sta
 fx src/lib/features/collection/CollectionView.svelte:481 timer.requestAnimationFrame in startTabRename
 fx src/lib/features/collection/toolbar/PropertiesPanel.svelte:69 timer.requestAnimationFrame in handleAddFormula
 fx src/lib/features/note-list/NoteRowMenu.svelte:135 timer.requestAnimationFrame in $effect@124
-fx src/lib/features/rail-shell/FilesNavigator.svelte:195 timer.requestAnimationFrame in focusRenameInput
+fx src/lib/features/rail-shell/FilesNavigator.svelte:197 timer.requestAnimationFrame in focusRenameInput
 fx src/lib/plugins/kanban/KanbanCard.svelte:114 timer.requestAnimationFrame in handleWikilinkSelect
 fx src/lib/plugins/kanban/KanbanLane.svelte:142 timer.requestAnimationFrame in handleAddWikilinkSelect
 fx src/lib/plugins/queryjs/queryjs-block-widget.ts:58 timer.requestAnimationFrame in markAutoRunAfterRenderPass

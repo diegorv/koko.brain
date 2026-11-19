@@ -22,7 +22,7 @@ sym src/lib/core/filesystem/delete-note.service.ts:16 fn deleteNoteWithConfirm(p
 by src/lib/core/filesystem/delete-note.service.ts:deleteNoteWithConfirm <- src/lib/app/commands.ts:385 in getBuiltInCommands call
 by src/lib/core/filesystem/delete-note.service.ts:deleteNoteWithConfirm <- src/lib/features/note-action-bar/NoteActionBar.svelte:124 in noteActionItems call
 by src/lib/core/filesystem/delete-note.service.ts:deleteNoteWithConfirm <- src/lib/features/note-list/NoteRowMenu.svelte:190 in runNoteAction call
-by src/lib/core/filesystem/delete-note.service.ts:deleteNoteWithConfirm <- src/lib/features/rail-shell/TypesNavigator.svelte:343 in (markup) markup
+by src/lib/core/filesystem/delete-note.service.ts:deleteNoteWithConfirm <- src/lib/features/rail-shell/TypesNavigator.svelte:349 in (markup) markup
 ## calls
 call src/lib/core/filesystem/delete-note.service.ts:17 in deleteNoteWithConfirm -> src/lib/utils/path.ts:basename call
 call src/lib/core/filesystem/delete-note.service.ts:25 in deleteNoteWithConfirm -> src/lib/core/vault/vault.store.svelte.ts:vaultStore.requestPromptIndexRefresh mcall

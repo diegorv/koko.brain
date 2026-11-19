@@ -1,11 +1,12 @@
 # module card src/lib/features/note-list
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/features/note-list ' codemap/modules
-module src/lib/features/note-list features files 4 in-modules 1 out-modules 10 pub 3/8 ipc 0/0 card ~0.9k
+module src/lib/features/note-list features files 4 in-modules 1 out-modules 11 pub 3/8 ipc 0/0 card ~1k
 ## neighbors
 dep src/lib/features/rail-shell -> src/lib/features/note-list 3
 dep src/lib/features/note-list -> src/lib/components 1
 dep src/lib/features/note-list -> src/lib/core/editor 3
 dep src/lib/features/note-list -> src/lib/core/filesystem 6
+dep src/lib/features/note-list -> src/lib/core/settings 2
 dep src/lib/features/note-list -> src/lib/core/vault 2
 dep src/lib/features/note-list -> src/lib/features/file-history 1
 dep src/lib/features/note-list -> src/lib/features/file-icons 7
@@ -14,18 +15,18 @@ dep src/lib/features/note-list -> src/lib/features/type-definitions 5
 dep src/lib/features/note-list -> src/lib/types 1
 dep src/lib/features/note-list -> src/lib/utils 2
 in2 src/lib/features/note-list 2 modules: src/lib/plugins/calendar(2) src/lib/app(1)
-out2 src/lib/features/note-list 7 modules: src/lib/features/collection(9) src/lib/contracts(6) src/lib/core/frontmatter(5) src/lib/core/settings(4) src/lib/core/note-creator(2) +2 modules
+out2 src/lib/features/note-list 6 modules: src/lib/features/collection(9) src/lib/contracts(6) src/lib/core/frontmatter(5) src/lib/core/note-creator(2) src/lib/core/markdown-editor(1) +1 modules
 ## entry files
 entry src/lib/features/note-list/NoteRow.svelte ext-in1 src/lib/features/rail-shell/RailNoteList.svelte
 entry src/lib/features/note-list/NoteRowMenu.svelte ext-in1 src/lib/features/rail-shell/RailNoteList.svelte
 entry src/lib/features/note-list/note-row.types.ts ext-in1 src/lib/features/rail-shell/rail-shell.types.ts
 ## files
-file src/lib/features/note-list/NoteRow.svelte component L171 module src/lib/features/note-list in1 t5
+file src/lib/features/note-list/NoteRow.svelte component L179 module src/lib/features/note-list in1 t5
 file src/lib/features/note-list/NoteRowMenu.svelte component L331 module src/lib/features/note-list in1 t5
 file src/lib/features/note-list/note-row-menu.context.ts other L39 module src/lib/features/note-list in2 t0
 file src/lib/features/note-list/note-row.types.ts types L19 module src/lib/features/note-list in4 t0
 ## public
-sym src/lib/features/note-list/NoteRow.svelte:1 component NoteRow props:note,icon,isActive,listProperties,allPaths,typeName=,subtitle,italic=,archived=,fallbackIcon=,draggable=,onOrganize,tabindex L171
+sym src/lib/features/note-list/NoteRow.svelte:1 component NoteRow props:note,icon,isActive,listProperties,allPaths,typeName=,subtitle,italic=,archived=,fallbackIcon=,draggable=,onOrganize,tabindex L179
 sym src/lib/features/note-list/NoteRowMenu.svelte:1 component NoteRowMenu props:notes,extraItems=,class=,children,ref=$bindable,onRename,onRenameFailed L331
 sym src/lib/features/note-list/note-row.types.ts:4 interface NoteRowNote L16 | The fields a shared note row and its context menu read from a listed note.
 ## effects

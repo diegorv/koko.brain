@@ -8,7 +8,7 @@ dep src/lib/features/quick-switcher -> src/lib/contracts 1
 dep src/lib/features/quick-switcher -> src/lib/core/editor 2
 dep src/lib/features/quick-switcher -> src/lib/core/filesystem 3
 dep src/lib/features/quick-switcher -> src/lib/core/note-creator 1
-dep src/lib/features/quick-switcher -> src/lib/core/settings 1
+dep src/lib/features/quick-switcher -> src/lib/core/settings 3
 dep src/lib/features/quick-switcher -> src/lib/core/vault 1
 dep src/lib/features/quick-switcher -> src/lib/features/file-icons 3
 dep src/lib/features/quick-switcher -> src/lib/features/properties 1
@@ -21,12 +21,12 @@ entry src/lib/features/quick-switcher/quick-switcher.store.svelte.ts ext-in3 src
 entry src/lib/features/quick-switcher/QuickSwitcher.svelte ext-in1 src/lib/app/AppOverlays.svelte
 entry src/lib/features/quick-switcher/quick-switcher.service.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 ## files
-file src/lib/features/quick-switcher/QuickSwitcher.svelte component L203 module src/lib/features/quick-switcher in1 t1
+file src/lib/features/quick-switcher/QuickSwitcher.svelte component L208 module src/lib/features/quick-switcher in1 t1
 file src/lib/features/quick-switcher/quick-switcher.logic.ts logic L67 module src/lib/features/quick-switcher in1 t1
 file src/lib/features/quick-switcher/quick-switcher.service.ts service L6 module src/lib/features/quick-switcher in1 t2
 file src/lib/features/quick-switcher/quick-switcher.store.svelte.ts store L56 module src/lib/features/quick-switcher in5 t7
 ## public
-sym src/lib/features/quick-switcher/QuickSwitcher.svelte:1 component QuickSwitcher L203
+sym src/lib/features/quick-switcher/QuickSwitcher.svelte:1 component QuickSwitcher L208
 sym src/lib/features/quick-switcher/quick-switcher.service.ts:4 fn resetQuickSwitcher(): void L3 | Resets the quick switcher store to its initial state.
 sym src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:24 store quickSwitcherStore L33
 ## stores

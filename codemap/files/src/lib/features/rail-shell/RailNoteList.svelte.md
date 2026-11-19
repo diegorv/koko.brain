@@ -60,7 +60,7 @@ imp src/lib/features/rail-shell/RailNoteList.svelte:107 -> src/lib/features/rail
 imp src/lib/app/AppShell.svelte:15 -> src/lib/features/rail-shell/RailNoteList.svelte default
 ## reach
 in2 src/lib/features/rail-shell/RailNoteList.svelte 1 files in 1 modules: src/routes(1)
-out2 src/lib/features/rail-shell/RailNoteList.svelte 70 files in 20 modules: src/lib/features/event-calendar(9) src/lib/components(7) src/lib/features/file-icons(7) src/lib/utils(7) src/lib/core/filesystem(6) +15 modules
+out2 src/lib/features/rail-shell/RailNoteList.svelte 72 files in 20 modules: src/lib/features/event-calendar(9) src/lib/components(7) src/lib/core/settings(7) src/lib/features/file-icons(7) src/lib/utils(7) +15 modules
 ## tests
 test src/tests/lib/features/rail-shell/RailNoteList.inbox-check.test.ts imports src/lib/features/rail-shell/RailNoteList.svelte mirror
 test src/tests/lib/features/rail-shell/RailNoteList.keyboard.test.ts imports src/lib/features/rail-shell/RailNoteList.svelte mirror

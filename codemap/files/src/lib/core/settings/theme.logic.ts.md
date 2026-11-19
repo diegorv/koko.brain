@@ -1,6 +1,6 @@
 # file card src/lib/core/settings/theme.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/settings/theme.logic.ts ' codemap/files
-file src/lib/core/settings/theme.logic.ts logic L408 module src/lib/core/settings in7 t19
+file src/lib/core/settings/theme.logic.ts logic L408 module src/lib/core/settings in7 t31
 ## imports
 imp src/lib/core/settings/theme.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:Theme,type:ThemeColors,type:UIColors,type:SyntaxColors,type:PreviewColors,type:WikilinkColors,type:CalloutColors,type:AppearanceSettings
 imp src/lib/core/settings/theme.logic.ts:11 -> src/lib/utils/color.ts isDarkColor
@@ -20,6 +20,8 @@ out2 src/lib/core/settings/theme.logic.ts 1 files in 1 modules: src/lib/core/set
 ## tests
 test src/tests/lib/core/settings/theme.logic.test.ts imports src/lib/core/settings/theme.logic.ts mirror
 test src/tests/lib/architecture/muted-text-alpha.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/components/ui/button/button.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/core/markdown-editor/extensions/composition-aware-bracket-matching.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/core/settings/AppearanceSection.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/core/settings/ThemeEditor.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/core/settings/ThemePreview.test.ts imports src/lib/core/settings/theme.logic.ts
@@ -30,8 +32,18 @@ test src/tests/lib/core/settings/theme-css-contract.test.ts imports src/lib/core
 test src/tests/lib/core/settings/theme-editor.logic.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/core/settings/theme-package.logic.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/core/settings/theme-snapshot.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/core/settings/theme-surfaces.logic.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/core/settings/theme-validation.logic.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/core/settings/theme.service.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/features/file-icons/file-icons.logic.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/features/note-list/NoteRow.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/features/properties/PropertyField.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/features/quick-switcher/QuickSwitcher.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/features/rail-shell/FilesNavigator.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/features/rail-shell/Rail.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/features/rail-shell/TypesNavigator.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/features/rail-shell/rail-items.logic.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/features/tags/TagItem.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/plugins/graph-view/GraphView.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/plugins/graph-view/graph-view.logic.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/plugins/mods/mod-theme.test.ts imports src/lib/core/settings/theme.logic.ts
@@ -40,7 +52,7 @@ test src/tests/lib/utils/color-presets.test.ts imports src/lib/core/settings/the
 ## symbols
 sym src/lib/core/settings/theme.logic.ts:15 fn camelToKebab(s: string): string L3 | Converts a camelCase string to kebab-case
 sym src/lib/core/settings/theme.logic.ts:60 fn themeColorsToCssVars(colors: ThemeColors): Record<string, string> L16 | Converts a ThemeColors object into a flat map of CSS variable name → value, plus the derived `--elev-*` variables
-by src/lib/core/settings/theme.logic.ts:themeColorsToCssVars <- src/lib/core/settings/theme.service.ts:45 in applyTheme call +1
+by src/lib/core/settings/theme.logic.ts:themeColorsToCssVars <- src/lib/core/settings/theme.service.ts:47 in applyTheme call +1
 sym src/lib/core/settings/theme.logic.ts:90 fn mergeThemeWithDefaults(partial: Partial<ThemeColors>): ThemeColors L22 | Completes a saved or imported theme to the current token set: keys that are no longer tokens are dropped, and a missing token is derived (`buildTheme`) from th…
 by src/lib/core/settings/theme.logic.ts:mergeThemeWithDefaults <- src/lib/core/settings/sections/ThemeEditor.svelte:113 in handleFileImport call
 by src/lib/core/settings/theme.logic.ts:mergeThemeWithDefaults <- src/lib/core/settings/theme-package.logic.ts:373 in migrateExBuiltins call
@@ -62,7 +74,7 @@ by src/lib/core/settings/theme.logic.ts:normalizeAppearance <- src/lib/core/sett
 sym src/lib/core/settings/theme.logic.ts:401 fn isBuiltinTheme(name: string): boolean L3 | True when `name` belongs to a built-in theme, which is served from code and cannot be edited in place.
 by src/lib/core/settings/theme.logic.ts:isBuiltinTheme <- src/lib/core/settings/sections/AppearanceSection.svelte:94 in deleteTheme call +1
 sym src/lib/core/settings/theme.logic.ts:406 fn findThemeByName(themes: Theme[], name: string): Theme L3 | Finds a theme by name from an array, falling back to the built-in default
-by src/lib/core/settings/theme.logic.ts:findThemeByName <- src/lib/core/settings/theme.service.ts:78 in applyActiveTheme call
+by src/lib/core/settings/theme.logic.ts:findThemeByName <- src/lib/core/settings/theme.service.ts:80 in applyActiveTheme call
 ## locals
 local src/lib/core/settings/theme.logic.ts:40 fn elevationVars(ui: UIColors): Record<string, string> L18
 local src/lib/core/settings/theme.logic.ts:78 fn pickTokens<T extends object>(template: T, source: Partial<T> | undefined, fallback: T): T L5

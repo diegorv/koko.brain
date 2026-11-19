@@ -10,9 +10,9 @@ imp src/lib/features/file-icons/IconPicker.svelte:6 -> src/lib/features/file-ico
 imp src/lib/features/file-icons/file-icons.service.ts:6 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore,type:FrontmatterIconRef
 imp src/lib/features/file-icons/icon-resolver.ts:1 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore,type:FrontmatterIconRef
 imp src/lib/features/note-list/NoteRowMenu.svelte:25 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
-imp src/lib/features/rail-shell/FilesNavigator.svelte:52 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
-imp src/lib/features/rail-shell/Rail.svelte:23 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
-imp src/lib/features/rail-shell/TypesNavigator.svelte:32 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
+imp src/lib/features/rail-shell/FilesNavigator.svelte:54 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
+imp src/lib/features/rail-shell/Rail.svelte:24 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
+imp src/lib/features/rail-shell/TypesNavigator.svelte:34 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
 ## reach
 in2 src/lib/features/file-icons/file-icons.store.svelte.ts 14 files in 8 modules: src/lib/app(5) src/lib/features/auto-organize(2) src/lib/features/properties(2) src/lib/features/note-list(1) src/lib/features/quick-switcher(1) +3 modules: q impact src/lib/features/file-icons/file-icons.store.svelte.ts --depth 2
 out2 src/lib/features/file-icons/file-icons.store.svelte.ts 0 files in 0 modules: -
@@ -57,14 +57,14 @@ by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/file-icons/file-icons.service.ts:18 in (module) mcall +23
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/file-icons/icon-resolver.ts:65 in resolveIconForPath member +3
 by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/note-list/NoteRowMenu.svelte:68 in iconPickerRef=$derived mcall
-by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/rail-shell/FilesNavigator.svelte:143 in iconPickerRef=$derived mcall
-by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/rail-shell/Rail.svelte:214 in actionIcon member
+by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/rail-shell/FilesNavigator.svelte:145 in iconPickerRef=$derived mcall
+by src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore <- src/lib/features/rail-shell/Rail.svelte:235 in actionIcon member
 more by 1 not shown: src/lib/features/rail-shell(1): q importers src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore
 ## store
 store src/lib/features/file-icons/file-icons.store.svelte.ts:16 fileIconsStore esc:0
 mem src/lib/features/file-icons/file-icons.store.svelte.ts:17 get fileIconsStore.recentIcons r:src/lib/features/file-icons/IconPicker.svelte:73,src/lib/features/file-icons/file-icons.service.ts:69,src/lib/features/file-icons/file-icons.service.ts:78 w-via:setRecentIcons,reset
 mem src/lib/features/file-icons/file-icons.store.svelte.ts:18 get fileIconsStore.frontmatterIcons r:- w-via:setFrontmatterIcons,updateFrontmatterIcon,reset
-mem src/lib/features/file-icons/file-icons.store.svelte.ts:20 get fileIconsStore.packVersion r:src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:224,src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:419,src/lib/features/file-icons/icon-resolver.ts:65,src/lib/features/file-icons/icon-resolver.ts:85,src/lib/features/rail-shell/Rail.svelte:214 w-via:bumpPackVersion,reset | Version counter incremented when icon packs finish loading into cache
+mem src/lib/features/file-icons/file-icons.store.svelte.ts:20 get fileIconsStore.packVersion r:src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:224,src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:419,src/lib/features/file-icons/icon-resolver.ts:65,src/lib/features/file-icons/icon-resolver.ts:85,src/lib/features/rail-shell/Rail.svelte:235 w-via:bumpPackVersion,reset | Version counter incremented when icon packs finish loading into cache
 mem src/lib/features/file-icons/file-icons.store.svelte.ts:23 do fileIconsStore.getFrontmatterIcon w:8 | Looks up a frontmatter-derived icon for the given path
 more w 8 not shown: src/lib/features/file-icons(5) src/lib/features/rail-shell(2) src/lib/features/note-list(1): q store src/lib/features/file-icons/file-icons.store.svelte.ts:fileIconsStore.getFrontmatterIcon
 mem src/lib/features/file-icons/file-icons.store.svelte.ts:28 do fileIconsStore.setRecentIcons w:src/lib/features/file-icons/file-icons.service.ts:52,src/lib/features/file-icons/file-icons.service.ts:57,src/lib/features/file-icons/file-icons.service.ts:60,src/lib/features/file-icons/file-icons.service.ts:79 | Replaces the recently used icons list

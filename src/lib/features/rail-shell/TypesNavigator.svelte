@@ -285,7 +285,7 @@
 						{@const resolved = row.definitionPath ? resolveIconForPath(row.definitionPath) : undefined}
 						<button
 							class="flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-row cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {active
-								? 'bg-file-explorer-primary/25 text-file-explorer-primary'
+								? 'bg-file-explorer-primary/25 text-file-explorer-primary-tint-fg'
 								: 'hover:bg-file-explorer-primary/10'}"
 							aria-current={active ? 'true' : undefined}
 							onclick={() => onPick(row.lens)}
@@ -302,7 +302,7 @@
 								{#if row.keyNotes.length > 0}
 									{@render viewMark(row.keyNotes.join('\n'), false)}
 								{/if}
-								<span class="text-meta tabular-nums text-file-explorer-badge-fg" data-types-navigator-count>{row.count}</span>
+								<span class="text-meta tabular-nums {active ? 'text-file-explorer-primary-tint-fg' : 'text-file-explorer-badge-fg'}" data-types-navigator-count>{row.count}</span>
 							</span>
 						</button>
 					{/each}
@@ -414,7 +414,7 @@
 	{@const markText = [...new Set([...(error ? [error] : []), ...row.keyNotes, ...(count?.railViewNote ? [count.railViewNote] : [])])].join('\n')}
 	<button
 		class="flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-row cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {active
-			? 'bg-file-explorer-primary/25 text-file-explorer-primary'
+			? 'bg-file-explorer-primary/25 text-file-explorer-primary-tint-fg'
 			: 'hover:bg-file-explorer-primary/10'}"
 		aria-current={active ? 'true' : undefined}
 		onclick={() => (row.opensInEditor ? openFileInEditor(path) : onPick(row.lens))}
@@ -433,7 +433,7 @@
 				{@render viewMark(markText, false)}
 			{/if}
 			<!-- Always rendered at one min width, so a pending count does not shift the row. -->
-			<span class="flex min-w-6 justify-end text-meta tabular-nums text-file-explorer-badge-fg" data-types-navigator-count>
+			<span class="flex min-w-6 justify-end text-meta tabular-nums {active ? 'text-file-explorer-primary-tint-fg' : 'text-file-explorer-badge-fg'}" data-types-navigator-count>
 				{#if error}
 					{@render viewMark(markText, true)}
 				{:else if count && 'count' in count}

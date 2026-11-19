@@ -9,7 +9,7 @@ imp src/lib/core/filesystem/link-updater.logic.ts:2 -> src/lib/core/filesystem/w
 imp src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:2 -> src/lib/core/filesystem/wikilink-resolution.logic.ts getNoteName
 imp src/lib/core/markdown-editor/extensions/wikilink/completion.ts:2 -> src/lib/core/filesystem/wikilink-resolution.logic.ts getNoteName
 imp src/lib/features/collection/collection.logic.ts:17 -> src/lib/core/filesystem/wikilink-resolution.logic.ts parseWikilinks
-imp src/lib/features/note-list/NoteRow.svelte:12 -> src/lib/core/filesystem/wikilink-resolution.logic.ts resolveWikilink
+imp src/lib/features/note-list/NoteRow.svelte:14 -> src/lib/core/filesystem/wikilink-resolution.logic.ts resolveWikilink
 imp src/lib/features/properties/PropertiesView.svelte:15 -> src/lib/core/filesystem/wikilink-resolution.logic.ts resolveWikilink
 imp src/lib/features/properties/RelationshipSearch.svelte:8 -> src/lib/core/filesystem/wikilink-resolution.logic.ts isLinkTargetFile
 imp src/lib/features/rail-shell/lens.logic.ts:18 -> src/lib/core/filesystem/wikilink-resolution.logic.ts buildResolutionCache,resolveWikilinkCached
@@ -44,7 +44,7 @@ by src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile <- src/
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile <- src/lib/plugins/queryjs/queryjs.logic.ts:75 in resolveInlinks call
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile <- src/lib/plugins/quick-capture/composer-editor-host.service.ts:43 in createComposerEditorHost call
 sym src/lib/core/filesystem/wikilink-resolution.logic.ts:64 fn resolveWikilink(target: string, allFilePaths: string[], vaultRoot?: string | null): string | null L33 | Resolves a wikilink target to a file path; null when nothing matches.
-by src/lib/core/filesystem/wikilink-resolution.logic.ts:resolveWikilink <- src/lib/features/note-list/NoteRow.svelte:149 in (markup) markup
+by src/lib/core/filesystem/wikilink-resolution.logic.ts:resolveWikilink <- src/lib/features/note-list/NoteRow.svelte:157 in (markup) markup
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:resolveWikilink <- src/lib/features/properties/PropertiesView.svelte:65 in relLinksMap=$derived ref
 sym src/lib/core/filesystem/wikilink-resolution.logic.ts:103 type WikilinkResolutionCache L4 | Pre-computed lookup table for O(1) wikilink resolution: the map itself is lowercase note name → file path, and `byFileName` serves the exact-file step for a ta…
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:WikilinkResolutionCache <- src/lib/app/editor-host.ts:15 in (module) import

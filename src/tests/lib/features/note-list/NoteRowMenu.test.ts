@@ -345,10 +345,16 @@ describe('NoteRowMenu', () => {
 		it('draws only Move to Trash red', async () => {
 			mountHarness();
 			await rightClick(row('Alpha'));
-			const red = [...document.querySelectorAll('[role="menuitem"][data-variant="destructive"]')].map((el) =>
-				el.querySelector('span')?.textContent?.trim(),
-			);
-			expect(red).toEqual(['Move to Trash']);
+			const redItems = [...document.querySelectorAll<HTMLElement>('[role="menuitem"][data-variant="destructive"]')];
+			expect(redItems.map((el) => el.querySelector('span')?.textContent?.trim())).toEqual(['Move to Trash']);
+			// Raw destructive on its highlight tint is 2.56:1 on Zettlr Bordeaux Dark: text and icon take the text-on-tint token.
+			const classes = redItems[0].className.split(/\s+/);
+			expect(classes).toEqual(expect.arrayContaining([
+				'data-[variant=destructive]:text-destructive-tint-fg',
+				'data-[variant=destructive]:data-highlighted:text-destructive-tint-fg',
+				'data-[variant=destructive]:*:[svg]:!text-destructive-tint-fg',
+			]));
+			expect(classes.filter((c) => c.endsWith('text-destructive'))).toEqual([]);
 		});
 
 		it('keeps two items in the middle group of a non-markdown row', async () => {

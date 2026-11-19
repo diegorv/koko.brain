@@ -146,6 +146,21 @@ describe('SearchResult — click lands the cursor on the match (issue 02)', () =
 		expect(badge.classList).toContain('text-label');
 	});
 
+	it.each([
+		['both', 'Both', 'bg-file-explorer-primary/15', 'text-file-explorer-primary-tint-fg'],
+		['semantic', 'Semantic', 'bg-search-semantic-bg', 'text-search-semantic-tint-fg'],
+		['text', 'Text', 'bg-muted', 'text-file-explorer-fg'],
+	] as const)('draws the %s badge text in its text-on-tint color', (source, label, bg, text) => {
+		mountResult({ hybridResult: { ...hybridFixture(3), source } });
+
+		const badge = [...target.querySelectorAll('span')].find((s) => s.textContent?.trim() === label)!;
+		expect(badge.classList).toContain(bg);
+		expect(badge.classList).toContain(text);
+		for (const raw of ['text-file-explorer-primary', 'text-search-semantic-fg', 'text-file-explorer-muted-fg']) {
+			expect(badge.classList).not.toContain(raw);
+		}
+	});
+
 	it('semantic result: converts the 1-indexed lineStart to a character offset', async () => {
 		mountResult({ semanticResult: semanticFixture(4) });
 		await clickResult();

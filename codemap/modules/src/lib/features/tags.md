@@ -6,7 +6,7 @@ dep src/lib/app -> src/lib/features/tags 4
 dep src/lib/features/tags -> src/lib/components 4
 dep src/lib/features/tags -> src/lib/contracts 1
 dep src/lib/features/tags -> src/lib/core/editor 2
-dep src/lib/features/tags -> src/lib/core/settings 3
+dep src/lib/features/tags -> src/lib/core/settings 5
 dep src/lib/features/tags -> src/lib/core/vault 1
 dep src/lib/features/tags -> src/lib/features/search 1
 dep src/lib/features/tags -> src/lib/utils 5
@@ -16,8 +16,8 @@ out2 src/lib/features/tags 1 modules: src/lib/features/rail-shell(1)
 entry src/lib/features/tags/tags.service.ts ext-in3 src/lib/app/commands.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/app/rail-navigation.ts
 entry src/lib/features/tags/TagsView.svelte ext-in1 src/lib/app/EditorView.svelte
 ## files
-file src/lib/features/tags/TagColorDot.svelte component L19 module src/lib/features/tags in1 t0
-file src/lib/features/tags/TagColorPicker.svelte component L112 module src/lib/features/tags in1 t0
+file src/lib/features/tags/TagColorDot.svelte component L30 module src/lib/features/tags in1 t0
+file src/lib/features/tags/TagColorPicker.svelte component L120 module src/lib/features/tags in1 t0
 file src/lib/features/tags/TagItem.svelte component L92 module src/lib/features/tags in1 t1
 file src/lib/features/tags/TagsView.svelte component L145 module src/lib/features/tags in1 t2
 file src/lib/features/tags/tags.logic.ts logic L171 module src/lib/features/tags in2 t1

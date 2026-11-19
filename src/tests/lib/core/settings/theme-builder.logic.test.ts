@@ -296,7 +296,8 @@ describe('tab strip of every built-in theme', () => {
 });
 
 describe('note list pills of every built-in theme', () => {
-	// NoteRow's pills: `text-primary` on `bg-primary/10` over the sidebar. 10% alpha, here 0x1a (0.102)
+	// Raw primary on NoteRow's `bg-primary/10` pill over the sidebar, as the builder pairs it (the pill text itself is
+	// `--primary-tint-fg`, tint-text-tokens.test.ts). 10% alpha, here 0x1a (0.102)
 	function pillBg(ui: (typeof BUILTIN_THEMES)[number]['colors']['ui']): string | null {
 		return flatten(alpha(ui.primary, '1a'), ui.fileExplorerBg);
 	}

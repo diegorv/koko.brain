@@ -38,7 +38,7 @@ imp src/lib/app/lifecycle/app-lifecycle.service.ts:69 -> src/lib/plugins/mods/mo
 imp src/lib/plugins/mods/ModsStatusList.svelte:11 -> src/lib/plugins/mods/mods-host.service.ts disableMod,enableMod,readModSettings,saveModSetting
 ## reach
 in2 src/lib/plugins/mods/mods-host.service.ts 2 files in 2 modules: src/lib/app(1) src/routes(1)
-out2 src/lib/plugins/mods/mods-host.service.ts 51 files in 17 modules: src/lib/core/filesystem(7) src/lib/plugins/queryjs(7) src/lib/core/settings(6) src/lib/core/editor(5) src/lib/features/collection(4) +12 modules
+out2 src/lib/plugins/mods/mods-host.service.ts 52 files in 17 modules: src/lib/core/filesystem(7) src/lib/core/settings(7) src/lib/plugins/queryjs(7) src/lib/core/editor(5) src/lib/features/collection(4) +12 modules
 ## tests
 test src/tests/lib/plugins/mods/mods-host.service.test.ts imports src/lib/plugins/mods/mods-host.service.ts mirror
 test src/tests/lib/plugins/mods/ModActionPicker.test.ts imports src/lib/plugins/mods/mods-host.service.ts

@@ -24,7 +24,7 @@ by src/lib/utils/clamp.ts:clamp <- src/lib/core/settings/sections/FileHistorySec
 by src/lib/utils/clamp.ts:clamp <- src/lib/core/settings/settings.logic.ts:70 in clampFontSize call +8
 by src/lib/utils/clamp.ts:clamp <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:52 in clampDebounce call
 by src/lib/utils/clamp.ts:clamp <- src/lib/features/collection/expression/evaluator.ts:456 in evaluateCall call
-by src/lib/utils/clamp.ts:clamp <- src/lib/features/rail-shell/rail-items.logic.ts:179 in parseRailWidth call
+by src/lib/utils/clamp.ts:clamp <- src/lib/features/rail-shell/rail-items.logic.ts:201 in parseRailWidth call
 by src/lib/utils/clamp.ts:clamp <- src/lib/plugins/kanban/KanbanLane.svelte:237 in handleResizeMove call
 by src/lib/utils/clamp.ts:clamp <- src/lib/plugins/kanban/kanban.logic.ts:461 in moveItem call +1
 more by 2 not shown: src/lib/plugins/queryjs(2): q importers src/lib/utils/clamp.ts:clamp

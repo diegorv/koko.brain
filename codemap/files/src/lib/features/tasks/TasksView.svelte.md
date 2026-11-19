@@ -34,7 +34,7 @@ imp src/lib/features/tasks/TasksView.svelte:85 -> src/lib/features/tasks/tasks.t
 imp src/lib/app/EditorView.svelte:16 -> src/lib/features/tasks/TasksView.svelte default
 ## reach
 in2 src/lib/features/tasks/TasksView.svelte 1 files in 1 modules: src/lib/app(1)
-out2 src/lib/features/tasks/TasksView.svelte 79 files in 13 modules: src/lib/components(48) src/lib/utils(9) src/lib/core/editor(4) src/lib/core/settings(4) src/lib/features/file-icons(3) +8 modules
+out2 src/lib/features/tasks/TasksView.svelte 80 files in 13 modules: src/lib/components(48) src/lib/utils(9) src/lib/core/settings(5) src/lib/core/editor(4) src/lib/features/file-icons(3) +8 modules
 ## tests
 test src/tests/lib/features/tasks/TasksView.sources.test.ts imports src/lib/features/tasks/TasksView.svelte mirror
 test src/tests/fixtures/tasks.fixture.ts imports src/lib/features/tasks/TasksView.svelte

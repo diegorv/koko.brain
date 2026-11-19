@@ -16,13 +16,13 @@ Not in this ticket: kanban, collection evaluator and file history (Issue 04), th
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes.
 
-- [ ] Failing test first, a contrast test over `BUILTIN_THEMES` and the hard palettes fixture: each new token, resolved with `mixColors` (OKLab, as `color-mix(in oklab)`), is at least 4.5:1 on its tint flattened over each surface it is used on (fileExplorerBg for rows, popover for menus, background for search), and the old raw color on the same stack fails on at least one theme.
-- [ ] Component tests: the selected `NoteRow` title and pills, a search badge and the destructive menu item carry the new token class or style, not `text-primary` / `text-destructive`.
-- [ ] Frontend gate passes.
+- [x] Failing test first, a contrast test over `BUILTIN_THEMES` and the hard palettes fixture: each new token, resolved with `mixColors` (OKLab, as `color-mix(in oklab)`), is at least 4.5:1 on its tint flattened over each surface it is used on (fileExplorerBg for rows, popover for menus, background for search), and the old raw color on the same stack fails on at least one theme.
+- [x] Component tests: the selected `NoteRow` title and pills, a search badge and the destructive menu item carry the new token class or style, not `text-primary` / `text-destructive`.
+- [x] Frontend gate passes.
 
 ## Findings covered
 
@@ -57,3 +57,4 @@ Not in this ticket: kanban, collection evaluator and file history (Issue 04), th
 ## Comments
 
 - 2026-11-19, triage: ready-for-agent. Decided by the owner: builder lifts tokens for every theme (WCAG + APCA), user themes are corrected by the builder and the editor warns, rail icons keep their hue and are darkened per theme (ADR-0033 amendment), Issues run through relay one at a time, the themes repo is fixed with version bumps.
+- 2026-11-19, deliver (branch issue/03-accent-text-own-tint-rows-search-menus): text-on-tint tokens (`--*-tint-fg`) for primary, file-explorer-primary, destructive and status colors, used by the selected NoteRow title and pills, selected navigator rows, search source badges, filter counts, BuildInfo, error text and destructive menu items; a contrast gate in `tint-text-tokens.test.ts`. Rebased onto Issue 02, keeping both `text-primary-tint-fg` and `style:color={titleColor}` on the NoteRow title. Review round 1: APPROVED (finding 1 fixed by the rebase, nits 2-4 deferred to Issue 05 or the shared-fixture move). Tests: `pnpm check` 0 errors; full suite 678 files, 18156 passed, 56 skipped, 1 todo, exit 0.

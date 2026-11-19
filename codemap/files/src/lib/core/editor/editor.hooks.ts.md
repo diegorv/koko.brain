@@ -108,8 +108,8 @@ by src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver <- src/lib/plugins
 sym src/lib/core/editor/editor.hooks.ts:119 fn notifyNoteCreated(filePath: string): void L9 | Notifies the note-created observers.
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/app/commands.ts:162 in getBuiltInCommands call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/core/note-creator/note-creator.service.ts:130 in openOrCreateNote call
-by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/quick-switcher/QuickSwitcher.svelte:110 in createAndOpenNote call
-by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/rail-shell/FilesNavigator.svelte:170 in handleNewFile call
+by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/quick-switcher/QuickSwitcher.svelte:114 in createAndOpenNote call
+by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/rail-shell/FilesNavigator.svelte:172 in handleNewFile call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/rail-shell/new-note.service.ts:41 in createNoteHere call
 sym src/lib/core/editor/editor.hooks.ts:134 type ExternalVersionKeeper L1 | Keeps a copy of a note's on-disk content that the editor is about to overwrite with a dirty tab's typing.
 sym src/lib/core/editor/editor.hooks.ts:146 fn setExternalVersionKeeper(keeper: ExternalVersionKeeper): () => void L6 | Sets the external-version keeper, replacing any earlier one.
