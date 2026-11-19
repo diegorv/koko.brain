@@ -27,14 +27,14 @@ test src/tests/lib/features/note-list/NoteRowMenu.show-in-views.test.ts harness 
 test src/tests/lib/features/note-list/NoteRowMenu.test.ts harness src/lib/features/note-list/NoteRow.svelte via src/tests/fixtures/NoteRowMenuHarness.svelte
 ## symbols
 sym src/lib/features/note-list/NoteRow.svelte:1 component NoteRow props:note,icon,isActive,listProperties,allPaths,typeName=,subtitle,italic=,archived=,fallbackIcon=,draggable=,onOrganize,tabindex L184
-by src/lib/features/note-list/NoteRow.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:1146 in (markup) mount
+by src/lib/features/note-list/NoteRow.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:1157 in (markup) mount
 ## locals
 local src/lib/features/note-list/NoteRow.svelte:67 fn handleRenameKeydown(e: KeyboardEvent) L4
 ## mounts
 mount src/lib/features/note-list/NoteRow.svelte:80 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 mount src/lib/features/note-list/NoteRow.svelte:134 IconRenderer -> src/lib/features/file-icons/IconRenderer.svelte
 ## mounted-at
-mount src/lib/features/rail-shell/RailNoteList.svelte:1146 NoteRow -> src/lib/features/note-list/NoteRow.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:1157 NoteRow -> src/lib/features/note-list/NoteRow.svelte
 ## calls
 call src/lib/features/note-list/NoteRow.svelte:51 in rowBgs=$derived -> src/lib/core/settings/theme-surfaces.logic.ts:rowSurfaces call
 call src/lib/features/note-list/NoteRow.svelte:52 in iconColor=$derived -> src/lib/features/file-icons/file-icons.logic.ts:readableIconColor call

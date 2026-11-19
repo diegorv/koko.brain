@@ -120,7 +120,7 @@ file src/lib/components/ui/dropdown-menu/dropdown-menu-sub.svelte component L7 m
 file src/lib/components/ui/dropdown-menu/dropdown-menu-trigger.svelte component L7 module src/lib/components in1 t0
 file src/lib/components/ui/dropdown-menu/dropdown-menu.svelte component L7 module src/lib/components in1 t0
 file src/lib/components/ui/dropdown-menu/index.ts other L54 module src/lib/components in12 t0
-file src/lib/components/ui/input/index.ts other L7 module src/lib/components in29 t0
+file src/lib/components/ui/input/index.ts other L7 module src/lib/components in29 t1
 file src/lib/components/ui/input/input.svelte component L52 module src/lib/components in1 t0
 file src/lib/components/ui/popover/index.ts other L17 module src/lib/components in9 t1
 file src/lib/components/ui/popover/popover-content.svelte component L24 module src/lib/components in1 t0
@@ -144,7 +144,7 @@ file src/lib/components/ui/select/select-trigger.svelte component L29 module src
 file src/lib/components/ui/select/select.svelte component L11 module src/lib/components in1 t0
 file src/lib/components/ui/separator/index.ts other L7 module src/lib/components in6 t1
 file src/lib/components/ui/separator/separator.svelte component L21 module src/lib/components in1 t1
-file src/lib/components/ui/switch/index.ts other L7 module src/lib/components in19 t0
+file src/lib/components/ui/switch/index.ts other L7 module src/lib/components in19 t1
 file src/lib/components/ui/switch/switch.svelte component L29 module src/lib/components in1 t0
 file src/lib/components/ui/tooltip/index.ts other L19 module src/lib/components in6 t0
 file src/lib/components/ui/tooltip/tooltip-content.svelte component L52 module src/lib/components in1 t0

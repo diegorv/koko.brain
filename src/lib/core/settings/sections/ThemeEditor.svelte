@@ -3,6 +3,7 @@
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { applyTheme } from '../theme.service';
 	import { mergeThemeWithDefaults } from '../theme.logic';
+	import { readabilityFailures } from '../theme-builder.logic';
 	import {
 		camelCaseToLabel,
 		validateThemeName,
@@ -53,6 +54,9 @@
 		draftName = theme.name;
 		draftColors = structuredClone(theme.colors);
 	});
+
+	/** Pairs the draft's own colors fail, shown per token; the applied preview is lifted. */
+	const failures = $derived(readabilityFailures(draftColors));
 
 	/** Map of group key → sub-group definitions */
 	const GROUP_SUB_GROUPS: Record<ColorGroupKey, ColorSubGroup[]> = {
@@ -195,6 +199,7 @@
 					label={camelCaseToLabel(key)}
 					value={draftColors[activeGroup][key as keyof (typeof draftColors)[typeof activeGroup]]}
 					onchange={(v) => updateColor(activeGroup, key, v)}
+					failure={failures.get(`${activeGroup}.${key}`)}
 				/>
 			{/each}
 		</div>

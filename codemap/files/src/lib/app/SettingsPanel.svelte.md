@@ -1,6 +1,6 @@
 # file card src/lib/app/SettingsPanel.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/app/SettingsPanel.svelte ' codemap/files
-file src/lib/app/SettingsPanel.svelte component L162 module src/lib/app in1 t1
+file src/lib/app/SettingsPanel.svelte component L166 module src/lib/app in1 t1
 ## imports
 imp src/lib/app/SettingsPanel.svelte:2 -> src/lib/core/settings/sections/AppearanceSection.svelte default
 imp src/lib/app/SettingsPanel.svelte:3 -> src/lib/core/settings/sections/EditorSection.svelte default
@@ -34,20 +34,20 @@ out2 src/lib/app/SettingsPanel.svelte 60 files in 18 modules: src/lib/core/setti
 ## tests
 test src/tests/lib/app/SettingsPanel.test.ts imports src/lib/app/SettingsPanel.svelte mirror
 ## symbols
-sym src/lib/app/SettingsPanel.svelte:1 component SettingsPanel L162
+sym src/lib/app/SettingsPanel.svelte:1 component SettingsPanel L166
 by src/lib/app/SettingsPanel.svelte:default <- src/lib/app/AppOverlays.svelte:35 in (markup) mount
 sym src/lib/app/SettingsPanel.svelte:71 const sectionComponents: Record<SettingsSection, Component> L21 | Content component rendered for each settings section.
 ## locals
 local src/lib/app/SettingsPanel.svelte:105 fn handleKeydown(event: KeyboardEvent) L5
 ## mounts
-mount src/lib/app/SettingsPanel.svelte:151 Button -> src/lib/components/ui/button/button.svelte
-mount src/lib/app/SettingsPanel.svelte:155 ScrollArea -> src/lib/components/ui/scroll-area/scroll-area.svelte
+mount src/lib/app/SettingsPanel.svelte:155 Button -> src/lib/components/ui/button/button.svelte
+mount src/lib/app/SettingsPanel.svelte:159 ScrollArea -> src/lib/components/ui/scroll-area/scroll-area.svelte
 ## mounted-at
 mount src/lib/app/AppOverlays.svelte:35 SettingsPanel -> src/lib/app/SettingsPanel.svelte
 ## calls
 call src/lib/app/SettingsPanel.svelte:107 in handleKeydown -> src/lib/core/settings/settings-panel.store.svelte.ts:settingsPanelStore.close mcall
 call src/lib/app/SettingsPanel.svelte:112 in (markup) -> src/lib/app/SettingsPanel.svelte:handleKeydown markup
 call src/lib/app/SettingsPanel.svelte:139 in (markup) -> src/lib/core/settings/settings-panel.store.svelte.ts:settingsPanelStore.setSection markup
-call src/lib/app/SettingsPanel.svelte:151 in (markup) -> src/lib/core/settings/settings-panel.store.svelte.ts:settingsPanelStore.close markup
+call src/lib/app/SettingsPanel.svelte:155 in (markup) -> src/lib/core/settings/settings-panel.store.svelte.ts:settingsPanelStore.close markup
 ## effects
 fx src/lib/app/SettingsPanel.svelte:112 dom.keydown svelte:window in (markup)

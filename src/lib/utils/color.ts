@@ -5,17 +5,51 @@ const OKLCH = new RegExp(
 	'i',
 );
 
+const COMMA = String.raw`\s*,\s*`;
+const SPACE = String.raw`\s+`;
+const SLASH = String.raw`\s*\/\s*`;
+/** Optional alpha after `sep`, a number or a percentage. */
+const alphaAfter = (sep: string) => String.raw`(?:${sep}(${NUM})(%?))?`;
+/**
+ * CSS `rgb()`/`rgba()`, channels 0-255 or %, optional alpha: the legacy form
+ * separates everything with commas, the modern one uses spaces and a `/` alpha.
+ * CSS rejects a mix of the two, so each form is its own pattern.
+ */
+const rgbForm = (sep: string, alphaSep: string) =>
+	new RegExp(String.raw`^rgba?\(\s*(${NUM})(%?)${sep}(${NUM})(%?)${sep}(${NUM})(%?)${alphaAfter(alphaSep)}\s*\)$`, 'i');
+const RGB = [rgbForm(COMMA, COMMA), rgbForm(SPACE, SLASH)];
+/** CSS `hsl()`/`hsla()`, legacy comma or modern space form as for `rgb()`: H in degrees, S and L in % (the % sign optional). */
+const hslForm = (sep: string, alphaSep: string) =>
+	new RegExp(String.raw`^hsla?\(\s*(${NUM})(?:deg)?${sep}(${NUM})%?${sep}(${NUM})%?${alphaAfter(alphaSep)}\s*\)$`, 'i');
+const HSL = [hslForm(COMMA, COMMA), hslForm(SPACE, SLASH)];
+
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
+/** A captured alpha (number, or percentage when `pct` is set) as 0-1; 1 when absent. */
+const alphaOf = (n: string | undefined, pct: string | undefined) =>
+	n === undefined ? 1 : clamp01(Number(n) / (pct ? 100 : 1));
+
+/** HSL (hue in degrees, saturation and lightness 0-1) to 0-255 channels, by the CSS Color 4 formula. */
+function hslToRgb(hue: number, s: number, l: number): [number, number, number] {
+	const h = ((hue % 360) + 360) % 360;
+	const a = s * Math.min(l, 1 - l);
+	const f = (n: number) => {
+		const k = (n + h / 30) % 12;
+		return (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))) * 255;
+	};
+	return [f(0), f(8), f(4)];
+}
+
 /**
- * Parses `#rgb`, `#rrggbb`, `#rrggbbaa`, `rgb()`, `rgba()` and `oklch()` into
- * 0-255 channels plus 0-1 alpha; null otherwise. oklch is clamped to the sRGB gamut.
+ * Parses `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`, `rgb()`/`rgba()` and
+ * `hsl()`/`hsla()` (comma or space syntax) and `oklch()` into 0-255 channels
+ * plus 0-1 alpha; null otherwise. oklch is clamped to the sRGB gamut.
  */
 function parseRgba(color: string): [number, number, number, number] | null {
 	const value = color.trim();
-	const hex = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(value);
+	const hex = /^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(value);
 	if (hex) {
-		const h = hex[1].length === 3 ? [...hex[1]].map((c) => c + c).join('') : hex[1];
+		const h = hex[1].length <= 4 ? [...hex[1]].map((c) => c + c).join('') : hex[1];
 		const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
 		return [r, g, b, h.length === 8 ? parseInt(h.slice(6), 16) / 255 : 1];
 	}
@@ -29,8 +63,15 @@ function parseRgba(color: string): [number, number, number, number] | null {
 		const rgb = parseRgba(oklabToHex([L, C * Math.cos(h), C * Math.sin(h)]));
 		return rgb ? [rgb[0], rgb[1], rgb[2], a] : null;
 	}
-	const rgb = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/i.exec(value);
-	return rgb ? [Number(rgb[1]), Number(rgb[2]), Number(rgb[3]), rgb[4] === undefined ? 1 : Number(rgb[4])] : null;
+	const rgb = RGB[0].exec(value) ?? RGB[1].exec(value);
+	if (rgb) {
+		const channel = (n: string, pct: string) => Math.min(255, Math.max(0, pct ? (Number(n) / 100) * 255 : Number(n)));
+		return [channel(rgb[1], rgb[2]), channel(rgb[3], rgb[4]), channel(rgb[5], rgb[6]), alphaOf(rgb[7], rgb[8])];
+	}
+	const hsl = HSL[0].exec(value) ?? HSL[1].exec(value);
+	if (!hsl) return null;
+	const [r, g, b] = hslToRgb(Number(hsl[1]), clamp01(Number(hsl[2]) / 100), clamp01(Number(hsl[3]) / 100));
+	return [r, g, b, alphaOf(hsl[4], hsl[5])];
 }
 
 /** Parses a color into opaque 0-255 channels, ignoring alpha; null when unparseable. */
@@ -79,7 +120,7 @@ function luminance([r, g, b]: [number, number, number]): number {
 
 /**
  * True when a background color is dark (WCAG relative luminance below 0.2),
- * false when light, null when the value is not a hex, rgb() or oklch() color.
+ * false when light, null when the value is not a hex, rgb(), hsl() or oklch() color.
  */
 export function isDarkColor(color: string): boolean | null {
 	const rgb = parseRgb(color);
@@ -89,7 +130,7 @@ export function isDarkColor(color: string): boolean | null {
 /**
  * WCAG contrast ratio of foreground `a` on background `b`, with a translucent `a`
  * composited over `b` (`b`'s own alpha is ignored; flatten it first). Null when
- * either is not a hex, rgb() or oklch() color.
+ * either is not a hex, rgb(), hsl() or oklch() color.
  */
 export function contrastRatio(a: string, b: string): number | null {
 	const flat = flatten(a, b);

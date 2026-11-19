@@ -12,4 +12,4 @@ out2 src/lib/features/rail-shell/kind-icons.ts 5 files in 5 modules: src/lib/cor
 ## symbols
 sym src/lib/features/rail-shell/kind-icons.ts:16 const KIND_ICONS: Record<FileKind, Component> L9 | The row icon of each file kind when the file has no icon of its own (the file tree's kind icons).
 by src/lib/features/rail-shell/kind-icons.ts:KIND_ICONS <- src/lib/features/quick-switcher/QuickSwitcher.svelte:135 in (markup) markup
-by src/lib/features/rail-shell/kind-icons.ts:KIND_ICONS <- src/lib/features/rail-shell/RailNoteList.svelte:1157 in (markup) markup
+by src/lib/features/rail-shell/kind-icons.ts:KIND_ICONS <- src/lib/features/rail-shell/RailNoteList.svelte:1168 in (markup) markup

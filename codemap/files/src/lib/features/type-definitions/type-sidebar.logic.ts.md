@@ -120,7 +120,7 @@ by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewSort <- src/li
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewSort <- src/lib/features/rail-shell/lens.logic.ts:730 in viewRowSet call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:484 fn effectiveViewSortLabel(entry: NoteEntryV2 | undefined): string L4 | The Sort panel's text for a view list that no sort of the view's own orders: its `_sort`, or the default when it has none or one that is ignored.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:effectiveViewSortLabel <- src/lib/app/boot.ts:80 in registerAppPorts call
-by src/lib/features/type-definitions/type-sidebar.logic.ts:effectiveViewSortLabel <- src/lib/features/rail-shell/RailNoteList.svelte:967 in (markup) markup
+by src/lib/features/type-definitions/type-sidebar.logic.ts:effectiveViewSortLabel <- src/lib/features/rail-shell/RailNoteList.svelte:970 in (markup) markup
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:490 fn getViewListProperties(entry: NoteEntryV2 | undefined): string[] L5 | Extracts _list_properties_display from a view entry's frontmatter.
 by src/lib/features/type-definitions/type-sidebar.logic.ts:getViewListProperties <- src/lib/features/rail-shell/RailNoteList.svelte:397 in savedProperties=$derived call
 sym src/lib/features/type-definitions/type-sidebar.logic.ts:502 fn sortViewFiles(views: ViewFileEntry[], entriesByPath: Map<string, NoteEntryV2>): ViewFileEntry[] L12 | Sorts view files by _order from the entries index, then by the label the row shows (`getViewLabel`) in natural order, then by path.

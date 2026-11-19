@@ -15,14 +15,14 @@
 
 **Blocked by:** 07
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes.
 
-- [ ] Failing test first, `utils/color.test.ts`: `hsl()`, `#rgba` and `rgb(r g b / a)` parse; unparseable still returns null.
-- [ ] Theme logic test: a user theme with a failing pair is applied with the lifted value, and the saved theme is unchanged.
-- [ ] Theme editor component test: a failing token shows its warning with the ratio.
-- [ ] Frontend gate passes.
+- [x] Failing test first, `utils/color.test.ts`: `hsl()`, `#rgba` and `rgb(r g b / a)` parse; unparseable still returns null.
+- [x] Theme logic test: a user theme with a failing pair is applied with the lifted value, and the saved theme is unchanged.
+- [x] Theme editor component test: a failing token shows its warning with the ratio.
+- [x] Frontend gate passes.
 
 ## Findings covered
 
@@ -36,3 +36,4 @@
 ## Comments
 
 - 2026-11-19, triage: ready-for-agent. Decided by the owner: builder lifts tokens for every theme (WCAG + APCA), user themes are corrected by the builder and the editor warns, rail icons keep their hue and are darkened per theme (ADR-0033 amendment), Issues run through relay one at a time, the themes repo is fixed with version bumps.
+- 2026-11-19, deliver (issue/12-user-themes-readability-checks): user, edited and imported themes are applied with lifted tokens (saved theme unchanged), color.ts parses hsl(), #rgba and space rgb()/hsl() with `/` alpha, the theme editor warns per failing token with its ratio (aria-describedby), and a primary-on-settings-dialog pair joins READABILITY_PAIRS. Review round 1 APPROVED (fixes applied), round 2 APPROVED (one wording nit, not changed). Full suite at c5e48f4de: 684 files, 18282 tests passed, exit=0; pnpm check 0 errors.

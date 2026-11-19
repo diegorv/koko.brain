@@ -1,6 +1,6 @@
 # file card src/lib/core/settings/theme-builder.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/settings/theme-builder.logic.ts ' codemap/files
-file src/lib/core/settings/theme-builder.logic.ts logic L318 module src/lib/core/settings in3 t12
+file src/lib/core/settings/theme-builder.logic.ts logic L335 module src/lib/core/settings in3 t12
 ## imports
 imp src/lib/core/settings/theme-builder.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:Theme,type:ThemeColors
 imp src/lib/core/settings/theme-builder.logic.ts:2 -> src/lib/utils/color.ts ensureContrast,flatten,mixColors
@@ -32,24 +32,24 @@ sym src/lib/core/settings/theme-builder.logic.ts:19 interface CorePalette L60 | 
 by src/lib/core/settings/theme-builder.logic.ts:CorePalette <- src/lib/core/settings/theme-package.logic.ts:2 in (module) import
 sym src/lib/core/settings/theme-builder.logic.ts:89 fn alpha(color: string, a: string): string L7 | Applies a two-digit hex alpha to a color: appended to a 6-digit hex, and through `color-mix` for any other CSS color so the result stays valid.
 by src/lib/core/settings/theme-builder.logic.ts:alpha <- src/lib/core/settings/theme.logic.ts:51 in elevationVars call +4
-sym src/lib/core/settings/theme-builder.logic.ts:105 const READABILITY_PAIRS: ReadabilityPair[] L51 | Pairs every built-in theme must keep readable: 4.5:1 for text, 7:1 for body text, 3:1 for headings, markers and accent hues (large or non-text).
-sym src/lib/core/settings/theme-builder.logic.ts:210 type ThemeOverrides L1 | Per-token overrides applied on top of the derived theme.
+sym src/lib/core/settings/theme-builder.logic.ts:105 const READABILITY_PAIRS: ReadabilityPair[] L66 | Pairs every built-in theme must keep readable: 4.5:1 for text, 7:1 for body text, 3:1 for headings, markers and accent hues (large or non-text).
+sym src/lib/core/settings/theme-builder.logic.ts:227 type ThemeOverrides L1 | Per-token overrides applied on top of the derived theme.
 by src/lib/core/settings/theme-builder.logic.ts:ThemeOverrides <- src/lib/core/settings/theme-package.logic.ts:2 in (module) import
-sym src/lib/core/settings/theme-builder.logic.ts:218 fn buildTheme(name: string, core: CorePalette, overrides: ThemeOverrides = {}): Theme L84 | Expands a core palette into the full token set of a KokoBrain theme, applies `overrides` (tokens a theme sets differently from the derivation).
+sym src/lib/core/settings/theme-builder.logic.ts:235 fn buildTheme(name: string, core: CorePalette, overrides: ThemeOverrides = {}): Theme L84 | Expands a core palette into the full token set of a KokoBrain theme, applies `overrides` (tokens a theme sets differently from the derivation).
 by src/lib/core/settings/theme-builder.logic.ts:buildTheme <- src/lib/core/settings/theme-package.logic.ts:193 in buildThemeFromPackage call +1
 by src/lib/core/settings/theme-builder.logic.ts:buildTheme <- src/lib/core/settings/theme.logic.ts:102 in mergeThemeWithDefaults call +2
-sym src/lib/core/settings/theme-builder.logic.ts:307 fn coreFromColors(c: ThemeColors): CorePalette L12 | Reads a core palette back out of a full theme, from the token each core field is derived into; inverse of `buildTheme` for themes built without overrides.
+sym src/lib/core/settings/theme-builder.logic.ts:324 fn coreFromColors(c: ThemeColors): CorePalette L12 | Reads a core palette back out of a full theme, from the token each core field is derived into; inverse of `buildTheme` for themes built without overrides.
 by src/lib/core/settings/theme-builder.logic.ts:coreFromColors <- src/lib/core/settings/theme-package.logic.ts:342 in packageFromColors call
 by src/lib/core/settings/theme-builder.logic.ts:coreFromColors <- src/lib/core/settings/theme.logic.ts:102 in mergeThemeWithDefaults call
 ## locals
-local src/lib/core/settings/theme-builder.logic.ts:158 fn withReadableContrast(colors: ThemeColors): ThemeColors L18
-local src/lib/core/settings/theme-builder.logic.ts:182 fn readableCore(p: CorePalette): CorePalette L26
+local src/lib/core/settings/theme-builder.logic.ts:173 fn withReadableContrast(colors: ThemeColors): ThemeColors L18
+local src/lib/core/settings/theme-builder.logic.ts:197 fn readableCore(p: CorePalette): CorePalette L28
 ## calls
-call src/lib/core/settings/theme-builder.logic.ts:166 in withReadableContrast -> src/lib/utils/color.ts:flatten call
-call src/lib/core/settings/theme-builder.logic.ts:168 in withReadableContrast -> src/lib/utils/color.ts:ensureContrast call
-call src/lib/core/settings/theme-builder.logic.ts:185 in readableCore -> src/lib/utils/color.ts:ensureContrast call +2
-call src/lib/core/settings/theme-builder.logic.ts:196 in readableCore -> src/lib/utils/color.ts:flatten call
-call src/lib/core/settings/theme-builder.logic.ts:219 in buildTheme -> src/lib/core/settings/theme-builder.logic.ts:readableCore call
-call src/lib/core/settings/theme-builder.logic.ts:224 in buildTheme -> src/lib/utils/color.ts:mixColors call
-call src/lib/core/settings/theme-builder.logic.ts:243 in buildTheme -> src/lib/core/settings/theme-builder.logic.ts:alpha call +10
-call src/lib/core/settings/theme-builder.logic.ts:293 in buildTheme -> src/lib/core/settings/theme-builder.logic.ts:withReadableContrast call
+call src/lib/core/settings/theme-builder.logic.ts:181 in withReadableContrast -> src/lib/utils/color.ts:flatten call
+call src/lib/core/settings/theme-builder.logic.ts:183 in withReadableContrast -> src/lib/utils/color.ts:ensureContrast call
+call src/lib/core/settings/theme-builder.logic.ts:200 in readableCore -> src/lib/utils/color.ts:ensureContrast call +2
+call src/lib/core/settings/theme-builder.logic.ts:212 in readableCore -> src/lib/utils/color.ts:flatten call
+call src/lib/core/settings/theme-builder.logic.ts:236 in buildTheme -> src/lib/core/settings/theme-builder.logic.ts:readableCore call
+call src/lib/core/settings/theme-builder.logic.ts:241 in buildTheme -> src/lib/utils/color.ts:mixColors call
+call src/lib/core/settings/theme-builder.logic.ts:260 in buildTheme -> src/lib/core/settings/theme-builder.logic.ts:alpha call +10
+call src/lib/core/settings/theme-builder.logic.ts:310 in buildTheme -> src/lib/core/settings/theme-builder.logic.ts:withReadableContrast call

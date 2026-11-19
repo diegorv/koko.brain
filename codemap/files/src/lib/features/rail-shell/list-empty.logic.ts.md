@@ -21,7 +21,7 @@ by src/lib/features/rail-shell/list-empty.logic.ts:EmptyListIcon <- src/lib/feat
 sym src/lib/features/rail-shell/list-empty.logic.ts:23 interface EmptyListExplanation L12 | Why a list is empty, as the list shows it.
 sym src/lib/features/rail-shell/list-empty.logic.ts:37 interface EmptyListInput L18 | What `explainEmptyList` reads about an empty list.
 sym src/lib/features/rail-shell/list-empty.logic.ts:65 const LIST_EMPTY_COPY L30 | Every string an empty rail list shows, in one table so a copy change touches one entry.
-by src/lib/features/rail-shell/list-empty.logic.ts:LIST_EMPTY_COPY <- src/lib/features/rail-shell/RailNoteList.svelte:1087 in (markup) markup +5
+by src/lib/features/rail-shell/list-empty.logic.ts:LIST_EMPTY_COPY <- src/lib/features/rail-shell/RailNoteList.svelte:1093 in (markup) markup +5
 sym src/lib/features/rail-shell/list-empty.logic.ts:108 fn explainEmptyList(input: EmptyListInput): EmptyListExplanation L38 | Names why an empty rail list is empty, in this order: a search with no match (or still running), a lens with no list, a view's filters, the archived filter, th…
 by src/lib/features/rail-shell/list-empty.logic.ts:explainEmptyList <- src/lib/features/rail-shell/RailNoteList.svelte:725 in emptyExplanation=$derived call
 ## locals

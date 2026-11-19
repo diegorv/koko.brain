@@ -41,13 +41,13 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Accent and status text on its own tint: kanban, collection functions, file history](issues/04-accent-text-own-tint-kanban-collection-diff.md) | 03 | done | issue/04-accent-text-own-tint-kanban-collection-diff (d2d8f050a) | 2026-11-19 |
 | 05 | [Theme builder keeps text readable on every surface it derives, by WCAG and APCA](issues/05-theme-builder-text-every-surface-apca.md) | none | todo | | |
 | 06 | [Editor text on tinted surfaces: callouts, blockquote, highlight, code, collection](issues/06-theme-builder-editor-tinted-surfaces.md) | 05, 07 | todo | | |
-| 07 | [Borders, inputs, switches, checkboxes and focus rings reach 3:1](issues/07-non-text-boundaries-focus-states.md) | none | in-progress | | |
+| 07 | [Borders, inputs, switches, checkboxes and focus rings reach 3:1](issues/07-non-text-boundaries-focus-states.md) | none | done | issue/07-non-text-boundaries-focus-states (cc6b30159) | 2026-11-19 |
 | 08 | [Live-preview and QueryJS dimmed text stays readable](issues/08-live-preview-queryjs-dimmed-text.md) | 06 | todo | | |
 | 09 | [Canvas text, edges, groups and presets read on light themes](issues/09-canvas-readable-on-light-themes.md) | none | todo | | |
 | 10 | [QueryJS charts, heatmaps and mermaid follow the theme](issues/10-queryjs-charts-mermaid-follow-theme.md) | 08 | todo | | |
 | 11 | [Graph view labels, edges and controls read on every theme](issues/11-graph-view-follows-theme.md) | 07 | todo | | |
-| 12 | [User, edited and imported themes are corrected and the editor warns](issues/12-user-themes-readability-checks.md) | 07 | todo | | |
-| 13 | [Themes repo: Zettlr hover and selected surfaces, and a contrast CI](issues/13-themes-repo-zettlr-palettes-contrast-ci.md) | 07 | todo | | |
+| 12 | [User, edited and imported themes are corrected and the editor warns](issues/12-user-themes-readability-checks.md) | 07 | in-progress | | |
+| 13 | [Themes repo: Zettlr hover and selected surfaces, and a contrast CI](issues/13-themes-repo-zettlr-palettes-contrast-ci.md) | 07 | done | koko.brain-themes eb9f062, bfdd3d8 | 2026-11-19 |
 | 14 | [Kanban date badges read on coloured cards](issues/14-kanban-date-badges-coloured-cards.md) | 04 | todo | | |
 
 ## Log
@@ -64,3 +64,6 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 17:30 — 04 — deliver — merged; review APPROVED, fix round (color() keeps more preset), round 2 APPROVED with one deferred minor (date badges on coloured cards 4.05-4.50 on Zettlr Bielefeld Light, follow-up 14); full suite 679 files passed — d2d8f050a
 - 2026-11-19 17:30 — ledger updated (added 14; title of 14; link of 14; blocked by of 14)
 - 2026-11-19 17:30 — 07 — start — launched by /relay-lite:run (owner order: after 04) — 5c9402dd7
+- 2026-11-19 18:00 — 07 — deliver — merged; review APPROVED with 3 findings (input pairs on fileExplorerBg/editorBg fixed, per-token lift kept by design, ring/blockquote asserted), round 2 APPROVED; full suite 684 files passed; E2E focus-ring.spec not run — cc6b30159
+- 2026-11-19 18:00 — 12 — start — launched by /relay-lite:run (owner order: after 07) — b7ad075e6
+- 2026-11-19 18:17 — 13 — deliver — done by hand in the themes repo: Zettlr palettes (eb9f062), palette-design checks in pnpm validate plus 13 themes fixed (bfdd3d8); Themes CI green — 3a8eb75f5

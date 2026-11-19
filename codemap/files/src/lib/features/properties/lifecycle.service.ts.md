@@ -42,7 +42,7 @@ sym src/lib/features/properties/lifecycle.service.ts:48 fn toggleFavoriteForPath
 by src/lib/features/properties/lifecycle.service.ts:toggleFavoriteForPath <- src/lib/features/note-list/NoteRowMenu.svelte:287 in (markup) markup
 sym src/lib/features/properties/lifecycle.service.ts:76 fn setOrganizedForPath(filePath: string, organized: boolean): Promise<void> L3 | Sets `_organized` on a note by path; `_archived` is left as-is.
 by src/lib/features/properties/lifecycle.service.ts:setOrganizedForPath <- src/lib/features/note-list/NoteRowMenu.svelte:189 in runNoteAction call
-by src/lib/features/properties/lifecycle.service.ts:setOrganizedForPath <- src/lib/features/rail-shell/RailNoteList.svelte:1159 in (markup) markup
+by src/lib/features/properties/lifecycle.service.ts:setOrganizedForPath <- src/lib/features/rail-shell/RailNoteList.svelte:1170 in (markup) markup
 sym src/lib/features/properties/lifecycle.service.ts:84 fn setArchivedForPath(filePath: string, archived: boolean): Promise<void> L3 | Sets `_archived` on a note by path; `_organized` is left as-is.
 by src/lib/features/properties/lifecycle.service.ts:setArchivedForPath <- src/lib/features/note-list/NoteRowMenu.svelte:188 in runNoteAction call
 sym src/lib/features/properties/lifecycle.service.ts:95 fn setTypeRailPin(definitionPath: string, pinned: boolean): Promise<void> L10 | Pins the type whose definition note is at `definitionPath` to the rail (`_rail: true`) or unpins it (the key removed), through `updateNoteFrontmatter`, so the …

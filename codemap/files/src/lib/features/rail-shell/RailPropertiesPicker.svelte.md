@@ -14,7 +14,7 @@ out2 src/lib/features/rail-shell/RailPropertiesPicker.svelte 4 files in 3 module
 test src/tests/lib/features/rail-shell/RailPropertiesPicker.test.ts imports src/lib/features/rail-shell/RailPropertiesPicker.svelte mirror
 ## symbols
 sym src/lib/features/rail-shell/RailPropertiesPicker.svelte:1 component RailPropertiesPicker props:available,selected,onChange L177
-by src/lib/features/rail-shell/RailPropertiesPicker.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:952 in (markup) mount
+by src/lib/features/rail-shell/RailPropertiesPicker.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:955 in (markup) mount
 ## locals
 local src/lib/features/rail-shell/RailPropertiesPicker.svelte:49 fn moveBy(key: string, step: number) L7
 local src/lib/features/rail-shell/RailPropertiesPicker.svelte:57 fn handleToggle(key: string) L4
@@ -27,7 +27,7 @@ local src/lib/features/rail-shell/RailPropertiesPicker.svelte:91 fn handleCheckb
 mount src/lib/features/rail-shell/RailPropertiesPicker.svelte:117 PopoverContent -> src/lib/components/ui/popover/popover-content.svelte
 mount src/lib/features/rail-shell/RailPropertiesPicker.svelte:131 Input -> src/lib/components/ui/input/input.svelte
 ## mounted-at
-mount src/lib/features/rail-shell/RailNoteList.svelte:952 RailPropertiesPicker -> src/lib/features/rail-shell/RailPropertiesPicker.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:955 RailPropertiesPicker -> src/lib/features/rail-shell/RailPropertiesPicker.svelte
 ## calls
 call src/lib/features/rail-shell/RailPropertiesPicker.svelte:39 in items=$derived -> src/lib/features/rail-shell/list-properties.logic.ts:filterPropertyItems call
 call src/lib/features/rail-shell/RailPropertiesPicker.svelte:39 in items=$derived -> src/lib/features/rail-shell/list-properties.logic.ts:orderedPropertyItems call

@@ -1,7 +1,7 @@
 # file card src/lib/utils/color.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/utils/color.ts ' codemap/files
 sections: imported-by, reach, tests, symbols, locals, calls
-file src/lib/utils/color.ts other L244 module src/lib/utils in9 t23
+file src/lib/utils/color.ts other L244 module src/lib/utils in9 t28
 ## imported-by
 imp src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts:2 -> src/lib/utils/color.ts isDarkColor
 imp src/lib/core/settings/sections/ThemePreview.svelte:2 -> src/lib/utils/color.ts isDarkColor
@@ -18,11 +18,16 @@ out2 src/lib/utils/color.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/utils/color-presets.test.ts imports src/lib/utils/color.ts mirror
 test src/tests/lib/utils/color.test.ts imports src/lib/utils/color.ts mirror
+test src/tests/lib/app/SettingsPanel.test.ts imports src/lib/utils/color.ts
 test src/tests/lib/architecture/muted-text-alpha.test.ts imports src/lib/utils/color.ts
 test src/tests/lib/components/ui/button/button.test.ts imports src/lib/utils/color.ts
+test src/tests/lib/components/ui/scroll-area/scroll-area.test.ts imports src/lib/utils/color.ts
+test src/tests/lib/components/ui/switch/switch.test.ts imports src/lib/utils/color.ts
 test src/tests/lib/core/markdown-editor/extensions/composition-aware-bracket-matching.test.ts imports src/lib/utils/color.ts
+test src/tests/lib/core/markdown-editor/setup/editor-theme.test.ts imports src/lib/utils/color.ts
 test src/tests/lib/core/settings/settings.service.test.ts imports src/lib/utils/color.ts
 test src/tests/lib/core/settings/theme-builder.logic.test.ts imports src/lib/utils/color.ts
+test src/tests/lib/core/settings/theme-package.logic.test.ts imports src/lib/utils/color.ts
 test src/tests/lib/core/settings/theme-surfaces.logic.test.ts imports src/lib/utils/color.ts
 test src/tests/lib/core/settings/theme.logic.test.ts imports src/lib/utils/color.ts
 test src/tests/lib/features/collection/expression/evaluator.test.ts imports src/lib/utils/color.ts
@@ -41,7 +46,7 @@ test src/tests/lib/plugins/queryjs/kb-ui.test.ts imports src/lib/utils/color.ts
 test src/tests/lib/tint-text-tokens.test.ts imports src/lib/utils/color.ts
 ## symbols
 sym src/lib/utils/color.ts:48 fn flatten(color: string, base: string): string | null L7 | Composites `color` (alpha honored) over the opaque `base` into a 6-digit hex; null when either is unparseable.
-by src/lib/utils/color.ts:flatten <- src/lib/core/settings/theme-builder.logic.ts:166 in withReadableContrast call +1
+by src/lib/utils/color.ts:flatten <- src/lib/core/settings/theme-builder.logic.ts:181 in withReadableContrast call +1
 sym src/lib/utils/color.ts:61 fn tint(color: string, share: number, base: string): string | null L7 | Composites `color` at `share` of its own alpha over the opaque `base` into a 6-digit hex: what Tailwind's `bg-x/25` or `color-mix(in oklch, x 18%, transparent)…
 by src/lib/utils/color.ts:tint <- src/lib/core/settings/theme-surfaces.logic.ts:43 in themeTint call
 by src/lib/utils/color.ts:tint <- src/lib/features/rail-shell/rail-items.logic.ts:186 in railIconColor call
@@ -52,14 +57,14 @@ by src/lib/utils/color.ts:isDarkColor <- src/lib/core/settings/theme.logic.ts:41
 by src/lib/utils/color.ts:isDarkColor <- src/lib/core/settings/theme.service.ts:32 in applyMode call
 sym src/lib/utils/color.ts:94 fn contrastRatio(a: string, b: string): number | null L8 | WCAG contrast ratio of foreground `a` on background `b`, with a translucent `a` composited over `b` (`b`'s own alpha is ignored; flatten it first).
 sym src/lib/utils/color.ts:140 fn ensureContrast(fg: string, bg: string, min: number): string L20 | Returns `fg` moved in OKLab toward white or black by the smallest 1% step that reaches `min` contrast on `bg`, keeping its hue family and any 8-digit alpha suf…
-by src/lib/utils/color.ts:ensureContrast <- src/lib/core/settings/theme-builder.logic.ts:168 in withReadableContrast call +3
+by src/lib/utils/color.ts:ensureContrast <- src/lib/core/settings/theme-builder.logic.ts:183 in withReadableContrast call +3
 sym src/lib/utils/color.ts:167 fn ensureContrastOn(fg: string, bgs: string[], min: number): string L9 | `ensureContrast` against several backgrounds at once (a row and its hover or selected tint): lifts `fg` until it reaches `min` on each of `bgs`.
 by src/lib/utils/color.ts:ensureContrastOn <- src/lib/core/settings/theme-surfaces.logic.ts:78 in readableOn call
 by src/lib/utils/color.ts:ensureContrastOn <- src/lib/features/rail-shell/rail-items.logic.ts:188 in railIconColor call
 sym src/lib/utils/color.ts:182 fn shiftLightness(color: string, delta: number): string | null L6 | Moves a color's OKLab lightness by `delta` (-1 to 1) keeping a and b, the TS twin of CSS `oklch(from x calc(l + delta) c h)`, as a 6-digit hex clamped to the s…
 by src/lib/utils/color.ts:shiftLightness <- src/lib/core/settings/theme-surfaces.logic.ts:23 in themeSurface call +1
 sym src/lib/utils/color.ts:193 fn mixColors(a: string, b: string, t = 0.5): string | null L8 | OKLab mix of two colors as a 6-digit hex (alpha ignored): `t` is the share of `b`, 0.5 (the midpoint) by default.
-by src/lib/utils/color.ts:mixColors <- src/lib/core/settings/theme-builder.logic.ts:224 in buildTheme call
+by src/lib/utils/color.ts:mixColors <- src/lib/core/settings/theme-builder.logic.ts:241 in buildTheme call
 by src/lib/utils/color.ts:mixColors <- src/lib/core/settings/theme-surfaces.logic.ts:23 in themeSurface call +1
 by src/lib/utils/color.ts:mixColors <- src/lib/plugins/graph-view/graph-view.logic.ts:287 in graphPalette call +4
 sym src/lib/utils/color.ts:206 fn colorDistance(a: string, b: string): number | null L8 | Perceptual distance between two colors: the Euclidean OKLab distance scaled by 100 (black to white is 100), alpha ignored.

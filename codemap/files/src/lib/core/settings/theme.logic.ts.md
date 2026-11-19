@@ -1,6 +1,7 @@
 # file card src/lib/core/settings/theme.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/settings/theme.logic.ts ' codemap/files
-file src/lib/core/settings/theme.logic.ts logic L408 module src/lib/core/settings in7 t33
+sections: imports, imported-by, reach, tests, symbols, locals, calls
+file src/lib/core/settings/theme.logic.ts logic L408 module src/lib/core/settings in7 t37
 ## imports
 imp src/lib/core/settings/theme.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:Theme,type:ThemeColors,type:UIColors,type:SyntaxColors,type:PreviewColors,type:WikilinkColors,type:CalloutColors,type:AppearanceSettings
 imp src/lib/core/settings/theme.logic.ts:11 -> src/lib/utils/color.ts isDarkColor
@@ -19,9 +20,13 @@ in2 src/lib/core/settings/theme.logic.ts 90 files in 27 modules: src/lib/core/se
 out2 src/lib/core/settings/theme.logic.ts 1 files in 1 modules: src/lib/core/settings(1)
 ## tests
 test src/tests/lib/core/settings/theme.logic.test.ts imports src/lib/core/settings/theme.logic.ts mirror
+test src/tests/lib/app/SettingsPanel.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/architecture/muted-text-alpha.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/components/ui/button/button.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/components/ui/scroll-area/scroll-area.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/components/ui/switch/switch.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/core/markdown-editor/extensions/composition-aware-bracket-matching.test.ts imports src/lib/core/settings/theme.logic.ts
+test src/tests/lib/core/markdown-editor/setup/editor-theme.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/core/settings/AppearanceSection.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/core/settings/ThemeEditor.test.ts imports src/lib/core/settings/theme.logic.ts
 test src/tests/lib/core/settings/ThemePreview.test.ts imports src/lib/core/settings/theme.logic.ts

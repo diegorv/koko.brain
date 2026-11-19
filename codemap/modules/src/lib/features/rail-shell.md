@@ -51,7 +51,7 @@ file src/lib/features/rail-shell/LayoutSection.svelte component L202 module src/
 file src/lib/features/rail-shell/Rail.svelte component L430 module src/lib/features/rail-shell in1 t3
 file src/lib/features/rail-shell/RailArchivedMenu.svelte component L67 module src/lib/features/rail-shell in1 t0
 file src/lib/features/rail-shell/RailListSearch.svelte component L122 module src/lib/features/rail-shell in1 t1
-file src/lib/features/rail-shell/RailNoteList.svelte component L1162 module src/lib/features/rail-shell in1 t8
+file src/lib/features/rail-shell/RailNoteList.svelte component L1173 module src/lib/features/rail-shell in1 t8
 file src/lib/features/rail-shell/RailPropertiesPicker.svelte component L177 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/RailSortMenu.svelte component L233 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/TypesNavigator.svelte component L518 module src/lib/features/rail-shell in1 t1
@@ -81,7 +81,7 @@ file src/lib/features/rail-shell/view-lens.service.ts service L48 module src/lib
 sym src/lib/features/rail-shell/FilesNavigator.svelte:1 component FilesNavigator props:picked,expanded,onPick,onToggle,onPickView L586
 sym src/lib/features/rail-shell/LayoutSection.svelte:1 component LayoutSection L202
 sym src/lib/features/rail-shell/Rail.svelte:1 component Rail props:activeItem,onSelect L430
-sym src/lib/features/rail-shell/RailNoteList.svelte:1 component RailNoteList props:lens,firstPane= L1162
+sym src/lib/features/rail-shell/RailNoteList.svelte:1 component RailNoteList props:lens,firstPane= L1173
 sym src/lib/features/rail-shell/TypesNavigator.svelte:1 component TypesNavigator props:rows,picked,onPick L518
 sym src/lib/features/rail-shell/files-navigator.service.ts:11 fn registerFilesNavigatorPathChangeConsumer(): () => void L10 | Registers the Files navigator as a path-change consumer, so its saved pick and expanded folders follow a folder renamed, moved or deleted anywhere in the app.
 sym src/lib/features/rail-shell/kind-icons.ts:16 const KIND_ICONS: Record<FileKind, Component> L9 | The row icon of each file kind when the file has no icon of its own (the file tree's kind icons).
