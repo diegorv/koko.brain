@@ -53,4 +53,4 @@ by src/lib/utils/index-dedupe.ts:markIndexed <- src/lib/core/filesystem/note-cha
 sym src/lib/utils/index-dedupe.ts:32 fn clearIndexedEntry(path: string): void L3 | Removes the signature for a path.
 by src/lib/utils/index-dedupe.ts:clearIndexedEntry <- src/lib/core/filesystem/note-change.service.ts:205 in applyNoteChange call
 sym src/lib/utils/index-dedupe.ts:37 fn clearAllIndexed(): void L3 | Drops every signature.
-by src/lib/utils/index-dedupe.ts:clearAllIndexed <- src/lib/core/editor/editor.hooks.ts:136 in resetHooks call
+by src/lib/utils/index-dedupe.ts:clearAllIndexed <- src/lib/core/editor/editor.hooks.ts:166 in resetHooks call

@@ -97,7 +97,7 @@ by src/lib/core/editor/editor.logic.ts:findTabIndex <- src/lib/features/tags/tag
 by src/lib/core/editor/editor.logic.ts:findTabIndex <- src/lib/features/tasks/tasks.service.ts:548 in openTasksTab call +2
 by src/lib/core/editor/editor.logic.ts:findTabIndex <- src/lib/plugins/graph-view/graph-view.service.ts:37 in openGraphTab call +2
 sym src/lib/core/editor/editor.logic.ts:45 fn isTabDirty(tab: Pick<EditorTab, 'content' | 'savedContent'>): boolean L3 | Checks whether a tab has unsaved changes by comparing current content to the last saved snapshot
-by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/editor/editor.service.ts:238 in writeTab call +4
+by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/editor/editor.service.ts:238 in writeTab call +5
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/filesystem/link-updater.service.ts:53 in updateLinksAfterRename call
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/filesystem/path-change.service.ts:67 in saveDirtyTabsUnder call
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/markdown-editor/EditorTabs.svelte:224 in (markup) markup +1

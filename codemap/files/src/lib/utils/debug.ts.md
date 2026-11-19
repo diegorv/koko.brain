@@ -102,7 +102,7 @@ by src/lib/utils/debug.ts:debug <- src/lib/app/deep-link-actions.ts:45 in execut
 by src/lib/utils/debug.ts:debug <- src/lib/app/lifecycle/app-lifecycle.service.ts:185 in initializeVault call +22
 by src/lib/utils/debug.ts:debug <- src/lib/app/lifecycle/watcher-handler.service.ts:51 in rebuildAllIndexes call +5
 by src/lib/utils/debug.ts:debug <- src/lib/core/editor/editor.hooks.ts:54 in addAfterSaveObserver call +3
-by src/lib/utils/debug.ts:debug <- src/lib/core/editor/editor.service.ts:191 in openFileInEditor call +3
+by src/lib/utils/debug.ts:debug <- src/lib/core/editor/editor.service.ts:191 in openFileInEditor call +4
 by src/lib/utils/debug.ts:debug <- src/lib/core/filesystem/fs.service.ts:104 in loadDirectoryTree call +8
 by src/lib/utils/debug.ts:debug <- src/lib/core/filesystem/fs.watcher.ts:43 in logCounters call +7
 by src/lib/utils/debug.ts:debug <- src/lib/core/filesystem/note-change.service.ts:111 in registerNoteChangeConsumer call +3
@@ -115,7 +115,7 @@ by src/lib/utils/debug.ts:error <- src/lib/app/lifecycle/app-lifecycle.service.t
 by src/lib/utils/debug.ts:error <- src/lib/app/lifecycle/watcher-handler.service.ts:76 in rebuildAllIndexes call +2
 by src/lib/utils/debug.ts:error <- src/lib/app/tauri-listeners.service.ts:34 in registerMenuSettingsListener call +8
 by src/lib/utils/debug.ts:error <- src/lib/core/editor/editor.hooks.ts:89 in notifyAfterSave call +1
-by src/lib/utils/debug.ts:error <- src/lib/core/editor/editor.service.ts:43 in notifyTabClosed call +3
+by src/lib/utils/debug.ts:error <- src/lib/core/editor/editor.service.ts:43 in notifyTabClosed call +4
 more by 54 not shown: src/lib/features/todoist-sync(7) src/lib/core/filesystem(5) src/lib/core/settings(3) src/lib/features/event-calendar(3) src/lib/features/rail-shell(3) src/lib/features/auto-organize(2) src/lib/features/collection(2) src/lib/features/note-action-bar(2) +24 modules: q importers src/lib/utils/debug.ts:error
 sym src/lib/utils/debug.ts:41 fn timeAsync<T>(tag: string, label: string, fn: () => Promise<T>): Promise<T> L11 | Times an async operation and logs the elapsed time via debug().
 by src/lib/utils/debug.ts:timeAsync <- src/lib/core/filesystem/fs.service.ts:93 in loadDirectoryTree call +1

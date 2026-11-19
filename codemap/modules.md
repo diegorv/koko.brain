@@ -12,7 +12,7 @@ module src-tauri/src/vault rust files 9 in-modules 2 out-modules 1 pub 46/105 ip
 module src/lib/app app files 15 in-modules 1 out-modules 46 pub 12/27 ipc 11/0 card ~2.4k
 module src/lib/components components files 98 in-modules 31 out-modules 1 pub 1/1 ipc 0/0 card ~6.3k
 module src/lib/contracts contracts files 56 in-modules 26 out-modules 0 pub 45/65 ipc 0/0 card ~4.4k
-module src/lib/core/editor core files 6 in-modules 38 out-modules 3 pub 46/55 ipc 0/0 card ~4.5k
+module src/lib/core/editor core files 6 in-modules 38 out-modules 3 pub 47/58 ipc 0/0 card ~4.6k
 module src/lib/core/filesystem core files 14 in-modules 30 out-modules 7 pub 62/91 ipc 14/0 card ~7.3k
 module src/lib/core/frontmatter core files 4 in-modules 16 out-modules 3 pub 28/40 ipc 0/0 card ~3.5k
 module src/lib/core/layout core files 3 in-modules 6 out-modules 4 pub 8/10 ipc 0/0 card ~1.1k

@@ -32,6 +32,6 @@ by src/lib/core/markdown-editor/tab-view-state.ts:renameTabViewState <- src/lib/
 sym src/lib/core/markdown-editor/tab-view-state.ts:100 fn takeTabRename(oldPath: string): string | undefined L5 | Returns the path `oldPath` was renamed to since the last call, or undefined if it was not renamed, and forgets every recorded rename.
 by src/lib/core/markdown-editor/tab-view-state.ts:takeTabRename <- src/lib/core/markdown-editor/MarkdownEditor.svelte:468 in $effect@455 call
 sym src/lib/core/markdown-editor/tab-view-state.ts:107 fn clearAllTabViewStates(): void L5 | Clears all saved view and editor states (e.g. on vault switch)
-by src/lib/core/markdown-editor/tab-view-state.ts:clearAllTabViewStates <- src/lib/core/editor/editor.service.ts:526 in resetEditor call
+by src/lib/core/markdown-editor/tab-view-state.ts:clearAllTabViewStates <- src/lib/core/editor/editor.service.ts:575 in resetEditor call
 ## calls
 call src/lib/core/markdown-editor/tab-view-state.ts:92 in renameTabViewState -> src/lib/core/markdown-editor/tab-view-state.ts:deleteTabViewState call
