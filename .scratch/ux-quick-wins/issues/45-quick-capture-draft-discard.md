@@ -16,16 +16,16 @@ Not in this ticket: the hint copy and the "Saving..." state (ticket 07); "Saved 
 
 **Blocked by:** 07
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes (none expected: `composer-autocomplete.spec.ts` types and does not assert the hint).
 
-- [ ] Failing test first, `src/tests/routes/composer-page.test.ts` (only the Tauri `call` and `on` boundary mocked, as in the file): mounting or summoning with a stored draft shows "Draft restored" and a Discard button; no stored draft shows neither; typing one character removes the note; a summon that restores the same text the editor already holds still shows it.
-- [ ] Discard empties the editor and `localStorage` (`kokobrain:composer-draft` is gone), removes the note and leaves focus in the editor; the next summon shows an empty editor.
-- [ ] A confirmed save keeps the `saved` class and "Saved" for 600 ms (fake timers, `setTimeout` and `clearTimeout` only) before `dismiss_composer` is called; at 599 ms it has not.
-- [ ] At `ok === true` the stored draft holds only what was typed after the submit, checked before the hold ends (`localStorage.getItem`), while the editor still shows the text.
-- [ ] Esc then summon during the hold: the editor is empty, there is no "Draft restored", and Cmd+Enter sends no second `submit_composer_capture`. The existing tests "sends one capture when Cmd+Enter is pressed again during the saved flash" and "does not hide a composer summoned again during the saved flash" (`:321-351`) advance 500 ms today and move to the new hold on purpose.
-- [ ] A failed or unconfirmed save keeps the text and the stored draft as today (no `withoutWritten` write), and a summon then restores it.
+- [x] Failing test first, `src/tests/routes/composer-page.test.ts` (only the Tauri `call` and `on` boundary mocked, as in the file): mounting or summoning with a stored draft shows "Draft restored" and a Discard button; no stored draft shows neither; typing one character removes the note; a summon that restores the same text the editor already holds still shows it.
+- [x] Discard empties the editor and `localStorage` (`kokobrain:composer-draft` is gone), removes the note and leaves focus in the editor; the next summon shows an empty editor.
+- [x] A confirmed save keeps the `saved` class and "Saved" for 600 ms (fake timers, `setTimeout` and `clearTimeout` only) before `dismiss_composer` is called; at 599 ms it has not.
+- [x] At `ok === true` the stored draft holds only what was typed after the submit, checked before the hold ends (`localStorage.getItem`), while the editor still shows the text.
+- [x] Esc then summon during the hold: the editor is empty, there is no "Draft restored", and Cmd+Enter sends no second `submit_composer_capture`. The existing tests "sends one capture when Cmd+Enter is pressed again during the saved flash" and "does not hide a composer summoned again during the saved flash" (`:321-351`) advance 500 ms today and move to the new hold on purpose.
+- [x] A failed or unconfirmed save keeps the text and the stored draft as today (no `withoutWritten` write), and a summon then restores it.
 - [ ] Frontend gate: pnpm check and pnpm vitest run pass. By hand: a Discard click does not drag the window.
 
 ## Original proposal
@@ -61,3 +61,4 @@ Ticket 07 is the only other ticket in `src/routes/composer/+page.svelte` and mus
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping, the split of old ticket 05, and for this ticket "tickets at the end, run only when named". Defaults (not individually answered): 45.1 (written here): Discard has no confirm. Default: yes, because the restored text is the person's own draft and the note names the control.
+- 2026-11-18, deliver (branch issue/45-quick-capture-draft-discard): Quick Capture keeps the stored draft until a save is confirmed, shows "Draft restored" with a Discard button, and holds "Saved" for 600 ms before dismissing. Round 1 fixes: the Discard test asserts focus returns to the editor; a test covers a late confirmed save keeping text typed after the submit; finding 3 left as is. Review round 1 APPROVED, round 2 APPROVED (no findings). Tests: pnpm check 0 errors; composer-page.test.ts 50 passed; full suite at c9166ea5a exit 0, 662 files, 17818 passed, 56 skipped. The manual window-drag check on Discard is not done.
