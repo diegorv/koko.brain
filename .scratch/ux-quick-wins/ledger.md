@@ -68,7 +68,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 31 | [Auto Organize section: honest copy, archive-off hint, save-failure toast, excluded folders with feedback, named controls](issues/31-auto-organize-section-honest-copy-archiveoff.md) | 21 | done | issue/31-auto-organize-section-honest-copy-archiveoff (ec40db9d2) | 2026-11-18 |
 | 32 | [Auto Organize rule row: stable property rows, template variables, named controls, Off state, focus on what you just added](issues/32-auto-organize-rule-row-stable-property.md) | 15, 31 | done | issue/32-auto-organize-rule-row-stable-property (1f700be11) | 2026-11-18 |
 | 33 | [Auto Organize property rows: verb mode labels, errors tied to their fields, the legacy icon only where set](issues/33-auto-organize-property-rows-verb-mode.md) | 32 | done | issue/33-auto-organize-property-rows-verb-mode (1a4bffd9e) | 2026-11-18 |
-| 34 | [The rule filter reads "When" with one "Add condition"](issues/34-rule-filter-reads-one-add-condition.md) | 15, 33 | in-progress | | |
+| 34 | [The rule filter reads "When" with one "Add condition"](issues/34-rule-filter-reads-one-add-condition.md) | 15, 33 | done | issue/34-rule-filter-reads-one-add-condition (f500f6f87) | 2026-11-18 |
 | 35 | [Appearance settings: theme rows ignore keys from their buttons, one catalog error with its reason, Install and apply, a theme editor that confirms discards and restores the theme on close](issues/35-appearance-settings-theme-rows-ignore-keys.md) | none | todo | | |
 | 36 | [Periodic Notes and 1:1: live path examples and missing-template marks](issues/36-periodic-notes-11-live-path-examples.md) | 22 | done | issue/36-periodic-notes-11-live-path-examples (632893c70) | 2026-11-18 |
 | 37 | [Mods: each mod says what it does; the run view shows status and progress clearly](issues/37-mods-each-mod-run-view-shows.md) | none | done | issue/37-mods-each-mod-run-view-shows (a52bc3d78) | 2026-11-18 |
@@ -149,3 +149,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 20:55 — 33 — start — launched by /relay-lite:run — 908412862
 - 2026-11-18 21:15 — 33 — deliver — merged after review 1 APPROVED with 3 findings, fix round (blank stored filter says a run ignores it, repeat invalid commit not refused, e2e title), re-review 2 APPROVED (claude); full vitest suite passed (17795 tests) — 1a4bffd9e
 - 2026-11-18 21:16 — 34 — start — launched by /relay-lite:run — 279a6db94
+- 2026-11-18 21:36 — 34 — deliver — merged after review 1 APPROVED with findings, fix round (help says Add condition > Property filter), re-review 2 APPROVED (claude); full vitest suite passed (17805 tests); shell-sidebars-ux 16 and 24 sequencing note left to main session — f500f6f87
