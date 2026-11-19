@@ -79,7 +79,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 42 | [Kanban cards move between lanes from the card menu](issues/42-kanban-cards-move-between-lanes-card.md) | 10, 11, 12 | done | issue/42-kanban-cards-move-between-lanes-card (8258ffac3) | 2026-11-18 |
 | 43 | [New canvas text cards open ready to type and cascade; Enter or F2 edits a selected card](issues/43-new-canvas-text-cards-open-ready.md) | 06, 16 | todo | | |
 | 44 | [Sort order can be changed from the keyboard](issues/44-sort-keyboard-reorder.md) | 15 | todo | | |
-| 45 | [Quick Capture keeps the draft until it is written, with Discard and a short hold](issues/45-quick-capture-draft-discard.md) | 07 | todo | | |
+| 45 | [Quick Capture keeps the draft until it is written, with Discard and a short hold](issues/45-quick-capture-draft-discard.md) | 07 | in-progress | | |
 | 46 | [Frontmatter reads as metadata in source mode](issues/46-frontmatter-reads-as-metadata-source-mode.md) | none | done | issue/46-frontmatter-reads-as-metadata-source-mode (9d897ac41) | 2026-11-18 |
 | 47 | [Calendars count undated notes; view tabs show their type](issues/47-calendars-count-undated-notes-view-tabs.md) | 09, 14 | done | issue/47-calendars-count-undated-notes-view-tabs (a2a1e1997) | 2026-11-18 |
 
@@ -150,3 +150,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-18 21:15 — 33 — deliver — merged after review 1 APPROVED with 3 findings, fix round (blank stored filter says a run ignores it, repeat invalid commit not refused, e2e title), re-review 2 APPROVED (claude); full vitest suite passed (17795 tests) — 1a4bffd9e
 - 2026-11-18 21:16 — 34 — start — launched by /relay-lite:run — 279a6db94
 - 2026-11-18 21:36 — 34 — deliver — merged after review 1 APPROVED with findings, fix round (help says Add condition > Property filter), re-review 2 APPROVED (claude); full vitest suite passed (17805 tests); shell-sidebars-ux 16 and 24 sequencing note left to main session — f500f6f87
+- 2026-11-18 21:37 — 45 — start — launched by /relay-lite:run — 6e734dbce
