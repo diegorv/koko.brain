@@ -73,7 +73,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 36 | [Periodic Notes and 1:1: live path examples and missing-template marks](issues/36-periodic-notes-11-live-path-examples.md) | 22 | done | issue/36-periodic-notes-11-live-path-examples (632893c70) | 2026-11-18 |
 | 37 | [Mods: each mod says what it does; the run view shows status and progress clearly](issues/37-mods-each-mod-run-view-shows.md) | none | done | issue/37-mods-each-mod-run-view-shows (a52bc3d78) | 2026-11-18 |
 | 38 | [Settings: text you can select, the Todoist root row fits, the update button says it downloads](issues/38-settings-text-you-can-select-todoist.md) | none | todo | | |
-| 39 | [Readable text on coloured fills: kanban tag chips, linear-calendar bars, the rail badge](issues/39-readable-chips-faded-text.md) | 12 | blocked | | |
+| 39 | [Readable text on coloured fills: kanban tag chips, linear-calendar bars, the rail badge](issues/39-readable-chips-faded-text.md) | 12 | todo | | |
 | 40 | [Default theme: a darker tab strip with a visible tab hover, bold and italic off the link blue](issues/40-default-theme-darker-tab-strip-visible.md) | 20, 39 | todo | | |
 | 41 | [Word count and graph stats read correctly for 0 and 1; graph mode buttons show their state](issues/41-word-count-graph-stats-read-correctly.md) | none | todo | | |
 | 42 | [Kanban cards move between lanes from the card menu](issues/42-kanban-cards-move-between-lanes-card.md) | 10, 11, 12 | done | issue/42-kanban-cards-move-between-lanes-card (8258ffac3) | 2026-11-18 |
