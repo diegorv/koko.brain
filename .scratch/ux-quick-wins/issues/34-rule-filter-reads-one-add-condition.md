@@ -15,15 +15,15 @@ Not in this ticket: the shared two-column label grid that replaces `ml-[6.5rem]`
 
 **Blocked by:** 15, 33
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh auto-organize-flows.spec.ts rail-shell.spec.ts rail-list-toolbar.spec.ts (a selector and a shared panel change).
 
-- [ ] Failing test first, `src/tests/lib/features/collection/toolbar/FilterPanel.svelte.test.ts` and `AutoOrganizeRuleRow.test.ts`: a rule row renders "When" and none of "This view", "Add filter", "Add expression"; `FilterPanel.svelte.test.ts:73,81` and the ViewDialog tests still find "This view".
-- [ ] "Add condition" > "Property filter" adds a filter row, "Expression" an expression row; `rule.expression` is unchanged until a value is typed; the new row's first input has focus.
-- [ ] Failing test first, `src/tests/lib/features/collection/toolbar/filter-logic.test.ts` (the existing file, not `filter.logic.test.ts`): `addFilter` on `[]` makes one `and` group; on existing groups it appends to the first only and leaves the others untouched.
-- [ ] `auto-organize-flows.spec.ts:29` opens "Add condition" and picks "Expression"; it passes, as do `rail-shell.spec.ts:661-712` and `rail-list-toolbar.spec.ts:237`.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass; the three E2E specs above pass.
+- [x] Failing test first, `src/tests/lib/features/collection/toolbar/FilterPanel.svelte.test.ts` and `AutoOrganizeRuleRow.test.ts`: a rule row renders "When" and none of "This view", "Add filter", "Add expression"; `FilterPanel.svelte.test.ts:73,81` and the ViewDialog tests still find "This view".
+- [x] "Add condition" > "Property filter" adds a filter row, "Expression" an expression row; `rule.expression` is unchanged until a value is typed; the new row's first input has focus.
+- [x] Failing test first, `src/tests/lib/features/collection/toolbar/filter-logic.test.ts` (the existing file, not `filter.logic.test.ts`): `addFilter` on `[]` makes one `and` group; on existing groups it appends to the first only and leaves the others untouched.
+- [x] `auto-organize-flows.spec.ts:29` opens "Add condition" and picks "Expression"; it passes, as do `rail-shell.spec.ts:661-712` and `rail-list-toolbar.spec.ts:237`.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass; the three E2E specs above pass.
 
 ## Original proposal
 
@@ -58,3 +58,4 @@ Ticket 44 (keyboard sort order) is blocked by this ticket and edits the sort pan
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping.
+- 2026-11-18, delivery (branch issue/34-rule-filter-reads-one-add-condition): rule filter in auto-organize reads "When" with one "Add condition" menu (Property filter / Expression); FilterPanel embedded mode; `addFilter` pure in filter.logic; help and E2E updated. Review round 1 APPROVED (fix: help doc step reads "Add condition > Property filter"); review round 2 APPROVED, no findings. Tests: pnpm check 0 errors; full suite at 7e1f61aa7 662 files, 17805 passed, exit 0.

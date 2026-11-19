@@ -290,6 +290,22 @@ export function createEmptyFilterRow(property: string, type: PropertyType): Filt
 }
 
 /**
+ * Appends a blank filter row on the first available property (else
+ * `file.name`) to the first group, or to a new "and" group when there is none.
+ * Every other group is returned as is.
+ */
+export function addFilter(
+	groups: FilterGroup[],
+	availableProperties: string[],
+	propertyIndex: Map<string, PropertyIndexRecord>,
+): FilterGroup[] {
+	const defaultProp = availableProperties[0] ?? 'file.name';
+	const newRow = createEmptyFilterRow(defaultProp, inferPropertyType(defaultProp, propertyIndex));
+	if (groups.length === 0) return [{ conjunction: 'and', rows: [newRow] }];
+	return groups.map((g, i) => (i === 0 ? { ...g, rows: [...g.rows, newRow] } : g));
+}
+
+/**
  * Creates an expression row with no text yet. `filterGroupsToFilter` drops it
  * until text is typed into it.
  */

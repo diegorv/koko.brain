@@ -26,8 +26,12 @@ test.describe('a rule built in Settings', () => {
 		await panel.getByRole('button', { name: 'Add rule' }).click();
 		await panel.getByPlaceholder('Rule name').fill('Projects get an owner');
 
-		await panel.getByRole('button', { name: 'Add expression' }).click();
+		// The menu renders in a portal, outside the settings panel.
+		await panel.getByRole('button', { name: 'Add condition' }).click();
+		await page.getByRole('menuitem', { name: 'Expression', exact: true }).click();
 		const expression = panel.getByPlaceholder('Expression...');
+		// The closing menu must not keep focus on its trigger.
+		await expect(expression).toBeFocused();
 		await expression.fill('file.inFolder("Projects")');
 		await expression.press('Tab');
 		await expect(panel.locator('[data-match-count]')).toHaveText(/^Matches [1-9]\d* notes? now$/);

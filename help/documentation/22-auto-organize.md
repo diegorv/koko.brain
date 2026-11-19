@@ -79,7 +79,7 @@ A filter decides which notes a rule applies to. It uses the same language as [vi
 
 ### The filter builder
 
-The filter is edited with the same builder as a [view](12-views.md)'s filters. Click **Add filter** to add a condition, pick a property and an operator, and type a value. Conditions sit in a group, and the group's menu says how they combine:
+The filter, labelled **When** in the rule, is edited with the same builder as a [view](12-views.md)'s filters. Click **Add condition** > **Property filter**, then choose a property and an operator, and type a value. Conditions sit in a group, and the group's menu says how they combine:
 
 | Group | The rule matches a note when | Saved as |
 |-------|------------------------------|----------|
@@ -106,7 +106,7 @@ Notes that are done or dropped.
 ```
 Notes without the tag `keep`.
 
-For a condition the property, operator and value fields cannot express, such as `file.hasTag('project')` or `file.inFolder('Inbox')`, click **Add expression** below the builder and type the condition as text. The row joins the first group, or starts an **All** group when there is none, and is saved when you leave the field.
+For a condition the property, operator and value fields cannot express, such as `file.hasTag('project')` or `file.inFolder('Inbox')`, click **Add condition**, pick **Expression** and type the condition as text. The row joins the first group, or starts an **All** group when there is none, and is saved when you leave the field.
 
 When a filter has several groups, a note must pass all of them. To mix "and" and "or" in one condition, such as `(A and B) or C`, write it as an expression row:
 
