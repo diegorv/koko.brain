@@ -16,7 +16,7 @@
 	import { drag as d3Drag } from 'd3-drag';
 	import { graphViewStore } from './graph-view.store.svelte';
 	import { buildGraph } from './graph-view.service';
-	import { filterGraphData, getLocalGraph, getNodeRadius, graphPalette, selectLabels, FALLBACK_GRAPH_PALETTE, type GraphPalette, type LabelCandidate } from './graph-view.logic';
+	import { filterGraphData, formatGraphStats, getLocalGraph, getNodeRadius, graphPalette, selectLabels, FALLBACK_GRAPH_PALETTE, type GraphPalette, type LabelCandidate } from './graph-view.logic';
 	import type { GraphNode, GraphLink, GraphData } from './graph-view.types';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
@@ -553,6 +553,6 @@
 		onZoomOut={handleZoomOut}
 	/>
 	<div class="absolute bottom-3 right-3 rounded-xs border border-border bg-background/90 px-2 py-1 text-xs text-muted-foreground backdrop-blur-sm">
-		{simNodes.length} notes &middot; {simLinks.length} links
+		{formatGraphStats(simNodes.length, simLinks.length)}
 	</div>
 </div>

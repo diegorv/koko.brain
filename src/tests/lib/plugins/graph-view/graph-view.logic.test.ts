@@ -5,6 +5,7 @@ import {
 	getLocalGraph,
 	getNodeRadius,
 	getFolderFromPath,
+	formatGraphStats,
 	getUniqueFolders,
 	getUniqueTags,
 	graphPalette,
@@ -568,5 +569,19 @@ describe('selectLabels', () => {
 
 			expect(selectLabels(candidates)).toEqual(bruteForce(candidates));
 		}
+	});
+});
+
+describe('formatGraphStats', () => {
+	it('reads zero notes and zero links in the plural', () => {
+		expect(formatGraphStats(0, 0)).toBe('0 notes · 0 links');
+	});
+
+	it('reads one note and one link in the singular', () => {
+		expect(formatGraphStats(1, 1)).toBe('1 note · 1 link');
+	});
+
+	it('reads several notes and links in the plural', () => {
+		expect(formatGraphStats(2, 3)).toBe('2 notes · 3 links');
 	});
 });

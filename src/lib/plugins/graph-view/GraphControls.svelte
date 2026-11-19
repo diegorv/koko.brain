@@ -48,6 +48,7 @@
 			onclick={() => graphViewStore.setMode('global')}
 			title="Global graph"
 			aria-label="Global graph"
+			aria-pressed={graphViewStore.mode === 'global'}
 		>
 			<Globe class="h-3.5 w-3.5" />
 		</button>
@@ -58,6 +59,7 @@
 			onclick={() => graphViewStore.setMode('local')}
 			title="Local graph"
 			aria-label="Local graph"
+			aria-pressed={graphViewStore.mode === 'local'}
 		>
 			<Target class="h-3.5 w-3.5" />
 		</button>

@@ -294,5 +294,28 @@ describe('GraphControls', () => {
 				expect(target.querySelector(`button[aria-label="${name}"]`), name).not.toBeNull();
 			}
 		});
+
+		it('marks the current mode button as pressed and flips it on click', async () => {
+			await render();
+			const pressed = (name: string) => target.querySelector(`button[aria-label="${name}"]`)?.getAttribute('aria-pressed');
+
+			expect(graphViewStore.mode).toBe('global');
+			expect(pressed('Global graph')).toBe('true');
+			expect(pressed('Local graph')).toBe('false');
+
+			target.querySelector<HTMLButtonElement>('button[aria-label="Local graph"]')!.click();
+			flushSync();
+
+			expect(graphViewStore.mode).toBe('local');
+			expect(pressed('Global graph')).toBe('false');
+			expect(pressed('Local graph')).toBe('true');
+
+			target.querySelector<HTMLButtonElement>('button[aria-label="Global graph"]')!.click();
+			flushSync();
+
+			expect(graphViewStore.mode).toBe('global');
+			expect(pressed('Global graph')).toBe('true');
+			expect(pressed('Local graph')).toBe('false');
+		});
 	});
 });

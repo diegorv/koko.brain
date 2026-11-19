@@ -14,16 +14,16 @@ Not in this ticket: the "N of M words" selection count (no selection state in `e
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh e2e/specs/word-count.spec.ts.
 
-- [ ] Failing test first, `src/tests/lib/plugins/graph-view/graph-view.logic.test.ts`: `formatGraphStats(0, 0)` is "0 notes · 0 links", `(1, 1)` is "1 note · 1 link", `(2, 3)` is "2 notes · 3 links".
-- [ ] Failing test first, new `src/tests/lib/plugins/word-count/WordCount.test.ts` (real `editorStore` with an active `.md` tab, fake timers advanced 500 ms): empty content shows "0 words" and no "min read"; "hello" shows "1 word", "5 characters" and "1 min read"; a 250-word body shows "2 min read"; a non-markdown tab renders nothing.
-- [ ] `src/tests/lib/plugins/graph-view/GraphView.test.ts:73` changes from `toContain('1 links')` to `toContain('1 link')` plus `not.toContain('1 links')`. It pins the bug today, so this corrects a test that encodes it and does not weaken one. `:120,135` ("2 links") stay.
-- [ ] `GraphControls.test.ts`: `aria-pressed` on the Global and Local buttons follows `graphViewStore.mode` and flips after a click; the lookups by `aria-label` at `:290-296` still work.
-- [ ] `estimateReadingTime` and its tests are unchanged. `bash scripts/e2e.sh e2e/specs/word-count.spec.ts` passes: its counts (`\d+ words`, `\d+ min read` on `Welcome.md`, and the status-bar test at `:43-83` typing "Some words here") stay above 1, so no selector changes.
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, `src/tests/lib/plugins/graph-view/graph-view.logic.test.ts`: `formatGraphStats(0, 0)` is "0 notes · 0 links", `(1, 1)` is "1 note · 1 link", `(2, 3)` is "2 notes · 3 links".
+- [x] Failing test first, new `src/tests/lib/plugins/word-count/WordCount.test.ts` (real `editorStore` with an active `.md` tab, fake timers advanced 500 ms): empty content shows "0 words" and no "min read"; "hello" shows "1 word", "5 characters" and "1 min read"; a 250-word body shows "2 min read"; a non-markdown tab renders nothing.
+- [x] `src/tests/lib/plugins/graph-view/GraphView.test.ts:73` changes from `toContain('1 links')` to `toContain('1 link')` plus `not.toContain('1 links')`. It pins the bug today, so this corrects a test that encodes it and does not weaken one. `:120,135` ("2 links") stay.
+- [x] `GraphControls.test.ts`: `aria-pressed` on the Global and Local buttons follows `graphViewStore.mode` and flips after a click; the lookups by `aria-label` at `:290-296` still work.
+- [x] `estimateReadingTime` and its tests are unchanged. `bash scripts/e2e.sh e2e/specs/word-count.spec.ts` passes: its counts (`\d+ words`, `\d+ min read` on `Welcome.md`, and the status-bar test at `:43-83` typing "Some words here") stay above 1, so no selector changes.
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Original proposal
 
@@ -53,3 +53,4 @@ Open-itens 087, 165 and 166 (all ready-for-agent) edit `GraphView.svelte` on oth
 ## Comments
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): none in the old ticket. Assumption carried from open-itens 213: the 1-minute floor stays for any non-empty note; only the empty note hides the estimate.
+- 2026-11-19, deliver (branch `issue/41-word-count-graph-stats-read-correctly`): `formatGraphStats` gives singular "1 note · 1 link"; the word count says "1 word" and hides the reading time for a 0-word note; the Global and Local graph buttons carry `aria-pressed`. Review round 1: APPROVED (3 nits, no change needed). Full suite at `c28e975e4`: 666 files, 17877 passed, 56 skipped, 1 todo, exit 0.

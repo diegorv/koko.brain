@@ -30,7 +30,8 @@
 </script>
 
 {#if isMarkdown}
-	<span class="word-count-stats">{words} words <span class="sep"></span> {characters} characters <span class="sep"></span> {readingTime} min read</span>
+	<!-- estimateReadingTime floors at 1, so an empty note hides the estimate instead of showing "1 min read". -->
+	<span class="word-count-stats">{words} {words === 1 ? 'word' : 'words'} <span class="sep"></span> {characters} {characters === 1 ? 'character' : 'characters'}{#if words > 0} <span class="sep"></span> {readingTime} min read{/if}</span>
 {/if}
 
 <style>
