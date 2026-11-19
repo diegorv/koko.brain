@@ -35,7 +35,7 @@ test src/tests/lib/features/tasks/tasks-view-settings.test.ts mocks src/lib/core
 sym src/lib/core/settings/theme.service.ts:13 const THEME_VARS_STORAGE_KEY L1 | localStorage key holding the CSS variables of the theme last applied in the main window.
 by src/lib/core/settings/theme.service.ts:THEME_VARS_STORAGE_KEY <- src/routes/composer/+page.svelte:172 in onStorage ref
 sym src/lib/core/settings/theme.service.ts:46 fn applyTheme(theme: Theme): void L5 | Applies a theme by setting all its color tokens as CSS custom properties on the document root element.
-by src/lib/core/settings/theme.service.ts:applyTheme <- src/lib/core/settings/sections/ThemeEditor.svelte:68 in applyDraft call
+by src/lib/core/settings/theme.service.ts:applyTheme <- src/lib/core/settings/sections/ThemeEditor.svelte:72 in applyDraft call
 sym src/lib/core/settings/theme.service.ts:56 fn applyStoredTheme(): void L15 | Applies the theme the main window last mirrored to localStorage.
 by src/lib/core/settings/theme.service.ts:applyStoredTheme <- src/routes/(app)/+layout.svelte:37 in (script) call
 by src/lib/core/settings/theme.service.ts:applyStoredTheme <- src/routes/composer/+page.svelte:173 in onStorage call +2

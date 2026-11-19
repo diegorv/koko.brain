@@ -1,15 +1,15 @@
 # file card src/lib/core/settings/theme.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/settings/theme.logic.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls
-file src/lib/core/settings/theme.logic.ts logic L408 module src/lib/core/settings in7 t37
+file src/lib/core/settings/theme.logic.ts logic L420 module src/lib/core/settings in7 t37
 ## imports
 imp src/lib/core/settings/theme.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:Theme,type:ThemeColors,type:UIColors,type:SyntaxColors,type:PreviewColors,type:WikilinkColors,type:CalloutColors,type:AppearanceSettings
 imp src/lib/core/settings/theme.logic.ts:11 -> src/lib/utils/color.ts isDarkColor
-imp src/lib/core/settings/theme.logic.ts:12 -> src/lib/core/settings/theme-builder.logic.ts alpha,buildTheme,coreFromColors
+imp src/lib/core/settings/theme.logic.ts:12 -> src/lib/core/settings/theme-builder.logic.ts alpha,buildTheme,coreFromColors,withReadableContrast
 ## imported-by
 imp src/lib/core/settings/sections/AppearanceSection.svelte:8 -> src/lib/core/settings/theme.logic.ts DEFAULT_THEME_NAME,KOKOBRAIN_DEFAULT_THEME,isBuiltinTheme
 imp src/lib/core/settings/sections/ThemeEditor.svelte:5 -> src/lib/core/settings/theme.logic.ts mergeThemeWithDefaults
-imp src/lib/core/settings/sections/ThemeEditor.svelte:22 -> src/lib/core/settings/theme.logic.ts KOKOBRAIN_DEFAULT_THEME
+imp src/lib/core/settings/sections/ThemeEditor.svelte:23 -> src/lib/core/settings/theme.logic.ts KOKOBRAIN_DEFAULT_THEME
 imp src/lib/core/settings/settings.store.svelte.ts:3 -> src/lib/core/settings/theme.logic.ts DEFAULT_APPEARANCE
 imp src/lib/core/settings/theme-editor.logic.ts:10 -> src/lib/core/settings/theme.logic.ts DEFAULT_THEME_NAME
 imp src/lib/core/settings/theme-package.logic.ts:4 -> src/lib/core/settings/theme.logic.ts BUILTIN_THEMES,DEFAULT_THEME_NAME,mergeThemeWithDefaults,normalizeAppearance
@@ -58,46 +58,49 @@ test src/tests/lib/tint-text-tokens.test.ts imports src/lib/core/settings/theme.
 test src/tests/lib/utils/color-presets.test.ts imports src/lib/core/settings/theme.logic.ts
 ## symbols
 sym src/lib/core/settings/theme.logic.ts:15 fn camelToKebab(s: string): string L3 | Converts a camelCase string to kebab-case
-sym src/lib/core/settings/theme.logic.ts:60 fn themeColorsToCssVars(colors: ThemeColors): Record<string, string> L16 | Converts a ThemeColors object into a flat map of CSS variable name → value, plus the derived `--elev-*` variables
+sym src/lib/core/settings/theme.logic.ts:80 fn themeColorsToCssVars(colors: ThemeColors): Record<string, string> L8 | Converts a ThemeColors object into the flat map of CSS variable name → value the app applies, plus the derived `--elev-*` variables.
 by src/lib/core/settings/theme.logic.ts:themeColorsToCssVars <- src/lib/core/settings/theme.service.ts:47 in applyTheme call +1
-sym src/lib/core/settings/theme.logic.ts:90 fn mergeThemeWithDefaults(partial: Partial<ThemeColors>): ThemeColors L22 | Completes a saved or imported theme to the current token set: keys that are no longer tokens are dropped, and a missing token is derived (`buildTheme`) from th…
-by src/lib/core/settings/theme.logic.ts:mergeThemeWithDefaults <- src/lib/core/settings/sections/ThemeEditor.svelte:113 in handleFileImport call
+sym src/lib/core/settings/theme.logic.ts:102 fn mergeThemeWithDefaults(partial: Partial<ThemeColors>): ThemeColors L22 | Completes a saved or imported theme to the current token set: keys that are no longer tokens are dropped, and a missing token is derived (`buildTheme`) from th…
+by src/lib/core/settings/theme.logic.ts:mergeThemeWithDefaults <- src/lib/core/settings/sections/ThemeEditor.svelte:117 in handleFileImport call
 by src/lib/core/settings/theme.logic.ts:mergeThemeWithDefaults <- src/lib/core/settings/theme-package.logic.ts:373 in migrateExBuiltins call
-sym src/lib/core/settings/theme.logic.ts:114 const DEFAULT_THEME_NAME L1 | Built-in default theme name
+sym src/lib/core/settings/theme.logic.ts:126 const DEFAULT_THEME_NAME L1 | Built-in default theme name
 by src/lib/core/settings/theme.logic.ts:DEFAULT_THEME_NAME <- src/lib/core/settings/sections/AppearanceSection.svelte:98 in deleteTheme ref
 by src/lib/core/settings/theme.logic.ts:DEFAULT_THEME_NAME <- src/lib/core/settings/theme-editor.logic.ts:251 in validateThemeName ref +1
 by src/lib/core/settings/theme.logic.ts:DEFAULT_THEME_NAME <- src/lib/core/settings/theme-package.logic.ts:266 in uninstallTheme ref +1
-sym src/lib/core/settings/theme.logic.ts:117 const KOKOBRAIN_DEFAULT_THEME: Theme L113 | The built-in theme with all current color values
+sym src/lib/core/settings/theme.logic.ts:129 const KOKOBRAIN_DEFAULT_THEME: Theme L113 | The built-in theme with all current color values
 by src/lib/core/settings/theme.logic.ts:KOKOBRAIN_DEFAULT_THEME <- src/lib/core/settings/sections/AppearanceSection.svelte:106 in handleCreateNew member
-by src/lib/core/settings/theme.logic.ts:KOKOBRAIN_DEFAULT_THEME <- src/lib/core/settings/sections/ThemeEditor.svelte:43 in draftColors member
+by src/lib/core/settings/theme.logic.ts:KOKOBRAIN_DEFAULT_THEME <- src/lib/core/settings/sections/ThemeEditor.svelte:44 in draftColors member
 by src/lib/core/settings/theme.logic.ts:KOKOBRAIN_DEFAULT_THEME <- src/lib/core/settings/theme-validation.logic.ts:55 in findInvalidThemeToken member
-sym src/lib/core/settings/theme.logic.ts:231 const LAVENDER_HAZE_THEME: Theme L91
-sym src/lib/core/settings/theme.logic.ts:324 const BUILTIN_THEMES: Theme[] L1 | The themes that ship with the app; every other theme comes from the catalog (ADR-0035).
+sym src/lib/core/settings/theme.logic.ts:243 const LAVENDER_HAZE_THEME: Theme L91
+sym src/lib/core/settings/theme.logic.ts:336 const BUILTIN_THEMES: Theme[] L1 | The themes that ship with the app; every other theme comes from the catalog (ADR-0035).
 by src/lib/core/settings/theme.logic.ts:BUILTIN_THEMES <- src/lib/core/settings/theme-package.logic.ts:282 in sortThemesForDisplay mcall +1
-sym src/lib/core/settings/theme.logic.ts:332 const DEFAULT_APPEARANCE: AppearanceSettings L6 | Default appearance settings with built-in themes.
+sym src/lib/core/settings/theme.logic.ts:344 const DEFAULT_APPEARANCE: AppearanceSettings L6 | Default appearance settings with built-in themes.
 by src/lib/core/settings/theme.logic.ts:DEFAULT_APPEARANCE <- src/lib/core/settings/settings.store.svelte.ts:101 in DEFAULT_SETTINGS ref
-sym src/lib/core/settings/theme.logic.ts:362 fn normalizeAppearance(raw: Partial<AppearanceSettings>): AppearanceSettings L37 | Serves every built-in theme from code, keeps user themes (merged with defaults) in their saved order, and appends built-ins missing from the save.
+sym src/lib/core/settings/theme.logic.ts:374 fn normalizeAppearance(raw: Partial<AppearanceSettings>): AppearanceSettings L37 | Serves every built-in theme from code, keeps user themes (merged with defaults) in their saved order, and appends built-ins missing from the save.
 by src/lib/core/settings/theme.logic.ts:normalizeAppearance <- src/lib/core/settings/theme-package.logic.ts:397 in loadAppearance call
-sym src/lib/core/settings/theme.logic.ts:401 fn isBuiltinTheme(name: string): boolean L3 | True when `name` belongs to a built-in theme, which is served from code and cannot be edited in place.
+sym src/lib/core/settings/theme.logic.ts:413 fn isBuiltinTheme(name: string): boolean L3 | True when `name` belongs to a built-in theme, which is served from code and cannot be edited in place.
 by src/lib/core/settings/theme.logic.ts:isBuiltinTheme <- src/lib/core/settings/sections/AppearanceSection.svelte:94 in deleteTheme call +1
-sym src/lib/core/settings/theme.logic.ts:406 fn findThemeByName(themes: Theme[], name: string): Theme L3 | Finds a theme by name from an array, falling back to the built-in default
+sym src/lib/core/settings/theme.logic.ts:418 fn findThemeByName(themes: Theme[], name: string): Theme L3 | Finds a theme by name from an array, falling back to the built-in default
 by src/lib/core/settings/theme.logic.ts:findThemeByName <- src/lib/core/settings/theme.service.ts:80 in applyActiveTheme call
 ## locals
 local src/lib/core/settings/theme.logic.ts:40 fn elevationVars(ui: UIColors): Record<string, string> L18
-local src/lib/core/settings/theme.logic.ts:78 fn pickTokens<T extends object>(template: T, source: Partial<T> | undefined, fallback: T): T L5
-local src/lib/core/settings/theme.logic.ts:340 fn sameColors(a: ThemeColors, b: ThemeColors): boolean L6
-local src/lib/core/settings/theme.logic.ts:348 fn freeName(base: string, taken: Set<string>): string L6
+local src/lib/core/settings/theme.logic.ts:60 fn tokenVars(colors: ThemeColors): Record<string, string> L12
+local src/lib/core/settings/theme.logic.ts:90 fn pickTokens<T extends object>(template: T, source: Partial<T> | undefined, fallback: T): T L5
+local src/lib/core/settings/theme.logic.ts:352 fn sameColors(a: ThemeColors, b: ThemeColors): boolean L6
+local src/lib/core/settings/theme.logic.ts:360 fn freeName(base: string, taken: Set<string>): string L6
 ## calls
 call src/lib/core/settings/theme.logic.ts:41 in elevationVars -> src/lib/utils/color.ts:isDarkColor call
 call src/lib/core/settings/theme.logic.ts:51 in elevationVars -> src/lib/core/settings/theme-builder.logic.ts:alpha call +4
-call src/lib/core/settings/theme.logic.ts:66 in themeColorsToCssVars -> src/lib/core/settings/theme.logic.ts:camelToKebab call
-call src/lib/core/settings/theme.logic.ts:74 in themeColorsToCssVars -> src/lib/core/settings/theme.logic.ts:elevationVars call
-call src/lib/core/settings/theme.logic.ts:96 in mergeThemeWithDefaults -> src/lib/core/settings/theme.logic.ts:pickTokens call +9
-call src/lib/core/settings/theme.logic.ts:102 in mergeThemeWithDefaults -> src/lib/core/settings/theme-builder.logic.ts:buildTheme call
-call src/lib/core/settings/theme.logic.ts:102 in mergeThemeWithDefaults -> src/lib/core/settings/theme-builder.logic.ts:coreFromColors call
-call src/lib/core/settings/theme.logic.ts:117 in KOKOBRAIN_DEFAULT_THEME -> src/lib/core/settings/theme-builder.logic.ts:buildTheme call
-call src/lib/core/settings/theme.logic.ts:231 in LAVENDER_HAZE_THEME -> src/lib/core/settings/theme-builder.logic.ts:buildTheme call
-call src/lib/core/settings/theme.logic.ts:372 in normalizeAppearance -> src/lib/core/settings/theme.logic.ts:mergeThemeWithDefaults call
-call src/lib/core/settings/theme.logic.ts:379 in normalizeAppearance -> src/lib/core/settings/theme.logic.ts:pickTokens call +4
-call src/lib/core/settings/theme.logic.ts:385 in normalizeAppearance -> src/lib/core/settings/theme.logic.ts:sameColors call
-call src/lib/core/settings/theme.logic.ts:386 in normalizeAppearance -> src/lib/core/settings/theme.logic.ts:freeName call
+call src/lib/core/settings/theme.logic.ts:66 in tokenVars -> src/lib/core/settings/theme.logic.ts:camelToKebab call
+call src/lib/core/settings/theme.logic.ts:84 in themeColorsToCssVars -> src/lib/core/settings/theme.logic.ts:tokenVars call +1
+call src/lib/core/settings/theme.logic.ts:85 in themeColorsToCssVars -> src/lib/core/settings/theme-builder.logic.ts:withReadableContrast call
+call src/lib/core/settings/theme.logic.ts:86 in themeColorsToCssVars -> src/lib/core/settings/theme.logic.ts:elevationVars call
+call src/lib/core/settings/theme.logic.ts:108 in mergeThemeWithDefaults -> src/lib/core/settings/theme.logic.ts:pickTokens call +9
+call src/lib/core/settings/theme.logic.ts:114 in mergeThemeWithDefaults -> src/lib/core/settings/theme-builder.logic.ts:buildTheme call
+call src/lib/core/settings/theme.logic.ts:114 in mergeThemeWithDefaults -> src/lib/core/settings/theme-builder.logic.ts:coreFromColors call
+call src/lib/core/settings/theme.logic.ts:129 in KOKOBRAIN_DEFAULT_THEME -> src/lib/core/settings/theme-builder.logic.ts:buildTheme call
+call src/lib/core/settings/theme.logic.ts:243 in LAVENDER_HAZE_THEME -> src/lib/core/settings/theme-builder.logic.ts:buildTheme call
+call src/lib/core/settings/theme.logic.ts:384 in normalizeAppearance -> src/lib/core/settings/theme.logic.ts:mergeThemeWithDefaults call
+call src/lib/core/settings/theme.logic.ts:391 in normalizeAppearance -> src/lib/core/settings/theme.logic.ts:pickTokens call +4
+call src/lib/core/settings/theme.logic.ts:397 in normalizeAppearance -> src/lib/core/settings/theme.logic.ts:sameColors call
+call src/lib/core/settings/theme.logic.ts:398 in normalizeAppearance -> src/lib/core/settings/theme.logic.ts:freeName call
