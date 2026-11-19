@@ -209,9 +209,10 @@ describe('KanbanView: date proximity tone', () => {
 
 		expect(done.hasAttribute('data-item-id')).toBe(true);
 		expect(done.className).not.toContain('border-l-destructive');
-		expect(dateBadge(done).className).not.toContain('text-destructive');
+		expect(dateBadge(done).className).not.toContain('destructive');
 		expect(open.className).toContain('border-l-destructive');
-		expect(dateBadge(open).className).toContain('text-destructive');
+		expect(dateBadge(open).className.split(' ')).toContain('text-destructive-tint-fg');
+		expect(dateBadge(open).className.split(' ')).not.toContain('text-destructive');
 	});
 
 	it.each(['list', 'table'] as const)('%s: only the unchecked overdue card gets the destructive badge', (mode) => {
@@ -222,7 +223,7 @@ describe('KanbanView: date proximity tone', () => {
 
 		expect(done.textContent).not.toContain('open task');
 		expect(dateBadge(done).className).toContain('bg-muted text-muted-foreground');
-		expect(dateBadge(open).className).toContain('bg-destructive/15 text-destructive');
+		expect(dateBadge(open).className).toContain('bg-destructive/15 text-destructive-tint-fg');
 	});
 
 	it.each(['board', 'list', 'table'] as const)('%s: an unchecked card check box has a full muted-foreground border', (mode) => {
@@ -1239,14 +1240,14 @@ describe('KanbanView: lanes, add row, counts and rail', () => {
 
 		it('while filtering the count reads "1 of 3" with no /max, and atLimit still comes from the stored count', () => {
 			mountBoard(SOURCE, (b) => setLaneMaxItems(b, 'To Do', 3));
-			expect(count('To Do').className).toContain('text-destructive');
+			expect(count('To Do').className.split(' ')).toContain('text-destructive-tint-fg');
 
 			kanbanStore.setFilterQuery('#x');
 			flushSync();
 
 			expect(shown('To Do')).toBe('1 of 3');
 			expect(spoken('To Do')).toBe('1 of 3 cards');
-			expect(count('To Do').className).toContain('text-destructive');
+			expect(count('To Do').className.split(' ')).toContain('text-destructive-tint-fg');
 		});
 
 		it('a lane the filter empties says "No matching cards"; a stored-empty lane keeps its own text', () => {
@@ -1788,5 +1789,80 @@ describe('KanbanView: Move to and the manual order chip', () => {
 
 			expect(persistedLaneTitles()).toEqual(['Three', 'One', 'Two']);
 		});
+	});
+});
+
+describe('KanbanView: text on a coloured card or row', () => {
+	let component: Record<string, unknown> | null = null;
+
+	const SOURCE = '## To Do\n\n- [x] red done [[Spec]] {color:red}\n- [ ] red open {color:red}\n- [x] plain done\n\n';
+
+	beforeEach(() => {
+		kanbanStore.reset();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		kanbanStore.reset();
+		document.body.innerHTML = '';
+	});
+
+	function mountMode(mode: KanbanViewMode): void {
+		component = mount(KanbanViewHarness, {
+			target: document.body.appendChild(document.createElement('div')),
+			props: { initialMarkdown: serializeKanbanBoard(setViewMode(parseKanbanBoard(SOURCE), mode)) },
+		});
+		flushSync();
+	}
+
+	/** The innermost element whose text is exactly `text`. */
+	function textEl(text: string): HTMLElement {
+		const el = [...document.querySelectorAll<HTMLElement>('body *')].filter((e) => e.textContent?.trim() === text).at(-1);
+		if (!el) throw new Error(`"${text}" not found`);
+		return el;
+	}
+
+	/** The struck-through span that wraps a checked card's text on the board and in the list. */
+	function checkedSpan(text: string): HTMLElement {
+		const span = [...document.querySelectorAll<HTMLElement>('span.line-through')].find((s) => s.textContent?.includes(text));
+		if (!span) throw new Error(`checked "${text}" not found`);
+		return span;
+	}
+
+	it('board: a coloured card keeps bg-background and layers the preset tint over it', () => {
+		mountMode('board');
+		const card = textEl('red open').closest<HTMLElement>('[data-item-id]')!;
+		expect(card.className.split(' ')).toContain('bg-background');
+		expect(card.style.backgroundImage).toContain('rgba(239, 68, 68, 0.15)');
+		expect(card.style.backgroundColor).toBe('');
+	});
+
+	it.each(['board', 'list'] as const)('%s: checked text uses the text-on-tint muted color on a coloured card and muted-foreground on a plain one', (mode) => {
+		mountMode(mode);
+		expect(checkedSpan('red done').className.split(' ')).toContain('text-muted-tint-fg');
+		expect(checkedSpan('red done').className.split(' ')).not.toContain('text-muted-foreground');
+		expect(checkedSpan('plain done').className.split(' ')).toContain('text-muted-foreground');
+	});
+
+	it.each(['board', 'list', 'table'] as const)('%s: a wikilink uses the text-on-tint primary', (mode) => {
+		mountMode(mode);
+		const link = textEl('Spec').closest('button')!;
+		expect(link.className.split(' ')).toContain('text-primary-tint-fg');
+		expect(link.className.split(' ')).not.toContain('text-primary');
+	});
+
+	it('table: a coloured row draws its lane, card and status text in text-on-tint colors', () => {
+		mountMode('table');
+		const rows = [...document.querySelectorAll<HTMLTableRowElement>('tbody tr')];
+		const row = (text: string) => rows.find((r) => r.cells[2].textContent?.includes(text))!;
+
+		expect(row('red done').cells[1].className.split(' ')).toContain('text-muted-tint-fg');
+		expect(row('red done').cells[2].className.split(' ')).toContain('text-muted-tint-fg');
+		expect(row('red done').cells[5].className.split(' ')).toContain('text-success-tint-fg');
+		expect(row('red open').cells[5].className.split(' ')).toContain('text-muted-tint-fg');
+		expect(row('plain done').cells[1].className.split(' ')).toContain('text-muted-foreground');
+		expect(row('plain done').cells[5].className.split(' ')).toContain('text-success-tint-fg');
+		expect(row('plain done').cells[5].className.split(' ')).not.toContain('text-success');
 	});
 });

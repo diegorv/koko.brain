@@ -17,14 +17,14 @@ Not in this ticket: kanban placeholders, date icons and checkbox (Issue 01).
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes.
 
-- [ ] Failing test first, evaluator tests: the `badge()`, `color()` and `progress()` output styles reach 4.5:1 (text) and 3:1 (bars) on the collection surface for every palette color on `BUILTIN_THEMES` and the hard palettes fixture; the current output fails on at least one.
-- [ ] `color-presets.test.ts` extended to the fixture: chip text at least 4.5:1 on the real card stack; fails at the current 30% share on a Zettlr light palette.
-- [ ] Kanban and DiffViewer tests read the new colors (style attribute or class), not the raw status color.
-- [ ] Frontend gate passes.
+- [x] Failing test first, evaluator tests: the `badge()`, `color()` and `progress()` output styles reach 4.5:1 (text) and 3:1 (bars) on the collection surface for every palette color on `BUILTIN_THEMES` and the hard palettes fixture; the current output fails on at least one.
+- [x] `color-presets.test.ts` extended to the fixture: chip text at least 4.5:1 on the real card stack; fails at the current 30% share on a Zettlr light palette.
+- [x] Kanban and DiffViewer tests read the new colors (style attribute or class), not the raw status color.
+- [x] Frontend gate passes.
 
 ## Findings covered
 
@@ -47,3 +47,4 @@ Not in this ticket: kanban placeholders, date icons and checkbox (Issue 01).
 ## Comments
 
 - 2026-11-19, triage: ready-for-agent. Decided by the owner: builder lifts tokens for every theme (WCAG + APCA), user themes are corrected by the builder and the editor warns, rail icons keep their hue and are darkened per theme (ADR-0033 amendment), Issues run through relay one at a time, the themes repo is fixed with version bumps.
+- 2026-11-19, delivery (branch issue/04-accent-text-own-tint-kanban-collection-diff): kanban date badges, limit count, wikilinks, coloured-card text and tag chips, collection badge()/color()/progress(), and file-history diff lines now use text-on-tint colors reaching 4.5:1 text and 3:1 bars. Review round 1 APPROVED, round 2 APPROVED after a fix round (color() text keeps more of its preset than chip text). One minor finding deferred: date badges on {color:x} cards stay under 4.5:1 on Zettlr Bielefeld Light; follow-up Issue for the shared --*-tint-fg share. Tests: pnpm check 0 errors; full suite 679 files, 18233 passed, 56 skipped, 0 failed.

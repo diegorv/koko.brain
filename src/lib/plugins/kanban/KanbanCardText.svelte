@@ -22,7 +22,7 @@
 		{seg.value}
 	{:else if seg.type === 'wikilink'}
 		<button
-			class="inline cursor-pointer text-primary underline decoration-primary/40 hover:decoration-primary"
+			class="inline cursor-pointer text-primary-tint-fg underline decoration-primary/40 hover:decoration-primary"
 			onclick={() => onWikilinkClick?.(seg.target, seg.heading)}
 		>
 			{seg.display}

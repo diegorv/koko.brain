@@ -81,6 +81,9 @@
 	--color-success-tint-fg: var(--success-tint-fg);
 	--color-warning-tint-fg: var(--warning-tint-fg);
 	--color-type-purple-tint-fg: var(--type-purple-tint-fg);
+	--color-type-orange-tint-fg: var(--type-orange-tint-fg);
+	--color-type-blue-tint-fg: var(--type-blue-tint-fg);
+	--color-muted-tint-fg: var(--muted-tint-fg);
 	--color-scrim: var(--elev-scrim);
 
 	/*
@@ -436,6 +439,9 @@
 	--success-tint-fg: color-mix(in oklab, var(--success) 45%, var(--foreground));
 	--warning-tint-fg: color-mix(in oklab, var(--warning) 45%, var(--foreground));
 	--type-purple-tint-fg: color-mix(in oklab, var(--type-purple) 30%, var(--foreground));
+	--type-orange-tint-fg: color-mix(in oklab, var(--type-orange) 35%, var(--foreground));
+	--type-blue-tint-fg: color-mix(in oklab, var(--type-blue) 35%, var(--foreground));
+	--muted-tint-fg: color-mix(in oklab, var(--muted-foreground) 55%, var(--foreground));
 }
 
 /*

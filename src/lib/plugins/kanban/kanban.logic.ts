@@ -741,7 +741,7 @@ export function getDateProximity(dateStr: string | null, todayStr: string): Date
 
 /** Tailwind classes for one proximity tone, built on theme tokens so they follow light and dark themes. */
 export interface ProximityClasses {
-	/** Classes for the date badge (background and text) */
+	/** Classes for the date badge: a tint, and the text-on-tint color of the same token on it */
 	badge: string;
 	/** Classes for the card's left border; empty when the tone has no border */
 	border: string;
@@ -749,13 +749,22 @@ export interface ProximityClasses {
 
 /** The single proximity style map shared by the board card, date picker, list and table views. */
 export const PROXIMITY_CLASSES: Record<DateProximity, ProximityClasses> = {
-	overdue: { badge: 'bg-destructive/15 text-destructive', border: 'border-l-4 border-l-destructive' },
-	today: { badge: 'bg-warning/15 text-warning', border: 'border-l-4 border-l-warning' },
-	tomorrow: { badge: 'bg-type-orange/15 text-type-orange', border: 'border-l-4 border-l-type-orange' },
-	upcoming: { badge: 'bg-type-blue/15 text-type-blue', border: 'border-l-4 border-l-type-blue' },
+	overdue: { badge: 'bg-destructive/15 text-destructive-tint-fg', border: 'border-l-4 border-l-destructive' },
+	today: { badge: 'bg-warning/15 text-warning-tint-fg', border: 'border-l-4 border-l-warning' },
+	tomorrow: { badge: 'bg-type-orange/15 text-type-orange-tint-fg', border: 'border-l-4 border-l-type-orange' },
+	upcoming: { badge: 'bg-type-blue/15 text-type-blue-tint-fg', border: 'border-l-4 border-l-type-blue' },
 	future: { badge: 'bg-muted text-muted-foreground', border: '' },
 	none: { badge: 'bg-muted text-muted-foreground', border: '' },
 };
+
+/**
+ * Class for secondary text (checked text, the note preview, the table's lane
+ * and status columns) on a card or row. A `{color:x}` tint lowers the contrast
+ * of muted-foreground, so on a coloured card the muted color moves toward the text.
+ */
+export function secondaryTextClass(cardColor: string | null): string {
+	return cardColor ? 'text-muted-tint-fg' : 'text-muted-foreground';
+}
 
 /**
  * Proximity tone for a card: a checked (done) card shows no tone, so a completed

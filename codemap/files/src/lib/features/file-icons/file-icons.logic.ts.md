@@ -55,7 +55,7 @@ by src/lib/features/file-icons/file-icons.logic.ts:iconColorCss <- src/lib/featu
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorCss <- src/lib/features/rail-shell/Rail.svelte:193 in pinRow call
 sym src/lib/features/file-icons/file-icons.logic.ts:232 fn iconColorStyle(color: string | undefined): string | undefined L4 | The inline `style` that colors an item's default icon, a Lucide component drawn in `currentColor`, with the item's `_color` when it has no icon of its own: the…
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/app/EditorView.svelte:61 in (markup) markup
-by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/note-list/NoteRow.svelte:78 in (markup) markup +1
+by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/note-list/NoteRow.svelte:82 in (markup) markup +1
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/properties/PropertiesView.svelte:268 in (markup) markup
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/properties/RelationshipSearch.svelte:76 in (markup) markup
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/quick-switcher/QuickSwitcher.svelte:144 in (markup) markup

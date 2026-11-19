@@ -27,6 +27,7 @@ test src/tests/lib/core/settings/theme-package.logic.test.ts imports-type src/li
 test src/tests/lib/core/settings/theme.logic.test.ts imports-type src/lib/core/settings/theme.types.ts
 test src/tests/lib/core/settings/theme.service.test.ts imports-type src/lib/core/settings/theme.types.ts
 test src/tests/lib/features/rail-shell/rail-items.logic.test.ts imports-type src/lib/core/settings/theme.types.ts
+test src/tests/lib/tint-text-tokens.test.ts imports-type src/lib/core/settings/theme.types.ts
 ## symbols
 sym src/lib/core/settings/theme.types.ts:4 interface UIColors L120 | Color tokens for the application UI shell
 by src/lib/core/settings/theme.types.ts:UIColors <- src/lib/core/settings/theme-editor.logic.ts:4 in (module) import

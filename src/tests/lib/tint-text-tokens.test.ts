@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { buildTheme } from '#lib/core/settings/theme-builder.logic.js';
 import { BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
 import type { UIColors } from '#lib/core/settings/theme.types.js';
+import { COLOR_PRESET_BG } from '#lib/utils/color-presets.js';
 import { contrastRatio, flatten, isDarkColor, mixColors } from '#lib/utils/color.js';
 
 /**
@@ -70,6 +71,33 @@ function tint(color: string, share: number, base: string): string {
 
 type Stack = [label: string, surface: (ui: UIColors, dark: boolean) => string];
 
+/** A kanban lane, `bg-muted/30` over the editor. */
+const lane = (ui: UIColors) => tint(ui.muted, 0.3, ui.editorBg);
+
+/** A hovered kanban table row, `bg-muted/20` over the editor. */
+const hoveredRow = (ui: UIColors) => tint(ui.muted, 0.2, ui.editorBg);
+
+/**
+ * `label` on every coloured kanban card (the preset tint layered over the
+ * card's `bg-background`) and every coloured list or table row (the tint
+ * over the editor), one stack per preset.
+ */
+function colouredCards(label: string): Stack[] {
+	return Object.entries(COLOR_PRESET_BG).flatMap(([name, bg]): Stack[] => [
+		[`${label} on a ${name} card`, (ui) => flatten(bg, ui.background)!],
+		[`${label} on a ${name} row`, (ui) => flatten(bg, ui.editorBg)!],
+	]);
+}
+
+/** A kanban date badge, `bg-<color>/15`, on a card, a list row and a hovered table row. */
+function dateBadge(label: string, color: (ui: UIColors) => string): Stack[] {
+	return [
+		[`${label} date badge on a card`, (ui) => tint(color(ui), 0.15, ui.background)],
+		[`${label} date badge in a row`, (ui) => tint(color(ui), 0.15, ui.editorBg)],
+		[`${label} date badge on a hovered row`, (ui) => tint(color(ui), 0.15, hoveredRow(ui))],
+	];
+}
+
 /** Each token's source color and the opaque backgrounds its text is drawn on. */
 const USES: Record<string, { color: string; stacks: Stack[] }> = {
 	'--primary-tint-fg': {
@@ -81,6 +109,10 @@ const USES: Record<string, { color: string; stacks: Stack[] }> = {
 			['hovered wikilink pill', (ui) => tint(ui.primary, 0.15, tint(ui.primary, 0.1, ui.fileExplorerBg))],
 			['filter count pill', (ui) => tint(ui.primary, 0.15, ui.popover)],
 			['dev build badge', (ui) => tint(ui.primary, 0.2, ui.settingItemBg)],
+			['kanban card wikilink', (ui) => ui.background],
+			['kanban row wikilink', (ui) => ui.editorBg],
+			['kanban hovered row wikilink', hoveredRow],
+			...colouredCards('kanban wikilink'),
 		],
 	},
 	'--file-explorer-primary-tint-fg': {
@@ -101,6 +133,9 @@ const USES: Record<string, { color: string; stacks: Stack[] }> = {
 			['highlighted destructive menu item', (ui, dark) => tint(ui.destructive, dark ? 0.2 : 0.1, ui.popover)],
 			['tasks refresh banner', (ui) => tint(ui.destructive, 0.1, ui.editorBg)],
 			['hovered Retry', (ui) => tint(ui.destructive, 0.1, tint(ui.destructive, 0.1, ui.editorBg))],
+			['deleted diff line', (ui) => tint(ui.destructive, 0.15, ui.popover)],
+			['kanban lane card-limit count', lane],
+			...dateBadge('overdue', (ui) => ui.destructive),
 		],
 	},
 	'--success-tint-fg': {
@@ -108,6 +143,10 @@ const USES: Record<string, { color: string; stacks: Stack[] }> = {
 		stacks: [
 			['stable badge in settings', (ui) => tint(ui.success, 0.2, ui.settingItemBg)],
 			['stable badge in the footer', (ui) => tint(ui.success, 0.2, ui.card)],
+			['inserted diff line', (ui) => tint(ui.success, 0.15, ui.popover)],
+			['kanban table Done status', (ui) => ui.editorBg],
+			['kanban table Done status on a hovered row', hoveredRow],
+			...colouredCards('kanban table Done status').filter(([label]) => label.endsWith(' row')),
 		],
 	},
 	'--warning-tint-fg': {
@@ -115,7 +154,20 @@ const USES: Record<string, { color: string; stacks: Stack[] }> = {
 		stacks: [
 			['nightly badge in settings', (ui) => tint(ui.warning, 0.2, ui.settingItemBg)],
 			['nightly badge in the footer', (ui) => tint(ui.warning, 0.2, ui.card)],
+			...dateBadge('today', (ui) => ui.warning),
 		],
+	},
+	'--type-orange-tint-fg': {
+		color: '--type-orange',
+		stacks: dateBadge('tomorrow', (ui) => ui.typeOrange),
+	},
+	'--type-blue-tint-fg': {
+		color: '--type-blue',
+		stacks: dateBadge('upcoming', (ui) => ui.typeBlue),
+	},
+	'--muted-tint-fg': {
+		color: '--muted-foreground',
+		stacks: colouredCards('kanban checked text, note preview and lane column'),
 	},
 	'--type-purple-tint-fg': {
 		color: '--type-purple',
@@ -190,5 +242,14 @@ describe('search Text badge', () => {
 	it('file-explorer-muted-fg on --muted falls under 4.5:1 in at least one theme', () => {
 		const ratios = THEMES.map((theme) => contrastRatio(theme.colors.ui.fileExplorerMutedFg, theme.colors.ui.muted)!);
 		expect(Math.min(...ratios)).toBeLessThan(4.5);
+	});
+});
+
+describe('kanban view toggle', () => {
+	it('the active toggle icon, primary on primary/10 over the editor, is at least 3:1 in every built-in and hard-palette theme', () => {
+		for (const theme of THEMES) {
+			const { ui } = theme.colors;
+			expect(contrastRatio(ui.primary, tint(ui.primary, 0.1, ui.editorBg))!, theme.name).toBeGreaterThanOrEqual(3);
+		}
 	});
 });

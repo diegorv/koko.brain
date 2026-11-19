@@ -4,7 +4,7 @@ import type { PropertyIndexRecord } from '../collection.types';
 import { dispatchMethod, dispatchField } from './methods.logic';
 import { parseDuration } from './duration.logic';
 import { parseLocalDateOnly } from './date-value.logic';
-import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
+import { COLOR_PRESET_BAR, COLOR_PRESET_BG, COLOR_PRESET_CHIP_TEXT, COLOR_PRESET_PLAIN_TEXT } from '#lib/utils/color-presets.js';
 import { clamp } from '#lib/utils/clamp.js';
 
 /** Context provided to the evaluator for resolving properties and formulas */
@@ -445,21 +445,22 @@ function evaluateCall(callee: string, args: ASTNode[], ctx: EvalContext, depth: 
 			const text = escapeForHtml(String(evaluate(args[0], ctx, depth) ?? ''));
 			const colorName = args[1] ? String(evaluate(args[1], ctx, depth)) : 'gray';
 			const bg = COLOR_PRESET_BG[colorName] ?? COLOR_PRESET_BG.gray;
-			const fg = COLOR_PRESET_TEXT[colorName] ?? COLOR_PRESET_TEXT.gray;
+			const fg = COLOR_PRESET_CHIP_TEXT[colorName] ?? COLOR_PRESET_CHIP_TEXT.gray;
 			return { __display: 'html', html: `<span style="display:inline-flex;align-items:center;border-radius:9999px;padding:1px 8px;font-size:0.85em;font-weight:500;background:${bg};color:${fg}">${text}</span>` } satisfies DisplayHTML;
 		}
 		case 'progress': {
 			const value = Number(evaluate(args[0], ctx, depth) ?? 0);
 			const max = args[1] ? Number(evaluate(args[1], ctx, depth)) : 100;
 			const colorName = args[2] ? String(evaluate(args[2], ctx, depth)) : 'green';
-			const bar = COLOR_PRESET_TEXT[colorName] ?? COLOR_PRESET_TEXT.green;
+			const bar = COLOR_PRESET_BAR[colorName] ?? COLOR_PRESET_BAR.green;
 			const pct = clamp((value / (max || 1)) * 100, 0, 100);
-			return { __display: 'html', html: `<div style="display:inline-flex;align-items:center;gap:6px"><div style="width:80px;height:6px;border-radius:9999px;background:rgba(160,160,160,0.2);overflow:hidden"><div style="height:100%;width:${pct}%;border-radius:9999px;background:${bar}"></div></div><span style="font-size:0.85em;color:rgb(160,160,160)">${Math.round(pct)}%</span></div>` } satisfies DisplayHTML;
+			// The track is an outline in the bar color: its extent then reaches 3:1 on any surface without a fill of its own
+			return { __display: 'html', html: `<div style="display:inline-flex;align-items:center;gap:6px"><div style="box-sizing:border-box;width:80px;height:6px;border-radius:9999px;border:1px solid ${bar};overflow:hidden"><div style="height:100%;width:${pct}%;background:${bar}"></div></div><span style="font-size:0.85em;color:${COLOR_PRESET_CHIP_TEXT.gray}">${Math.round(pct)}%</span></div>` } satisfies DisplayHTML;
 		}
 		case 'color': {
 			const text = escapeForHtml(String(evaluate(args[0], ctx, depth) ?? ''));
 			const colorName = args[1] ? String(evaluate(args[1], ctx, depth)) : 'gray';
-			const fg = COLOR_PRESET_TEXT[colorName] ?? COLOR_PRESET_TEXT.gray;
+			const fg = COLOR_PRESET_PLAIN_TEXT[colorName] ?? COLOR_PRESET_PLAIN_TEXT.gray;
 			return { __display: 'html', html: `<span style="color:${fg}">${text}</span>` } satisfies DisplayHTML;
 		}
 		case 'escapeHTML': {

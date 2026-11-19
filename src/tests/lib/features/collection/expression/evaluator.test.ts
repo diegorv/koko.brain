@@ -3,7 +3,13 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { evaluateExpression, PLAIN_FUNCTIONS, validateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
+import type { DisplayHTML } from '#lib/features/collection/expression/expression.types.js';
+import { BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
+import type { Theme } from '#lib/core/settings/theme.types.js';
+import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
+import { contrastRatio, flatten, mixColors, tint } from '#lib/utils/color.js';
 import { runtimeTimeZoneSwitchWorks, withTimeZone } from '../../../../fixtures/timezone.fixture';
+import { HARD_PALETTE_THEMES } from '../../../../fixtures/hard-palette-themes.fixture';
 
 function makeRecord(overrides: Partial<PropertyIndexRecord> = {}): PropertyIndexRecord {
 	return {
@@ -846,5 +852,99 @@ describe('validateExpression', () => {
 		const cases = [...body.matchAll(/^\t\tcase '([^']+)':/gm)].map((m) => m[1]);
 		expect(cases.length).toBeGreaterThan(0);
 		expect([...PLAIN_FUNCTIONS].sort()).toEqual(cases.sort());
+	});
+});
+
+describe('display functions on the collection surfaces', () => {
+	const THEMES = [...BUILTIN_THEMES, ...HARD_PALETTE_THEMES];
+	const COLORS = Object.keys(COLOR_PRESET_BG);
+
+	/**
+	 * The opaque backgrounds a display cell is drawn on: the table view's bg-card
+	 * with its even (muted/20) and hovered (muted/50) rows, and the live-preview
+	 * block's --lp-collection-bg with its alternate and hovered rows.
+	 */
+	function surfaces(theme: Theme): [string, string][] {
+		const { ui, preview } = theme.colors;
+		const block = preview.collectionBg;
+		return [
+			['table', ui.card],
+			['even table row', tint(ui.muted, 0.2, ui.card)!],
+			['hovered table row', tint(ui.muted, 0.5, ui.card)!],
+			['block', block],
+			['alternate block row', flatten(preview.collectionTableAlt, block)!],
+			['hovered block row', flatten(preview.collectionTableHover, block)!],
+		];
+	}
+
+	/** A style color as painted: `rgb()` / `rgba()` as is, or `color-mix(in oklab, rgb() N%, var(--editor-fg))` resolved. */
+	function resolve(value: string, editorFg: string): string {
+		const mix = /^color-mix\(in oklab, (rgb\(\d+,\d+,\d+\)) (\d+)%, var\(--editor-fg\)\)$/.exec(value);
+		return mix ? mixColors(mix[1], editorFg, 1 - Number(mix[2]) / 100)! : value;
+	}
+
+	/** Each `style` attribute of `html`, as a property-to-value map. */
+	function styles(html: string): Record<string, string>[] {
+		return [...html.matchAll(/style="([^"]*)"/g)].map((m) =>
+			Object.fromEntries(m[1].split(';').filter(Boolean).map((decl) => {
+				const i = decl.indexOf(':');
+				return [decl.slice(0, i), decl.slice(i + 1)];
+			})),
+		);
+	}
+
+	function render(expr: string): Record<string, string>[] {
+		return styles((evaluateExpression(expr, makeCtx()) as DisplayHTML).html);
+	}
+
+	/** `text` against `bg` on every surface of every theme, as `theme color surface ratio` lines under `min`. */
+	function failures(min: number, pair: (color: string, editorFg: string, surface: string) => [text: string, bg: string]): string[] {
+		const out: string[] = [];
+		for (const theme of THEMES) {
+			for (const color of COLORS) {
+				for (const [label, surface] of surfaces(theme)) {
+					const [text, bg] = pair(color, theme.colors.ui.editorFg, surface);
+					const ratio = contrastRatio(text, bg)!;
+					if (ratio < min) out.push(`${theme.name} ${color} on ${label} ${ratio.toFixed(2)}`);
+				}
+			}
+		}
+		return out;
+	}
+
+	it('parses the colors the checks read', () => {
+		const [badge] = render('badge("x", "blue")');
+		expect(badge.background).toBe(COLOR_PRESET_BG.blue);
+		expect(badge.color).toMatch(/^color-mix\(in oklab, rgb\(66,153,225\) \d+%, var\(--editor-fg\)\)$/);
+		expect(render('progress(50, 100, "blue")')).toHaveLength(4);
+		expect(resolve('rgb(1,2,3)', '#ffffff')).toBe('rgb(1,2,3)');
+	});
+
+	it('badge() text is at least 4.5:1 on its own tint over every surface', () => {
+		expect(failures(4.5, (color, editorFg, surface) => {
+			const [badge] = render(`badge("x", "${color}")`);
+			return [resolve(badge.color, editorFg), flatten(badge.background, surface)!];
+		})).toEqual([]);
+	});
+
+	it('color() text is at least 4.5:1 on every surface', () => {
+		expect(failures(4.5, (color, editorFg, surface) => [resolve(render(`color("x", "${color}")`)[0].color, editorFg), surface])).toEqual([]);
+	});
+
+	it('progress() fill and track outline are at least 3:1 on every surface, and the label 4.5:1', () => {
+		const parts = (color: string) => {
+			const [, track, fill, label] = render(`progress(50, 100, "${color}")`);
+			expect(track.background ?? 'transparent', 'the track interior is the surface').toBe('transparent');
+			return { outline: track.border.replace(/^1px solid /, ''), fill: fill.background, label: label.color };
+		};
+		expect(failures(3, (color, editorFg, surface) => [resolve(parts(color).fill, editorFg), surface])).toEqual([]);
+		expect(failures(3, (color, editorFg, surface) => [resolve(parts(color).outline, editorFg), surface])).toEqual([]);
+		expect(failures(4.5, (color, editorFg, surface) => [resolve(parts(color).label, editorFg), surface])).toEqual([]);
+	});
+
+	it('the raw preset fails these surfaces, so they are the real ones', () => {
+		expect(failures(4.5, (color, _, surface) => [COLOR_PRESET_TEXT[color], tint(COLOR_PRESET_TEXT[color], 0.15, surface)!]).length).toBeGreaterThan(0);
+		expect(failures(4.5, (color, _, surface) => [COLOR_PRESET_TEXT[color], surface]).length).toBeGreaterThan(0);
+		expect(failures(3, (color, _, surface) => [COLOR_PRESET_TEXT[color], surface]).length).toBeGreaterThan(0);
 	});
 });

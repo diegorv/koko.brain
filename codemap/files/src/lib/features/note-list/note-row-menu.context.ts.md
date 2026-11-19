@@ -11,7 +11,7 @@ in2 src/lib/features/note-list/note-row-menu.context.ts 1 files in 1 modules: sr
 out2 src/lib/features/note-list/note-row-menu.context.ts 1 files in 1 modules: src/lib/types(1)
 ## symbols
 sym src/lib/features/note-list/note-row-menu.context.ts:5 const RENAME_SHORTCUT L1 | The key that renames the focused row; the menu's Rename item shows it as its hint.
-by src/lib/features/note-list/note-row-menu.context.ts:RENAME_SHORTCUT <- src/lib/features/note-list/NoteRow.svelte:119 in (markup) markup
+by src/lib/features/note-list/note-row-menu.context.ts:RENAME_SHORTCUT <- src/lib/features/note-list/NoteRow.svelte:123 in (markup) markup
 by src/lib/features/note-list/note-row-menu.context.ts:RENAME_SHORTCUT <- src/lib/features/note-list/NoteRowMenu.svelte:306 in (markup) markup
 sym src/lib/features/note-list/note-row-menu.context.ts:8 interface NoteRowRenameState L6 | Inline rename input state, owned by the menu so it survives a row remount while scrolling.
 by src/lib/features/note-list/note-row-menu.context.ts:NoteRowRenameState <- src/lib/features/note-list/NoteRowMenu.svelte:37 in (script) import
@@ -19,4 +19,4 @@ sym src/lib/features/note-list/note-row-menu.context.ts:16 interface NoteRowMenu
 sym src/lib/features/note-list/note-row-menu.context.ts:32 fn setNoteRowMenuContext(ctx: NoteRowMenuContext): void L3 | Called once by NoteRowMenu to expose its actions to the rows it wraps.
 by src/lib/features/note-list/note-row-menu.context.ts:setNoteRowMenuContext <- src/lib/features/note-list/NoteRowMenu.svelte:71 in (script) call
 sym src/lib/features/note-list/note-row-menu.context.ts:37 fn useNoteRowMenuContext(): NoteRowMenuContext L3 | Called by NoteRow to reach the enclosing NoteRowMenu.
-by src/lib/features/note-list/note-row-menu.context.ts:useNoteRowMenuContext <- src/lib/features/note-list/NoteRow.svelte:57 in menu call
+by src/lib/features/note-list/note-row-menu.context.ts:useNoteRowMenuContext <- src/lib/features/note-list/NoteRow.svelte:61 in menu call
