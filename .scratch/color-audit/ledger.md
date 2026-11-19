@@ -46,7 +46,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [Canvas text, edges, groups and presets read on light themes](issues/09-canvas-readable-on-light-themes.md) | none | todo | | |
 | 10 | [QueryJS charts, heatmaps and mermaid follow the theme](issues/10-queryjs-charts-mermaid-follow-theme.md) | 08 | todo | | |
 | 11 | [Graph view labels, edges and controls read on every theme](issues/11-graph-view-follows-theme.md) | 07 | todo | | |
-| 12 | [User, edited and imported themes are corrected and the editor warns](issues/12-user-themes-readability-checks.md) | 07 | todo | | |
+| 12 | [User, edited and imported themes are corrected and the editor warns](issues/12-user-themes-readability-checks.md) | 07 | in-progress | | |
 | 13 | [Themes repo: Zettlr hover and selected surfaces, and a contrast CI](issues/13-themes-repo-zettlr-palettes-contrast-ci.md) | 07 | todo | | |
 | 14 | [Kanban date badges read on coloured cards](issues/14-kanban-date-badges-coloured-cards.md) | 04 | todo | | |
 
@@ -65,3 +65,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 17:30 — ledger updated (added 14; title of 14; link of 14; blocked by of 14)
 - 2026-11-19 17:30 — 07 — start — launched by /relay-lite:run (owner order: after 04) — 5c9402dd7
 - 2026-11-19 18:00 — 07 — deliver — merged; review APPROVED with 3 findings (input pairs on fileExplorerBg/editorBg fixed, per-token lift kept by design, ring/blockquote asserted), round 2 APPROVED; full suite 684 files passed; E2E focus-ring.spec not run — cc6b30159
+- 2026-11-19 18:00 — 12 — start — launched by /relay-lite:run (owner order: after 07) — b7ad075e6
