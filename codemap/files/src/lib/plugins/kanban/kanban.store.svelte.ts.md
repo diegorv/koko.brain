@@ -4,7 +4,7 @@ file src/lib/plugins/kanban/kanban.store.svelte.ts store L47 module src/lib/plug
 ## imports
 imp src/lib/plugins/kanban/kanban.store.svelte.ts:1 -> src/lib/plugins/kanban/kanban.types.ts type:KanbanBoard,type:KanbanItem,type:KanbanLane,type:KanbanSettings
 ## imported-by
-imp src/lib/plugins/kanban/KanbanView.svelte:53 -> src/lib/plugins/kanban/kanban.store.svelte.ts kanbanStore
+imp src/lib/plugins/kanban/KanbanView.svelte:54 -> src/lib/plugins/kanban/kanban.store.svelte.ts kanbanStore
 imp src/lib/plugins/kanban/kanban.service.ts:5 -> src/lib/plugins/kanban/kanban.store.svelte.ts kanbanStore
 ## reach
 in2 src/lib/plugins/kanban/kanban.store.svelte.ts 5 files in 2 modules: src/lib/app(4) src/lib/plugins/kanban(1)
@@ -18,24 +18,24 @@ test src/tests/lib/plugins/kanban/kanban-unmodeled-lines.test.ts imports src/lib
 test src/tests/lib/plugins/kanban/kanban.service.test.ts imports src/lib/plugins/kanban/kanban.store.svelte.ts
 ## symbols
 sym src/lib/plugins/kanban/kanban.store.svelte.ts:15 store kanbanStore L33
-by src/lib/plugins/kanban/kanban.store.svelte.ts:kanbanStore <- src/lib/plugins/kanban/KanbanView.svelte:151 in handleAddLane mcall +36
+by src/lib/plugins/kanban/kanban.store.svelte.ts:kanbanStore <- src/lib/plugins/kanban/KanbanView.svelte:152 in handleAddLane mcall +36
 by src/lib/plugins/kanban/kanban.store.svelte.ts:kanbanStore <- src/lib/plugins/kanban/kanban.service.ts:39 in resetKanban mcall
 ## store
 store src/lib/plugins/kanban/kanban.store.svelte.ts:15 kanbanStore esc:0
 mem src/lib/plugins/kanban/kanban.store.svelte.ts:16 get kanbanStore.board r:- w-via:setBoard,reset
-mem src/lib/plugins/kanban/kanban.store.svelte.ts:17 get kanbanStore.editingItemId r:src/lib/plugins/kanban/KanbanView.svelte:312,src/lib/plugins/kanban/KanbanView.svelte:637 w-via:setEditingItemId,reset
-mem src/lib/plugins/kanban/kanban.store.svelte.ts:18 get kanbanStore.editingLaneId r:src/lib/plugins/kanban/KanbanView.svelte:312,src/lib/plugins/kanban/KanbanView.svelte:638 w-via:setEditingLaneId,reset
-mem src/lib/plugins/kanban/kanban.store.svelte.ts:19 get kanbanStore.filterQuery r:src/lib/plugins/kanban/KanbanView.svelte:192,src/lib/plugins/kanban/KanbanView.svelte:200,src/lib/plugins/kanban/KanbanView.svelte:271,src/lib/plugins/kanban/KanbanView.svelte:601,src/lib/plugins/kanban/KanbanView.svelte:605,src/lib/plugins/kanban/KanbanView.svelte:644 w-via:setFilterQuery,reset
-mem src/lib/plugins/kanban/kanban.store.svelte.ts:20 get kanbanStore.focusedLaneIndex r:src/lib/plugins/kanban/KanbanView.svelte:319,src/lib/plugins/kanban/KanbanView.svelte:639 w-via:setFocus,clearFocus,reset
-mem src/lib/plugins/kanban/kanban.store.svelte.ts:21 get kanbanStore.focusedItemIndex r:src/lib/plugins/kanban/KanbanView.svelte:320,src/lib/plugins/kanban/KanbanView.svelte:639 w-via:setFocus,clearFocus,reset
+mem src/lib/plugins/kanban/kanban.store.svelte.ts:17 get kanbanStore.editingItemId r:src/lib/plugins/kanban/KanbanView.svelte:313,src/lib/plugins/kanban/KanbanView.svelte:645 w-via:setEditingItemId,reset
+mem src/lib/plugins/kanban/kanban.store.svelte.ts:18 get kanbanStore.editingLaneId r:src/lib/plugins/kanban/KanbanView.svelte:313,src/lib/plugins/kanban/KanbanView.svelte:646 w-via:setEditingLaneId,reset
+mem src/lib/plugins/kanban/kanban.store.svelte.ts:19 get kanbanStore.filterQuery r:src/lib/plugins/kanban/KanbanView.svelte:193,src/lib/plugins/kanban/KanbanView.svelte:201,src/lib/plugins/kanban/KanbanView.svelte:272,src/lib/plugins/kanban/KanbanView.svelte:609,src/lib/plugins/kanban/KanbanView.svelte:613,src/lib/plugins/kanban/KanbanView.svelte:652 w-via:setFilterQuery,reset
+mem src/lib/plugins/kanban/kanban.store.svelte.ts:20 get kanbanStore.focusedLaneIndex r:src/lib/plugins/kanban/KanbanView.svelte:320,src/lib/plugins/kanban/KanbanView.svelte:647 w-via:setFocus,clearFocus,reset
+mem src/lib/plugins/kanban/kanban.store.svelte.ts:21 get kanbanStore.focusedItemIndex r:src/lib/plugins/kanban/KanbanView.svelte:321,src/lib/plugins/kanban/KanbanView.svelte:647 w-via:setFocus,clearFocus,reset
 mem src/lib/plugins/kanban/kanban.store.svelte.ts:22 get kanbanStore.lanes r:- w-via:setBoard,reset
 mem src/lib/plugins/kanban/kanban.store.svelte.ts:23 get kanbanStore.archive r:- w-via:setBoard,reset
 mem src/lib/plugins/kanban/kanban.store.svelte.ts:24 get kanbanStore.settings r:- w-via:setBoard,reset
 mem src/lib/plugins/kanban/kanban.store.svelte.ts:26 do kanbanStore.setBoard w:-
-mem src/lib/plugins/kanban/kanban.store.svelte.ts:27 do kanbanStore.setEditingItemId w:src/lib/plugins/kanban/KanbanView.svelte:238,src/lib/plugins/kanban/KanbanView.svelte:242,src/lib/plugins/kanban/KanbanView.svelte:359
-mem src/lib/plugins/kanban/kanban.store.svelte.ts:28 do kanbanStore.setEditingLaneId w:src/lib/plugins/kanban/KanbanView.svelte:151,src/lib/plugins/kanban/KanbanView.svelte:246,src/lib/plugins/kanban/KanbanView.svelte:250
-mem src/lib/plugins/kanban/kanban.store.svelte.ts:29 do kanbanStore.setFilterQuery w:src/lib/plugins/kanban/KanbanView.svelte:290,src/lib/plugins/kanban/KanbanView.svelte:296,src/lib/plugins/kanban/KanbanView.svelte:301,src/lib/plugins/kanban/KanbanView.svelte:305,src/lib/plugins/kanban/KanbanView.svelte:602
+mem src/lib/plugins/kanban/kanban.store.svelte.ts:27 do kanbanStore.setEditingItemId w:src/lib/plugins/kanban/KanbanView.svelte:239,src/lib/plugins/kanban/KanbanView.svelte:243,src/lib/plugins/kanban/KanbanView.svelte:360
+mem src/lib/plugins/kanban/kanban.store.svelte.ts:28 do kanbanStore.setEditingLaneId w:src/lib/plugins/kanban/KanbanView.svelte:152,src/lib/plugins/kanban/KanbanView.svelte:247,src/lib/plugins/kanban/KanbanView.svelte:251
+mem src/lib/plugins/kanban/kanban.store.svelte.ts:29 do kanbanStore.setFilterQuery w:src/lib/plugins/kanban/KanbanView.svelte:291,src/lib/plugins/kanban/KanbanView.svelte:297,src/lib/plugins/kanban/KanbanView.svelte:302,src/lib/plugins/kanban/KanbanView.svelte:306,src/lib/plugins/kanban/KanbanView.svelte:610
 mem src/lib/plugins/kanban/kanban.store.svelte.ts:30 do kanbanStore.setFocus w:7
 more w 7 not shown: src/lib/plugins/kanban(7): q store src/lib/plugins/kanban/kanban.store.svelte.ts:kanbanStore.setFocus
-mem src/lib/plugins/kanban/kanban.store.svelte.ts:34 do kanbanStore.clearFocus w:src/lib/plugins/kanban/KanbanView.svelte:274,src/lib/plugins/kanban/KanbanView.svelte:291,src/lib/plugins/kanban/KanbanView.svelte:365,src/lib/plugins/kanban/KanbanView.svelte:383
+mem src/lib/plugins/kanban/kanban.store.svelte.ts:34 do kanbanStore.clearFocus w:src/lib/plugins/kanban/KanbanView.svelte:275,src/lib/plugins/kanban/KanbanView.svelte:292,src/lib/plugins/kanban/KanbanView.svelte:366,src/lib/plugins/kanban/KanbanView.svelte:384
 mem src/lib/plugins/kanban/kanban.store.svelte.ts:39 do kanbanStore.reset w:src/lib/plugins/kanban/kanban.service.ts:39

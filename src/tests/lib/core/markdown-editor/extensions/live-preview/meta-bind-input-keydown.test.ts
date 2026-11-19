@@ -3,6 +3,8 @@ import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { keymap, type EditorView } from '@codemirror/view';
 import { defaultKeymap, historyKeymap, history, indentWithTab } from '@codemirror/commands';
 import { metaBindInputPlugin } from '#lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input-plugin.js';
+import { pasteHtmlLinkHandler } from '#lib/core/markdown-editor/extensions/live-preview/handlers/paste-html-link-handler.js';
+import { pasteTsvHandler } from '#lib/core/markdown-editor/extensions/live-preview/handlers/paste-tsv-handler.js';
 import { mountMarkdownView, testMarkdown } from '../../test-helpers';
 
 /**
@@ -120,6 +122,107 @@ describe('Enter on other meta-bind controls', () => {
 		press(select, 'Enter');
 		expect(view.state.doc.toString()).toBe(doc);
 		view.destroy();
+	});
+});
+
+/**
+ * jsdom has no `DataTransfer`, so the clipboard is a stub that answers
+ * `getData` from a type-to-text map.
+ */
+function clipboardEvent(type: 'paste' | 'cut' | 'copy', data: Record<string, string> = {}) {
+	const ev = new Event(type, { bubbles: true, cancelable: true });
+	const store = { ...data };
+	Object.defineProperty(ev, 'clipboardData', {
+		value: {
+			getData: (format: string) => store[format] ?? '',
+			setData: (format: string, text: string) => {
+				store[format] = text;
+			},
+			clearData: () => {
+				for (const k of Object.keys(store)) delete store[k];
+			},
+			types: Object.keys(store),
+		},
+	});
+	return ev;
+}
+
+describe('clipboard events in a meta-bind number input', () => {
+	const doc = docWith('n: 1', 'INPUT[number():n]');
+
+	for (const type of ['paste', 'cut', 'copy'] as const) {
+		it(`${type} with the cursor on another line leaves the note unchanged`, () => {
+			const view = mount(doc);
+			const input = control<HTMLInputElement>(view, 'input.cm-lp-meta-bind-input');
+			// CodeMirror's cut/copy act only while its recorded DOM selection is
+			// inside contentDOM, as it is in the app with the input focused.
+			// view.focus() records one there; jsdom's input.focus() would clear
+			// it, so the event is dispatched on the unfocused input instead.
+			view.focus();
+			const ev = clipboardEvent(type, { 'text/plain': '42' });
+			input.dispatchEvent(ev);
+			expect(view.state.doc.toString()).toBe(doc);
+			expect(ev.defaultPrevented, 'the input keeps its own clipboard event').toBe(false);
+			view.destroy();
+		});
+	}
+
+	it('drop with the cursor on another line leaves the note unchanged', () => {
+		const view = mount(doc);
+		const input = control<HTMLInputElement>(view, 'input.cm-lp-meta-bind-input');
+		// jsdom has no layout, so posAtCoords cannot map the drop point; point
+		// it at the line the cursor is on, where CodeMirror would insert.
+		const dropPos = view.state.selection.main.head;
+		view.posAtCoords = (() => dropPos) as typeof view.posAtCoords;
+		const ev = new Event('drop', { bubbles: true, cancelable: true });
+		Object.defineProperty(ev, 'dataTransfer', {
+			value: {
+				getData: (format: string) => (format === 'Text' || format === 'text/plain' ? '42' : ''),
+				files: [],
+				types: ['text/plain'],
+			},
+		});
+		input.dispatchEvent(ev);
+		expect(view.state.doc.toString()).toBe(doc);
+		expect(ev.defaultPrevented, 'the input keeps its own drop event').toBe(false);
+		view.destroy();
+	});
+});
+
+describe('paste into the editor body', () => {
+	const doc = docWith('n: 1', 'INPUT[number():n]');
+	const cursor = doc.indexOf(LINE) + LINE.length;
+
+	function pasteIntoBody(data: Record<string, string>) {
+		const view = mountMarkdownView(doc, {
+			cursor,
+			extensions: [testMarkdown(), metaBindInputPlugin, pasteHtmlLinkHandler, pasteTsvHandler],
+		});
+		const ev = clipboardEvent('paste', data);
+		view.contentDOM.dispatchEvent(ev);
+		const result = view.state.doc.toString();
+		view.destroy();
+		return { result, ev };
+	}
+
+	it('inserts plain text at the editor cursor', () => {
+		const { result, ev } = pasteIntoBody({ 'text/plain': ' 42' });
+		expect(result).toBe(doc.slice(0, cursor) + ' 42' + doc.slice(cursor));
+		expect(ev.defaultPrevented).toBe(true);
+	});
+
+	it('converts TSV text to a markdown table', () => {
+		const { result } = pasteIntoBody({ 'text/plain': 'a\tb\n1\t2' });
+		expect(result.slice(0, cursor)).toBe(doc.slice(0, cursor));
+		expect(result.slice(cursor)).toMatch(/^\| a +\| b +\|\n\| -+ \| -+ \|\n\| 1 +\| 2 +\|/);
+	});
+
+	it('converts an HTML link to a markdown link', () => {
+		const { result } = pasteIntoBody({
+			'text/html': '<a href="https://example.com">Example</a>',
+			'text/plain': 'Example',
+		});
+		expect(result).toBe(doc.slice(0, cursor) + '[Example](https://example.com)' + doc.slice(cursor));
 	});
 });
 

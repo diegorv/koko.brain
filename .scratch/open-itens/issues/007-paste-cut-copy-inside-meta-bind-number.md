@@ -6,17 +6,17 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/meta-bind-input-keydown.test.ts (jsdom, real widgets): mount a note with frontmatter `n: 1` and a body line `INPUT[number():n]`, put the editor cursor on another line, dispatch a bubbling 'paste' event on the rendered input with clipboardData text/plain '42' (Object.defineProperty), and assert that view.state.doc is unchanged. It fails today.
-- [ ] Same file: a 'cut' event on the input leaves view.state.doc unchanged.
-- [ ] src/tests/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.test.ts: isFormControlInputEvent is true for paste, cut and copy from an input, select or textarea, and false for paste on a non-control element.
-- [ ] Paste into the editor body, including the HTML-link and TSV paste paths, works as before.
-- [ ] Gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/meta-bind-input-keydown.test.ts (jsdom, real widgets): mount a note with frontmatter `n: 1` and a body line `INPUT[number():n]`, put the editor cursor on another line, dispatch a bubbling 'paste' event on the rendered input with clipboardData text/plain '42' (Object.defineProperty), and assert that view.state.doc is unchanged. It fails today.
+- [x] Same file: a 'cut' event on the input leaves view.state.doc unchanged.
+- [x] src/tests/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.test.ts: isFormControlInputEvent is true for paste, cut and copy from an input, select or textarea, and false for paste on a non-control element.
+- [x] Paste into the editor body, including the HTML-link and TSV paste paths, works as before.
+- [x] Gate: pnpm check and pnpm vitest run pass.
 
 ## Notes
 
@@ -28,3 +28,5 @@
 **Second opinion (audit 2026-11-05, round 2):** upheld (content, low). CONTROL_EVENT_TYPES (form-control-events.ts:2-11) has no paste, cut, copy or drop. The widgets' ignoreEvent (widgets.ts:414, :815, :960, :1002) returns isFormControlInputEvent, so eventBelongsToEditor (@codemirror/view 6.43.15, index.js:4921-4931) gives the event to CodeMirror. handlers.paste (:5192-5205) calls doPaste at the editor selection with no focus or selection guard. copy/cut (:5242+) use copiedRange, which is the whole cursor line when the selection is empty, and cut dispatches delete.cut. The native Edit menu paste (lib.rs:232) sends a normal paste event. Autosave then writes the inserted text, or the deleted line, to the note. That is note content corrupted on disk, so the category is content, not ux as the Issue says. Corrections to apply while implementing: Recategorize from ux/low to content: Cmd+V puts clipboard text into another line of the note, and Cmd+X deletes a note line, and autosave writes both to disk. Copy alone only puts the wrong text on the clipboard.
 
 ## Comments
+
+- 2026-11-19, branch issue/007-paste-cut-copy-inside-meta-bind-number: paste, cut, copy and drop events from a form control inside a widget are left to the control (form-control-events.ts), with mounted-editor tests for paste, cut and drop on a meta-bind input. Full suite on 51ef770b6: 672 files, 17984 passed, 56 skipped, exit=0; pnpm check 0 errors. Review round 1 APPROVED (drop test and widgets.ts comment fixed), round 2 APPROVED with no findings.
