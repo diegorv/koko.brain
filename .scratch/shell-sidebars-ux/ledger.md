@@ -53,7 +53,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 16 | [Filters show their count and can be cleared; the .view tab's triggers are named single buttons; an empty table says filters hid its rows](issues/16-filters-count-clear-view-triggers.md) | 12 | todo | | |
 | 17 | [Note-list header: one Display popover, a state dot, and "+" visible down to 150 px](issues/17-note-list-display-popover.md) | 16 | todo | | |
 | 18 | [Shared roving-list util and arrow keys in Search results](issues/18-roving-list-search-arrows.md) | none | done | issue/18-roving-list-search-arrows (946fa2132) | 2026-11-18 |
-| 19 | [Rail note list: one Tab stop, arrow keys, focus follows removals and rename](issues/19-rail-note-list-keyboard.md) | 12, 15, 18 | in-progress | | |
+| 19 | [Rail note list: one Tab stop, arrow keys, focus follows removals and rename](issues/19-rail-note-list-keyboard.md) | 12, 15, 18 | done | issue/19-rail-note-list-keyboard (fb5f91cf7) | 2026-11-19 |
 | 20 | [Palette "Go to X" lands focus in the note list, and "New note here" becomes a command](issues/20-palette-go-to-focus-new-note-here.md) | 13, 19 | todo | | |
 | 21 | [The tab strip shows what is off screen, tabs shrink, and the sidebar toggle stops covering them](issues/21-tab-strip-overflow-shrink.md) | none | done | issue/21-tab-strip-overflow-shrink (5787dd24c) | 2026-11-18 |
 | 22 | [Tabs can be dragged to reorder, show their full path on hover, and markdown labels drop .md](issues/22-tab-drag-path-tooltip-no-md.md) | 21 | done | issue/22-tab-drag-path-tooltip-no-md (5d766be87) | 2026-11-18 |
@@ -98,3 +98,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 05:29 — 15 — start — launched by /relay-lite:run — ec6d74f68
 - 2026-11-19 05:56 — 15 — deliver — merged c52c7475e; review 1 APPROVED (1 minor, 2 nits, fix round), review 2 APPROVED no findings; full suite 17929 passed — c52c7475e
 - 2026-11-19 05:56 — 19 — start — launched by /relay-lite:run — 9138e263d
+- 2026-11-19 06:25 — 19 — deliver — merged fb5f91cf7; review 1 APPROVED (3 findings, fix round), review 2 APPROVED (1 optional nit kept); full suite 17958 passed; e2e rail-shell 43 passed — fb5f91cf7

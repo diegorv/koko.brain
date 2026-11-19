@@ -97,7 +97,7 @@ file src/lib/core/settings/settings-panel.store.svelte.ts store L24 module src/l
 file src/lib/core/settings/settings-persistence.svelte.ts other L122 module src/lib/core/settings in2 t9
 file src/lib/core/settings/settings.logic.ts logic L323 module src/lib/core/settings in13 t2
 file src/lib/core/settings/settings.service.ts service L297 module src/lib/core/settings in3 t6
-file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in85 t137
+file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in85 t138
 file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in26 t0
 file src/lib/core/settings/theme-builder.logic.ts logic L318 module src/lib/core/settings in3 t10
 file src/lib/core/settings/theme-catalog.service.ts service L45 module src/lib/core/settings in1 t1

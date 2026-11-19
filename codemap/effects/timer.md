@@ -31,7 +31,7 @@ fx src/lib/features/canvas/TextNode.svelte:24 timer.requestAnimationFrame in $ef
 fx src/lib/features/canvas/TextNode.svelte:31 timer.requestAnimationFrame in startEditing
 fx src/lib/features/collection/CollectionView.svelte:481 timer.requestAnimationFrame in startTabRename
 fx src/lib/features/collection/toolbar/PropertiesPanel.svelte:69 timer.requestAnimationFrame in handleAddFormula
-fx src/lib/features/note-list/NoteRowMenu.svelte:127 timer.requestAnimationFrame in $effect@116
+fx src/lib/features/note-list/NoteRowMenu.svelte:135 timer.requestAnimationFrame in $effect@124
 fx src/lib/features/rail-shell/FilesNavigator.svelte:195 timer.requestAnimationFrame in focusRenameInput
 fx src/lib/plugins/kanban/KanbanCard.svelte:114 timer.requestAnimationFrame in handleWikilinkSelect
 fx src/lib/plugins/kanban/KanbanLane.svelte:142 timer.requestAnimationFrame in handleAddWikilinkSelect
@@ -57,7 +57,7 @@ fx src/lib/features/auto-organize/auto-organize.service.ts:229 timer.setTimeout 
 fx src/lib/features/canvas/CanvasInner.svelte:238 timer.setTimeout delay=300 in $effect@229
 fx src/lib/features/event-calendar/EventCalendarView.svelte:195 timer.setTimeout delay=PULSE_MS in pulse
 fx src/lib/features/properties/PropertiesView.svelte:110 timer.setTimeout delay=300 in $effect@105
-fx src/lib/features/rail-shell/RailListSearch.svelte:67 timer.setTimeout delay=DEBOUNCE_MS in handleInput
+fx src/lib/features/rail-shell/RailListSearch.svelte:69 timer.setTimeout delay=DEBOUNCE_MS in handleInput
 fx src/lib/features/search/SearchPanel.svelte:203 timer.setTimeout delay=SLOW_SEARCH_MS in $effect@201
 fx src/lib/features/search/search.service.ts:114 timer.setTimeout delay=PROGRESS_THROTTLE_MS in startSemanticProgressListener
 fx src/lib/features/tags/tags.service.ts:121 timer.setTimeout delay=0 in flushScheduledTagIndexRebuild

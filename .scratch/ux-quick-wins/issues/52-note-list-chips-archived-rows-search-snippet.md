@@ -15,7 +15,7 @@ Not in this ticket: the selected-row subtitle and chips, `--faint-fg` and proper
 
 **Blocked by:** none
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes.
 
@@ -39,3 +39,4 @@ External, so not in `Blocked by`: shell-sidebars-ux 15 (`issues/15-note-actions-
 ## Comments
 
 - 2026-11-18, split from Issue 39 after its first run blocked on this dependency.
+- 2026-11-19, triage: ready-for-agent. shell-sidebars-ux 15 (c52c7475e) and 19 (fb5f91cf7) are merged; re-read NoteRow.svelte and SearchResult.svelte before building, the line numbers above moved.

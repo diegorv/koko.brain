@@ -30,7 +30,7 @@ sym src/lib/utils/keybindings.ts:40 fn formatShortcut(combo: KeyCombo): string L
 by src/lib/utils/keybindings.ts:formatShortcut <- src/lib/core/markdown-editor/MarkdownEditor.svelte:755 in (markup) markup
 by src/lib/utils/keybindings.ts:formatShortcut <- src/lib/features/command-palette/CommandPalette.svelte:62 in (markup) markup
 by src/lib/utils/keybindings.ts:formatShortcut <- src/lib/features/note-action-bar/NoteActionBar.svelte:235 in (markup) markup
-by src/lib/utils/keybindings.ts:formatShortcut <- src/lib/features/note-list/NoteRowMenu.svelte:296 in (markup) markup
+by src/lib/utils/keybindings.ts:formatShortcut <- src/lib/features/note-list/NoteRowMenu.svelte:306 in (markup) markup
 sym src/lib/utils/keybindings.ts:57 fn registerKeybinding(binding: KeyBinding): () => void L25 | Registers a global keyboard shortcut.
 by src/lib/utils/keybindings.ts:registerKeybinding <- src/lib/app/global-keybindings.ts:224 in registerGlobalKeybindings call
 ## effects

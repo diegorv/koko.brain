@@ -51,7 +51,7 @@ vi.mock('@tauri-apps/api/event', () => ({
 
 vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }));
 
-import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { registerAppPorts, unregisterAppPorts } from '#lib/app/boot.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -339,5 +339,135 @@ describe('canvas image nodes store vault-relative paths', { timeout: 20_000 }, (
 		flushSync();
 
 		expect(await writtenImageFiles()).toEqual(['assets/pic.png']);
+	});
+});
+
+// File nodes read and open their note whether the .canvas stores an absolute or a
+// vault-relative path, and nodes added in the app store vault-relative paths
+// (owner decision D7 b).
+describe('canvas file nodes resolve and store vault-relative paths', { timeout: 20_000 }, () => {
+	const NOTE_ABS = '/vault/notes/a.md';
+	let component: Record<string, unknown> | null = null;
+
+	beforeAll(() => registerAppPorts());
+	afterAll(() => unregisterAppPorts());
+
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.mocked(writeTextFile).mockClear();
+		vi.mocked(readTextFile).mockClear();
+		editorStore.reset();
+		settingsStore.reset();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		fsStore.setFileTree([{ name: 'a.md', path: NOTE_ABS, isDirectory: false }]);
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+		fsStore.reset();
+		vaultStore._reset();
+		vi.useRealTimers();
+	});
+
+	/** Mounts EditorView with one canvas tab holding the given nodes. */
+	async function renderCanvas(nodes: object[] = []): Promise<void> {
+		const content = JSON.stringify({ nodes, edges: [] });
+		editorStore.addTab({ path: A, name: 'a.canvas', content, savedContent: content, fileType: 'canvas' });
+		editorStore.setActiveIndex(0);
+		const target = document.body.appendChild(document.createElement('div'));
+		component = mount(EditorView, { target });
+		flushSync();
+		await vi.advanceTimersByTimeAsync(0);
+	}
+
+	function fileNode(file: string): object {
+		return { id: 'f1', type: 'file', x: 0, y: 0, width: 250, height: 300, file };
+	}
+
+	function readPaths(): string[] {
+		return vi.mocked(readTextFile).mock.calls.map(([path]) => String(path));
+	}
+
+	/** The file node rendered the read result (readTextFile resolves ''), not the load error. */
+	function expectFileNodeLoaded(): void {
+		const node = document.body.querySelector('.canvas-file-node');
+		expect(node?.querySelector('.empty-state')?.textContent).toBe('Empty file');
+		expect(node?.textContent).not.toContain('Could not load file');
+	}
+
+	/** Clicks the file node's header and lets the real openFileInEditor settle. */
+	async function clickFileHeader(): Promise<void> {
+		const header = document.body.querySelector<HTMLButtonElement>('.canvas-file-node .file-header');
+		expect(header).not.toBeNull();
+		header!.click();
+		flushSync();
+		await vi.advanceTimersByTimeAsync(0);
+	}
+
+	/** The `file` of every file node in the JSON last written to the canvas path. */
+	async function writtenFileNodeFiles(): Promise<string[]> {
+		await vi.advanceTimersByTimeAsync(3000);
+		const writes = vi.mocked(writeTextFile).mock.calls.filter(([path]) => path === A);
+		expect(writes.length).toBeGreaterThan(0);
+		const data = JSON.parse(String(writes.at(-1)![1])) as { nodes: { type: string; file?: string }[] };
+		return data.nodes.filter((n) => n.type === 'file').map((n) => n.file!);
+	}
+
+	it('a file node with an absolute path reads and opens that path', async () => {
+		await renderCanvas([fileNode(NOTE_ABS)]);
+
+		expect(readPaths()).toContain(NOTE_ABS);
+		expect(readPaths()).not.toContain('/vault//vault/notes/a.md');
+		expectFileNodeLoaded();
+
+		await clickFileHeader();
+		expect(editorStore.activeTabPath).toBe(NOTE_ABS);
+	});
+
+	it('a file node with a vault-relative path reads and opens it inside the vault', async () => {
+		await renderCanvas([fileNode('notes/a.md')]);
+
+		expect(readPaths()).toContain(NOTE_ABS);
+		expectFileNodeLoaded();
+
+		await clickFileHeader();
+		expect(editorStore.activeTabPath).toBe(NOTE_ABS);
+		expect(editorStore.tabs.some((t) => t.path === 'notes/a.md')).toBe(false);
+	});
+
+	it('dropping an absolute note path from the file tree stores it vault-relative', async () => {
+		await renderCanvas();
+		const container = document.body.querySelector<HTMLElement>('.canvas-container');
+		expect(container).not.toBeNull();
+
+		// jsdom has no DragEvent; the drop handler reads only dataTransfer and the coordinates.
+		const drop = new MouseEvent('drop', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 });
+		Object.defineProperty(drop, 'dataTransfer', {
+			value: { getData: (type: string) => (type === 'text/plain' ? NOTE_ABS : ''), types: ['text/plain'] },
+		});
+		container!.dispatchEvent(drop);
+		flushSync();
+
+		expect(await writtenFileNodeFiles()).toEqual(['notes/a.md']);
+	});
+
+	it('picking a note in the file picker stores it vault-relative', async () => {
+		await renderCanvas();
+		const addNote = document.body.querySelector<HTMLButtonElement>('button[title="Add note from vault"]');
+		expect(addNote).not.toBeNull();
+		addNote!.click();
+		flushSync();
+
+		const item = [...document.body.querySelectorAll<HTMLButtonElement>('.picker-item')].find((b) =>
+			b.textContent?.includes(NOTE_ABS),
+		);
+		expect(item).toBeDefined();
+		item!.click();
+		flushSync();
+
+		expect(await writtenFileNodeFiles()).toEqual(['notes/a.md']);
 	});
 });

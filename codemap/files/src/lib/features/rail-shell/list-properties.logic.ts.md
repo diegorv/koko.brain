@@ -5,7 +5,7 @@ file src/lib/features/rail-shell/list-properties.logic.ts logic L116 module src/
 imp src/lib/features/rail-shell/list-properties.logic.ts:1 -> src/lib/core/filesystem/fs.logic.ts naturalCompare
 imp src/lib/features/rail-shell/list-properties.logic.ts:2 -> src/lib/features/rail-shell/rail-shell.types.ts type:LensNote
 ## imported-by
-imp src/lib/features/rail-shell/RailNoteList.svelte:86 -> src/lib/features/rail-shell/list-properties.logic.ts availableListProperties
+imp src/lib/features/rail-shell/RailNoteList.svelte:87 -> src/lib/features/rail-shell/list-properties.logic.ts availableListProperties
 imp src/lib/features/rail-shell/RailPropertiesPicker.svelte:7 -> src/lib/features/rail-shell/list-properties.logic.ts filterPropertyItems,moveListProperty,orderedPropertyItems,toggleListProperty
 ## reach
 in2 src/lib/features/rail-shell/list-properties.logic.ts 1 files in 1 modules: src/lib/app(1)
@@ -15,7 +15,7 @@ test src/tests/lib/features/rail-shell/list-properties.logic.test.ts imports src
 ## symbols
 sym src/lib/features/rail-shell/list-properties.logic.ts:11 interface ListPropertyItem L8 | One row of the "Show in note list" picker.
 sym src/lib/features/rail-shell/list-properties.logic.ts:29 fn availableListProperties(notes: readonly LensNote[], selected: readonly string[]): string[] L10 | The keys the picker offers: every visible key any listed note carries, the relation keys present in those notes, and every selected key (a key may be selected …
-by src/lib/features/rail-shell/list-properties.logic.ts:availableListProperties <- src/lib/features/rail-shell/RailNoteList.svelte:576 in sortProperties=$derived call +1
+by src/lib/features/rail-shell/list-properties.logic.ts:availableListProperties <- src/lib/features/rail-shell/RailNoteList.svelte:581 in sortProperties=$derived call +1
 sym src/lib/features/rail-shell/list-properties.logic.ts:46 fn propertyDisplayLabel(key: string): string L3 | The name a property shows under in the picker and in the note list.
 sym src/lib/features/rail-shell/list-properties.logic.ts:59 fn orderedPropertyItems(selected: readonly string[], available: readonly string[]): ListPropertyItem[] L16 | Lists the selected keys first, in their saved order, then the other available keys.
 by src/lib/features/rail-shell/list-properties.logic.ts:orderedPropertyItems <- src/lib/features/rail-shell/RailPropertiesPicker.svelte:39 in items=$derived call

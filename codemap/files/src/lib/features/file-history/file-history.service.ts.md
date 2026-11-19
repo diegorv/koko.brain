@@ -36,7 +36,7 @@ sym src/lib/features/file-history/file-history.service.ts:17 fn openFileHistory(
 by src/lib/features/file-history/file-history.service.ts:openFileHistory <- src/lib/app/commands.ts:466 in getBuiltInCommands call
 by src/lib/features/file-history/file-history.service.ts:openFileHistory <- src/lib/app/global-keybindings.ts:174 in GLOBAL_KEYBINDINGS call
 by src/lib/features/file-history/file-history.service.ts:openFileHistory <- src/lib/features/note-action-bar/NoteActionBar.svelte:123 in noteActionItems call
-by src/lib/features/file-history/file-history.service.ts:openFileHistory <- src/lib/features/note-list/NoteRowMenu.svelte:185 in runNoteAction call
+by src/lib/features/file-history/file-history.service.ts:openFileHistory <- src/lib/features/note-list/NoteRowMenu.svelte:194 in runNoteAction call
 sym src/lib/features/file-history/file-history.service.ts:56 fn selectSnapshot(snapshot: SnapshotInfo): Promise<void> L22 | Selects a snapshot and computes the diff against current file content.
 by src/lib/features/file-history/file-history.service.ts:selectSnapshot <- src/lib/features/file-history/FileHistoryDialog.svelte:72 in (markup) markup
 sym src/lib/features/file-history/file-history.service.ts:82 fn restoreSnapshot(snapshotId: number): Promise<void> L24 | Restores a snapshot by replacing the editor content and saving through the normal save flow.

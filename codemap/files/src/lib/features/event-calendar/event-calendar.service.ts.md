@@ -44,7 +44,7 @@ imp src/lib/features/event-calendar/EventPopover.svelte:13 -> src/lib/features/e
 imp src/lib/features/event-calendar/EventTimeGrid.svelte:20 -> src/lib/features/event-calendar/event-calendar.service.ts moveEvent,resizeEvent,toastEventError
 imp src/lib/features/event-calendar/ShowInCalendarButton.svelte:8 -> src/lib/features/event-calendar/event-calendar.service.ts findCalendarEvent,openEventInCalendar
 imp src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:2 -> src/lib/features/event-calendar/event-calendar.service.ts moveEventToDay,toastEventError
-imp src/lib/features/rail-shell/RailNoteList.svelte:62 -> src/lib/features/event-calendar/event-calendar.service.ts acquireCalendarClock
+imp src/lib/features/rail-shell/RailNoteList.svelte:63 -> src/lib/features/event-calendar/event-calendar.service.ts acquireCalendarClock
 imp src/lib/plugins/calendar/CalendarNavigator.svelte:10 -> src/lib/features/event-calendar/event-calendar.service.ts acquireCalendarClock,openEventCalendarTab
 ## reach
 in2 src/lib/features/event-calendar/event-calendar.service.ts 9 files in 6 modules: src/lib/app(3) src/lib/features/event-calendar(2) src/lib/features/backlinks(1) src/lib/features/search(1) src/lib/plugins/calendar(1) +1 modules: q impact src/lib/features/event-calendar/event-calendar.service.ts --depth 2
@@ -92,7 +92,7 @@ by src/lib/features/event-calendar/event-calendar.service.ts:openNewEventDialog 
 by src/lib/features/event-calendar/event-calendar.service.ts:openNewEventDialog <- src/lib/features/event-calendar/EventCalendarView.svelte:74 in handleKeydown call
 sym src/lib/features/event-calendar/event-calendar.service.ts:310 fn acquireCalendarClock(): () => void L20 | Holds the calendar clock, which keeps `eventCalendarViewStore.nowMs` current across midnight and sleep: a tick on first acquire, every 30 s, and on window `foc…
 by src/lib/features/event-calendar/event-calendar.service.ts:acquireCalendarClock <- src/lib/features/event-calendar/EventCalendarView.svelte:220 in $effect@220 call
-by src/lib/features/event-calendar/event-calendar.service.ts:acquireCalendarClock <- src/lib/features/rail-shell/RailNoteList.svelte:130 in $effect@128 call
+by src/lib/features/event-calendar/event-calendar.service.ts:acquireCalendarClock <- src/lib/features/rail-shell/RailNoteList.svelte:131 in $effect@129 call
 by src/lib/features/event-calendar/event-calendar.service.ts:acquireCalendarClock <- src/lib/plugins/calendar/CalendarNavigator.svelte:21 in $effect@21 call
 sym src/lib/features/event-calendar/event-calendar.service.ts:339 fn resetEventCalendar(): void L11 | Resets the two event-calendar stores, discards any load in flight and bumps the write generation, so a write still in flight leaves the stores alone when it re…
 by src/lib/features/event-calendar/event-calendar.service.ts:resetEventCalendar <- src/lib/app/lifecycle/app-lifecycle.service.ts:149 in initializeVault call +1

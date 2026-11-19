@@ -1,6 +1,6 @@
 # file card src/lib/features/properties/lifecycle.service.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/properties/lifecycle.service.ts ' codemap/files
-file src/lib/features/properties/lifecycle.service.ts service L122 module src/lib/features/properties in6 t16
+file src/lib/features/properties/lifecycle.service.ts service L122 module src/lib/features/properties in6 t17
 ## imports
 imp src/lib/features/properties/lifecycle.service.ts:1 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/properties/lifecycle.service.ts:2 -> src/lib/core/editor/editor.logic.ts isMarkdownNoteTab
@@ -14,7 +14,7 @@ imp src/lib/app/commands.ts:53 -> src/lib/features/properties/lifecycle.service.
 imp src/lib/app/global-keybindings.ts:28 -> src/lib/features/properties/lifecycle.service.ts toggleActiveNoteFavorite,toggleActiveNoteOrganized
 imp src/lib/features/note-action-bar/NoteActionBar.svelte:31 -> src/lib/features/properties/lifecycle.service.ts toggleActiveNoteArchived,toggleActiveNoteFavorite,toggleActiveNoteOrganized
 imp src/lib/features/note-list/NoteRowMenu.svelte:29 -> src/lib/features/properties/lifecycle.service.ts setArchivedForPath,setOrganizedForPath,toggleFavoriteForPath
-imp src/lib/features/rail-shell/RailNoteList.svelte:60 -> src/lib/features/properties/lifecycle.service.ts setOrganizedForPath
+imp src/lib/features/rail-shell/RailNoteList.svelte:61 -> src/lib/features/properties/lifecycle.service.ts setOrganizedForPath
 imp src/lib/features/rail-shell/TypesNavigator.svelte:45 -> src/lib/features/properties/lifecycle.service.ts setTypeRailPin
 ## reach
 in2 src/lib/features/properties/lifecycle.service.ts 4 files in 2 modules: src/lib/app(3) src/routes(1)
@@ -29,6 +29,7 @@ test src/tests/lib/features/properties/panel-meta-bind-lossy-rewrite.test.ts imp
 test src/tests/lib/app/commands.test.ts mocks src/lib/features/properties/lifecycle.service.ts
 test src/tests/lib/app/global-keybindings.test.ts mocks src/lib/features/properties/lifecycle.service.ts
 test src/tests/lib/features/note-list/NoteRowMenu.test.ts mocks src/lib/features/properties/lifecycle.service.ts
+test src/tests/lib/features/rail-shell/RailNoteList.keyboard.test.ts mocks src/lib/features/properties/lifecycle.service.ts
 test src/tests/lib/features/rail-shell/RailNoteList.properties.test.ts mocks src/lib/features/properties/lifecycle.service.ts
 test src/tests/lib/features/rail-shell/RailNoteList.search.test.ts mocks src/lib/features/properties/lifecycle.service.ts
 test src/tests/lib/features/rail-shell/RailNoteList.sort.test.ts mocks src/lib/features/properties/lifecycle.service.ts
@@ -38,12 +39,12 @@ test src/tests/lib/features/rail-shell/RailNoteList.view.test.ts mocks src/lib/f
 test src/tests/lib/features/rail-shell/TypesNavigator.test.ts mocks src/lib/features/properties/lifecycle.service.ts
 ## symbols
 sym src/lib/features/properties/lifecycle.service.ts:48 fn toggleFavoriteForPath(filePath: string, favorite: boolean): Promise<void> L10 | Toggles _favorite on a note by path through `updateNoteFrontmatter`, so an open tab keeps its unsaved edits.
-by src/lib/features/properties/lifecycle.service.ts:toggleFavoriteForPath <- src/lib/features/note-list/NoteRowMenu.svelte:277 in (markup) markup
+by src/lib/features/properties/lifecycle.service.ts:toggleFavoriteForPath <- src/lib/features/note-list/NoteRowMenu.svelte:287 in (markup) markup
 sym src/lib/features/properties/lifecycle.service.ts:76 fn setOrganizedForPath(filePath: string, organized: boolean): Promise<void> L3 | Sets `_organized` on a note by path; `_archived` is left as-is.
-by src/lib/features/properties/lifecycle.service.ts:setOrganizedForPath <- src/lib/features/note-list/NoteRowMenu.svelte:180 in runNoteAction call
-by src/lib/features/properties/lifecycle.service.ts:setOrganizedForPath <- src/lib/features/rail-shell/RailNoteList.svelte:985 in (markup) markup
+by src/lib/features/properties/lifecycle.service.ts:setOrganizedForPath <- src/lib/features/note-list/NoteRowMenu.svelte:189 in runNoteAction call
+by src/lib/features/properties/lifecycle.service.ts:setOrganizedForPath <- src/lib/features/rail-shell/RailNoteList.svelte:1159 in (markup) markup
 sym src/lib/features/properties/lifecycle.service.ts:84 fn setArchivedForPath(filePath: string, archived: boolean): Promise<void> L3 | Sets `_archived` on a note by path; `_organized` is left as-is.
-by src/lib/features/properties/lifecycle.service.ts:setArchivedForPath <- src/lib/features/note-list/NoteRowMenu.svelte:179 in runNoteAction call
+by src/lib/features/properties/lifecycle.service.ts:setArchivedForPath <- src/lib/features/note-list/NoteRowMenu.svelte:188 in runNoteAction call
 sym src/lib/features/properties/lifecycle.service.ts:95 fn setTypeRailPin(definitionPath: string, pinned: boolean): Promise<void> L10 | Pins the type whose definition note is at `definitionPath` to the rail (`_rail: true`) or unpins it (the key removed), through `updateNoteFrontmatter`, so the …
 by src/lib/features/properties/lifecycle.service.ts:setTypeRailPin <- src/lib/features/rail-shell/TypesNavigator.svelte:384 in (markup) markup
 sym src/lib/features/properties/lifecycle.service.ts:107 fn toggleActiveNoteFavorite(): Promise<void> L3 | Flips `_favorite` on the active note.

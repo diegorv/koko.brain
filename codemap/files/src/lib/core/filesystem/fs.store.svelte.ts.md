@@ -1,7 +1,7 @@
 # file card src/lib/core/filesystem/fs.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/filesystem/fs.store.svelte.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, store
-file src/lib/core/filesystem/fs.store.svelte.ts store L48 module src/lib/core/filesystem in26 t64
+file src/lib/core/filesystem/fs.store.svelte.ts store L48 module src/lib/core/filesystem in26 t65
 ## imports
 imp src/lib/core/filesystem/fs.store.svelte.ts:1 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode,type:FolderOrderMap
 ## imported-by
@@ -75,7 +75,7 @@ test src/tests/lib/features/rail-shell/FilesNavigator.menu.test.ts imports src/l
 test src/tests/lib/features/rail-shell/FilesNavigator.new-view.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
 test src/tests/lib/features/rail-shell/FilesNavigator.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
 test src/tests/lib/features/rail-shell/RailNoteList.inbox-check.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
-more tests 24 not shown: src/tests/lib/features/rail-shell(10) src/tests/lib/plugins/mods(4) src/tests/lib/features/todoist-sync(3) src/tests/lib/plugins/kanban(3) src/tests/lib/plugins/templates(2) src/tests/lib/features/type-definitions(1) src/tests/lib/plugins/calendar(1): q tests src/lib/core/filesystem/fs.store.svelte.ts
+more tests 25 not shown: src/tests/lib/features/rail-shell(11) src/tests/lib/plugins/mods(4) src/tests/lib/features/todoist-sync(3) src/tests/lib/plugins/kanban(3) src/tests/lib/plugins/templates(2) src/tests/lib/features/type-definitions(1) src/tests/lib/plugins/calendar(1): q tests src/lib/core/filesystem/fs.store.svelte.ts
 ## symbols
 sym src/lib/core/filesystem/fs.store.svelte.ts:25 store fsStore L24 | Central store for the file system / file explorer state.
 by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/AppShell.svelte:123 in viewFilesKey=$derived member +3
@@ -92,7 +92,7 @@ store src/lib/core/filesystem/fs.store.svelte.ts:25 fsStore esc:0
 mem src/lib/core/filesystem/fs.store.svelte.ts:26 get fsStore.fileTree r:40 w-via:setFileTree,reset
 more r 40 not shown: src/lib/app(9) src/lib/core/filesystem(9) src/lib/features/rail-shell(9) src/lib/core/settings(2) src/lib/core/trash(2) src/lib/features/properties(2) src/lib/plugins/kanban(2) src/lib/features/auto-organize(1) +4 modules: q store src/lib/core/filesystem/fs.store.svelte.ts:fsStore.fileTree
 mem src/lib/core/filesystem/fs.store.svelte.ts:27 get fsStore.isLoading r:- w-via:startLoading,stopLoading,reset
-mem src/lib/core/filesystem/fs.store.svelte.ts:28 get fsStore.renamingPath r:src/lib/features/note-list/NoteRow.svelte:50,src/lib/features/note-list/NoteRowMenu.svelte:117,src/lib/features/note-list/NoteRowMenu.svelte:139 w-via:setRenamingPath,reset
+mem src/lib/core/filesystem/fs.store.svelte.ts:28 get fsStore.renamingPath r:src/lib/features/note-list/NoteRow.svelte:61,src/lib/features/note-list/NoteRowMenu.svelte:125,src/lib/features/note-list/NoteRowMenu.svelte:147 w-via:setRenamingPath,reset
 mem src/lib/core/filesystem/fs.store.svelte.ts:29 get fsStore.folderOrder r:src/lib/app/lifecycle/app-lifecycle.service.ts:389,src/lib/core/filesystem/fs.service.ts:139,src/lib/core/filesystem/fs.watcher.ts:218,src/lib/features/rail-shell/FilesNavigator.svelte:99 w-via:setFolderOrder,reset
 mem src/lib/core/filesystem/fs.store.svelte.ts:30 get fsStore.contentOrder r:src/lib/app/tauri-listeners.service.ts:198,src/lib/app/tauri-listeners.service.ts:252,src/lib/core/filesystem/fs.service.ts:110,src/lib/core/filesystem/fs.service.ts:138,src/lib/core/filesystem/fs.watcher.ts:229,src/lib/features/rail-shell/FilesNavigator.svelte:99 w-via:setContentOrder,reset
 mem src/lib/core/filesystem/fs.store.svelte.ts:32 do fsStore.setFileTree w:src/lib/app/lifecycle/app-lifecycle.service.ts:390,src/lib/core/filesystem/fs.service.ts:116,src/lib/core/filesystem/fs.service.ts:165,src/lib/core/filesystem/fs.watcher.ts:250,src/lib/core/filesystem/path-change.service.ts:184,src/lib/core/filesystem/path-change.service.ts:211
@@ -100,5 +100,5 @@ mem src/lib/core/filesystem/fs.store.svelte.ts:33 do fsStore.setFolderOrder w:sr
 mem src/lib/core/filesystem/fs.store.svelte.ts:34 do fsStore.setContentOrder w:src/lib/app/lifecycle/app-lifecycle.service.ts:387,src/lib/app/tauri-listeners.service.ts:201
 mem src/lib/core/filesystem/fs.store.svelte.ts:36 do fsStore.startLoading w:src/lib/core/filesystem/fs.service.ts:91 | Increments or decrements the loading counter. isLoading is true while counter > 0.
 mem src/lib/core/filesystem/fs.store.svelte.ts:37 do fsStore.stopLoading w:src/lib/core/filesystem/fs.service.ts:124
-mem src/lib/core/filesystem/fs.store.svelte.ts:38 do fsStore.setRenamingPath w:src/lib/features/note-list/NoteRowMenu.svelte:112,src/lib/features/note-list/NoteRowMenu.svelte:141,src/lib/features/note-list/NoteRowMenu.svelte:155
+mem src/lib/core/filesystem/fs.store.svelte.ts:38 do fsStore.setRenamingPath w:src/lib/features/note-list/NoteRowMenu.svelte:120,src/lib/features/note-list/NoteRowMenu.svelte:149,src/lib/features/note-list/NoteRowMenu.svelte:164
 mem src/lib/core/filesystem/fs.store.svelte.ts:41 do fsStore.reset w:src/lib/core/filesystem/fs.service.ts:375 | Resets all state to initial values (e.g. when switching vaults)

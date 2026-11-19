@@ -18,7 +18,7 @@ Canvases already saved with absolute paths keep loading through the resolver; th
 
 **Blocked by:** 004
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** 2026-11-12 (owner): 039 is un-deferred for its file-node half only. It runs after 004, since both edit CanvasInner.svelte. The image half, which needs 038's `fs:allow-read-file` grant, is Issue 253 (merged into 038 on 2026-11-13). D7 (b) of 2026-11-04 stands: new nodes store vault-relative paths, reads accept both forms. Nothing open.
 
@@ -26,11 +26,11 @@ Canvases already saved with absolute paths keep loading through the resolver; th
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing test first: a FileNode with `data.file` '/vault/notes/a.md' and vaultStore opened at '/vault' calls readTextFile with '/vault/notes/a.md' (readTextFile mocked at the Tauri boundary). It fails today ('/vault//vault/notes/a.md'). Use a component test, or assert the readTextFile argument through the mounted canvas (harness in src/tests/lib/features/canvas/canvas-tab-switch.test.ts).
-- [ ] A FileNode with a vault-relative `data.file` 'notes/a.md' reads '/vault/notes/a.md', and a click on its header calls openFileInEditor with '/vault/notes/a.md'. The absolute form opens the same path.
-- [ ] canvas.logic.test.ts covers both helpers: `resolveCanvasFilePath` with an absolute in-vault path, an absolute path outside the vault, a vault-relative path and a null vault path; `toVaultRelativePath` with an in-vault absolute path, a sibling path that only shares the prefix ('/vault2/a.md' stays unchanged), an already relative path and a path outside the vault.
-- [ ] A test that dropping an absolute `.md` path (text/plain, as FilesNavigator.svelte:256 and NoteRow.svelte:77 set it) and picking one in CanvasFilePicker store a vault-relative `file` in the canvas JSON passed to writeTextFile.
-- [ ] Frontend gate green.
+- [x] Failing test first: a FileNode with `data.file` '/vault/notes/a.md' and vaultStore opened at '/vault' calls readTextFile with '/vault/notes/a.md' (readTextFile mocked at the Tauri boundary). It fails today ('/vault//vault/notes/a.md'). Use a component test, or assert the readTextFile argument through the mounted canvas (harness in src/tests/lib/features/canvas/canvas-tab-switch.test.ts).
+- [x] A FileNode with a vault-relative `data.file` 'notes/a.md' reads '/vault/notes/a.md', and a click on its header calls openFileInEditor with '/vault/notes/a.md'. The absolute form opens the same path.
+- [x] canvas.logic.test.ts covers both helpers: `resolveCanvasFilePath` with an absolute in-vault path, an absolute path outside the vault, a vault-relative path and a null vault path; `toVaultRelativePath` with an in-vault absolute path, a sibling path that only shares the prefix ('/vault2/a.md' stays unchanged), an already relative path and a path outside the vault.
+- [x] A test that dropping an absolute `.md` path (text/plain, as FilesNavigator.svelte:256 and NoteRow.svelte:77 set it) and picking one in CanvasFilePicker store a vault-relative `file` in the canvas JSON passed to writeTextFile.
+- [x] Frontend gate green.
 
 ## Notes
 
@@ -49,3 +49,5 @@ Canvases already saved with absolute paths keep loading through the resolver; th
 - 2026-11-06: migrated from `.scratch/archived/audit-2026-11-04/issues/17-canvas-node-path-resolution.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-12: the deep dive (validate-s5+s6, cross-tests-relay H5, critique M9) confirmed the bug and rated it high for a daily canvas user. By owner decision the Issue is un-deferred for its file-node half only and blocked by 004 (shared CanvasInner.svelte). The image half (image writers, resolveImageSrc and its readFile test, which passes with the plugin mocked while the missing `fs:allow-read-file` grant still breaks every image node) moved to new Issue 253, blocked by 038. The old canvas.logic.ts blocker note (Issue 13) and the stale line numbers were removed; the criteria now test FileNode's read and click and the two writers.
 - 2026-11-13: Issue 253 merged into 038; the image writers and the two helpers now come from 038.
+
+- 2026-11-19, branch issue/039-canvas-file-image-nodes-store-vault-relative: FileNode resolves `data.file` with resolveCanvasFilePath (absolute or vault-relative) for reading and opening; drop and picker store vault-relative paths. Review fix: file-node read tests assert the loaded render. Tests: pnpm check 0 errors; full suite at a5a54e583 672/672 files, 17962 passed, 56 skipped. Reviews: round 1 APPROVED, round 2 APPROVED.

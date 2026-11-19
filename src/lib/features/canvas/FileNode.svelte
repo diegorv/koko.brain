@@ -4,7 +4,7 @@
 	import OpenIcon from '@lucide/svelte/icons/external-link';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import { readTextFile } from '@tauri-apps/plugin-fs';
-	import { resolveColor } from './canvas.logic';
+	import { resolveCanvasFilePath, resolveColor } from './canvas.logic';
 	import { renderCanvasMarkdown } from './canvas-markdown.logic';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -37,8 +37,7 @@
 		fileContent = null;
 		let aborted = false;
 
-		const fullPath = vaultStore.path ? `${vaultStore.path}/${filePath}` : filePath;
-		readTextFile(fullPath as string).then((content) => {
+		readTextFile(resolveCanvasFilePath(filePath, vaultStore.path)).then((content) => {
 			if (aborted) return;
 			fileContent = content;
 			loading = false;
@@ -53,7 +52,7 @@
 
 	/** Open the referenced file in the editor */
 	function handleClick() {
-		if (data.file) openFileInEditor(data.file);
+		if (data.file) openFileInEditor(resolveCanvasFilePath(data.file, vaultStore.path));
 	}
 </script>
 

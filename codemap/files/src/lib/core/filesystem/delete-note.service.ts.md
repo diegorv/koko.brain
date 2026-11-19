@@ -21,7 +21,7 @@ test src/tests/lib/core/filesystem/delete-note.service.test.ts imports src/lib/c
 sym src/lib/core/filesystem/delete-note.service.ts:16 fn deleteNoteWithConfirm(path: string): Promise<void> L18 | Asks the same "Move to Trash" confirmation as the file explorer, naming the file, then moves the note to the trash.
 by src/lib/core/filesystem/delete-note.service.ts:deleteNoteWithConfirm <- src/lib/app/commands.ts:385 in getBuiltInCommands call
 by src/lib/core/filesystem/delete-note.service.ts:deleteNoteWithConfirm <- src/lib/features/note-action-bar/NoteActionBar.svelte:124 in noteActionItems call
-by src/lib/core/filesystem/delete-note.service.ts:deleteNoteWithConfirm <- src/lib/features/note-list/NoteRowMenu.svelte:181 in runNoteAction call
+by src/lib/core/filesystem/delete-note.service.ts:deleteNoteWithConfirm <- src/lib/features/note-list/NoteRowMenu.svelte:190 in runNoteAction call
 by src/lib/core/filesystem/delete-note.service.ts:deleteNoteWithConfirm <- src/lib/features/rail-shell/TypesNavigator.svelte:343 in (markup) markup
 ## calls
 call src/lib/core/filesystem/delete-note.service.ts:17 in deleteNoteWithConfirm -> src/lib/utils/path.ts:basename call
