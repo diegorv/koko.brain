@@ -18,11 +18,11 @@ Not in this ticket: the tab strip and hover (Issue 40); the section-title and ca
 
 **Blocked by:** 40
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Gate:** pnpm check + pnpm vitest run.
 
-- [ ] Owner decision recorded in Comments (option 1 or 2, and for option 2 the chosen value).
+- [x] Owner decision recorded in Comments (option 1 or 2, and for option 2 the chosen value).
 - [ ] Failing test first, `src/tests/lib/core/settings/theme-builder.logic.test.ts` over `BUILTIN_THEMES`: `colorDistance(strong, link)`, `colorDistance(emphasis, link)` and `colorDistance(strong, wikilink.target)` are each at least 12 (10.7 on Default today).
 - [ ] `colorDistance` unit test in `src/tests/lib/utils/color.test.ts`: equal colours give 0; `#93c5fd` against `#60a5fa` gives about 10.7.
 - [ ] The snapshot (`src/tests/lib/core/settings/__snapshots__/theme-snapshot.test.ts.snap`), `theme.logic.test.ts` and `theme.service.test.ts` move on purpose to the new `--syntax-strong` and `--syntax-emphasis`; with option 1 the Issue 05 test changes as decided, with option 2 it stays green unchanged.
@@ -41,3 +41,4 @@ On Default, bold, italic and wikilink targets all draw `#93c5fd`, next to the li
 ## Comments
 
 - 2026-11-18, split from Issue 40 while the owner was away; waits for the owner's pick above.
+- 2026-11-19, owner decision: option 2, Default `inlineFg` = `#f5d0a9` (warm light peach). Measured: 9.3:1 on `editorBg` `#2a2e3d`; `colorDistance` 26.7 from `link` `#60a5fa`, 27.1 from `wikilink.target` `#a78bfa`, 11.5 from `fg`, 18.7 from `heading1`. Set `--syntax-emphasis` and `--syntax-strong` in `app.css` to the same value. The Issue 05 test stays unchanged. Triage: ready-for-agent.
