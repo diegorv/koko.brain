@@ -48,7 +48,7 @@ module src/lib/features/todoist-sync features files 27 in-modules 1 out-modules 
 module src/lib/features/type-definitions features files 9 in-modules 13 out-modules 12 pub 63/100 ipc 3/0 card ~7.1k
 module src/lib/plugins/calendar plugins files 7 in-modules 1 out-modules 7 pub 2/21 ipc 0/0 card ~0.9k
 module src/lib/plugins/graph-view plugins files 6 in-modules 1 out-modules 8 pub 4/30 ipc 1/0 card ~0.9k
-module src/lib/plugins/kanban plugins files 12 in-modules 1 out-modules 7 pub 5/75 ipc 0/0 card ~1.2k
+module src/lib/plugins/kanban plugins files 12 in-modules 1 out-modules 7 pub 5/76 ipc 0/0 card ~1.2k
 module src/lib/plugins/mods plugins files 18 in-modules 1 out-modules 17 pub 9/65 ipc 4/0 card ~2.2k
 module src/lib/plugins/one-on-one plugins files 6 in-modules 2 out-modules 14 pub 5/23 ipc 0/0 card ~1.3k
 module src/lib/plugins/periodic-notes plugins files 3 in-modules 5 out-modules 7 pub 10/20 ipc 0/0 card ~1.5k
