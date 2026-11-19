@@ -20,15 +20,15 @@ Not in this ticket: tinted editor surfaces (callouts, blockquote, highlight, cod
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes.
 
-- [ ] Hard palettes fixture under `src/tests/fixtures/` (create it if Issue 02 has not): the palettes of Zettlr Bielefeld Light, Tolaria Light, Twilight Violet, Zettlr Bordeaux Dark and Zettlr Karl-Marx-Stadt Dark copied from the themes repo with a source comment.
-- [ ] Failing test first, `theme-builder.logic.test.ts` over `BUILTIN_THEMES` and the fixture: every new pair reaches its minimum, including `mutedForeground` on `accent` flattened over `popover` and on `muted` over `background`, and `destructive` on `editorBg` at 4.5:1. It fails today on the fixture (command-item accent row, muted chips).
-- [ ] APCA test: an `apcaContrast` export (or equivalent) matches the apca-w3 reference on a few known pairs (black/white on `#3b82f6`: Lc 40.2 and -69.4); the muted family and links on the dark fixture palettes reach |Lc| 45; `primaryForeground` is white on a mid-tone blue primary.
-- [ ] `utils/color.test.ts` covers the new APCA helper (happy path, unparseable input, already passing input unchanged).
-- [ ] Snapshot updated on purpose; frontend gate passes.
+- [x] Hard palettes fixture under `src/tests/fixtures/` (create it if Issue 02 has not): the palettes of Zettlr Bielefeld Light, Tolaria Light, Twilight Violet, Zettlr Bordeaux Dark and Zettlr Karl-Marx-Stadt Dark copied from the themes repo with a source comment.
+- [x] Failing test first, `theme-builder.logic.test.ts` over `BUILTIN_THEMES` and the fixture: every new pair reaches its minimum, including `mutedForeground` on `accent` flattened over `popover` and on `muted` over `background`, and `destructive` on `editorBg` at 4.5:1. It fails today on the fixture (command-item accent row, muted chips).
+- [x] APCA test: an `apcaContrast` export (or equivalent) matches the apca-w3 reference on a few known pairs (black/white on `#3b82f6`: Lc 40.2 and -69.4); the muted family and links on the dark fixture palettes reach |Lc| 45; `primaryForeground` is white on a mid-tone blue primary.
+- [x] `utils/color.test.ts` covers the new APCA helper (happy path, unparseable input, already passing input unchanged).
+- [x] Snapshot updated on purpose; frontend gate passes.
 
 ## Findings covered
 
@@ -82,3 +82,5 @@ Not in this ticket: tinted editor surfaces (callouts, blockquote, highlight, cod
 ## Comments
 
 - 2026-11-19, triage: ready-for-agent. Decided by the owner: builder lifts tokens for every theme (WCAG + APCA), user themes are corrected by the builder and the editor warns, rail icons keep their hue and are darkened per theme (ADR-0033 amendment), Issues run through relay one at a time, the themes repo is fixed with version bumps.
+- 2026-11-19, main session, after Issue 12 (`9c8ff9717`): `readableCore` already lifts `fg`, `mutedFg` and `primary` on the Settings surfaces and on `hover` (as `settingsHoverBg`, flattened over `editorBg`), and `error` to 4.5:1 on `settingsDialogBg` and `settingItemBg`; `READABILITY_PAIRS` already holds those pairs. Do not redo them. Still open here: the `selected`/`accent` surfaces (flattened over `popover`, `sidebarBg`), `muted` over `background`, `destructive` on `editorBg` and the other text surfaces, warning/success, the APCA gate, and `primaryForeground` by APCA. Owner decision pending on the type colors that derive from the lifted `error` (KokoBrain Default red `#f3333b` now shows `#fd746e`): keep that derivation as it is, do not change how typeRed/Orange/Pink are derived, and list in the commit any type color that moves further.
+- 2026-11-19, deliver, branch `issue/05-theme-builder-text-every-surface-apca`: builder lifts text on every derived surface (accent/selected over popover and sidebar, muted over background, destructive, warning/success) to WCAG 4.5:1 and |Lc| 45 by APCA; `apcaContrast` helper in `utils/color.ts`; primary label kept readable at rest and on hover; editor names the APCA gate. Review round 1 APPROVED, fixes then reviewed in round 2 APPROVED (one minor report-vs-lift mismatch on hover primary and one nit, left as follow-ups). Tests: `pnpm check` 0 errors; full suite at 509204734 exit 0, 684 files, 18295 passed, 56 skipped.

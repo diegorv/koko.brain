@@ -1,7 +1,7 @@
 # module card src/lib/core/settings
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/core/settings ' codemap/modules
 sections: neighbors, entry files, files, public, stores, effects, debt
-module src/lib/core/settings core files 39 in-modules 30 out-modules 7 pub 58/182 ipc 3/0 card ~7.5k
+module src/lib/core/settings core files 39 in-modules 30 out-modules 7 pub 58/185 ipc 3/0 card ~7.5k
 ## neighbors
 dep src/lib/app -> src/lib/core/settings 32
 dep src/lib/core/layout -> src/lib/core/settings 2
@@ -86,8 +86,8 @@ file src/lib/core/settings/sections/PeriodicNotesSection.svelte component L187 m
 file src/lib/core/settings/sections/QuickCaptureSection.svelte component L79 module src/lib/core/settings in1 t2
 file src/lib/core/settings/sections/SentrySection.svelte component L95 module src/lib/core/settings in1 t0
 file src/lib/core/settings/sections/SettingItem.svelte component L41 module src/lib/core/settings in18 t1
-file src/lib/core/settings/sections/ThemeColorRow.svelte component L73 module src/lib/core/settings in1 t0
-file src/lib/core/settings/sections/ThemeEditor.svelte component L202 module src/lib/core/settings in1 t1
+file src/lib/core/settings/sections/ThemeColorRow.svelte component L101 module src/lib/core/settings in1 t0
+file src/lib/core/settings/sections/ThemeEditor.svelte component L207 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/ThemePreview.svelte component L53 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/TrashSection.svelte component L138 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/TroubleshootingSection.svelte component L180 module src/lib/core/settings in1 t1
@@ -101,13 +101,13 @@ file src/lib/core/settings/settings.logic.ts logic L323 module src/lib/core/sett
 file src/lib/core/settings/settings.service.ts service L297 module src/lib/core/settings in3 t6
 file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in85 t139
 file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in26 t0
-file src/lib/core/settings/theme-builder.logic.ts logic L335 module src/lib/core/settings in3 t12
+file src/lib/core/settings/theme-builder.logic.ts logic L409 module src/lib/core/settings in5 t13
 file src/lib/core/settings/theme-catalog.service.ts service L45 module src/lib/core/settings in1 t1
-file src/lib/core/settings/theme-editor.logic.ts logic L303 module src/lib/core/settings in3 t1
+file src/lib/core/settings/theme-editor.logic.ts logic L303 module src/lib/core/settings in3 t2
 file src/lib/core/settings/theme-package.logic.ts logic L404 module src/lib/core/settings in4 t3
 file src/lib/core/settings/theme-surfaces.logic.ts logic L80 module src/lib/core/settings in8 t9
 file src/lib/core/settings/theme-validation.logic.ts logic L76 module src/lib/core/settings in2 t1
-file src/lib/core/settings/theme.logic.ts logic L408 module src/lib/core/settings in7 t37
+file src/lib/core/settings/theme.logic.ts logic L420 module src/lib/core/settings in7 t37
 file src/lib/core/settings/theme.service.ts service L89 module src/lib/core/settings in5 t14
 file src/lib/core/settings/theme.types.ts types L251 module src/lib/core/settings in10 t0
 file src/lib/core/settings/update-check.service.ts service L37 module src/lib/core/settings in1 t2

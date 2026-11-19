@@ -173,43 +173,57 @@ function oklabToHex([L, A, B]: number[]): string {
 }
 
 /**
- * Returns `fg` moved in OKLab toward white or black by the smallest 1% step that
- * reaches `min` contrast on `bg`, keeping its hue family and any 8-digit alpha
- * suffix. It moves away from `bg` on fg's own side (lighter text gets lighter)
- * unless only the other extreme can reach `min`. Unparseable colors are returned as is.
+ * True when `fg` reaches `min` WCAG contrast and `minLc` APCA |Lc| on `bg`;
+ * false when it does not or either color is unparseable.
  */
-export function ensureContrast(fg: string, bg: string, min: number): string {
+function passes(fg: string, bg: string, min: number, minLc: number): boolean {
+	if ((contrastRatio(fg, bg) ?? 0) < min) return false;
+	return minLc <= 0 || Math.abs(apcaContrast(fg, bg) ?? 0) >= minLc;
+}
+
+/**
+ * Returns `fg` moved in OKLab toward white or black by the smallest 1% step that
+ * reaches `min` WCAG contrast on `bg`, and `minLc` APCA |Lc| when given, keeping
+ * its hue family and any 8-digit alpha suffix. It moves away from `bg` on fg's
+ * own side (lighter text gets lighter) unless only the other extreme can reach
+ * the minimum. When neither black nor white reaches both gates, the APCA gate is
+ * dropped. Unparseable colors are returned as is.
+ */
+export function ensureContrast(fg: string, bg: string, min: number, minLc = 0): string {
 	const ratio = contrastRatio(fg, bg);
 	const rgb = parseRgb(fg);
 	const bgRgb = parseRgb(bg);
-	if (ratio === null || !rgb || !bgRgb || ratio >= min) return fg;
+	if (ratio === null || !rgb || !bgRgb || passes(fg, bg, min, minLc)) return fg;
+	// On a mid-tone background APCA may be out of reach; WCAG alone then decides
+	const lc = passes('#ffffff', bg, min, minLc) || passes('#000000', bg, min, minLc) ? minLc : 0;
+	if (lc !== minLc && ratio >= min) return fg;
 	const suffix = /^#[0-9a-f]{8}$/i.test(fg.trim()) ? fg.trim().slice(7) : '';
 	const from = toOklab(rgb.map(toLinear));
 	// Prefer the extreme on fg's own side of bg; switch only when that side cannot reach `min`.
-	const whiteOk = (contrastRatio('#ffffff', bg) ?? 0) >= min;
-	const blackOk = (contrastRatio('#000000', bg) ?? 0) >= min;
+	const whiteOk = passes('#ffffff', bg, min, lc);
+	const blackOk = passes('#000000', bg, min, lc);
 	const towardWhite = luminance(rgb) > luminance(bgRgb) ? whiteOk || !blackOk : !blackOk && whiteOk;
 	const to = towardWhite ? toOklab([1, 1, 1]) : toOklab([0, 0, 0]);
 	let out = fg;
 	for (let step = 1; step <= 100; step++) {
 		const t = step / 100;
 		out = oklabToHex(from.map((v, i) => v + (to[i] - v) * t));
-		if ((contrastRatio(out + suffix, bg) ?? 0) >= min) break;
+		if (passes(out + suffix, bg, min, lc)) break;
 	}
 	return out + suffix;
 }
 
 /**
  * `ensureContrast` against several backgrounds at once (a row and its hover or
- * selected tint): lifts `fg` until it reaches `min` on each of `bgs`. Backgrounds
- * on both sides of `fg` can pull it apart, so the passes are bounded.
- * Returns `fg` itself when it already passes everywhere or cannot be parsed.
+ * selected tint): lifts `fg` until it reaches `min` (and `minLc`) on each of
+ * `bgs`. Backgrounds on both sides of `fg` can pull it apart, so the passes are
+ * bounded. Returns `fg` itself when it already passes everywhere or cannot be parsed.
  */
-export function ensureContrastOn(fg: string, bgs: string[], min: number): string {
+export function ensureContrastOn(fg: string, bgs: string[], min: number, minLc = 0): string {
 	let out = fg;
 	for (let pass = 0; pass < 4; pass++) {
 		const before = out;
-		for (const bg of bgs) out = ensureContrast(out, bg, min);
+		for (const bg of bgs) out = ensureContrast(out, bg, min, minLc);
 		if (out === before) break;
 	}
 	return out;
@@ -262,12 +276,30 @@ function apcaLuminance([r, g, b]: [number, number, number]): number {
 	return y < 0.022 ? y + (0.022 - y) ** 1.414 : y;
 }
 
-/** APCA lightness contrast |Lc| (0 to about 108) of `text` on `bg`, both opaque. */
-function apcaContrast(text: [number, number, number], bg: [number, number, number]): number {
+/**
+ * Signed APCA lightness contrast Lc of `text` on `bg`, both opaque: positive for
+ * dark text on a light background, negative for light on dark, about -108 to 106.
+ */
+function apcaLc(text: [number, number, number], bg: [number, number, number]): number {
 	const t = apcaLuminance(text);
 	const b = apcaLuminance(bg);
+	if (Math.abs(b - t) < 0.0005) return 0;
 	const sapc = b > t ? (b ** 0.56 - t ** 0.57) * 1.14 : (b ** 0.65 - t ** 0.62) * 1.14;
-	return Math.abs(sapc) < 0.1 ? 0 : (Math.abs(sapc) - 0.027) * 100;
+	if (Math.abs(sapc) < 0.1) return 0;
+	return (sapc > 0 ? sapc - 0.027 : sapc + 0.027) * 100;
+}
+
+/**
+ * Signed APCA Lc of `text` on `bg` (APCA-W3 0.0.98G), with a translucent `text`
+ * composited over `bg` (`bg`'s own alpha is ignored). Positive for dark text on
+ * a light background, negative for light on dark; |Lc| 45 is the floor for
+ * muted and small text. Null when either color is unparseable.
+ */
+export function apcaContrast(text: string, bg: string): number | null {
+	const flat = flatten(text, bg);
+	const x = flat ? parseRgb(flat) : null;
+	const y = parseRgb(bg);
+	return x && y ? apcaLc(x, y) : null;
 }
 
 /**
@@ -280,6 +312,6 @@ function apcaContrast(text: [number, number, number], bg: [number, number, numbe
 export function labelColors(color: string): { fill: string; text: '#000000' | '#ffffff' } | null {
 	const rgb = parseRgb(color);
 	if (!rgb) return null;
-	const text = apcaContrast([255, 255, 255], rgb) > apcaContrast([0, 0, 0], rgb) ? '#ffffff' : '#000000';
+	const text = Math.abs(apcaLc([255, 255, 255], rgb)) > Math.abs(apcaLc([0, 0, 0], rgb)) ? '#ffffff' : '#000000';
 	return { fill: ensureContrast(color, text, 4.5), text };
 }

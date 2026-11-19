@@ -15,8 +15,8 @@ fx src/lib/core/markdown-editor/MarkdownEditor.svelte:667 svelte.$effect in (scr
 fx src/lib/core/markdown-editor/MarkdownEditor.svelte:683 svelte.$effect in (script)
 fx src/lib/core/markdown-editor/MarkdownEditor.svelte:703 svelte.$effect in (script)
 fx src/lib/core/markdown-editor/MarkdownEditor.svelte:718 svelte.$effect in (script)
-fx src/lib/core/settings/sections/ThemeColorRow.svelte:11 svelte.$effect in (script)
-fx src/lib/core/settings/sections/ThemeEditor.svelte:50 svelte.$effect in (script)
+fx src/lib/core/settings/sections/ThemeColorRow.svelte:30 svelte.$effect in (script)
+fx src/lib/core/settings/sections/ThemeEditor.svelte:51 svelte.$effect in (script)
 fx src/lib/core/settings/settings-persistence.svelte.ts:65 svelte.$effect in startSettingsPersistence
 fx src/lib/core/settings/settings-persistence.svelte.ts:66 svelte.$effect in $effect@65
 fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:122 svelte.$effect in (script)

@@ -58,7 +58,7 @@ describe('themeColorsToCssVars', () => {
 	it('maps wikilink colors with wikilink- prefix', () => {
 		const vars = themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors);
 		expect(vars['--wikilink-bracket']).toBe(KOKOBRAIN_DEFAULT_THEME.colors.wikilink.bracket);
-		expect(vars['--wikilink-target']).toBe('#a78bfa');
+		expect(vars['--wikilink-target']).toBe('#a98dfa');
 	});
 
 	it('maps callout colors with callout- prefix', () => {
@@ -334,7 +334,7 @@ describe('KOKOBRAIN_DEFAULT_THEME', () => {
 
 	it('has valid heading colors', () => {
 		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading1).toBe('#E8A5FF');
-		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading6).toBe('#9fa9c0');
+		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading6).toBe('#9fa9c1');
 	});
 
 	it.each(BUILTIN_THEMES.map((t) => [t.name, t] as const))('%s colors H1 apart from its error red', (_name, theme) => {

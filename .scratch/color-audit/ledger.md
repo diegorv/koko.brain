@@ -39,14 +39,14 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [Rail, tag and icon palettes stay visible on every theme](issues/02-rail-tag-icon-palettes-follow-theme.md) | none | done | issue/02-rail-tag-icon-palettes-follow-theme (c648cd459) | 2026-11-19 |
 | 03 | [Accent and status text on its own tint: rows, search, menus](issues/03-accent-text-own-tint-rows-search-menus.md) | none | done | issue/03-accent-text-own-tint-rows-search-menus (df9a93639) | 2026-11-19 |
 | 04 | [Accent and status text on its own tint: kanban, collection functions, file history](issues/04-accent-text-own-tint-kanban-collection-diff.md) | 03 | done | issue/04-accent-text-own-tint-kanban-collection-diff (d2d8f050a) | 2026-11-19 |
-| 05 | [Theme builder keeps text readable on every surface it derives, by WCAG and APCA](issues/05-theme-builder-text-every-surface-apca.md) | none | todo | | |
+| 05 | [Theme builder keeps text readable on every surface it derives, by WCAG and APCA](issues/05-theme-builder-text-every-surface-apca.md) | none | in-progress | | |
 | 06 | [Editor text on tinted surfaces: callouts, blockquote, highlight, code, collection](issues/06-theme-builder-editor-tinted-surfaces.md) | 05, 07 | todo | | |
 | 07 | [Borders, inputs, switches, checkboxes and focus rings reach 3:1](issues/07-non-text-boundaries-focus-states.md) | none | done | issue/07-non-text-boundaries-focus-states (cc6b30159) | 2026-11-19 |
 | 08 | [Live-preview and QueryJS dimmed text stays readable](issues/08-live-preview-queryjs-dimmed-text.md) | 06 | todo | | |
 | 09 | [Canvas text, edges, groups and presets read on light themes](issues/09-canvas-readable-on-light-themes.md) | none | todo | | |
 | 10 | [QueryJS charts, heatmaps and mermaid follow the theme](issues/10-queryjs-charts-mermaid-follow-theme.md) | 08 | todo | | |
 | 11 | [Graph view labels, edges and controls read on every theme](issues/11-graph-view-follows-theme.md) | 07 | todo | | |
-| 12 | [User, edited and imported themes are corrected and the editor warns](issues/12-user-themes-readability-checks.md) | 07 | in-progress | | |
+| 12 | [User, edited and imported themes are corrected and the editor warns](issues/12-user-themes-readability-checks.md) | 07 | done | issue/12-user-themes-readability-checks (9c8ff9717) | 2026-11-19 |
 | 13 | [Themes repo: Zettlr hover and selected surfaces, and a contrast CI](issues/13-themes-repo-zettlr-palettes-contrast-ci.md) | 07 | done | koko.brain-themes eb9f062, bfdd3d8 | 2026-11-19 |
 | 14 | [Kanban date badges read on coloured cards](issues/14-kanban-date-badges-coloured-cards.md) | 04 | todo | | |
 
@@ -67,3 +67,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 18:00 — 07 — deliver — merged; review APPROVED with 3 findings (input pairs on fileExplorerBg/editorBg fixed, per-token lift kept by design, ring/blockquote asserted), round 2 APPROVED; full suite 684 files passed; E2E focus-ring.spec not run — cc6b30159
 - 2026-11-19 18:00 — 12 — start — launched by /relay-lite:run (owner order: after 07) — b7ad075e6
 - 2026-11-19 18:17 — 13 — deliver — done by hand in the themes repo: Zettlr palettes (eb9f062), palette-design checks in pnpm validate plus 13 themes fixed (bfdd3d8); Themes CI green — 3a8eb75f5
+- 2026-11-19 18:29 — 12 — deliver — merged; review APPROVED, fix round, round 2 APPROVED (1 nit); owner to confirm the Default error red #fd746e (typeRed/orange/pink derive from the 4.5 lift); ThemePreview unlifted is a follow-up; full suite 684 files passed — 9c8ff9717
+- 2026-11-19 19:30 — 05 — start — launched by /relay-lite:run — e8059fa12

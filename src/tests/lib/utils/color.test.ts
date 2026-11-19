@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isDarkColor, contrastRatio, colorDistance, ensureContrast, ensureContrastOn, flatten, labelColors, mixColors, shiftLightness, tint } from '#lib/utils/color.js';
+import { isDarkColor, contrastRatio, colorDistance, apcaContrast, ensureContrast, ensureContrastOn, flatten, labelColors, mixColors, shiftLightness, tint } from '#lib/utils/color.js';
 
 describe('isDarkColor', () => {
 	it('detects dark hex backgrounds', () => {
@@ -186,6 +186,50 @@ describe('ensureContrast', () => {
 
 	it('leaves colors it cannot parse untouched', () => {
 		expect(ensureContrast('hwb(200 20% 30%)', '#ffffff', 4.5)).toBe('hwb(200 20% 30%)');
+	});
+});
+
+describe('apcaContrast', () => {
+	it('matches the apca-w3 reference: positive for dark text on light, negative for light text on dark', () => {
+		expect(apcaContrast('#000000', '#3b82f6')!).toBeCloseTo(40.2, 1);
+		expect(apcaContrast('#ffffff', '#3b82f6')!).toBeCloseTo(-69.4, 1);
+		expect(apcaContrast('#000000', '#ffffff')!).toBeCloseTo(106.0, 1);
+		expect(apcaContrast('#ffffff', '#000000')!).toBeCloseTo(-107.9, 1);
+	});
+
+	it('gives 0 for text on its own color, and composites translucent text over the background', () => {
+		expect(apcaContrast('#777777', '#777777')).toBe(0);
+		expect(apcaContrast('#00000080', '#ffffff')).toBe(apcaContrast(flatten('#00000080', '#ffffff')!, '#ffffff'));
+	});
+
+	it('returns null when either color is unparseable', () => {
+		expect(apcaContrast('hwb(200 20% 30%)', '#ffffff')).toBeNull();
+		expect(apcaContrast('#000000', 'var(--bg)')).toBeNull();
+	});
+});
+
+describe('ensureContrast with an APCA minimum', () => {
+	it('moves a color that passes WCAG but not APCA until both pass', () => {
+		// Willemstad Dark links: 4.57:1 but Lc -31 on the editor
+		expect(contrastRatio('#567f83', '#070707')!).toBeGreaterThanOrEqual(4.5);
+		const out = ensureContrast('#567f83', '#070707', 4.5, 45);
+		expect(Math.abs(apcaContrast(out, '#070707')!)).toBeGreaterThanOrEqual(45);
+		expect(contrastRatio(out, '#070707')!).toBeGreaterThanOrEqual(4.5);
+		expect(Math.abs(apcaContrast(out, '#070707')!)).toBeLessThan(48);
+	});
+
+	it('returns the color itself when it already passes both gates', () => {
+		expect(ensureContrast('#222222', '#ffffff', 4.5, 45)).toBe('#222222');
+	});
+
+	it('keeps the WCAG-only result when neither black nor white can reach the APCA minimum', () => {
+		// On mid grey neither extreme reaches Lc 75, so the APCA gate is dropped
+		expect(ensureContrast('#eeeeee', '#787878', 4.5, 75)).toBe(ensureContrast('#eeeeee', '#787878', 4.5));
+	});
+
+	it('lifts on every background with ensureContrastOn', () => {
+		const out = ensureContrastOn('#706888', ['#222028', '#1a181f'], 4.5, 45);
+		for (const bg of ['#222028', '#1a181f']) expect(Math.abs(apcaContrast(out, bg)!)).toBeGreaterThanOrEqual(45);
 	});
 });
 

@@ -239,9 +239,11 @@ describe('search Text badge', () => {
 		}
 	});
 
-	it('file-explorer-muted-fg on --muted falls under 4.5:1 in at least one theme', () => {
-		const ratios = THEMES.map((theme) => contrastRatio(theme.colors.ui.fileExplorerMutedFg, theme.colors.ui.muted)!);
-		expect(Math.min(...ratios)).toBeLessThan(4.5);
+	it('file-explorer-muted-fg on --muted is also at least 4.5:1: the theme builder lifts it on the hover fill', () => {
+		for (const theme of THEMES) {
+			const { ui } = theme.colors;
+			expect(contrastRatio(ui.fileExplorerMutedFg, ui.muted)!, theme.name).toBeGreaterThanOrEqual(4.5);
+		}
 	});
 });
 
