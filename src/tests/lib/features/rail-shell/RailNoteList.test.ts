@@ -387,7 +387,7 @@ describe('RailNoteList', () => {
 		await mountList();
 
 		expect(rows()).toHaveLength(0);
-		expect(emptyText()).toEqual({ title: 'Inbox zero', hint: 'Notes not marked organized show here. Mark one with ⌘E.' });
+		expect(emptyText()).toEqual({ title: 'Inbox zero', hint: 'Notes not marked organized show here. Mark one with ⌘E, the check on its row or its right-click menu.' });
 	});
 
 	it('updates when the entries snapshot changes', async () => {
@@ -944,7 +944,7 @@ describe('RailNoteList', () => {
 			expect(rows()).toHaveLength(0);
 			expect(emptyText()).toEqual({
 				title: 'Nothing archived',
-				hint: 'Archive a note from the ... menu above it. Archived notes leave Inbox and Today.',
+				hint: 'Archive a note from its right-click menu in a list or the ... menu above it. Archived notes leave Inbox and Today.',
 			});
 		});
 

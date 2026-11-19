@@ -7,6 +7,7 @@
 	import Ellipsis from '@lucide/svelte/icons/ellipsis';
 	import FoldHorizontal from '@lucide/svelte/icons/fold-horizontal';
 	import FolderOpen from '@lucide/svelte/icons/folder-open';
+	import History from '@lucide/svelte/icons/history';
 	import Link from '@lucide/svelte/icons/link';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Star from '@lucide/svelte/icons/star';
@@ -20,6 +21,7 @@
 		DropdownMenuContent,
 		DropdownMenuItem,
 		DropdownMenuSeparator,
+		DropdownMenuShortcut,
 		DropdownMenuTrigger,
 	} from '#lib/components/ui/dropdown-menu/index.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -31,9 +33,12 @@
 		toggleActiveNoteFavorite,
 		toggleActiveNoteOrganized,
 	} from '#lib/features/properties/lifecycle.service.js';
+	import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
+	import { noteActions, type NoteActionId } from '#lib/features/properties/note-actions.logic.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { openNeighbourhood } from '#lib/features/rail-shell/neighbourhood.service.js';
 	import { error } from '#lib/utils/debug.js';
+	import { formatShortcut, type KeyCombo } from '#lib/utils/keybindings.js';
 	import { HUB_ACTION_WIDTH, foldActions, getActionBarState, resolveHubAction, type FoldableAction } from './note-action-bar.logic';
 	import { noteActionBarActionsStore } from './note-action-bar-actions.store.svelte';
 	import {
@@ -103,6 +108,21 @@
 		},
 		'copy-path': { label: 'Copy path', icon: Copy, run: () => run(() => copyNotePath(path), 'copyNotePath') },
 	});
+
+	/**
+	 * How each note action looks and runs in More. They act on the active note,
+	 * so the ones with a global shortcut (global-keybindings.ts) show it.
+	 */
+	const noteActionItems: Record<NoteActionId, { icon: () => Component; shortcut?: KeyCombo; run: () => void }> = {
+		archive: { icon: () => (bar.archived ? ArchiveRestore : Archive), run: () => run(toggleActiveNoteArchived, 'toggleActiveNoteArchived') },
+		organize: {
+			icon: () => CircleCheck,
+			shortcut: { key: 'e', meta: true },
+			run: () => run(toggleActiveNoteOrganized, 'toggleActiveNoteOrganized'),
+		},
+		history: { icon: () => History, shortcut: { key: 'h', meta: true, shift: true }, run: () => run(() => openFileHistory(path), 'openFileHistory') },
+		trash: { icon: () => Trash, run: () => run(() => deleteNoteWithConfirm(path), 'deleteNoteWithConfirm') },
+	};
 
 	/**
 	 * Runs a bar action (lifecycle toggle, Reveal, copy, delete). The actions
@@ -204,19 +224,18 @@
 			{#if fold.folded.length > 0}
 				<DropdownMenuSeparator />
 			{/if}
-			<DropdownMenuItem onclick={() => run(toggleActiveNoteArchived, 'toggleActiveNoteArchived')}>
-				{#if bar.archived}
-					<ArchiveRestore />
-					Restore this archived note
-				{:else}
-					<Archive />
-					Archive this note
-				{/if}
-			</DropdownMenuItem>
-			<DropdownMenuItem variant="destructive" onclick={() => run(() => deleteNoteWithConfirm(path), 'deleteNoteWithConfirm')}>
-				<Trash />
-				Delete this note
-			</DropdownMenuItem>
+			<!-- EditorView mounts the bar only on a markdown note, so the full group always shows. -->
+			{#each noteActions('markdown', bar) as action (action.id)}
+				{@const item = noteActionItems[action.id]}
+				{@const Icon = item.icon()}
+				<DropdownMenuItem variant={action.danger ? 'destructive' : 'default'} onclick={item.run}>
+					<Icon />
+					{action.label}
+					{#if item.shortcut}
+						<DropdownMenuShortcut>{formatShortcut(item.shortcut)}</DropdownMenuShortcut>
+					{/if}
+				</DropdownMenuItem>
+			{/each}
 		</DropdownMenuContent>
 	</DropdownMenu>
 </div>

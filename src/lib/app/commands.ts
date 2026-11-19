@@ -50,7 +50,9 @@ import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.j
 import { modCommandsStore } from '#lib/plugins/mods/mod-commands.store.svelte.js';
 import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
 import { hideRailPanels, showRailPanels, toggleLeftSidebar, toggleRightPanel, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
-import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
+import { toggleActiveNoteArchived, toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
+import { deleteNoteWithConfirm } from '#lib/core/filesystem/delete-note.service.js';
+import { isVirtualTab } from '#lib/core/editor/editor.logic.js';
 import { shortcutFor } from '#lib/app/global-keybindings.js';
 import { openRailView, selectRailItem } from '#lib/app/rail-navigation.js';
 
@@ -366,6 +368,22 @@ export function getBuiltInCommands(): AppCommand[] {
 			category: 'Note',
 			shortcut: shortcutFor('note:toggle-organized'),
 			action: () => toggleActiveNoteOrganized(),
+		},
+		{
+			id: 'note:toggle-archived',
+			label: 'Toggle Archived',
+			category: 'Note',
+			action: () => toggleActiveNoteArchived(),
+		},
+		{
+			id: 'note:move-to-trash',
+			label: 'Move Note to Trash',
+			category: 'Note',
+			action: () => {
+				const tab = editorStore.activeTab;
+				if (!tab || isVirtualTab(tab)) { toast.error('No file is open.'); return; }
+				return deleteNoteWithConfirm(tab.path);
+			},
 		},
 		{
 			id: 'editor:toggle-pin-tab',

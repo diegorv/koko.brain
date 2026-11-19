@@ -17,6 +17,7 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	createFile: vi.fn(),
 	createFolder: vi.fn(),
+	deleteItem: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('#lib/plugins/graph-view/graph-view.service.js', () => ({
@@ -60,6 +61,11 @@ vi.mock('#lib/features/file-history/file-history.service.js', () => ({
 vi.mock('#lib/features/properties/lifecycle.service.js', () => ({
 	toggleActiveNoteFavorite: vi.fn(() => Promise.resolve()),
 	toggleActiveNoteOrganized: vi.fn(() => Promise.resolve()),
+	toggleActiveNoteArchived: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+	ask: vi.fn(),
 }));
 
 // The event-calendar service is real; only its IPC is mocked.
@@ -88,7 +94,9 @@ import { formatShortcut } from '#lib/utils/keybindings.js';
 import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 import { toKey } from '#lib/features/event-calendar/event-calendar-dates.logic.js';
-import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
+import { toggleActiveNoteArchived, toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
+import { ask } from '@tauri-apps/plugin-dialog';
+import { deleteItem } from '#lib/core/filesystem/fs.service.js';
 import CalendarDays from '@lucide/svelte/icons/calendar-days';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { registerCalendarRail } from '#lib/plugins/calendar/calendar-rail.service.js';
@@ -146,10 +154,10 @@ describe('getBuiltInCommands', () => {
 		expect(modCommandsStore.list).toEqual([]);
 	});
 
-	it('returns 46 built-in commands with no vault, no navigator, no pin, no view and no calendar history', () => {
+	it('returns 48 built-in commands with no vault, no navigator, no pin, no view and no calendar history', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(46);
+		expect(commands).toHaveLength(48);
 	});
 
 	it('names the creators "New <kind>" in sentence case, under their unchanged ids', () => {
@@ -177,6 +185,46 @@ describe('getBuiltInCommands', () => {
 		expect(toggleActiveNoteFavorite).toHaveBeenCalledTimes(1);
 		organized!.action();
 		expect(toggleActiveNoteOrganized).toHaveBeenCalledTimes(1);
+	});
+
+	it('includes Toggle Archived and Move Note to Trash beside them, acting on the active note', async () => {
+		const commands = getBuiltInCommands();
+		const ids = commands.map((c) => c.id);
+		const archived = commands.find((c) => c.id === 'note:toggle-archived');
+		const trash = commands.find((c) => c.id === 'note:move-to-trash');
+
+		expect(archived).toMatchObject({ label: 'Toggle Archived', category: 'Note' });
+		expect(trash).toMatchObject({ label: 'Move Note to Trash', category: 'Note' });
+		expect(ids.indexOf('note:toggle-archived')).toBe(ids.indexOf('note:toggle-organized') + 1);
+		expect(ids.indexOf('note:move-to-trash')).toBe(ids.indexOf('note:toggle-organized') + 2);
+
+		archived!.action();
+		expect(toggleActiveNoteArchived).toHaveBeenCalledTimes(1);
+
+		vi.mocked(ask).mockResolvedValueOnce(true);
+		editorStore.addTab({ path: '/vault/Projects/Launch plan.md', name: 'Launch plan.md', content: '', savedContent: '' });
+		trash!.action();
+		await vi.waitFor(() => expect(deleteItem).toHaveBeenCalledWith('/vault/Projects/Launch plan.md', false));
+		expect(ask).toHaveBeenCalledWith('Move "Launch plan.md" to trash?', expect.objectContaining({ title: 'Move to Trash' }));
+	});
+
+	it('Move Note to Trash on a virtual tab asks nothing and says no file is open', () => {
+		editorStore.addTab({ path: EVENT_CALENDAR_VIRTUAL_PATH, name: 'Calendar', content: '', savedContent: '' });
+		const trash = getBuiltInCommands().find((c) => c.id === 'note:move-to-trash')!;
+
+		trash.action();
+
+		expect(ask).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalledWith('No file is open.');
+	});
+
+	it('Move Note to Trash with no tab open asks nothing and says no file is open', () => {
+		const trash = getBuiltInCommands().find((c) => c.id === 'note:move-to-trash')!;
+
+		trash.action();
+
+		expect(ask).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalledWith('No file is open.');
 	});
 
 	it('includes a new-event command that opens the Calendar tab and the create dialog', () => {

@@ -179,7 +179,7 @@ Only the boolean `true` pins: `_rail: "true"` does nothing and is marked on the 
 - **Change icon**: opens the icon picker for the view
 - **Pin to rail** / **Unpin from rail**: adds or removes `_rail: true` in the `.view` file (see [Pinned Rail Items](#pinned-rail-items)). Comments in the file are not kept
 - **Reveal in Finder**: shows the `.view` file in the system file explorer
-- **Move to Trash**: asks `Move "<name>.view" to trash?`, then moves the `.view` file to the Trash, like **Delete this note** in the note action bar. Its open tabs close. If the move fails, a message says why
+- **Move to Trash**: asks `Move "<name>.view" to trash?`, then moves the `.view` file to the Trash, like **Move to Trash** in the note action bar's More menu. Its open tabs close. If the move fails, a message says why
 
 ### Note Order
 
@@ -281,8 +281,10 @@ The [note action bar](03-editor.md#note-action-bar) above every Markdown note ho
 
 - **Favorite** (star, `Cmd+D`) -- toggles the favorite flag
 - **Organized** (check circle, `Cmd+E`) -- marks the note organized, or sends it back to the inbox (an archived note stays archived)
-- **More > Archive this note** -- hides the note from default views
-- **More > Restore this archived note** -- restores an archived note
+- **More > Archive** -- hides the note from default views
+- **More > Restore** -- restores an archived note
+
+A note list row's right-click menu has the same **Archive** / **Restore** and **Mark organized** / **Mark not organized** for that row's note, and the Inbox rows have a check that marks the note organized in one click.
 
 ### Explicit Organization Mode
 
@@ -661,9 +663,9 @@ Any frontmatter field with wikilink values creates a relationship automatically.
 
 1. *What is this?* -- assign a type
 2. *What is it connected to?* -- add `_belongs_to` or `_related_to`
-3. Click **Organized** in the note action bar (or press `Cmd+E`) to move it out of the inbox
+3. Click **Organized** in the note action bar (or press `Cmd+E`) to move it out of the inbox. A note that needs no type or links can be marked organized from the list itself: click the check on its Inbox row
 
-**Archive when done:** Finished a project? Choose **More > Archive this note** in the note action bar. The note hides from default views but stays searchable, and the rail's **Archive** item lists it.
+**Archive when done:** Finished a project? Choose **More > Archive** in the note action bar, or **Archive** in its note list row's right-click menu. The note hides from default views but stays searchable, and the rail's **Archive** item lists it.
 
 ```
 Capture (fast, messy)  -->  Organize (type + relationships)  -->  Archive (done, hidden)

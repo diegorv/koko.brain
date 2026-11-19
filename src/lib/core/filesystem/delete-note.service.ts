@@ -2,11 +2,15 @@ import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
 import { deleteItem } from '#lib/core/filesystem/fs.service.js';
 import { fileOperationErrorMessage, PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { basename } from '#lib/utils/path.js';
 
 /**
- * Asks the same "Move to Trash" confirmation as the file explorer, then moves
- * the note to the trash. A failure is shown in a toast (`deleteItem` logs it).
+ * Asks the same "Move to Trash" confirmation as the file explorer, naming the
+ * file, then moves the note to the trash. A failure is shown in a toast
+ * (`deleteItem` logs it). Once confirmed, the index refresh skips its throttle
+ * so the lens lists drop the row; asked before the move, since its index event
+ * can arrive before the move resolves.
  * @param path - the note's absolute path
  */
 export async function deleteNoteWithConfirm(path: string): Promise<void> {
@@ -18,6 +22,7 @@ export async function deleteNoteWithConfirm(path: string): Promise<void> {
 		cancelLabel: 'Cancel',
 	});
 	if (!confirmed) return;
+	vaultStore.requestPromptIndexRefresh();
 	try {
 		await deleteItem(path, false);
 	} catch (err) {

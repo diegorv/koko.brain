@@ -17,9 +17,11 @@
 		subtitle?: string;
 		/** Resolved icon per note path; a row without one gets `null` */
 		icons?: Record<string, ResolvedIcon>;
+		/** Passed to every row as its Mark organized check; no check without it */
+		onOrganize?: (note: NoteRowNote) => void;
 	}
 
-	let { notes, extraItems = [], activePath = null, listProperties = [], allPaths = [], subtitle, icons = {} }: Props = $props();
+	let { notes, extraItems = [], activePath = null, listProperties = [], allPaths = [], subtitle, icons = {}, onOrganize }: Props = $props();
 
 	/** Replaces the `notes` prop, as a list refresh does */
 	let replaced = $state<NoteRowNote[] | null>(null);
@@ -35,6 +37,14 @@
 <NoteRowMenu notes={list} {extraItems} class="flex-1 overflow-hidden">
 	<div data-testid="blank" style="height: 20px"></div>
 	{#each list as note (note.path)}
-		<NoteRow {note} icon={icons[note.path] ?? null} isActive={note.path === activePath} {listProperties} {allPaths} {subtitle} />
+		<NoteRow
+			{note}
+			icon={icons[note.path] ?? null}
+			isActive={note.path === activePath}
+			{listProperties}
+			{allPaths}
+			{subtitle}
+			onOrganize={onOrganize ? () => onOrganize(note) : undefined}
+		/>
 	{/each}
 </NoteRowMenu>

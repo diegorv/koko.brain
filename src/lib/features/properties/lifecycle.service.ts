@@ -57,6 +57,35 @@ export async function toggleFavoriteForPath(filePath: string, favorite: boolean)
 }
 
 /**
+ * Rewrites one note's lifecycle flags by path, the note being open or not.
+ * The lens lists filter by these flags, so the index refresh skips its
+ * throttle. A refused or failed write is reported in a toast; other errors
+ * propagate.
+ */
+async function updateNoteAtPath(filePath: string, mutate: (props: Property[]) => Property[]): Promise<void> {
+	vaultStore.requestPromptIndexRefresh();
+	try {
+		await updateNoteFrontmatter(filePath, mutate);
+	} catch (err) {
+		if (!(err instanceof FrontmatterWriteError)) throw err;
+		toastFrontmatterWriteError(err);
+	}
+}
+
+/** Sets `_organized` on a note by path; `_archived` is left as-is. */
+export function setOrganizedForPath(filePath: string, organized: boolean): Promise<void> {
+	return updateNoteAtPath(filePath, (props) => toggleOrganized(props, organized));
+}
+
+/**
+ * Sets `_archived` on a note by path; `_organized` is left as-is. The save runs
+ * the after-save hooks, so auto-organize applies a type's `_archive_to` folder.
+ */
+export function setArchivedForPath(filePath: string, archived: boolean): Promise<void> {
+	return updateNoteAtPath(filePath, (props) => toggleArchived(props, archived));
+}
+
+/**
  * Pins the type whose definition note is at `definitionPath` to the rail
  * (`_rail: true`) or unpins it (the key removed), through
  * `updateNoteFrontmatter`, so the body and an open tab's unsaved edits are

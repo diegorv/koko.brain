@@ -291,6 +291,7 @@ function toLensNote(entry: NoteEntryV2, vaultPath: string | null, options?: { wi
 		isA: entry.isA,
 		subtitle: noteSubtitle(entry, vaultPath, options),
 		italic: isInboxEntry(entry),
+		organized: entry.organized,
 		archived: entry.archived,
 		kind: 'markdown',
 	};
@@ -1008,6 +1009,7 @@ function fileToLensNote(node: FileTreeNode, entry: NoteEntryV2 | undefined, vaul
 		isA: null,
 		subtitle: FILE_KIND_LABELS[kind],
 		italic: false,
+		organized: true,
 		archived: false,
 		kind,
 	};

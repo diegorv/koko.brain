@@ -37,6 +37,8 @@ vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
 }));
 vi.mock('#lib/features/properties/lifecycle.service.js', () => ({
 	toggleFavoriteForPath: vi.fn(),
+	setOrganizedForPath: vi.fn(),
+	setArchivedForPath: vi.fn(),
 }));
 vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
@@ -63,6 +65,8 @@ const makeNote = (overrides: Partial<NoteRowNote>): NoteRowNote => ({
 	path: ALPHA,
 	title: 'Alpha',
 	favorite: false,
+	organized: false,
+	archived: false,
 	modifiedAt: 0,
 	frontmatter: {},
 	...overrides,
@@ -81,8 +85,14 @@ const MENU_LABELS = [
 	'Favorite',
 	'Reveal in Finder',
 	'Rename',
+	'Archive',
+	'Mark organized',
+	'History',
 	'Move to Trash',
 ];
+
+/** The note-actions group, which only a markdown row gets in full. */
+const MARKDOWN_ONLY = ['Change icon', 'Favorite', 'Archive', 'Mark organized', 'History'];
 
 async function settle(rounds = 4) {
 	for (let i = 0; i < rounds; i++) {
@@ -313,8 +323,32 @@ describe('NoteRowMenu', () => {
 			expect(menuEntries()).toEqual([
 				'Open in new tab', 'Duplicate', '---',
 				'Copy path', 'Change icon', 'Favorite', 'Reveal in Finder', '---',
-				'Rename', 'Move to Trash',
+				'Rename', 'Archive', 'Mark organized', 'History', 'Move to Trash',
 			]);
+		});
+
+		it('labels the lifecycle items from the row: Restore on an archived note, Mark not organized on an organized one', async () => {
+			mountHarness({ notes: [makeNote({ organized: true, archived: true })] });
+			await rightClick(row('Alpha'));
+			expect(menuEntries().slice(-5)).toEqual(['Rename', 'Restore', 'Mark not organized', 'History', 'Move to Trash']);
+		});
+
+		it('hints no shortcut on the note actions, which act on the row and not on the active tab', async () => {
+			mountHarness();
+			await rightClick(row('Alpha'));
+			const hinted = [...document.querySelectorAll('[role="menuitem"]')]
+				.filter((el) => el.querySelector('[data-slot="context-menu-shortcut"]'))
+				.map((el) => el.querySelector('span')?.textContent?.trim());
+			expect(hinted).toEqual(['Rename']);
+		});
+
+		it('draws only Move to Trash red', async () => {
+			mountHarness();
+			await rightClick(row('Alpha'));
+			const red = [...document.querySelectorAll('[role="menuitem"][data-variant="destructive"]')].map((el) =>
+				el.querySelector('span')?.textContent?.trim(),
+			);
+			expect(red).toEqual(['Move to Trash']);
 		});
 
 		it('keeps two items in the middle group of a non-markdown row', async () => {
@@ -328,11 +362,11 @@ describe('NoteRowMenu', () => {
 			]);
 		});
 
-		it('offers no Change icon or Favorite on a non-markdown row, which has no frontmatter to write', async () => {
+		it('offers no Change icon, Favorite, Archive, Mark organized or History on a non-markdown row, which has no frontmatter to write', async () => {
 			const canvas = makeNote({ path: '/vault/notes/Board.canvas', title: 'Board' });
 			mountHarness({ notes: [...notes, canvas] });
 			await rightClick(row('Board'));
-			expect(menuLabels()).toEqual(MENU_LABELS.filter((l) => l !== 'Change icon' && l !== 'Favorite'));
+			expect(menuLabels()).toEqual(MENU_LABELS.filter((l) => !MARKDOWN_ONLY.includes(l)));
 			expect(toggleFavoriteForPath).not.toHaveBeenCalled();
 		});
 
@@ -340,7 +374,7 @@ describe('NoteRowMenu', () => {
 			const collection = makeNote({ path: '/vault/notes/Board.collection', title: 'Board' });
 			mountHarness({ notes: [...notes, collection] });
 			await rightClick(row('Board'));
-			expect(menuLabels()).toEqual(MENU_LABELS.filter((l) => l !== 'Change icon' && l !== 'Favorite'));
+			expect(menuLabels()).toEqual(MENU_LABELS.filter((l) => !MARKDOWN_ONLY.includes(l)));
 		});
 
 		it('opens no menu on a right-click outside the rows', async () => {
@@ -426,11 +460,11 @@ describe('NoteRowMenu', () => {
 			expect(menuIsOpen()).toBe(false);
 		});
 
-		it('moves the note to the Trash after the confirmation', async () => {
+		it('moves the note to the Trash after the confirmation, which names the file as the More menu does', async () => {
 			vi.mocked(ask).mockResolvedValueOnce(true);
 			mountHarness();
 			await chooseMenuItem('Alpha', 'Move to Trash');
-			expect(ask).toHaveBeenCalledWith('Move "Alpha" to trash?', {
+			expect(ask).toHaveBeenCalledWith('Move "alpha.md" to trash?', {
 				title: 'Move to Trash',
 				kind: 'warning',
 				okLabel: 'Move to Trash',

@@ -147,6 +147,23 @@ test.describe('Note action bar', () => {
 		expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(WELCOME_PATH);
 	});
 
+	test('More ends with the note actions of the row menu, and Move to Trash trashes the note', async ({ vaultPage: page }) => {
+		await openFile(page, 'Welcome.md');
+
+		await bar(page).getByRole('button', { name: 'More note actions' }).click();
+		const labels = (await page.getByRole('menuitem').allTextContents()).map((t) => t.trim());
+		expect(labels.slice(-4)).toEqual([
+			expect.stringMatching(/^(Archive|Restore)$/),
+			expect.stringMatching(/^Mark (not )?organized/),
+			expect.stringMatching(/^History/),
+			'Move to Trash',
+		]);
+
+		await page.evaluate(() => window.__e2e.dialog.setAskResponse(true));
+		await page.getByRole('menuitem', { name: 'Move to Trash' }).click();
+		await expect.poll(() => page.evaluate((p) => window.__e2e.fs.exists(p), WELCOME_PATH)).toBe(false);
+	});
+
 	test('the bar has no sidebar toggle of its own: the tab band has the only one', async ({ vaultPage: page }) => {
 		await openFile(page, 'Welcome.md');
 

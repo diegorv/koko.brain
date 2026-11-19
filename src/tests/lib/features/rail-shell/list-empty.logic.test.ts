@@ -32,7 +32,7 @@ describe('explainEmptyList', () => {
 				state: 'empty',
 				icon: 'inbox',
 				title: 'Inbox zero',
-				hint: 'Notes not marked organized show here. Mark one with ⌘E.',
+				hint: 'Notes not marked organized show here. Mark one with ⌘E, the check on its row or its right-click menu.',
 			});
 		});
 
@@ -41,7 +41,7 @@ describe('explainEmptyList', () => {
 				state: 'empty',
 				icon: 'archive',
 				title: 'Nothing archived',
-				hint: 'Archive a note from the ... menu above it. Archived notes leave Inbox and Today.',
+				hint: 'Archive a note from its right-click menu in a list or the ... menu above it. Archived notes leave Inbox and Today.',
 			});
 		});
 
