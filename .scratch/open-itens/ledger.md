@@ -48,7 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 011 | [Edit view saves only what the user changed](issues/011-save-only-what-changed.md) | 009 | todo | | |
 | 012 | [Tab-strip menu acts on the right tab, and Delete asks first](issues/012-tab-menu-right-tab-and-delete-confirm.md) | 009 | todo | | |
 | 013 | [The Filter panel cannot write an empty or unparseable filter](issues/013-filter-panel-safe-writes.md) | 012, 010 | todo | | |
-| 014 | [Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen at the same index version](issues/014-backlinks-outgoing-links-always-show-open-note.md) | none | todo | | |
+| 014 | [Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen at the same index version](issues/014-backlinks-outgoing-links-always-show-open-note.md) | none | wontfix | | |
 | 015 | [Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails](issues/015-closing-tab-unsaved-text-saves-closes-prompt.md) | none | done | issue/015-closing-tab-unsaved-text-saves-closes-prompt (da26b0dcd) | 2026-11-12 |
 | 016 | [File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot](issues/016-file-history-keeps-snapshot-pre-save-bytes.md) | 015 | todo | | |
 | 017 | [An external change to an open note is never overwritten by the next autosave or calendar write](issues/017-external-change-open-note-never-overwritten-next.md) | none | todo | | |
@@ -74,24 +74,24 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 037 | [update_semantic_file has no queue: bursts pile up, repeat work and embed deleted notes](issues/037-update-semantic-file-queue.md) | none | todo | | |
 | 038 | [Canvas image nodes load their image: the main capability grants fs:allow-read-file, and image nodes store and resolve vault-relative paths](issues/038-canvas-image-nodes-load-their-image-main.md) | none | done | issue/038-canvas-image-nodes-load-their-image-main (c037d7ff7) | 2026-11-13 |
 | 039 | [Canvas file nodes added in the app load their note, and file nodes resolve both absolute and vault-relative paths](issues/039-canvas-file-image-nodes-store-vault-relative.md) | 004 | todo | | |
-| 040 | [Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows](issues/040-kanban-drag-drop-puts-card-lane-exactly.md) | 006 | todo | | |
+| 040 | [Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows](issues/040-kanban-drag-drop-puts-card-lane-exactly.md) | none | todo | | |
 | 041 | [DataArray sort and sortBy keep the items that have the key in order and group the items without it at one end](issues/041-dataarray-sort-sortby-keep-items-that-have.md) | none | todo | | |
 | 042 | [Enter in the quick switcher creates the note when nothing matches](issues/042-enter-quick-switcher-creates-note-when-nothing.md) | none | done | issue/042-enter-quick-switcher-creates-note-when-nothing (2009ad219) | 2026-11-12 |
 | 043 | [Lens lists follow the user's own rename, trash, duplicate and create at once, not after the 2 to 10 s index throttle](issues/043-lens-lists-follow-user-s-own-rename.md) | none | done | issue/043-lens-lists-follow-user-s-own-rename (130b2a890) | 2026-11-12 |
 | 044 | [File History follows a note through rename, move, auto-move and suffixed restore](issues/044-file-history-follows-note-through-rename-move.md) | none | todo | | |
-| 045 | [Text search with tag: or path: returns every note that matches the words and the operators, and tag: matches nested tags](issues/045-text-search-tag-path-returns-every-note.md) | none | todo | | |
-| 046 | [Outgoing links marks a row as broken only when its target is missing: same-note heading links and embeds of existing files are not red](issues/046-outgoing-links-marks-row-broken-only-when.md) | 014 | todo | | |
+| 045 | [Text search with tag: or path: returns every note that matches the words and the operators, and tag: matches nested tags](issues/045-text-search-tag-path-returns-every-note.md) | none | wontfix | | |
+| 046 | [Outgoing links marks a row as broken only when its target is missing: same-note heading links and embeds of existing files are not red](issues/046-outgoing-links-marks-row-broken-only-when.md) | 014 | wontfix | | |
 | 047 | [Numeric <, <=, > and >= filters never match a note that lacks the property](issues/047-numeric-filters-never-match-note-that-lacks.md) | 068 | todo | | |
 | 048 | [Kanban lane actions never turn a raw --- into the archive separator, and restore to a missing lane keeps the card](issues/048-kanban-lane-actions-never-turn-raw-into.md) | none | todo | | |
-| 049 | [Renaming a kanban lane keeps its card limit, auto-complete and collapsed state](issues/049-renaming-kanban-lane-keeps-card-limit-auto.md) | 048 | todo | | |
-| 050 | [Canvas file nodes preview the note without its YAML frontmatter](issues/050-canvas-file-nodes-preview-note-without-yaml.md) | none | todo | | |
+| 049 | [Renaming a kanban lane keeps its card limit, auto-complete and collapsed state](issues/049-renaming-kanban-lane-keeps-card-limit-auto.md) | 048 | wontfix | | |
+| 050 | [Canvas file nodes preview the note without its YAML frontmatter](issues/050-canvas-file-nodes-preview-note-without-yaml.md) | none | wontfix | | |
 | 051 | [Canvas Duplicate places the copy next to the node's current position and size](issues/051-canvas-duplicate-places-copy-next-node-s.md) | none | todo | | |
 | 052 | [Renaming a note updates [[links]] in kanban cards](issues/052-renaming-moving-note-updates-links-kanban-cards.md) | none | todo | | |
 | 053 | [A QueryJS block run in the seconds after a save shows the saved data once the index catches up, and never keeps a pre-save result](issues/053-queryjs-block-run-seconds-after-save-shows.md) | none | todo | | |
 | 054 | [Auto Move evaluates and moves only Markdown notes: kanban boards, canvases and other files stay where they are](issues/054-auto-move-evaluates-moves-only-markdown-notes.md) | none | todo | | |
 | 055 | [HTML link paste keeps bracketed link text and table cells intact](issues/055-html-link-paste-keeps-bracketed-link-text.md) | none | done | issue/055-html-link-paste-keeps-bracketed-link-text (840da3aa5) | 2026-11-12 |
 | 056 | [Cmd+click on a reference link or an email autolink opens its target, and a link with no openable URL is not sent to the opener](issues/056-cmd-click-reference-link-email-autolink-opens.md) | none | todo | | |
-| 057 | [Clearing the search box while a search is still running shows the empty-query hint, not a stuck Searching...](issues/057-clearing-search-box-while-search-still-running.md) | none | todo | | |
+| 057 | [Clearing the search box while a search is still running shows the empty-query hint, not a stuck Searching...](issues/057-clearing-search-box-while-search-still-running.md) | none | wontfix | | |
 | 058 | [A formula that calls an unknown function cannot be confirmed and shows why](issues/058-formula-that-calls-unknown-function-cannot-confirmed.md) | none | todo | | |
 | 059 | [New File from Template says the name is taken instead of silently opening the existing note](issues/059-new-file-from-template-says-name-taken.md) | none | todo | | |
 | 060 | [A kb.table, kb.ui.table or kb.list cell holding an array or DataArray of links renders each link as a clickable link](issues/060-kb-table-kb-ui-table-kb-list.md) | none | todo | | |
@@ -166,18 +166,18 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 150 | [`ctx.http.fetch`, with an MCP Streamable HTTP example mod](issues/150-ctx-http-and-mcp-example.md) | none | todo | | |
 | 151 | [Kanban date proximity has one token-based map, and done cards drop it](issues/151-kanban-date-proximity-has-one-token-based.md) | none | done | issue/151-kanban-date-proximity-has-one-token-based (07ec74a68) | 2026-11-12 |
 | 152 | [A tag may start with a digit and may carry emoji, as in Obsidian](issues/152-tag-may-start-digit-may-carry-emoji.md) | 040, 151, 048 | todo | | |
-| 153 | [The tab strip shows overflow and hides the .md extension](issues/153-tab-strip-shows-overflow-hides-md-extension.md) | none | todo | | |
+| 153 | [The tab strip shows overflow and hides the .md extension](issues/153-tab-strip-shows-overflow-hides-md-extension.md) | none | wontfix | | |
 | 154 | [Inline title: show the file name as an editable title above the note](issues/154-inline-title.md) | none | todo | | |
-| 155 | [Leaving the theme editor any way other than Save puts the active theme back on the app](issues/155-leaving-theme-editor-any-way-other-than.md) | none | todo | | |
-| 156 | [The relationship picker navigates with arrow keys](issues/156-relationship-picker-navigates-arrow-keys.md) | none | todo | | |
+| 155 | [Leaving the theme editor any way other than Save puts the active theme back on the app](issues/155-leaving-theme-editor-any-way-other-than.md) | none | wontfix | | |
+| 156 | [The relationship picker navigates with arrow keys](issues/156-relationship-picker-navigates-arrow-keys.md) | none | wontfix | | |
 | 157 | [Settings > Update keeps the download progress and Restart to update across closing Settings or changing section, and a second check cannot start a second download](issues/157-settings-update-keeps-download-progress-restart-update.md) | none | todo | | |
 | 158 | [An image embed with a WIDTHxHEIGHT size (300x200) applies both the width and the height](issues/158-image-png-300x200-applies-both-width-height.md) | none | todo | | |
-| 159 | [The Tags view keeps its list and expanded tags on screen while it refreshes](issues/159-tags-view-keeps-list-expanded-tags-screen.md) | none | todo | | |
+| 159 | [The Tags view keeps its list and expanded tags on screen while it refreshes](issues/159-tags-view-keeps-list-expanded-tags-screen.md) | none | wontfix | | |
 | 160 | [A tag click lists the notes with that tag even when Semantic or Hybrid was the selected search mode](issues/160-tag-click-lists-notes-that-tag-even.md) | none | todo | | |
 | 161 | [Fuzzy search finds a close spelling wherever it sits in the vocabulary, not only among the first 500 words with the same first letter](issues/161-fuzzy-search-finds-close-spelling-wherever-sits.md) | none | todo | | |
 | 162 | [file.inlinks lists the notes that link to a note whose name contains a dot](issues/162-file-inlinks-lists-notes-that-link-note.md) | none | todo | | |
 | 163 | [Vault open creates every missing placeholder template, including the parent folders periodic-note/ and quick-capture/](issues/163-vault-open-creates-every-missing-placeholder-template.md) | none | todo | | |
-| 164 | [Quick Switcher Create with a folder path (Projects/Idea) creates the note in that folder, and a failed create says why](issues/164-quick-switcher-create-folder-path-projects-idea.md) | none | todo | | |
+| 164 | [Quick Switcher Create with a folder path (Projects/Idea) creates the note in that folder, and a failed create says why](issues/164-quick-switcher-create-folder-path-projects-idea.md) | none | wontfix | | |
 | 165 | [Dragging a node in the graph moves that node; dragging the background pans](issues/165-dragging-node-graph-moves-that-node-dragging.md) | none | todo | | |
 | 166 | [Switching the graph Arrows toggle redraws the graph at once, also after the layout has settled](issues/166-switching-graph-arrows-toggle-redraws-graph-once.md) | none | todo | | |
 | 167 | [Pasting an HTML table keeps the links in its cells](issues/167-pasting-html-table-keeps-links-cells.md) | 055 | todo | | |
@@ -208,32 +208,32 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 192 | [`ctx.agents.run` and the agent setting in Labs](issues/192-ctx-agents-run.md) | 191 | todo | | |
 | 193 | [Example mod: idea to PRD and Issues](issues/193-example-idea-to-prd-mod.md) | 192 | todo | | |
 | 194 | [The Default theme drops its Catppuccin preview overrides](issues/194-default-theme-drops-catppuccin-preview-overrides.md) | none | todo | | |
-| 195 | [Canvas nodes, edges and grid draw from theme tokens, so they show on light themes](issues/195-canvas-nodes-edges-grid-draw-from-theme.md) | none | todo | | |
-| 196 | [Canvas menus, pickers and edge labels use theme tokens](issues/196-canvas-menus-pickers-edge-labels-use-theme.md) | 195 | todo | | |
-| 197 | [Kanban cards drop the empty date row until hover or focus, and the date trigger stays keyboard reachable](issues/197-kanban-cards-drop-empty-date-row-until.md) | 151 | todo | | |
+| 195 | [Canvas nodes, edges and grid draw from theme tokens, so they show on light themes](issues/195-canvas-nodes-edges-grid-draw-from-theme.md) | none | wontfix | | |
+| 196 | [Canvas menus, pickers and edge labels use theme tokens](issues/196-canvas-menus-pickers-edge-labels-use-theme.md) | 195 | wontfix | | |
+| 197 | [Kanban cards drop the empty date row until hover or focus, and the date trigger stays keyboard reachable](issues/197-kanban-cards-drop-empty-date-row-until.md) | 151 | wontfix | | |
 | 198 | [Status colors use theme tokens, and a test forbids raw palette classes](issues/198-status-colors-use-theme-tokens-test-forbids.md) | 151 | done | issue/198-status-colors-use-theme-tokens-test-forbids (1198d8e7b) | 2026-11-12 |
 | 199 | [Opening Settings moves focus into the drawer, and closing returns it](issues/199-opening-settings-moves-focus-into-drawer-closing.md) | none | todo | | |
 | 200 | [Settings is modal: a scrim closes it on outside click and Tab stays inside](issues/200-settings-modal-scrim-closes-outside-click-tab.md) | 199 | todo | | |
-| 201 | [Retention days and Debounce delay accept typed values and clamp on commit](issues/201-retention-days-debounce-delay-accept-typed-values.md) | none | todo | | |
+| 201 | [Retention days and Debounce delay accept typed values and clamp on commit](issues/201-retention-days-debounce-delay-accept-typed-values.md) | none | wontfix | | |
 | 202 | [Help text that belongs to a settings row sits inside that row through a SettingItem hint prop](issues/202-help-text-that-belongs-settings-row-sits.md) | none | todo | | |
 | 203 | [Settings groups render as cards with dividers](issues/203-settings-groups-render-cards-dividers.md) | none | todo | | |
 | 204 | [EmptyState, InlineAlert and Badge primitives exist](issues/204-emptystate-inlinealert-badge-primitives-exist.md) | none | todo | | |
 | 205 | [Sidebar panels and settings use the empty and error primitives](issues/205-sidebar-panels-settings-use-empty-error-primitives.md) | 204 | todo | | |
-| 206 | [Graph, collection and kanban views show real empty and error states](issues/206-graph-collection-kanban-views-show-real-empty.md) | 087, 204 | todo | | |
+| 206 | [Graph, collection and kanban views show real empty and error states](issues/206-graph-collection-kanban-views-show-real-empty.md) | 087, 204 | wontfix | | |
 | 207 | [Chrome icon buttons share sizes and use shadcn tooltips](issues/207-chrome-icon-buttons-share-sizes-use-shadcn.md) | none | todo | | |
-| 208 | [Graph controls and the event dialog use shadcn Select, Switch and Checkbox](issues/208-graph-controls-event-dialog-use-shadcn-select.md) | none | todo | | |
+| 208 | [Graph controls and the event dialog use shadcn Select, Switch and Checkbox](issues/208-graph-controls-event-dialog-use-shadcn-select.md) | none | wontfix | | |
 | 209 | [Search results and link rows reserve a gutter for their hover actions](issues/209-search-results-link-rows-reserve-gutter-their.md) | none | todo | | |
-| 210 | [NoteInfo and the Relationships heading follow the right sidebar section recipe](issues/210-noteinfo-relationships-heading-follow-sidebar-section.md) | none | todo | | |
+| 210 | [NoteInfo and the Relationships heading follow the right sidebar section recipe](issues/210-noteinfo-relationships-heading-follow-sidebar-section.md) | none | wontfix | | |
 | 211 | [Editor tables use the full content width, with hover controls overlaid and the gap below the table kept](issues/211-editor-tables-use-full-content-width-hover.md) | none | todo | | |
-| 212 | [The Tags view explains when the rare-tag filter hides everything](issues/212-tags-view-explains-when-rare-tag-filter.md) | none | todo | | |
-| 213 | [Word count and graph stats read correctly for zero and one](issues/213-word-count-graph-stats-read-correctly-zero.md) | none | todo | | |
+| 212 | [The Tags view explains when the rare-tag filter hides everything](issues/212-tags-view-explains-when-rare-tag-filter.md) | none | wontfix | | |
+| 213 | [Word count and graph stats read correctly for zero and one](issues/213-word-count-graph-stats-read-correctly-zero.md) | none | wontfix | | |
 | 214 | [Hovering the open note keeps its fill, and the kanban lane grip appears on lane hover](issues/214-hovering-open-note-keeps-fill-kanban-lane.md) | none | todo | | |
 | 215 | [The collection table reads as a table](issues/215-collection-table-reads-table.md) | none | todo | | |
 | 216 | [Collection table headers read as names and stay visible while the table scrolls](issues/216-collection-table-headers-read-names-stay-visible.md) | 215 | todo | | |
-| 217 | [The New event dialog shows "Enter a title." only after the title was touched](issues/217-new-event-dialog-shows-enter-title-only.md) | none | todo | | |
-| 218 | [The command palette shows dense one-line rows with key hints](issues/218-command-palette-shows-dense-one-line-rows.md) | none | todo | | |
+| 217 | [The New event dialog shows "Enter a title." only after the title was touched](issues/217-new-event-dialog-shows-enter-title-only.md) | none | wontfix | | |
+| 218 | [The command palette shows dense one-line rows with key hints](issues/218-command-palette-shows-dense-one-line-rows.md) | none | wontfix | | |
 | 219 | [A click in the audio player wrapper's padding moves the cursor like a click next to the widget](issues/219-click-audio-player-wrapper-s-padding-moves.md) | none | todo | | |
-| 220 | [The Search panel stops repeating the index status the status bar already shows](issues/220-search-panel-stops-repeating-index-status-status.md) | none | todo | | |
+| 220 | [The Search panel stops repeating the index status the status bar already shows](issues/220-search-panel-stops-repeating-index-status-status.md) | none | wontfix | | |
 | 221 | [Every language the code-block dropdown and the guide offer is syntax-highlighted](issues/221-every-language-code-block-dropdown-guide-offer.md) | none | todo | | |
 | 222 | [PowerShell, Dockerfile, Elixir, Haskell and Scala code blocks are syntax-highlighted](issues/222-powershell-dockerfile-elixir-haskell-scala-code-blocks.md) | 221 | todo | | |
 | 223 | [The Markdown guide's Quick Reference shows block math in the three-line $$ form the editor renders](issues/223-markdown-guide-s-quick-reference-shows-block.md) | none | todo | | |
@@ -305,3 +305,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-13 06:26 — ledger updated (title of 006, 006, 038; link of 006, 006; blocked by of 006, 006, 253; wontfix 253)
 - 2026-11-13 08:45 — 038 — start — launched by /relay-lite:run (253 merged in, owner approved) — 8a3e478c3
 - 2026-11-13 09:01 — 038 — deliver — 253 merged in; round 1 APPROVED by claude with a fix round (fs-capabilities test fails on unparsable plugin-fs imports), deliver re-review APPROVED by claude; full suite 637 files / 16910 tests passed; squash merged and pushed — c037d7ff7
+- 2026-11-19 06:20 — ledger updated (title of 006, 006; link of 006, 006; blocked by of 006, 006, 040; wontfix 014, 045, 046, 049, 050, 057, 153, 155, 156, 159, 164, 195, 196, 197, 201, 206, 208, 210, 212, 213, 217, 218, 220)
