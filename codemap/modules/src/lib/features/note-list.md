@@ -20,13 +20,13 @@ entry src/lib/features/note-list/NoteRow.svelte ext-in1 src/lib/features/rail-sh
 entry src/lib/features/note-list/NoteRowMenu.svelte ext-in1 src/lib/features/rail-shell/RailNoteList.svelte
 entry src/lib/features/note-list/note-row.types.ts ext-in1 src/lib/features/rail-shell/rail-shell.types.ts
 ## files
-file src/lib/features/note-list/NoteRow.svelte component L158 module src/lib/features/note-list in1 t5
-file src/lib/features/note-list/NoteRowMenu.svelte component L321 module src/lib/features/note-list in1 t5
+file src/lib/features/note-list/NoteRow.svelte component L171 module src/lib/features/note-list in1 t5
+file src/lib/features/note-list/NoteRowMenu.svelte component L331 module src/lib/features/note-list in1 t5
 file src/lib/features/note-list/note-row-menu.context.ts other L39 module src/lib/features/note-list in2 t0
 file src/lib/features/note-list/note-row.types.ts types L19 module src/lib/features/note-list in4 t0
 ## public
-sym src/lib/features/note-list/NoteRow.svelte:1 component NoteRow props:note,icon,isActive,listProperties,allPaths,typeName=,subtitle,italic=,archived=,fallbackIcon=,draggable=,onOrganize L158
-sym src/lib/features/note-list/NoteRowMenu.svelte:1 component NoteRowMenu props:notes,extraItems=,class=,children L321
+sym src/lib/features/note-list/NoteRow.svelte:1 component NoteRow props:note,icon,isActive,listProperties,allPaths,typeName=,subtitle,italic=,archived=,fallbackIcon=,draggable=,onOrganize,tabindex L171
+sym src/lib/features/note-list/NoteRowMenu.svelte:1 component NoteRowMenu props:notes,extraItems=,class=,children,ref=$bindable,onRename,onRenameFailed L331
 sym src/lib/features/note-list/note-row.types.ts:4 interface NoteRowNote L16 | The fields a shared note row and its context menu read from a listed note.
 ## effects
 fx-count svelte.$effect 1

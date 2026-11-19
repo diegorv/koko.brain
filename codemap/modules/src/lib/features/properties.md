@@ -42,7 +42,7 @@ file src/lib/features/properties/lifecycle-filter.logic.ts logic L10 module src/
 file src/lib/features/properties/lifecycle-filter.service.ts service L11 module src/lib/features/properties in1 t1
 file src/lib/features/properties/lifecycle-filter.store.svelte.ts store L28 module src/lib/features/properties in3 t5
 file src/lib/features/properties/lifecycle.logic.ts logic L64 module src/lib/features/properties in3 t3
-file src/lib/features/properties/lifecycle.service.ts service L122 module src/lib/features/properties in6 t16
+file src/lib/features/properties/lifecycle.service.ts service L122 module src/lib/features/properties in6 t17
 file src/lib/features/properties/note-actions.logic.ts logic L40 module src/lib/features/properties in2 t1
 file src/lib/features/properties/note-info.logic.ts logic L35 module src/lib/features/properties in1 t1
 file src/lib/features/properties/properties.service.ts service L208 module src/lib/features/properties in2 t8

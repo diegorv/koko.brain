@@ -7,7 +7,7 @@ imp src/lib/features/type-definitions/view-parse-cache.ts:2 -> src/lib/features/
 ## imported-by
 imp src/lib/app/boot.ts:16 -> src/lib/features/type-definitions/view-parse-cache.ts clearViewParseCacheUnder
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:86 -> src/lib/features/type-definitions/view-parse-cache.ts clearAllViewParseCache
-imp src/lib/features/rail-shell/RailNoteList.svelte:43 -> src/lib/features/type-definitions/view-parse-cache.ts getCachedViewDefinition,getViewContentHash,refreshViewDefinition
+imp src/lib/features/rail-shell/RailNoteList.svelte:44 -> src/lib/features/type-definitions/view-parse-cache.ts getCachedViewDefinition,getViewContentHash,refreshViewDefinition
 imp src/lib/features/rail-shell/view-lens.service.ts:4 -> src/lib/features/type-definitions/view-parse-cache.ts refreshViewDefinition
 imp src/lib/features/type-definitions/ViewDialog.svelte:19 -> src/lib/features/type-definitions/view-parse-cache.ts refreshViewDefinition
 imp src/lib/features/type-definitions/type-definitions.service.ts:24 -> src/lib/features/type-definitions/view-parse-cache.ts refreshViewDefinition
@@ -34,14 +34,14 @@ test src/tests/lib/features/type-definitions/update-view-toolbar-key.service.tes
 test src/tests/lib/features/type-definitions/type-definitions.service.test.ts mocks src/lib/features/type-definitions/view-parse-cache.ts
 ## symbols
 sym src/lib/features/type-definitions/view-parse-cache.ts:43 fn refreshViewDefinition(path: string): Promise<ReturnType<typeof parseCollectionYaml>> L13 | Reads a .view file from disk, parses it, and updates the cache.
-by src/lib/features/type-definitions/view-parse-cache.ts:refreshViewDefinition <- src/lib/features/rail-shell/RailNoteList.svelte:271 in loadView call
+by src/lib/features/type-definitions/view-parse-cache.ts:refreshViewDefinition <- src/lib/features/rail-shell/RailNoteList.svelte:272 in loadView call
 by src/lib/features/type-definitions/view-parse-cache.ts:refreshViewDefinition <- src/lib/features/rail-shell/view-lens.service.ts:33 in countViewNotes call
 by src/lib/features/type-definitions/view-parse-cache.ts:refreshViewDefinition <- src/lib/features/type-definitions/ViewDialog.svelte:83 in load call
 by src/lib/features/type-definitions/view-parse-cache.ts:refreshViewDefinition <- src/lib/features/type-definitions/type-definitions.service.ts:530 in updateViewToolbarKey call +1
 sym src/lib/features/type-definitions/view-parse-cache.ts:58 fn getCachedViewDefinition(path: string): Promise<ReturnType<typeof parseCollectionYaml>> L5 | Returns cached parsed definition without disk I/O.
-by src/lib/features/type-definitions/view-parse-cache.ts:getCachedViewDefinition <- src/lib/features/rail-shell/RailNoteList.svelte:272 in loadView call
+by src/lib/features/type-definitions/view-parse-cache.ts:getCachedViewDefinition <- src/lib/features/rail-shell/RailNoteList.svelte:273 in loadView call
 sym src/lib/features/type-definitions/view-parse-cache.ts:69 fn getViewContentHash(path: string): string | undefined L3 | Returns the content hash of the cached parse for a path, or `undefined` when the path is not cached.
-by src/lib/features/type-definitions/view-parse-cache.ts:getViewContentHash <- src/lib/features/rail-shell/RailNoteList.svelte:273 in loadView call
+by src/lib/features/type-definitions/view-parse-cache.ts:getViewContentHash <- src/lib/features/rail-shell/RailNoteList.svelte:274 in loadView call
 sym src/lib/features/type-definitions/view-parse-cache.ts:74 fn clearViewParseCache(path: string): void L5 | Clears a single entry (e.g. on file deletion).
 sym src/lib/features/type-definitions/view-parse-cache.ts:84 fn clearViewParseCacheUnder(path: string): void L10 | Clears `path` and every entry under `path + '/'`, so one call covers a renamed, moved or deleted folder and all the `.view` files inside it.
 by src/lib/features/type-definitions/view-parse-cache.ts:clearViewParseCacheUnder <- src/lib/app/boot.ts:47 in registerAppPorts call

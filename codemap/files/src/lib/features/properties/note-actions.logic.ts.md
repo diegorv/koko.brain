@@ -17,4 +17,4 @@ sym src/lib/features/properties/note-actions.logic.ts:5 interface NoteAction L8 
 sym src/lib/features/properties/note-actions.logic.ts:15 interface NoteActionsState L6 | The lifecycle flags the labels follow.
 sym src/lib/features/properties/note-actions.logic.ts:32 fn noteActions(kind: string, state: NoteActionsState): NoteAction[] L9 | The note-actions group, in menu order: Archive or Restore, Mark organized or Mark not organized, History, then Move to Trash last.
 by src/lib/features/properties/note-actions.logic.ts:noteActions <- src/lib/features/note-action-bar/NoteActionBar.svelte:228 in (markup) markup
-by src/lib/features/properties/note-actions.logic.ts:noteActions <- src/lib/features/note-list/NoteRowMenu.svelte:298 in (markup) markup
+by src/lib/features/properties/note-actions.logic.ts:noteActions <- src/lib/features/note-list/NoteRowMenu.svelte:308 in (markup) markup

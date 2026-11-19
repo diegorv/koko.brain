@@ -29,7 +29,7 @@ dep src/lib/features/note-list -> src/lib/utils 2
 dep src/lib/features/outgoing-links -> src/lib/utils 2
 dep src/lib/features/properties -> src/lib/utils 7
 dep src/lib/features/quick-switcher -> src/lib/utils 1
-dep src/lib/features/rail-shell -> src/lib/utils 12
+dep src/lib/features/rail-shell -> src/lib/utils 13
 dep src/lib/features/search -> src/lib/utils 9
 dep src/lib/features/tags -> src/lib/utils 5
 dep src/lib/features/tasks -> src/lib/utils 17
@@ -72,9 +72,9 @@ entry src/lib/utils/tag-colors.ts ext-in4 src/lib/features/properties/PropertyFi
 entry src/lib/utils/capture-path.ts ext-in3 src/lib/features/rail-shell/lens.logic.ts src/lib/plugins/calendar/day-lens.logic.ts src/lib/plugins/quick-capture/note-composer.logic.ts
 entry src/lib/utils/index-dedupe.ts ext-in3 src/lib/app/lifecycle/index-updater.service.ts src/lib/core/editor/editor.hooks.ts src/lib/core/filesystem/note-change.service.ts
 entry src/lib/utils/note-date.ts ext-in3 src/lib/features/rail-shell/lens.logic.ts src/lib/plugins/calendar/day-lens.logic.ts src/lib/plugins/one-on-one/one-on-one.logic.ts
+entry src/lib/utils/roving-list.ts ext-in3 src/lib/features/rail-shell/RailNoteList.svelte src/lib/features/search/SearchPanel.svelte src/lib/features/tasks/tasks-keys.logic.ts
 entry src/lib/utils/task-tokens.ts ext-in3 src/lib/features/tasks/TasksView.svelte src/lib/features/tasks/task-row-edit.logic.ts src/lib/features/todoist-sync/task-line.logic.ts
 entry src/lib/utils/menu-action.types.ts ext-in2 src/lib/features/note-list/NoteRowMenu.svelte src/lib/features/rail-shell/rail-shell.types.ts
-entry src/lib/utils/roving-list.ts ext-in2 src/lib/features/search/SearchPanel.svelte src/lib/features/tasks/tasks-keys.logic.ts
 entry src/lib/utils/template.ts ext-in2 src/lib/core/note-creator/note-creator.service.ts src/lib/plugins/quick-capture/note-composer.logic.ts
 entry src/lib/utils/app-channel.ts ext-in1 src/lib/core/settings/settings.service.ts
 entry src/lib/utils/build-info.js ext-in1 src/lib/core/settings/BuildInfo.svelte
@@ -96,7 +96,7 @@ file src/lib/utils/fuzzy-match.ts other L59 module src/lib/utils in7 t2
 file src/lib/utils/index-dedupe.ts other L39 module src/lib/utils in3 t35
 file src/lib/utils/inflight.ts other L173 module src/lib/utils in5 t1
 file src/lib/utils/keybindings.ts other L81 module src/lib/utils in6 t6
-file src/lib/utils/log.service.ts service L236 module src/lib/utils in14 t50
+file src/lib/utils/log.service.ts service L236 module src/lib/utils in14 t51
 file src/lib/utils/markdown-plain-text.ts other L57 module src/lib/utils in1 t1 | Markdown to plain text for one-line previews such as search snippets.
 file src/lib/utils/menu-action.types.ts types L21 module src/lib/utils in2 t0
 file src/lib/utils/node-shims/fs.js other L3 module src/lib/utils in0 t0
@@ -104,7 +104,7 @@ file src/lib/utils/node-shims/path.js other L4 module src/lib/utils in0 t0
 file src/lib/utils/note-date.ts other L57 module src/lib/utils in3 t1
 file src/lib/utils/path.ts other L123 module src/lib/utils in29 t1
 file src/lib/utils/platform.ts other L40 module src/lib/utils in5 t4
-file src/lib/utils/roving-list.ts other L93 module src/lib/utils in2 t1 | The generic keyboard model of a roving-tabindex list: which row a key focuses, which row stays current when the list changes, and which row holds the list's on…
+file src/lib/utils/roving-list.ts other L93 module src/lib/utils in3 t1 | The generic keyboard model of a roving-tabindex list: which row a key focuses, which row stays current when the list changes, and which row holds the list's on…
 file src/lib/utils/sanitize-url.ts other L15 module src/lib/utils in5 t1
 file src/lib/utils/sanitize.ts other L86 module src/lib/utils in6 t1
 file src/lib/utils/tag-colors.ts other L44 module src/lib/utils in4 t1

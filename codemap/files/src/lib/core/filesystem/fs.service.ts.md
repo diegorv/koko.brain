@@ -1,7 +1,7 @@
 # file card src/lib/core/filesystem/fs.service.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/filesystem/fs.service.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls, effects
-file src/lib/core/filesystem/fs.service.ts service L376 module src/lib/core/filesystem in27 t45
+file src/lib/core/filesystem/fs.service.ts service L376 module src/lib/core/filesystem in27 t46
 ## imports
 imp src/lib/core/filesystem/fs.service.ts:1 -> pkg:@tauri-apps/plugin-fs readTextFile,writeTextFile,mkdir,remove,rename,exists,copyFile,readDir
 imp src/lib/core/filesystem/fs.service.ts:2 -> pkg:@tauri-apps/plugin-opener revealItemInDir
@@ -83,13 +83,13 @@ test src/tests/lib/features/event-calendar/event-calendar.model.test.ts mocks sr
 test src/tests/lib/features/event-calendar/event-calendar.service.test.ts mocks src/lib/core/filesystem/fs.service.ts
 test src/tests/lib/features/note-action-bar/note-action-bar.service.test.ts mocks src/lib/core/filesystem/fs.service.ts
 test src/tests/lib/features/note-list/NoteRowMenu.test.ts mocks src/lib/core/filesystem/fs.service.ts
+test src/tests/lib/features/rail-shell/RailNoteList.keyboard.test.ts mocks src/lib/core/filesystem/fs.service.ts
 test src/tests/lib/features/rail-shell/RailNoteList.properties.test.ts mocks src/lib/core/filesystem/fs.service.ts
 test src/tests/lib/features/rail-shell/RailNoteList.search.test.ts mocks src/lib/core/filesystem/fs.service.ts
 test src/tests/lib/features/rail-shell/RailNoteList.sort.test.ts mocks src/lib/core/filesystem/fs.service.ts
 test src/tests/lib/features/rail-shell/RailNoteList.test.ts mocks src/lib/core/filesystem/fs.service.ts
 test src/tests/lib/features/rail-shell/RailNoteList.toolbar.test.ts mocks src/lib/core/filesystem/fs.service.ts
-test src/tests/lib/features/rail-shell/RailNoteList.view.test.ts mocks src/lib/core/filesystem/fs.service.ts
-more tests 5 not shown: src/tests/lib/plugins/one-on-one(2) src/tests/lib/features/rail-shell(1) src/tests/lib/features/type-definitions(1) src/tests/lib/plugins/kanban(1): q tests src/lib/core/filesystem/fs.service.ts
+more tests 6 not shown: src/tests/lib/features/rail-shell(2) src/tests/lib/plugins/one-on-one(2) src/tests/lib/features/type-definitions(1) src/tests/lib/plugins/kanban(1): q tests src/lib/core/filesystem/fs.service.ts
 ## symbols
 sym src/lib/core/filesystem/fs.service.ts:42 fn loadFolderOrder(vaultPath: string): Promise<FolderOrderMap> L30 | Reads the folder order config from `.kokobrain/folder-order.json`.
 sym src/lib/core/filesystem/fs.service.ts:88 fn loadDirectoryTree(vaultPath: string) L39 | Builds the full file tree for a vault and updates the store.
@@ -130,7 +130,7 @@ by src/lib/core/filesystem/fs.service.ts:deleteItem <- src/lib/plugins/mods/mod-
 sym src/lib/core/filesystem/fs.service.ts:275 fn renameItem(oldPath: string, newName: string): Promise<string> L20 | Renames a file or folder and returns the new path.
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/auto-organize/auto-organize.service.ts:517 in applyRename call
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/event-calendar/event-calendar.service.ts:734 in renameAndWrite call
-by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/note-list/NoteRowMenu.svelte:149 in commitRename call
+by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/note-list/NoteRowMenu.svelte:158 in commitRename call
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/rail-shell/FilesNavigator.svelte:231 in commitRename call
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/todoist-sync/sync-now.service.ts:960 in renameProjectNotes call
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/type-definitions/type-definitions.service.ts:224 in renameType call
@@ -140,10 +140,10 @@ by src/lib/core/filesystem/fs.service.ts:moveItem <- src/lib/features/auto-organ
 by src/lib/core/filesystem/fs.service.ts:moveItem <- src/lib/features/rail-shell/FilesNavigator.svelte:340 in handleDrop call
 by src/lib/core/filesystem/fs.service.ts:moveItem <- src/lib/plugins/mods/mod-vault.service.ts:100 in createModVault call
 sym src/lib/core/filesystem/fs.service.ts:342 fn duplicateItem(itemPath: string, isDirectory: boolean): Promise<string> L21 | Duplicates a file or folder, generating a unique "copy" name.
-by src/lib/core/filesystem/fs.service.ts:duplicateItem <- src/lib/features/note-list/NoteRowMenu.svelte:92 in handleDuplicate call
+by src/lib/core/filesystem/fs.service.ts:duplicateItem <- src/lib/features/note-list/NoteRowMenu.svelte:100 in handleDuplicate call
 sym src/lib/core/filesystem/fs.service.ts:365 fn revealInSystemExplorer(itemPath: string): Promise<void> L7 | Opens the system file explorer with the given item selected
 by src/lib/core/filesystem/fs.service.ts:revealInSystemExplorer <- src/lib/features/file-history/FileHistoryDialog.svelte:37 in handleRevealBackup call
-by src/lib/core/filesystem/fs.service.ts:revealInSystemExplorer <- src/lib/features/note-list/NoteRowMenu.svelte:282 in (markup) markup
+by src/lib/core/filesystem/fs.service.ts:revealInSystemExplorer <- src/lib/features/note-list/NoteRowMenu.svelte:292 in (markup) markup
 by src/lib/core/filesystem/fs.service.ts:revealInSystemExplorer <- src/lib/features/rail-shell/FilesNavigator.svelte:458 in (markup) markup
 by src/lib/core/filesystem/fs.service.ts:revealInSystemExplorer <- src/lib/features/rail-shell/TypesNavigator.svelte:339 in (markup) markup +1
 sym src/lib/core/filesystem/fs.service.ts:374 fn resetFileSystem() L3 | Resets all file system state (e.g. when switching vaults)

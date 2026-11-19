@@ -1,7 +1,7 @@
 # file card src/lib/core/editor/editor.service.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/editor/editor.service.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls, effects
-file src/lib/core/editor/editor.service.ts service L527 module src/lib/core/editor in55 t101
+file src/lib/core/editor/editor.service.ts service L527 module src/lib/core/editor in55 t102
 ## imports
 imp src/lib/core/editor/editor.service.ts:1 -> pkg:@tauri-apps/plugin-fs readTextFile,writeTextFile
 imp src/lib/core/editor/editor.service.ts:2 -> pkg:@tauri-apps/plugin-dialog ask
@@ -100,7 +100,7 @@ test src/tests/lib/app/editor-host.test.ts mocks src/lib/core/editor/editor.serv
 test src/tests/lib/app/global-keybindings.test.ts mocks src/lib/core/editor/editor.service.ts
 test src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts mocks src/lib/core/editor/editor.service.ts
 test src/tests/lib/app/rail-navigation.test.ts mocks src/lib/core/editor/editor.service.ts
-more tests 61 not shown: src/tests/lib/features/rail-shell(12) src/tests/lib/features/event-calendar(9) src/tests/lib/features/properties(5) src/tests/lib/features/collection(4) src/tests/lib/features/note-list(4) src/tests/lib/plugins/calendar(3) src/tests/lib/plugins/queryjs(3) src/tests/lib/core/filesystem(2) +14 modules: q tests src/lib/core/editor/editor.service.ts
+more tests 62 not shown: src/tests/lib/features/rail-shell(13) src/tests/lib/features/event-calendar(9) src/tests/lib/features/properties(5) src/tests/lib/features/collection(4) src/tests/lib/features/note-list(4) src/tests/lib/plugins/calendar(3) src/tests/lib/plugins/queryjs(3) src/tests/lib/core/filesystem(2) +14 modules: q tests src/lib/core/editor/editor.service.ts
 ## symbols
 sym src/lib/core/editor/editor.service.ts:28 fn registerTabCloseListener(name: string, closed: (path: string) => void): () => void L8 | Registers `closed` to run with the path of each tab `closeTab` or `closeTabsForDeletedPath` removes.
 by src/lib/core/editor/editor.service.ts:registerTabCloseListener <- src/lib/plugins/queryjs/queryjs-ports.ts:16 in registerQueryjsBlockPorts call

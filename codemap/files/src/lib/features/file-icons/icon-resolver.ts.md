@@ -14,7 +14,7 @@ imp src/lib/features/properties/RelationshipSearch.svelte:10 -> src/lib/features
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:13 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 imp src/lib/features/rail-shell/FilesNavigator.svelte:48 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 imp src/lib/features/rail-shell/Rail.svelte:24 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
-imp src/lib/features/rail-shell/RailNoteList.svelte:34 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
+imp src/lib/features/rail-shell/RailNoteList.svelte:35 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 imp src/lib/features/rail-shell/TypesNavigator.svelte:28 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 imp src/lib/features/tasks/TasksView.svelte:29 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 ## reach
@@ -36,7 +36,7 @@ by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/fe
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/quick-switcher/QuickSwitcher.svelte:129 in (markup) markup
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/FilesNavigator.svelte:503 in (markup) markup
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/Rail.svelte:180 in pinRow call +1
-by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/RailNoteList.svelte:664 in resolveNoteIcon call +1
+by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/RailNoteList.svelte:669 in resolveNoteIcon call +1
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/TypesNavigator.svelte:279 in (markup) markup +1
 more by 1 not shown: src/lib/features/tasks(1): q importers src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath
 sym src/lib/features/file-icons/icon-resolver.ts:84 fn resolveIconForType(typeName: string): ResolvedIcon | undefined L7 | Resolves the display icon for a type name by looking up the type definition note's frontmatter icon.

@@ -26,7 +26,7 @@ test src/tests/lib/features/file-icons/IconPicker.test.ts imports src/lib/featur
 sym src/lib/features/file-icons/IconPicker.svelte:1 component IconPicker props:open=$bindable,currentPack,currentName,currentColor,currentTextColor,onSelect,onColorsChange,onRemove,onClose L323
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:385 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:734 in (markup) mount
-by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/note-list/NoteRowMenu.svelte:310 in (markup) mount
+by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/note-list/NoteRowMenu.svelte:320 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/FilesNavigator.svelte:486 in (markup) mount
 by src/lib/features/file-icons/IconPicker.svelte:default <- src/lib/features/rail-shell/TypesNavigator.svelte:501 in (markup) mount
 ## locals
@@ -43,7 +43,7 @@ mount src/lib/features/file-icons/IconPicker.svelte:239 IconRenderer -> src/lib/
 ## mounted-at
 mount src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:385 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:734 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
-mount src/lib/features/note-list/NoteRowMenu.svelte:310 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
+mount src/lib/features/note-list/NoteRowMenu.svelte:320 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/rail-shell/FilesNavigator.svelte:486 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 mount src/lib/features/rail-shell/TypesNavigator.svelte:501 IconPicker -> src/lib/features/file-icons/IconPicker.svelte
 ## calls

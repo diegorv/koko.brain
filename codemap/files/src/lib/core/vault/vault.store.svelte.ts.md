@@ -1,7 +1,7 @@
 # file card src/lib/core/vault/vault.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/vault/vault.store.svelte.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, store, locals, calls, effects
-file src/lib/core/vault/vault.store.svelte.ts store L159 module src/lib/core/vault in88 t162
+file src/lib/core/vault/vault.store.svelte.ts store L159 module src/lib/core/vault in88 t163
 ## imports
 imp src/lib/core/vault/vault.store.svelte.ts:1 -> src/lib/core/vault/vault.logic.ts extractVaultName,updateRecentVaults,type:RecentVault
 ## imported-by
@@ -90,7 +90,7 @@ test src/tests/lib/core/settings/update-check.service.test.ts imports src/lib/co
 test src/tests/lib/core/trash/trash.restore-tree.test.ts imports src/lib/core/vault/vault.store.svelte.ts
 test src/tests/lib/core/vault/vault-entries.service.test.ts imports src/lib/core/vault/vault.store.svelte.ts
 test src/tests/lib/core/vault/vault-switch-failed-save.test.ts imports src/lib/core/vault/vault.store.svelte.ts
-more tests 122 not shown: src/tests/lib/features/rail-shell(18) src/tests/lib/plugins/mods(17) src/tests/lib/features/tasks(11) src/tests/lib/features/properties(8) src/tests/lib/features/collection(7) src/tests/lib/features/event-calendar(6) src/tests/lib/features/todoist-sync(6) src/tests/lib/features/note-list(5) +19 modules: q tests src/lib/core/vault/vault.store.svelte.ts
+more tests 123 not shown: src/tests/lib/features/rail-shell(19) src/tests/lib/plugins/mods(17) src/tests/lib/features/tasks(11) src/tests/lib/features/properties(8) src/tests/lib/features/collection(7) src/tests/lib/features/event-calendar(6) src/tests/lib/features/todoist-sync(6) src/tests/lib/features/note-list(5) +19 modules: q tests src/lib/core/vault/vault.store.svelte.ts
 ## symbols
 sym src/lib/core/vault/vault.store.svelte.ts:60 store vaultStore L100 | Reactive store for the current vault and the recent vaults list
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/AppShell.svelte:71 in $effect@66 member +6

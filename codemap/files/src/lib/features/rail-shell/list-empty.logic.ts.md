@@ -5,7 +5,7 @@ file src/lib/features/rail-shell/list-empty.logic.ts logic L145 module src/lib/f
 imp src/lib/features/rail-shell/list-empty.logic.ts:1 -> src/lib/features/type-definitions/type-sidebar.logic.ts type:ArchivedFilter
 imp src/lib/features/rail-shell/list-empty.logic.ts:2 -> src/lib/features/rail-shell/lens.logic.ts ARCHIVE_LENS,FAVORITES_LENS,FOLDER_LENS_KIND,INBOX_LENS,NEIGHBOURHOOD_LENS_KIND,TYPES_LENS,UNTYPED_LENS,VIEW_LENS_KIND
 ## imported-by
-imp src/lib/features/rail-shell/RailNoteList.svelte:93 -> src/lib/features/rail-shell/list-empty.logic.ts explainEmptyList,LIST_EMPTY_COPY,type:EmptyListAction,type:EmptyListIcon,type:EmptyListState
+imp src/lib/features/rail-shell/RailNoteList.svelte:94 -> src/lib/features/rail-shell/list-empty.logic.ts explainEmptyList,LIST_EMPTY_COPY,type:EmptyListAction,type:EmptyListIcon,type:EmptyListState
 ## reach
 in2 src/lib/features/rail-shell/list-empty.logic.ts 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/rail-shell/list-empty.logic.ts 18 files in 8 modules: src/lib/features/collection(5) src/lib/core/filesystem(3) src/lib/features/type-definitions(3) src/lib/core/settings(2) src/lib/utils(2) +3 modules
@@ -13,17 +13,17 @@ out2 src/lib/features/rail-shell/list-empty.logic.ts 18 files in 8 modules: src/
 test src/tests/lib/features/rail-shell/list-empty.logic.test.ts imports src/lib/features/rail-shell/list-empty.logic.ts mirror
 ## symbols
 sym src/lib/features/rail-shell/list-empty.logic.ts:14 type EmptyListAction L1 | What an empty list's action does: every one changes local state only and writes no file.
-by src/lib/features/rail-shell/list-empty.logic.ts:EmptyListAction <- src/lib/features/rail-shell/RailNoteList.svelte:96 in (script) import
+by src/lib/features/rail-shell/list-empty.logic.ts:EmptyListAction <- src/lib/features/rail-shell/RailNoteList.svelte:97 in (script) import
 sym src/lib/features/rail-shell/list-empty.logic.ts:17 type EmptyListState L1 | Which empty state the list shows; each has its own `data-note-list-*` hook.
-by src/lib/features/rail-shell/list-empty.logic.ts:EmptyListState <- src/lib/features/rail-shell/RailNoteList.svelte:98 in (script) import
+by src/lib/features/rail-shell/list-empty.logic.ts:EmptyListState <- src/lib/features/rail-shell/RailNoteList.svelte:99 in (script) import
 sym src/lib/features/rail-shell/list-empty.logic.ts:20 type EmptyListIcon L1 | An icon key, mapped to a component by the list (this file has no framework import).
-by src/lib/features/rail-shell/list-empty.logic.ts:EmptyListIcon <- src/lib/features/rail-shell/RailNoteList.svelte:97 in (script) import
+by src/lib/features/rail-shell/list-empty.logic.ts:EmptyListIcon <- src/lib/features/rail-shell/RailNoteList.svelte:98 in (script) import
 sym src/lib/features/rail-shell/list-empty.logic.ts:23 interface EmptyListExplanation L12 | Why a list is empty, as the list shows it.
 sym src/lib/features/rail-shell/list-empty.logic.ts:37 interface EmptyListInput L18 | What `explainEmptyList` reads about an empty list.
 sym src/lib/features/rail-shell/list-empty.logic.ts:65 const LIST_EMPTY_COPY L30 | Every string an empty rail list shows, in one table so a copy change touches one entry.
-by src/lib/features/rail-shell/list-empty.logic.ts:LIST_EMPTY_COPY <- src/lib/features/rail-shell/RailNoteList.svelte:923 in (markup) markup +5
+by src/lib/features/rail-shell/list-empty.logic.ts:LIST_EMPTY_COPY <- src/lib/features/rail-shell/RailNoteList.svelte:1087 in (markup) markup +5
 sym src/lib/features/rail-shell/list-empty.logic.ts:108 fn explainEmptyList(input: EmptyListInput): EmptyListExplanation L38 | Names why an empty rail list is empty, in this order: a search with no match (or still running), a lens with no list, a view's filters, the archived filter, th…
-by src/lib/features/rail-shell/list-empty.logic.ts:explainEmptyList <- src/lib/features/rail-shell/RailNoteList.svelte:720 in emptyExplanation=$derived call
+by src/lib/features/rail-shell/list-empty.logic.ts:explainEmptyList <- src/lib/features/rail-shell/RailNoteList.svelte:725 in emptyExplanation=$derived call
 ## locals
 local src/lib/features/rail-shell/list-empty.logic.ts:57 fn plural(n: number, word: string): string L3
 local src/lib/features/rail-shell/list-empty.logic.ts:97 fn empty(icon: EmptyListIcon, title: string, hint?: string, action?: EmptyListAction): EmptyListExplanation L3

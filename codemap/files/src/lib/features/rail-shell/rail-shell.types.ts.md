@@ -11,7 +11,7 @@ imp src/lib/features/rail-shell/rail-shell.types.ts:218 -> src/lib/utils/menu-ac
 ## imported-by
 imp src/lib/features/rail-shell/FilesNavigator.svelte:69 -> src/lib/features/rail-shell/rail-shell.types.ts type:Lens,type:RailFolderCreator
 imp src/lib/features/rail-shell/Rail.svelte:50 -> src/lib/features/rail-shell/rail-shell.types.ts type:RailAction,type:RailPin
-imp src/lib/features/rail-shell/RailNoteList.svelte:106 -> src/lib/features/rail-shell/rail-shell.types.ts type:Lens,type:LensContext,type:LensNote,type:NewNoteRule,type:RailHeaderAction,type:RailTodaySection,type:ResolvedLens
+imp src/lib/features/rail-shell/RailNoteList.svelte:107 -> src/lib/features/rail-shell/rail-shell.types.ts type:Lens,type:LensContext,type:LensNote,type:NewNoteRule,type:RailHeaderAction,type:RailTodaySection,type:ResolvedLens
 imp src/lib/features/rail-shell/TypesNavigator.svelte:54 -> src/lib/features/rail-shell/rail-shell.types.ts type:Lens,type:LensContext,type:TypeNavigatorRow
 imp src/lib/features/rail-shell/kind-icons.ts:9 -> src/lib/features/rail-shell/rail-shell.types.ts type:FileKind
 imp src/lib/features/rail-shell/lens.logic.ts:45 -> src/lib/features/rail-shell/rail-shell.types.ts type:FileKind,type:Lens,type:LensContext,type:LensGroup,type:LensNote,type:NewNoteContext,type:NewNoteRule,type:PlainNewNoteRule,type:RailLensProvider,type:RailNavigator,type:RailPin,type:ResolvedLens,type:TypeNavigatorRow,type:ViewLensStatus
@@ -32,6 +32,7 @@ out2 src/lib/features/rail-shell/rail-shell.types.ts 3 files in 3 modules: src/l
 test src/tests/lib/app/rail-navigation.test.ts imports-type src/lib/features/rail-shell/rail-shell.types.ts
 test src/tests/lib/features/rail-shell/FilesNavigator.test.ts imports-type src/lib/features/rail-shell/rail-shell.types.ts
 test src/tests/lib/features/rail-shell/RailNoteList.inbox-check.test.ts imports-type src/lib/features/rail-shell/rail-shell.types.ts
+test src/tests/lib/features/rail-shell/RailNoteList.keyboard.test.ts imports-type src/lib/features/rail-shell/rail-shell.types.ts
 test src/tests/lib/features/rail-shell/RailNoteList.search.test.ts imports-type src/lib/features/rail-shell/rail-shell.types.ts
 test src/tests/lib/features/rail-shell/TypesNavigator.test.ts imports-type src/lib/features/rail-shell/rail-shell.types.ts
 test src/tests/lib/features/rail-shell/lens.logic.test.ts imports-type src/lib/features/rail-shell/rail-shell.types.ts
@@ -47,14 +48,14 @@ test src/tests/lib/plugins/calendar/day-lens.logic.test.ts imports-type src/lib/
 ## symbols
 sym src/lib/features/rail-shell/rail-shell.types.ts:12 interface Lens L6 | What the user picked on the left: a rail item, a navigator entry or a note's neighbourhood.
 by src/lib/features/rail-shell/rail-shell.types.ts:Lens <- src/lib/features/rail-shell/FilesNavigator.svelte:69 in (script) import
-by src/lib/features/rail-shell/rail-shell.types.ts:Lens <- src/lib/features/rail-shell/RailNoteList.svelte:107 in (script) import
+by src/lib/features/rail-shell/rail-shell.types.ts:Lens <- src/lib/features/rail-shell/RailNoteList.svelte:108 in (script) import
 by src/lib/features/rail-shell/rail-shell.types.ts:Lens <- src/lib/features/rail-shell/TypesNavigator.svelte:54 in (script) import
 by src/lib/features/rail-shell/rail-shell.types.ts:Lens <- src/lib/features/rail-shell/lens.logic.ts:47 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:Lens <- src/lib/features/rail-shell/list-prefs.logic.ts:1 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:Lens <- src/lib/plugins/calendar/calendar-rail.service.ts:6 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:Lens <- src/lib/plugins/calendar/day-lens.logic.ts:5 in (module) import
 sym src/lib/features/rail-shell/rail-shell.types.ts:20 interface LensContext L12 | The snapshot a lens resolves against.
-by src/lib/features/rail-shell/rail-shell.types.ts:LensContext <- src/lib/features/rail-shell/RailNoteList.svelte:108 in (script) import
+by src/lib/features/rail-shell/rail-shell.types.ts:LensContext <- src/lib/features/rail-shell/RailNoteList.svelte:109 in (script) import
 by src/lib/features/rail-shell/rail-shell.types.ts:LensContext <- src/lib/features/rail-shell/TypesNavigator.svelte:54 in (script) import
 by src/lib/features/rail-shell/rail-shell.types.ts:LensContext <- src/lib/features/rail-shell/lens.logic.ts:48 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:LensContext <- src/lib/features/rail-shell/view-lens.service.ts:6 in (module) import
@@ -63,7 +64,7 @@ sym src/lib/features/rail-shell/rail-shell.types.ts:34 type FileKind L1 | The ki
 by src/lib/features/rail-shell/rail-shell.types.ts:FileKind <- src/lib/features/rail-shell/kind-icons.ts:9 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:FileKind <- src/lib/features/rail-shell/lens.logic.ts:46 in (module) import
 sym src/lib/features/rail-shell/rail-shell.types.ts:37 interface LensNote L12 | A note as the rail note list shows it.
-by src/lib/features/rail-shell/rail-shell.types.ts:LensNote <- src/lib/features/rail-shell/RailNoteList.svelte:109 in (script) import
+by src/lib/features/rail-shell/rail-shell.types.ts:LensNote <- src/lib/features/rail-shell/RailNoteList.svelte:110 in (script) import
 by src/lib/features/rail-shell/rail-shell.types.ts:LensNote <- src/lib/features/rail-shell/lens.logic.ts:50 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:LensNote <- src/lib/features/rail-shell/list-properties.logic.ts:2 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:LensNote <- src/lib/features/rail-shell/list-search.logic.ts:2 in (module) import
@@ -72,7 +73,7 @@ sym src/lib/features/rail-shell/rail-shell.types.ts:51 interface LensGroup L8 | 
 by src/lib/features/rail-shell/rail-shell.types.ts:LensGroup <- src/lib/features/rail-shell/lens.logic.ts:49 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:LensGroup <- src/lib/features/rail-shell/list-sort-compare.logic.ts:3 in (module) import
 sym src/lib/features/rail-shell/rail-shell.types.ts:61 interface ResolvedLens L12 | A lens turned into what the note list shows.
-by src/lib/features/rail-shell/rail-shell.types.ts:ResolvedLens <- src/lib/features/rail-shell/RailNoteList.svelte:113 in (script) import
+by src/lib/features/rail-shell/rail-shell.types.ts:ResolvedLens <- src/lib/features/rail-shell/RailNoteList.svelte:114 in (script) import
 by src/lib/features/rail-shell/rail-shell.types.ts:ResolvedLens <- src/lib/features/rail-shell/lens.logic.ts:57 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:ResolvedLens <- src/lib/features/rail-shell/list-search.logic.ts:2 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:ResolvedLens <- src/lib/features/rail-shell/list-sort-compare.logic.ts:3 in (module) import
@@ -90,7 +91,7 @@ sym src/lib/features/rail-shell/rail-shell.types.ts:118 interface PlainNewNoteRu
 by src/lib/features/rail-shell/rail-shell.types.ts:PlainNewNoteRule <- src/lib/features/rail-shell/lens.logic.ts:53 in (module) import
 sym src/lib/features/rail-shell/rail-shell.types.ts:126 interface TypedNewNoteRule L4 | A "+ New here" note of a type: the type's folder, dedupe and template decide the rest.
 sym src/lib/features/rail-shell/rail-shell.types.ts:132 type NewNoteRule L1 | What "+ New here" creates for a lens.
-by src/lib/features/rail-shell/rail-shell.types.ts:NewNoteRule <- src/lib/features/rail-shell/RailNoteList.svelte:110 in (script) import
+by src/lib/features/rail-shell/rail-shell.types.ts:NewNoteRule <- src/lib/features/rail-shell/RailNoteList.svelte:111 in (script) import
 by src/lib/features/rail-shell/rail-shell.types.ts:NewNoteRule <- src/lib/features/rail-shell/lens.logic.ts:52 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:NewNoteRule <- src/lib/features/rail-shell/new-note.service.ts:11 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:NewNoteRule <- src/lib/plugins/calendar/day-lens.logic.ts:5 in (module) import
@@ -101,13 +102,13 @@ sym src/lib/features/rail-shell/rail-shell.types.ts:149 interface RailLensProvid
 by src/lib/features/rail-shell/rail-shell.types.ts:RailLensProvider <- src/lib/features/rail-shell/lens.logic.ts:54 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:RailLensProvider <- src/lib/features/rail-shell/rail-registry.store.svelte.ts:1 in (module) import
 sym src/lib/features/rail-shell/rail-shell.types.ts:161 interface RailHeaderAction L12 | A note list header button a lens provider adds.
-by src/lib/features/rail-shell/rail-shell.types.ts:RailHeaderAction <- src/lib/features/rail-shell/RailNoteList.svelte:111 in (script) import
+by src/lib/features/rail-shell/rail-shell.types.ts:RailHeaderAction <- src/lib/features/rail-shell/RailNoteList.svelte:112 in (script) import
 sym src/lib/features/rail-shell/rail-shell.types.ts:175 interface RailNavigator L12 | A navigator panel a plugin adds to the rail shell (e.g. the Calendar navigator).
 by src/lib/features/rail-shell/rail-shell.types.ts:RailNavigator <- src/lib/features/rail-shell/lens.logic.ts:55 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:RailNavigator <- src/lib/features/rail-shell/rail-items.logic.ts:5 in (module) import
 by src/lib/features/rail-shell/rail-shell.types.ts:RailNavigator <- src/lib/features/rail-shell/rail-registry.store.svelte.ts:1 in (module) import
 sym src/lib/features/rail-shell/rail-shell.types.ts:189 interface RailTodaySection L8 | A section a plugin adds to the Today lens (e.g. My people).
-by src/lib/features/rail-shell/rail-shell.types.ts:RailTodaySection <- src/lib/features/rail-shell/RailNoteList.svelte:112 in (script) import
+by src/lib/features/rail-shell/rail-shell.types.ts:RailTodaySection <- src/lib/features/rail-shell/RailNoteList.svelte:113 in (script) import
 by src/lib/features/rail-shell/rail-shell.types.ts:RailTodaySection <- src/lib/features/rail-shell/rail-registry.store.svelte.ts:1 in (module) import
 sym src/lib/features/rail-shell/rail-shell.types.ts:202 interface RailAction L14 | A rail button that runs something on click (e.g. a vault mod's button).
 by src/lib/features/rail-shell/rail-shell.types.ts:RailAction <- src/lib/features/rail-shell/Rail.svelte:50 in (script) import

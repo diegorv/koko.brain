@@ -60,8 +60,8 @@ file src/lib/core/filesystem/delete-note.service.ts service L33 module src/lib/c
 file src/lib/core/filesystem/file-entries.logic.ts logic L105 module src/lib/core/filesystem in12 t3
 file src/lib/core/filesystem/folder-notes.logic.ts logic L65 module src/lib/core/filesystem in3 t1
 file src/lib/core/filesystem/fs.logic.ts logic L642 module src/lib/core/filesystem in47 t15
-file src/lib/core/filesystem/fs.service.ts service L376 module src/lib/core/filesystem in27 t45
-file src/lib/core/filesystem/fs.store.svelte.ts store L48 module src/lib/core/filesystem in26 t64
+file src/lib/core/filesystem/fs.service.ts service L376 module src/lib/core/filesystem in27 t46
+file src/lib/core/filesystem/fs.store.svelte.ts store L48 module src/lib/core/filesystem in26 t65
 file src/lib/core/filesystem/fs.types.ts types L16 module src/lib/core/filesystem in13 t0
 file src/lib/core/filesystem/fs.watcher.ts other L304 module src/lib/core/filesystem in2 t5
 file src/lib/core/filesystem/link-updater.logic.ts logic L119 module src/lib/core/filesystem in1 t1

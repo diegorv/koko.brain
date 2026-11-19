@@ -4,7 +4,7 @@ file src/lib/components/EmptyState.svelte component L57 module src/lib/component
 ## imports
 imp src/lib/components/EmptyState.svelte:5 -> src/lib/utils.ts cn
 ## imported-by
-imp src/lib/features/rail-shell/RailNoteList.svelte:28 -> src/lib/components/EmptyState.svelte default
+imp src/lib/features/rail-shell/RailNoteList.svelte:29 -> src/lib/components/EmptyState.svelte default
 ## reach
 in2 src/lib/components/EmptyState.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/components/EmptyState.svelte 1 files in 1 modules: src/lib/utils(1)
@@ -12,10 +12,10 @@ out2 src/lib/components/EmptyState.svelte 1 files in 1 modules: src/lib/utils(1)
 test src/tests/lib/components/EmptyState.test.ts imports src/lib/components/EmptyState.svelte mirror
 ## symbols
 sym src/lib/components/EmptyState.svelte:1 component EmptyState props:title,hint,icon,action,compact=,spinner=,class,...rest L57
-by src/lib/components/EmptyState.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:923 in (markup) mount +2
+by src/lib/components/EmptyState.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:1087 in (markup) mount +2
 ## mounted-at
-mount src/lib/features/rail-shell/RailNoteList.svelte:923 EmptyState -> src/lib/components/EmptyState.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:925 EmptyState -> src/lib/components/EmptyState.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:950 EmptyState -> src/lib/components/EmptyState.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:1087 EmptyState -> src/lib/components/EmptyState.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:1089 EmptyState -> src/lib/components/EmptyState.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:1114 EmptyState -> src/lib/components/EmptyState.svelte
 ## calls
 call src/lib/components/EmptyState.svelte:32 in (markup) -> src/lib/utils.ts:cn markup +1

@@ -1,7 +1,7 @@
 # file card src/lib/utils/log.service.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/utils/log.service.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls, effects
-file src/lib/utils/log.service.ts service L236 module src/lib/utils in14 t50
+file src/lib/utils/log.service.ts service L236 module src/lib/utils in14 t51
 ## imports
 imp src/lib/utils/log.service.ts:1 -> pkg:@tauri-apps/plugin-fs writeTextFile,mkdir,exists
 imp src/lib/utils/log.service.ts:2 -> pkg:@tauri-apps/api/path appLogDir
@@ -56,6 +56,7 @@ test src/tests/lib/features/quick-switcher/QuickSwitcher.test.ts mocks src/lib/u
 test src/tests/lib/features/rail-shell/FilesNavigator.menu.test.ts mocks src/lib/utils/log.service.ts
 test src/tests/lib/features/rail-shell/FilesNavigator.new-view.test.ts mocks src/lib/utils/log.service.ts
 test src/tests/lib/features/rail-shell/RailNoteList.inbox-check.test.ts mocks src/lib/utils/log.service.ts
+test src/tests/lib/features/rail-shell/RailNoteList.keyboard.test.ts mocks src/lib/utils/log.service.ts
 test src/tests/lib/features/rail-shell/RailNoteList.properties.test.ts mocks src/lib/utils/log.service.ts
 test src/tests/lib/features/rail-shell/RailNoteList.search.test.ts mocks src/lib/utils/log.service.ts
 test src/tests/lib/features/rail-shell/RailNoteList.sort.test.ts mocks src/lib/utils/log.service.ts
@@ -65,8 +66,7 @@ test src/tests/lib/features/rail-shell/RailNoteList.view.test.ts mocks src/lib/u
 test src/tests/lib/features/rail-shell/TypesNavigator.test.ts mocks src/lib/utils/log.service.ts
 test src/tests/lib/features/rail-shell/files-navigator.service.test.ts mocks src/lib/utils/log.service.ts
 test src/tests/lib/features/rail-shell/neighbourhood.service.test.ts mocks src/lib/utils/log.service.ts
-test src/tests/lib/features/rail-shell/new-note.service.test.ts mocks src/lib/utils/log.service.ts
-more tests 10 not shown: src/tests/lib/features/type-definitions(5) src/tests/lib/features/rail-shell(2) src/tests/lib/plugins/mods(1) src/tests/lib/plugins/queryjs(1) src/tests/lib/utils(1): q tests src/lib/utils/log.service.ts
+more tests 11 not shown: src/tests/lib/features/type-definitions(5) src/tests/lib/features/rail-shell(3) src/tests/lib/plugins/mods(1) src/tests/lib/plugins/queryjs(1) src/tests/lib/utils(1): q tests src/lib/utils/log.service.ts
 ## symbols
 sym src/lib/utils/log.service.ts:26 const LOG_FLUSH_MS L1 | Flush window and line cap of the buffered writer.
 sym src/lib/utils/log.service.ts:27 const LOG_FLUSH_LINES L1
@@ -79,7 +79,7 @@ by src/lib/utils/log.service.ts:appendLog <- src/lib/app/boot.ts:38 in registerA
 by src/lib/utils/log.service.ts:appendLog <- src/lib/core/editor/editor.service.ts:152 in openFileInEditor call +5
 by src/lib/utils/log.service.ts:appendLog <- src/lib/core/note-creator/note-creator.service.ts:84 in openOrCreateNote call +4
 by src/lib/utils/log.service.ts:appendLog <- src/lib/features/properties/properties.service.ts:89 in commitChanges call
-by src/lib/utils/log.service.ts:appendLog <- src/lib/features/rail-shell/RailNoteList.svelte:300 in loadView call +3
+by src/lib/utils/log.service.ts:appendLog <- src/lib/features/rail-shell/RailNoteList.svelte:301 in loadView call +3
 by src/lib/utils/log.service.ts:appendLog <- src/lib/features/rail-shell/view-lens.service.ts:39 in countViewNotes call
 by src/lib/utils/log.service.ts:appendLog <- src/lib/plugins/periodic-notes/periodic-notes.service.ts:101 in autoOpenDailyNote call +3
 more by 4 not shown: src/lib/plugins/queryjs(2) src/lib/utils(1) src/routes(1): q importers src/lib/utils/log.service.ts:appendLog

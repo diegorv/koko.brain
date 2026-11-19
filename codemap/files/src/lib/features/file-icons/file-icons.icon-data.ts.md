@@ -1,6 +1,7 @@
 # file card src/lib/features/file-icons/file-icons.icon-data.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/file-icons/file-icons.icon-data.ts ' codemap/files
-file src/lib/features/file-icons/file-icons.icon-data.ts other L320 module src/lib/features/file-icons in7 t34
+sections: imports, imported-by, reach, tests, symbols, locals, calls
+file src/lib/features/file-icons/file-icons.icon-data.ts other L320 module src/lib/features/file-icons in7 t35
 ## imports
 imp src/lib/features/file-icons/file-icons.icon-data.ts:1 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId,type:IconPackMeta,type:NormalizedIcon
 ## imported-by
@@ -41,6 +42,7 @@ test src/tests/lib/features/rail-shell/FilesNavigator.test.ts mocks src/lib/feat
 test src/tests/lib/features/rail-shell/LayoutSection.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/rail-shell/Rail.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/rail-shell/RailNoteList.inbox-check.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
+test src/tests/lib/features/rail-shell/RailNoteList.keyboard.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/rail-shell/RailNoteList.properties.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/rail-shell/RailNoteList.search.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
 test src/tests/lib/features/rail-shell/RailNoteList.sort.test.ts mocks src/lib/features/file-icons/file-icons.icon-data.ts
