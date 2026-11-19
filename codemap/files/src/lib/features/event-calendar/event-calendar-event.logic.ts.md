@@ -1,7 +1,7 @@
 # file card src/lib/features/event-calendar/event-calendar-event.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/event-calendar/event-calendar-event.logic.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls
-file src/lib/features/event-calendar/event-calendar-event.logic.ts logic L513 module src/lib/features/event-calendar in12 t4 | Schema of event notes: how a Rust `VaultIndex` entry of the configured event type becomes a calendar event or a Needs-attention issue, what a calendar write pu…
+file src/lib/features/event-calendar/event-calendar-event.logic.ts logic L521 module src/lib/features/event-calendar in12 t4 | Schema of event notes: how a Rust `VaultIndex` entry of the configured event type becomes a calendar event or a Needs-attention issue, what a calendar write pu…
 ## imports
 imp src/lib/features/event-calendar/event-calendar-event.logic.ts:12 -> src/lib/core/settings/settings.types.ts type:EventCalendarSettings
 imp src/lib/features/event-calendar/event-calendar-event.logic.ts:13 -> src/lib/types/vault-v2.types.ts type:NoteEntryV2
@@ -71,13 +71,13 @@ by src/lib/features/event-calendar/event-calendar-event.logic.ts:sameEventState 
 sym src/lib/features/event-calendar/event-calendar-event.logic.ts:424 fn resolveEventTypeName(typeNames: readonly string[], configured: string): string L4 | Resolves the configured event type to the casing an existing type uses, for the exact-key lookup of `createTypedNote`.
 by src/lib/features/event-calendar/event-calendar-event.logic.ts:resolveEventTypeName <- src/lib/features/event-calendar/EventCalendarSection.svelte:50 in eventType=$derived call
 by src/lib/features/event-calendar/event-calendar-event.logic.ts:resolveEventTypeName <- src/lib/features/event-calendar/event-calendar.service.ts:933 in createNow call
-sym src/lib/features/event-calendar/event-calendar-event.logic.ts:434 fn eventColorStyle(color: EventColor): string L3 | Inline style for an event chip.
-by src/lib/features/event-calendar/event-calendar-event.logic.ts:eventColorStyle <- src/lib/features/event-calendar/EventAllDayLane.svelte:82 in (markup) markup
+sym src/lib/features/event-calendar/event-calendar-event.logic.ts:439 fn eventColorStyle(color: EventColor, archived = false): string L6 | Inline style for an event chip.
+by src/lib/features/event-calendar/event-calendar-event.logic.ts:eventColorStyle <- src/lib/features/event-calendar/EventAllDayLane.svelte:81 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-event.logic.ts:eventColorStyle <- src/lib/features/event-calendar/EventBlock.svelte:47 in style=$derived call
-by src/lib/features/event-calendar/event-calendar-event.logic.ts:eventColorStyle <- src/lib/features/event-calendar/EventMonthGrid.svelte:136 in (markup) markup
-sym src/lib/features/event-calendar/event-calendar-event.logic.ts:450 fn mergePending(snapshot: EventNote[], pending: PendingWrite[]): PendingEventNote[] L37 | Overlays pending writes on the projected snapshot.
+by src/lib/features/event-calendar/event-calendar-event.logic.ts:eventColorStyle <- src/lib/features/event-calendar/EventMonthGrid.svelte:135 in (markup) markup
+sym src/lib/features/event-calendar/event-calendar-event.logic.ts:458 fn mergePending(snapshot: EventNote[], pending: PendingWrite[]): PendingEventNote[] L37 | Overlays pending writes on the projected snapshot.
 by src/lib/features/event-calendar/event-calendar-event.logic.ts:mergePending <- src/lib/features/event-calendar/event-calendar.store.svelte.ts:59 in recompute call
-sym src/lib/features/event-calendar/event-calendar-event.logic.ts:503 fn prunePending(pending: PendingWrite[], snapshot: EventNote[], version: number): PendingWrite[] L11 | Drops the pending writes the index has caught up with.
+sym src/lib/features/event-calendar/event-calendar-event.logic.ts:511 fn prunePending(pending: PendingWrite[], snapshot: EventNote[], version: number): PendingWrite[] L11 | Drops the pending writes the index has caught up with.
 by src/lib/features/event-calendar/event-calendar-event.logic.ts:prunePending <- src/lib/features/event-calendar/event-calendar.service.ts:229 in lookupCalendarEvent call
 by src/lib/features/event-calendar/event-calendar-event.logic.ts:prunePending <- src/lib/features/event-calendar/event-calendar.store.svelte.ts:120 in eventCalendarStore.setSnapshot call
 ## locals
@@ -107,5 +107,5 @@ call src/lib/features/event-calendar/event-calendar-event.logic.ts:351 in applyE
 call src/lib/features/event-calendar/event-calendar-event.logic.ts:355 in applyEventDraft -> src/lib/features/event-calendar/event-calendar-event.logic.ts:applyEventFields call
 call src/lib/features/event-calendar/event-calendar-event.logic.ts:364 in applyEventDraft -> src/lib/core/frontmatter/properties.logic.ts:extractBody call
 call src/lib/features/event-calendar/event-calendar-event.logic.ts:368 in applyEventDraft -> src/lib/core/frontmatter/properties.logic.ts:rebuildContent call
-call src/lib/features/event-calendar/event-calendar-event.logic.ts:508 in prunePending -> src/lib/features/event-calendar/event-calendar-event.logic.ts:eventState call +3
-call src/lib/features/event-calendar/event-calendar-event.logic.ts:508 in prunePending -> src/lib/features/event-calendar/event-calendar-event.logic.ts:sameEventState call +2
+call src/lib/features/event-calendar/event-calendar-event.logic.ts:516 in prunePending -> src/lib/features/event-calendar/event-calendar-event.logic.ts:eventState call +3
+call src/lib/features/event-calendar/event-calendar-event.logic.ts:516 in prunePending -> src/lib/features/event-calendar/event-calendar-event.logic.ts:sameEventState call +2

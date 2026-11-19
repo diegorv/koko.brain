@@ -1,6 +1,6 @@
 # file card src/lib/features/collection/calendar.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/collection/calendar.logic.ts ' codemap/files
-file src/lib/features/collection/calendar.logic.ts logic L192 module src/lib/features/collection in4 t2
+file src/lib/features/collection/calendar.logic.ts logic L192 module src/lib/features/collection in4 t3
 ## imports
 imp src/lib/features/collection/calendar.logic.ts:1 -> src/lib/utils/date.ts formatDate
 imp src/lib/features/collection/calendar.logic.ts:2 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
@@ -16,6 +16,7 @@ out2 src/lib/features/collection/calendar.logic.ts 8 files in 4 modules: src/lib
 ## tests
 test src/tests/lib/features/collection/calendar-logic.test.ts imports src/lib/features/collection/calendar.logic.ts
 test src/tests/lib/features/collection/collection-block-click.test.ts imports src/lib/features/collection/calendar.logic.ts
+test src/tests/lib/features/collection/collection-block-widget.test.ts imports src/lib/features/collection/calendar.logic.ts
 ## symbols
 sym src/lib/features/collection/calendar.logic.ts:6 interface CalendarDay L8 | A single day cell in the calendar grid
 sym src/lib/features/collection/calendar.logic.ts:16 interface CalendarEvent L8 | A note record placed on a specific calendar date

@@ -1,6 +1,6 @@
 # file card src/lib/features/collection/CollectionCalendarView.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/collection/CollectionCalendarView.svelte ' codemap/files
-file src/lib/features/collection/CollectionCalendarView.svelte component L172 module src/lib/features/collection in1 t0
+file src/lib/features/collection/CollectionCalendarView.svelte component L173 module src/lib/features/collection in1 t1
 ## imports
 imp src/lib/features/collection/CollectionCalendarView.svelte:2 -> src/lib/features/collection/collection.types.ts type:QueryResult,type:PropertyIndexRecord
 imp src/lib/features/collection/CollectionCalendarView.svelte:3 -> src/lib/features/collection/calendar.logic.ts getCalendarGrid,groupRecordsByDate,navigateMonth,formatMonthYear,getWeekDayLabels,formatDateKey
@@ -9,8 +9,10 @@ imp src/lib/features/collection/CollectionView.svelte:25 -> src/lib/features/col
 ## reach
 in2 src/lib/features/collection/CollectionCalendarView.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/collection/CollectionCalendarView.svelte 3 files in 2 modules: src/lib/features/collection(2) src/lib/utils(1)
+## tests
+test src/tests/lib/features/collection/CollectionCalendarView.svelte.test.ts imports src/lib/features/collection/CollectionCalendarView.svelte mirror
 ## symbols
-sym src/lib/features/collection/CollectionCalendarView.svelte:1 component CollectionCalendarView props:result,dateProperty,endDateProperty,weekStartDay=,onClickRecord L172
+sym src/lib/features/collection/CollectionCalendarView.svelte:1 component CollectionCalendarView props:result,dateProperty,endDateProperty,weekStartDay=,onClickRecord L173
 by src/lib/features/collection/CollectionCalendarView.svelte:default <- src/lib/features/collection/CollectionView.svelte:725 in (markup) mount
 ## locals
 local src/lib/features/collection/CollectionCalendarView.svelte:47 fn goToPrevYear() L1

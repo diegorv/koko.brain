@@ -1,6 +1,6 @@
 # file card src/lib/features/collection/collection-block-widget.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/collection/collection-block-widget.ts ' codemap/files
-file src/lib/features/collection/collection-block-widget.ts other L568 module src/lib/features/collection in2 t6
+file src/lib/features/collection/collection-block-widget.ts other L566 module src/lib/features/collection in2 t6
 ## imports
 imp src/lib/features/collection/collection-block-widget.ts:2 -> src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts type:FencedBlockRenderer
 imp src/lib/features/collection/collection-block-widget.ts:3 -> src/lib/features/collection/yaml-parser.ts parseCollectionYaml
@@ -32,15 +32,15 @@ sym src/lib/features/collection/collection-block-widget.ts:61 const COLLECTION_R
 sym src/lib/features/collection/collection-block-widget.ts:71 const LINEAR_CALENDAR_LANE_CAP L1 | Maximum number of event lanes a linear-calendar month row renders in the editor.
 sym src/lib/features/collection/collection-block-widget.ts:74 fn clearCollectionCache(): void L3 | Drops all cached renders.
 by src/lib/features/collection/collection-block-widget.ts:clearCollectionCache <- src/lib/app/lifecycle/app-lifecycle.service.ts:657 in teardownVault call
-sym src/lib/features/collection/collection-block-widget.ts:79 class CollectionBlockWidget extends WidgetType L375 | Widget that renders a ```collection code block as an inline table
-sym src/lib/features/collection/collection-block-widget.ts:456 const collectionBlockRenderer: FencedBlockRenderer L7 | Renders `` ```collection `` blocks; the app installs it in the editor's `fencedBlockRenderers`.
+sym src/lib/features/collection/collection-block-widget.ts:79 class CollectionBlockWidget extends WidgetType L373 | Widget that renders a ```collection code block as an inline table
+sym src/lib/features/collection/collection-block-widget.ts:454 const collectionBlockRenderer: FencedBlockRenderer L7 | Renders `` ```collection `` blocks; the app installs it in the editor's `fencedBlockRenderers`.
 by src/lib/features/collection/collection-block-widget.ts:collectionBlockRenderer <- src/lib/app/editor-host.ts:210 in appFencedBlockRenderers ref
-sym src/lib/features/collection/collection-block-widget.ts:484 fn buildCollectionTable(result: QueryResult): HTMLTableElement L49 | Builds the `<table>` for a collection table view from a query result, rendering at most `COLLECTION_ROW_CAP` body rows.
+sym src/lib/features/collection/collection-block-widget.ts:482 fn buildCollectionTable(result: QueryResult): HTMLTableElement L49 | Builds the `<table>` for a collection table view from a query result, rendering at most `COLLECTION_ROW_CAP` body rows.
 ## locals
-local src/lib/features/collection/collection-block-widget.ts:472 fn isNowrapValue(value: unknown): boolean L3
-local src/lib/features/collection/collection-block-widget.ts:541 fn stopEditorMousedown(el: HTMLElement): void L6
-local src/lib/features/collection/collection-block-widget.ts:549 fn handleRowClick(record: PropertyIndexRecord) L3
-local src/lib/features/collection/collection-block-widget.ts:554 fn getCellValue(record: PropertyIndexRecord, key: string): unknown L15
+local src/lib/features/collection/collection-block-widget.ts:470 fn isNowrapValue(value: unknown): boolean L3
+local src/lib/features/collection/collection-block-widget.ts:539 fn stopEditorMousedown(el: HTMLElement): void L6
+local src/lib/features/collection/collection-block-widget.ts:547 fn handleRowClick(record: PropertyIndexRecord) L3
+local src/lib/features/collection/collection-block-widget.ts:552 fn getCellValue(record: PropertyIndexRecord, key: string): unknown L15
 ## calls
 call src/lib/features/collection/collection-block-widget.ts:95 in CollectionBlockWidget.toDOM -> src/lib/features/collection/collection-block-widget.ts:CollectionBlockWidget.renderView call +1
 call src/lib/features/collection/collection-block-widget.ts:99 in CollectionBlockWidget.toDOM -> src/lib/features/collection/yaml-parser.ts:parseCollectionYaml call
@@ -55,25 +55,25 @@ call src/lib/features/collection/collection-block-widget.ts:237 in CollectionBlo
 call src/lib/features/collection/collection-block-widget.ts:248 in CollectionBlockWidget.buildCalendar -> src/lib/features/collection/calendar.logic.ts:getWeekDayLabels call
 call src/lib/features/collection/collection-block-widget.ts:259 in CollectionBlockWidget.buildCalendar -> src/lib/features/collection/calendar.logic.ts:getCalendarGrid call
 call src/lib/features/collection/collection-block-widget.ts:260 in CollectionBlockWidget.buildCalendar -> src/lib/features/collection/calendar.logic.ts:formatDateKey call +1
-call src/lib/features/collection/collection-block-widget.ts:292 in CollectionBlockWidget.buildCalendar -> src/lib/features/collection/collection-block-widget.ts:stopEditorMousedown call
-call src/lib/features/collection/collection-block-widget.ts:293 in CollectionBlockWidget.buildCalendar -> src/lib/features/collection/collection-block-widget.ts:handleRowClick call
-call src/lib/features/collection/collection-block-widget.ts:324 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/linear-calendar.logic.ts:buildLinearYearLayout call
-call src/lib/features/collection/collection-block-widget.ts:325 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/linear-calendar.logic.ts:buildColorMapping call
-call src/lib/features/collection/collection-block-widget.ts:417 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/linear-calendar.logic.ts:barColors call
-call src/lib/features/collection/collection-block-widget.ts:417 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/linear-calendar.logic.ts:getColorForValue call
-call src/lib/features/collection/collection-block-widget.ts:421 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/collection-block-widget.ts:stopEditorMousedown call
-call src/lib/features/collection/collection-block-widget.ts:422 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/collection-block-widget.ts:handleRowClick call
-call src/lib/features/collection/collection-block-widget.ts:458 in collectionBlockRenderer.widget -> src/lib/features/collection/collection-block-widget.ts:CollectionBlockWidget new
-call src/lib/features/collection/collection-block-widget.ts:504 in buildCollectionTable -> src/lib/features/collection/collection-block-widget.ts:stopEditorMousedown call
-call src/lib/features/collection/collection-block-widget.ts:505 in buildCollectionTable -> src/lib/features/collection/collection-block-widget.ts:handleRowClick call
-call src/lib/features/collection/collection-block-widget.ts:509 in buildCollectionTable -> src/lib/features/collection/collection-block-widget.ts:getCellValue call
-call src/lib/features/collection/collection-block-widget.ts:510 in buildCollectionTable -> src/lib/features/collection/expression/expression.types.ts:isDisplayValue call
-call src/lib/features/collection/collection-block-widget.ts:511 in buildCollectionTable -> src/lib/utils/sanitize.ts:sanitizeHtml call
-call src/lib/features/collection/collection-block-widget.ts:513 in buildCollectionTable -> src/lib/features/collection/collection.logic.ts:formatColumnCell call +2
-call src/lib/features/collection/collection-block-widget.ts:515 in buildCollectionTable -> src/lib/features/collection/collection-block-widget.ts:isNowrapValue call
-call src/lib/features/collection/collection-block-widget.ts:550 in handleRowClick -> src/lib/core/editor/editor.service.ts:openFileInEditor call
+call src/lib/features/collection/collection-block-widget.ts:290 in CollectionBlockWidget.buildCalendar -> src/lib/features/collection/collection-block-widget.ts:stopEditorMousedown call
+call src/lib/features/collection/collection-block-widget.ts:291 in CollectionBlockWidget.buildCalendar -> src/lib/features/collection/collection-block-widget.ts:handleRowClick call
+call src/lib/features/collection/collection-block-widget.ts:322 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/linear-calendar.logic.ts:buildLinearYearLayout call
+call src/lib/features/collection/collection-block-widget.ts:323 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/linear-calendar.logic.ts:buildColorMapping call
+call src/lib/features/collection/collection-block-widget.ts:415 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/linear-calendar.logic.ts:barColors call
+call src/lib/features/collection/collection-block-widget.ts:415 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/linear-calendar.logic.ts:getColorForValue call
+call src/lib/features/collection/collection-block-widget.ts:419 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/collection-block-widget.ts:stopEditorMousedown call
+call src/lib/features/collection/collection-block-widget.ts:420 in CollectionBlockWidget.buildLinearCalendar -> src/lib/features/collection/collection-block-widget.ts:handleRowClick call
+call src/lib/features/collection/collection-block-widget.ts:456 in collectionBlockRenderer.widget -> src/lib/features/collection/collection-block-widget.ts:CollectionBlockWidget new
+call src/lib/features/collection/collection-block-widget.ts:502 in buildCollectionTable -> src/lib/features/collection/collection-block-widget.ts:stopEditorMousedown call
+call src/lib/features/collection/collection-block-widget.ts:503 in buildCollectionTable -> src/lib/features/collection/collection-block-widget.ts:handleRowClick call
+call src/lib/features/collection/collection-block-widget.ts:507 in buildCollectionTable -> src/lib/features/collection/collection-block-widget.ts:getCellValue call
+call src/lib/features/collection/collection-block-widget.ts:508 in buildCollectionTable -> src/lib/features/collection/expression/expression.types.ts:isDisplayValue call
+call src/lib/features/collection/collection-block-widget.ts:509 in buildCollectionTable -> src/lib/utils/sanitize.ts:sanitizeHtml call
+call src/lib/features/collection/collection-block-widget.ts:511 in buildCollectionTable -> src/lib/features/collection/collection.logic.ts:formatColumnCell call +2
+call src/lib/features/collection/collection-block-widget.ts:513 in buildCollectionTable -> src/lib/features/collection/collection-block-widget.ts:isNowrapValue call
+call src/lib/features/collection/collection-block-widget.ts:548 in handleRowClick -> src/lib/core/editor/editor.service.ts:openFileInEditor call
 ## effects
-fx src/lib/features/collection/collection-block-widget.ts:293 dom.click pill in CollectionBlockWidget.buildCalendar
-fx src/lib/features/collection/collection-block-widget.ts:422 dom.click bar in CollectionBlockWidget.buildLinearCalendar
-fx src/lib/features/collection/collection-block-widget.ts:505 dom.click tr in buildCollectionTable
-fx src/lib/features/collection/collection-block-widget.ts:542 dom.mousedown el in stopEditorMousedown
+fx src/lib/features/collection/collection-block-widget.ts:291 dom.click pill in CollectionBlockWidget.buildCalendar
+fx src/lib/features/collection/collection-block-widget.ts:420 dom.click bar in CollectionBlockWidget.buildLinearCalendar
+fx src/lib/features/collection/collection-block-widget.ts:503 dom.click tr in buildCollectionTable
+fx src/lib/features/collection/collection-block-widget.ts:540 dom.mousedown el in stopEditorMousedown

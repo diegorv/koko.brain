@@ -103,7 +103,7 @@ by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatWeekday <
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:268 fn formatRange(from: string, to: string): string L8 | Label for a span of days, without the year (the header title carries it).
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatRange <- src/lib/features/event-calendar/event-calendar-view.logic.ts:168 in rangeLabel call +1
 sym src/lib/features/event-calendar/event-calendar-dates.logic.ts:285 fn formatTime(minutes: number, format: TimeFormat = '24h'): string L9 | Formats minutes from midnight as a clock time.
-by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/EventBlock.svelte:98 in (markup) markup
+by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/EventBlock.svelte:97 in (markup) markup
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/EventTimeGrid.svelte:96 in hourLabel call
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/event-calendar-event.logic.ts:287 in formatEventTime call
 by src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatTime <- src/lib/features/event-calendar/event-calendar-view.logic.ts:300 in itemsForDay call +2

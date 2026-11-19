@@ -35,8 +35,8 @@ entry src/lib/features/event-calendar/event-calendar-dates.logic.ts ext-in1 src/
 entry src/lib/features/event-calendar/event-calendar-keys.logic.ts ext-in1 src/lib/app/global-keybindings.ts
 entry src/lib/features/event-calendar/event-calendar.store.svelte.ts ext-in1 src/lib/app/commands.ts
 ## files
-file src/lib/features/event-calendar/EventAllDayLane.svelte component L108 module src/lib/features/event-calendar in1 t1
-file src/lib/features/event-calendar/EventBlock.svelte component L133 module src/lib/features/event-calendar in1 t0
+file src/lib/features/event-calendar/EventAllDayLane.svelte component L107 module src/lib/features/event-calendar in1 t1
+file src/lib/features/event-calendar/EventBlock.svelte component L132 module src/lib/features/event-calendar in1 t0
 file src/lib/features/event-calendar/EventCalendarHeader.svelte component L124 module src/lib/features/event-calendar in1 t0
 file src/lib/features/event-calendar/EventCalendarNeedsAttention.svelte component L116 module src/lib/features/event-calendar in1 t0
 file src/lib/features/event-calendar/EventCalendarSection.svelte component L273 module src/lib/features/event-calendar in1 t1
@@ -46,7 +46,7 @@ file src/lib/features/event-calendar/EventDailyNoteButton.svelte component L53 m
 file src/lib/features/event-calendar/EventDayHeaders.svelte component L54 module src/lib/features/event-calendar in1 t0
 file src/lib/features/event-calendar/EventDialog.svelte component L223 module src/lib/features/event-calendar in1 t1
 file src/lib/features/event-calendar/EventForm.svelte component L208 module src/lib/features/event-calendar in1 t0
-file src/lib/features/event-calendar/EventMonthGrid.svelte component L167 module src/lib/features/event-calendar in1 t1
+file src/lib/features/event-calendar/EventMonthGrid.svelte component L166 module src/lib/features/event-calendar in1 t1
 file src/lib/features/event-calendar/EventPopover.svelte component L203 module src/lib/features/event-calendar in1 t1
 file src/lib/features/event-calendar/EventShortcutsDialog.svelte component L55 module src/lib/features/event-calendar in1 t0
 file src/lib/features/event-calendar/EventTaskChip.svelte component L43 module src/lib/features/event-calendar in2 t0
@@ -58,7 +58,7 @@ file src/lib/features/event-calendar/event-calendar-daily-note.store.svelte.ts s
 file src/lib/features/event-calendar/event-calendar-dates.logic.ts logic L346 module src/lib/features/event-calendar in14 t9 | Native, dependency-free date helpers for the event calendar.
 file src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts other L143 module src/lib/features/event-calendar in2 t2
 file src/lib/features/event-calendar/event-calendar-drag.logic.ts logic L319 module src/lib/features/event-calendar in5 t1 | Pointer gestures of the time grid (create, move and resize) and of the day cells of the month grid and the all-day lane (move to another day).
-file src/lib/features/event-calendar/event-calendar-event.logic.ts logic L513 module src/lib/features/event-calendar in12 t4 | Schema of event notes: how a Rust `VaultIndex` entry of the configured event type becomes a calendar event or a Needs-attention issue, what a calendar write pu…
+file src/lib/features/event-calendar/event-calendar-event.logic.ts logic L521 module src/lib/features/event-calendar in12 t4 | Schema of event notes: how a Rust `VaultIndex` entry of the configured event type becomes a calendar event or a Needs-attention issue, what a calendar write pu…
 file src/lib/features/event-calendar/event-calendar-focus.logic.ts logic L46 module src/lib/features/event-calendar in1 t1
 file src/lib/features/event-calendar/event-calendar-form.logic.ts logic L224 module src/lib/features/event-calendar in3 t1 | Rules of the event dialog's form: building a draft, keeping start, end and all-day consistent, validation messages, the patch an edit writes, and the rename pl…
 file src/lib/features/event-calendar/event-calendar-gesture-guard.ts other L162 module src/lib/features/event-calendar in2 t1

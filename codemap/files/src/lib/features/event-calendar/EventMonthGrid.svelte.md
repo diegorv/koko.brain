@@ -1,6 +1,6 @@
 # file card src/lib/features/event-calendar/EventMonthGrid.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/event-calendar/EventMonthGrid.svelte ' codemap/files
-file src/lib/features/event-calendar/EventMonthGrid.svelte component L167 module src/lib/features/event-calendar in1 t1
+file src/lib/features/event-calendar/EventMonthGrid.svelte component L166 module src/lib/features/event-calendar in1 t1
 ## imports
 imp src/lib/features/event-calendar/EventMonthGrid.svelte:3 -> src/lib/components/ui/tooltip/index.ts *
 imp src/lib/features/event-calendar/EventMonthGrid.svelte:4 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
@@ -22,7 +22,7 @@ out2 src/lib/features/event-calendar/EventMonthGrid.svelte 21 files in 8 modules
 ## tests
 test src/tests/lib/features/event-calendar/EventMonthGrid.test.ts imports src/lib/features/event-calendar/EventMonthGrid.svelte mirror
 ## symbols
-sym src/lib/features/event-calendar/EventMonthGrid.svelte:1 component EventMonthGrid L167
+sym src/lib/features/event-calendar/EventMonthGrid.svelte:1 component EventMonthGrid L166
 by src/lib/features/event-calendar/EventMonthGrid.svelte:default <- src/lib/features/event-calendar/EventCalendarView.svelte:247 in (markup) mount
 ## locals
 local src/lib/features/event-calendar/EventMonthGrid.svelte:45 fn openDay(day: string) L4
@@ -31,7 +31,7 @@ local src/lib/features/event-calendar/EventMonthGrid.svelte:57 fn handleCellClic
 local src/lib/features/event-calendar/EventMonthGrid.svelte:65 fn handleCellDoubleClick(e: MouseEvent, day: string) L4
 ## mounts
 mount src/lib/features/event-calendar/EventMonthGrid.svelte:127 EventDailyNoteButton -> src/lib/features/event-calendar/EventDailyNoteButton.svelte
-mount src/lib/features/event-calendar/EventMonthGrid.svelte:150 EventTaskChip -> src/lib/features/event-calendar/EventTaskChip.svelte
+mount src/lib/features/event-calendar/EventMonthGrid.svelte:149 EventTaskChip -> src/lib/features/event-calendar/EventTaskChip.svelte
 ## mounted-at
 mount src/lib/features/event-calendar/EventCalendarView.svelte:247 EventMonthGrid -> src/lib/features/event-calendar/EventMonthGrid.svelte
 ## calls
@@ -54,8 +54,8 @@ call src/lib/features/event-calendar/EventMonthGrid.svelte:120 in (markup) -> sr
 call src/lib/features/event-calendar/EventMonthGrid.svelte:120 in (markup) -> src/lib/features/event-calendar/event-calendar-dates.logic.ts:formatWeekday markup
 call src/lib/features/event-calendar/EventMonthGrid.svelte:123 in (markup) -> src/lib/features/event-calendar/EventMonthGrid.svelte:handleDayClick markup
 call src/lib/features/event-calendar/EventMonthGrid.svelte:125 in (markup) -> src/lib/features/event-calendar/event-calendar-dates.logic.ts:fromKey markup
-call src/lib/features/event-calendar/EventMonthGrid.svelte:136 in (markup) -> src/lib/features/event-calendar/event-calendar-event.logic.ts:eventColorStyle markup
-call src/lib/features/event-calendar/EventMonthGrid.svelte:141 in (markup) -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:eventCalendarViewStore.openPopover markup
-call src/lib/features/event-calendar/EventMonthGrid.svelte:158 in (markup) -> src/lib/features/event-calendar/EventMonthGrid.svelte:openDay markup
+call src/lib/features/event-calendar/EventMonthGrid.svelte:135 in (markup) -> src/lib/features/event-calendar/event-calendar-event.logic.ts:eventColorStyle markup
+call src/lib/features/event-calendar/EventMonthGrid.svelte:140 in (markup) -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:eventCalendarViewStore.openPopover markup
+call src/lib/features/event-calendar/EventMonthGrid.svelte:157 in (markup) -> src/lib/features/event-calendar/EventMonthGrid.svelte:openDay markup
 ## effects
 fx src/lib/features/event-calendar/EventMonthGrid.svelte:39 svelte.$effect in (script)
