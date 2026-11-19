@@ -809,6 +809,18 @@ describe('KanbanView: filter clear, per-board reset and tag filter', () => {
 			expect(api!.getPersistCount()).toBe(0);
 		});
 
+		it('a #design chip mixes its preset toward --editor-fg, and the tag swatches keep the full preset', async () => {
+			mountBoard(markdownOf(SOURCE, { design: 'yellow' }));
+			const chip = [...target.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.trim() === '#design')!;
+			const style = chip.getAttribute('style') ?? '';
+			expect(style).toContain('color-mix');
+			expect(style).toContain('--editor-fg');
+			expect(chip.style.background).toBe('rgba(234, 179, 8, 0.15)');
+
+			const sub = await openTagColor('tagged');
+			expect(sub.querySelector<HTMLElement>('button[title="yellow"]')!.style.background).toBe('rgb(234, 179, 8)');
+		});
+
 		it('"Tag color" lists one group per tag of the card', async () => {
 			mountBoard(markdownOf('## To Do\n\n- [ ] two tags #alpha #beta\n\n'));
 			const sub = await openTagColor('two tags');
@@ -1389,6 +1401,9 @@ describe('KanbanView: list, table and archive', () => {
 
 			const row = cell.closest('tr')!;
 			expect(row.cells[3].textContent?.trim()).toBe('#design');
+			const chipStyle = row.cells[3].querySelector('span')!.getAttribute('style') ?? '';
+			expect(chipStyle).toContain('color-mix');
+			expect(chipStyle).toContain('--editor-fg');
 		});
 
 		it('list view still renders the #design chip inline', () => {

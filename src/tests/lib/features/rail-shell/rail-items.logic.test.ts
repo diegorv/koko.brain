@@ -14,6 +14,7 @@ import {
 	RAIL_STYLES,
 	RAIL_WIDTH,
 	railActionColor,
+	railBadgeTextColor,
 	railFormWidth,
 	railHeaderPad,
 	railItemColor,
@@ -221,6 +222,22 @@ describe('railItemColor', () => {
 	it('gives any other key, such as another registered navigator, the fallback', () => {
 		expect(railItemColor('some-navigator')).toBe('#0ea5e9');
 		expect(railItemColor('toString')).toBe('#0ea5e9');
+	});
+});
+
+describe('railBadgeTextColor', () => {
+	it('gives black text on the Inbox blue, where black contrasts more than white', () => {
+		expect(railBadgeTextColor('#3b82f6')).toBe('#000000');
+		expect(railBadgeTextColor(railItemColor('inbox'))).toBe('#000000');
+	});
+
+	it('gives white text on a dark navy', () => {
+		expect(railBadgeTextColor('#1e293b')).toBe('#ffffff');
+	});
+
+	it('gives the theme primary foreground for a color it cannot parse', () => {
+		expect(railBadgeTextColor('var(--primary)')).toBe('var(--primary-foreground)');
+		expect(railBadgeTextColor('')).toBe('var(--primary-foreground)');
 	});
 });
 

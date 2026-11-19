@@ -60,6 +60,7 @@ test src/tests/lib/core/markdown-editor/MarkdownEditor.test.ts imports-type src/
 test src/tests/lib/features/auto-organize/AutoOrganizeRuleRow.test.ts imports-type src/lib/features/collection/collection.types.ts
 test src/tests/lib/features/auto-organize/auto-organize.logic.test.ts imports-type src/lib/features/collection/collection.types.ts
 test src/tests/lib/features/auto-organize/type-lifecycle-rules.test.ts imports-type src/lib/features/collection/collection.types.ts
+test src/tests/lib/features/collection/CollectionLinearCalendarView.svelte.test.ts imports-type src/lib/features/collection/collection.types.ts
 test src/tests/lib/features/collection/CollectionTableView.svelte.test.ts imports-type src/lib/features/collection/collection.types.ts
 test src/tests/lib/features/collection/CollectionView.test.ts imports-type src/lib/features/collection/collection.types.ts
 test src/tests/lib/features/collection/CollectionView.view-writes.test.ts imports-type src/lib/features/collection/collection.types.ts
@@ -86,8 +87,7 @@ test src/tests/lib/features/rail-shell/view-lens.service.test.ts imports-type sr
 test src/tests/lib/features/type-definitions/type-definitions.service.test.ts imports-type src/lib/features/collection/collection.types.ts
 test src/tests/lib/features/type-definitions/type-note-list.logic.test.ts imports-type src/lib/features/collection/collection.types.ts
 test src/tests/lib/features/type-definitions/type-sidebar.logic.test.ts imports-type src/lib/features/collection/collection.types.ts
-test src/tests/lib/plugins/mods/mod-query.service.test.ts imports-type src/lib/features/collection/collection.types.ts
-more tests 5 not shown: src/tests/lib/plugins/queryjs(5): q tests src/lib/features/collection/collection.types.ts
+more tests 6 not shown: src/tests/lib/plugins/queryjs(5) src/tests/lib/plugins/mods(1): q tests src/lib/features/collection/collection.types.ts
 ## symbols
 sym src/lib/features/collection/collection.types.ts:4 type FilterItem L1 | Recursive filter type: an object with conjunctions or a string expression
 by src/lib/features/collection/collection.types.ts:FilterItem <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:26 in (script) import

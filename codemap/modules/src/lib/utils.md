@@ -1,7 +1,7 @@
 # module card src/lib/utils
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/utils ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 89/109 ipc 3/0 card ~9.8k
+module src/lib/utils utils files 31 in-modules 43 out-modules 2 pub 90/110 ipc 3/0 card ~9.9k
 ## neighbors
 dep src/lib/app -> src/lib/utils 17
 dep src/lib/core/editor -> src/lib/utils 7
@@ -29,7 +29,7 @@ dep src/lib/features/note-list -> src/lib/utils 2
 dep src/lib/features/outgoing-links -> src/lib/utils 2
 dep src/lib/features/properties -> src/lib/utils 7
 dep src/lib/features/quick-switcher -> src/lib/utils 1
-dep src/lib/features/rail-shell -> src/lib/utils 11
+dep src/lib/features/rail-shell -> src/lib/utils 12
 dep src/lib/features/search -> src/lib/utils 9
 dep src/lib/features/tags -> src/lib/utils 5
 dep src/lib/features/tasks -> src/lib/utils 17
@@ -43,7 +43,7 @@ dep src/lib/plugins/one-on-one -> src/lib/utils 5
 dep src/lib/plugins/periodic-notes -> src/lib/utils 2
 dep src/lib/plugins/queryjs -> src/lib/utils 8
 dep src/lib/plugins/quick-capture -> src/lib/utils 3
-dep src/lib/plugins/templates -> src/lib/utils 1
+dep src/lib/plugins/templates -> src/lib/utils 2
 dep src/lib/utils.ts -> src/lib/utils 1
 dep src/routes -> src/lib/utils 2
 dep src/lib/utils -> src/lib/contracts 3
@@ -52,11 +52,11 @@ in2 src/lib/utils 5 modules: src/lib/components(55) src/lib/core/layout(2) src/l
 out2 src/lib/utils 0 modules: -
 ## entry files
 entry src/lib/utils/debug.ts ext-in74 src/lib/app/LabsSection.svelte src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/app/global-keybindings.ts src/lib/app/lifecycle/app-lifecycle.service.ts more importers 69 not shown: src/lib/features/todoist-sync(7) src/lib/core/settings(6) src/lib/core/filesystem(5) +31 modules: q importers src/lib/utils/debug.ts
-entry src/lib/utils/path.ts ext-in28 src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/core/editor/editor.logic.ts src/lib/core/filesystem/delete-note.service.ts src/lib/core/filesystem/file-entries.logic.ts more importers 23 not shown: src/lib/core/filesystem(4) src/lib/features/search(3) src/lib/features/tasks(3) +9 modules: q importers src/lib/utils/path.ts
+entry src/lib/utils/path.ts ext-in29 src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/core/editor/editor.logic.ts src/lib/core/filesystem/delete-note.service.ts src/lib/core/filesystem/file-entries.logic.ts more importers 24 not shown: src/lib/core/filesystem(4) src/lib/features/search(3) src/lib/features/tasks(3) +10 modules: q importers src/lib/utils/path.ts
 entry src/lib/utils/date.ts ext-in16 src/lib/core/markdown-editor/extensions/date-shortcut/completion.logic.ts src/lib/core/settings/sections/PeriodicNotesSection.svelte src/lib/features/collection/calendar.logic.ts src/lib/features/file-history/file-history.logic.ts src/lib/features/tasks/TaskLists.svelte more importers 11 not shown: src/lib/features/tasks(5) src/lib/plugins/kanban(3) src/lib/plugins/calendar(1) +2 modules: q importers src/lib/utils/date.ts
 entry src/lib/utils/log.service.ts ext-in13 src/lib/app/AppShell.svelte src/lib/app/boot.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/core/editor/editor.service.ts src/lib/core/note-creator/note-creator.service.ts more importers 8 not shown: src/lib/features/rail-shell(2) src/lib/plugins/queryjs(2) src/lib/core/settings(1) +3 modules: q importers src/lib/utils/log.service.ts
 entry src/lib/utils/clamp.ts ext-in10 src/lib/core/editor/open-note-at.service.ts src/lib/core/settings/sections/FileHistorySection.svelte src/lib/core/settings/settings.logic.ts src/lib/features/auto-organize/AutoOrganizeSection.svelte src/lib/features/collection/expression/evaluator.ts more importers 5 not shown: src/lib/plugins/kanban(2) src/lib/plugins/queryjs(2) src/lib/features/rail-shell(1): q importers src/lib/utils/clamp.ts
-entry src/lib/utils/color.ts ext-in7 src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts src/lib/core/settings/sections/ThemePreview.svelte src/lib/core/settings/theme-builder.logic.ts src/lib/core/settings/theme.logic.ts src/lib/core/settings/theme.service.ts more importers 2 not shown: src/lib/features/collection(1) src/lib/plugins/graph-view(1): q importers src/lib/utils/color.ts
+entry src/lib/utils/color.ts ext-in8 src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts src/lib/core/settings/sections/ThemePreview.svelte src/lib/core/settings/theme-builder.logic.ts src/lib/core/settings/theme.logic.ts src/lib/core/settings/theme.service.ts more importers 3 not shown: src/lib/features/collection(1) src/lib/features/rail-shell(1) src/lib/plugins/graph-view(1): q importers src/lib/utils/color.ts
 entry src/lib/utils/fuzzy-match.ts ext-in7 src/lib/core/filesystem/file-entries.logic.ts src/lib/core/markdown-editor/extensions/tag/completion.logic.ts src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts src/lib/core/markdown-editor/extensions/wikilink/completion.ts src/lib/features/command-palette/command-palette.logic.ts more importers 2 not shown: src/lib/features/quick-switcher(1) src/lib/plugins/mods(1): q importers src/lib/utils/fuzzy-match.ts
 entry src/lib/utils/tag-extraction.ts ext-in7 src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/tag-handler.ts src/lib/features/collection/collection.logic.ts src/lib/features/search/search.logic.ts src/lib/features/tasks/task-headings.logic.ts more importers 2 not shown: src/lib/features/tasks(1) src/lib/features/todoist-sync(1): q importers src/lib/utils/tag-extraction.ts
 entry src/lib/utils/color-presets.ts ext-in6 src/lib/features/collection/expression/evaluator.ts src/lib/plugins/kanban/KanbanCard.svelte src/lib/plugins/kanban/KanbanCardText.svelte src/lib/plugins/kanban/KanbanListView.svelte src/lib/plugins/kanban/KanbanTableView.svelte more importers 1 not shown: src/lib/plugins/queryjs(1): q importers src/lib/utils/color-presets.ts
@@ -85,8 +85,8 @@ file src/lib/utils/app-channel.ts other L17 module src/lib/utils in1 t1
 file src/lib/utils/build-info.js other L167 module src/lib/utils in1 t1
 file src/lib/utils/capture-path.ts other L14 module src/lib/utils in3 t1
 file src/lib/utils/clamp.ts other L9 module src/lib/utils in10 t1
-file src/lib/utils/color-presets.ts other L30 module src/lib/utils in6 t1
-file src/lib/utils/color.ts other L159 module src/lib/utils in7 t6
+file src/lib/utils/color-presets.ts other L39 module src/lib/utils in6 t1
+file src/lib/utils/color.ts other L159 module src/lib/utils in8 t7
 file src/lib/utils/date.ts other L170 module src/lib/utils in17 t3
 file src/lib/utils/debounce.ts other L55 module src/lib/utils in4 t4
 file src/lib/utils/debug.ts other L166 module src/lib/utils in74 t53
@@ -102,7 +102,7 @@ file src/lib/utils/menu-action.types.ts types L21 module src/lib/utils in2 t0
 file src/lib/utils/node-shims/fs.js other L3 module src/lib/utils in0 t0
 file src/lib/utils/node-shims/path.js other L4 module src/lib/utils in0 t0
 file src/lib/utils/note-date.ts other L57 module src/lib/utils in3 t1
-file src/lib/utils/path.ts other L123 module src/lib/utils in28 t1
+file src/lib/utils/path.ts other L123 module src/lib/utils in29 t1
 file src/lib/utils/platform.ts other L40 module src/lib/utils in5 t4
 file src/lib/utils/roving-list.ts other L93 module src/lib/utils in2 t1 | The generic keyboard model of a roving-tabindex list: which row a key focuses, which row stays current when the list changes, and which row holds the list's on…
 file src/lib/utils/sanitize-url.ts other L15 module src/lib/utils in5 t1
@@ -118,6 +118,7 @@ sym src/lib/utils/capture-path.ts:9 fn buildCaptureFolder(vaultPath: string, bas
 sym src/lib/utils/clamp.ts:7 fn clamp(value: number, min: number, max: number): number L3 | Clamps `value` into the inclusive range `[min, max]`.
 sym src/lib/utils/color-presets.ts:23 const COLOR_PRESET_BG: Record<string, string> L3 | Named color presets with background (low opacity) variant.
 sym src/lib/utils/color-presets.ts:28 const COLOR_PRESET_TEXT: Record<string, string> L3 | Named color presets with full opacity for text/bars.
+sym src/lib/utils/color-presets.ts:37 const COLOR_PRESET_CHIP_TEXT: Record<string, string> L3 | Named color presets for text on a `COLOR_PRESET_BG` chip: the preset moved 70% toward `--editor-fg`, so it keeps its hue and stays readable on the chip tint.
 sym src/lib/utils/color.ts:48 fn flatten(color: string, base: string): string | null L7 | Composites `color` (alpha honored) over the opaque `base` into a 6-digit hex; null when either is unparseable.
 sym src/lib/utils/color.ts:71 fn isDarkColor(color: string): boolean | null L4 | True when a background color is dark (WCAG relative luminance below 0.2), false when light, null when the value is not a hex, rgb() or oklch() color.
 sym src/lib/utils/color.ts:81 fn contrastRatio(a: string, b: string): number | null L8 | WCAG contrast ratio of foreground `a` on background `b`, with a translucent `a` composited over `b` (`b`'s own alpha is ignored; flatten it first).

@@ -39,7 +39,7 @@ entry src/lib/features/collection/key-edit.logic.ts ext-in1 src/lib/features/typ
 entry src/lib/features/collection/toolbar/SortPanel.svelte ext-in1 src/lib/features/rail-shell/RailNoteList.svelte
 ## files
 file src/lib/features/collection/CollectionCalendarView.svelte component L172 module src/lib/features/collection in1 t0
-file src/lib/features/collection/CollectionLinearCalendarView.svelte component L219 module src/lib/features/collection in1 t0
+file src/lib/features/collection/CollectionLinearCalendarView.svelte component L221 module src/lib/features/collection in1 t1
 file src/lib/features/collection/CollectionTableView.svelte component L108 module src/lib/features/collection in1 t1
 file src/lib/features/collection/CollectionView.svelte component L766 module src/lib/features/collection in1 t4
 file src/lib/features/collection/calendar.logic.ts logic L192 module src/lib/features/collection in4 t2

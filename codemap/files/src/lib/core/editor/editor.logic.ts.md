@@ -19,7 +19,7 @@ imp src/lib/core/status-bar/SaveStatus.svelte:5 -> src/lib/core/editor/editor.lo
 imp src/lib/features/auto-organize/auto-organize.service.ts:6 -> src/lib/core/editor/editor.logic.ts isTabDirty
 imp src/lib/features/event-calendar/event-calendar.service.ts:17 -> src/lib/core/editor/editor.logic.ts EVENT_CALENDAR_VIRTUAL_PATH,findTabIndex
 imp src/lib/features/properties/lifecycle.service.ts:2 -> src/lib/core/editor/editor.logic.ts isMarkdownNoteTab
-imp src/lib/features/rail-shell/rail-items.logic.ts:2 -> src/lib/core/editor/editor.logic.ts GRAPH_VIRTUAL_PATH,TAGS_VIRTUAL_PATH,TASKS_VIRTUAL_PATH
+imp src/lib/features/rail-shell/rail-items.logic.ts:3 -> src/lib/core/editor/editor.logic.ts GRAPH_VIRTUAL_PATH,TAGS_VIRTUAL_PATH,TASKS_VIRTUAL_PATH
 imp src/lib/features/search/SemanticIndexStatus.svelte:8 -> src/lib/core/editor/editor.logic.ts isVirtualTab
 imp src/lib/features/tags/tags.service.ts:5 -> src/lib/core/editor/editor.logic.ts findTabIndex,TAGS_VIRTUAL_PATH
 imp src/lib/features/tasks/tasks.service.ts:5 -> src/lib/core/editor/editor.logic.ts findTabIndex,isTabDirty,TASKS_VIRTUAL_PATH
@@ -57,15 +57,15 @@ test src/tests/lib/plugins/graph-view/graph-view.service.test.ts imports src/lib
 ## symbols
 sym src/lib/core/editor/editor.logic.ts:6 const TASKS_VIRTUAL_PATH L1 | Virtual path used for the singleton Tasks tab
 by src/lib/core/editor/editor.logic.ts:TASKS_VIRTUAL_PATH <- src/lib/core/layout/layout.logic.ts:17 in NO_RIGHT_SIDEBAR_PATHS ref
-by src/lib/core/editor/editor.logic.ts:TASKS_VIRTUAL_PATH <- src/lib/features/rail-shell/rail-items.logic.ts:63 in railItems ref
+by src/lib/core/editor/editor.logic.ts:TASKS_VIRTUAL_PATH <- src/lib/features/rail-shell/rail-items.logic.ts:64 in railItems ref
 by src/lib/core/editor/editor.logic.ts:TASKS_VIRTUAL_PATH <- src/lib/features/tasks/tasks.service.ts:548 in openTasksTab ref +3
 sym src/lib/core/editor/editor.logic.ts:9 const GRAPH_VIRTUAL_PATH L1 | Virtual path used for the singleton Graph View tab
 by src/lib/core/editor/editor.logic.ts:GRAPH_VIRTUAL_PATH <- src/lib/core/layout/layout.logic.ts:19 in NO_RIGHT_SIDEBAR_PATHS ref
-by src/lib/core/editor/editor.logic.ts:GRAPH_VIRTUAL_PATH <- src/lib/features/rail-shell/rail-items.logic.ts:64 in railItems ref
+by src/lib/core/editor/editor.logic.ts:GRAPH_VIRTUAL_PATH <- src/lib/features/rail-shell/rail-items.logic.ts:65 in railItems ref
 by src/lib/core/editor/editor.logic.ts:GRAPH_VIRTUAL_PATH <- src/lib/plugins/graph-view/graph-view.service.ts:35 in openGraphTab ref +4
 sym src/lib/core/editor/editor.logic.ts:12 const TAGS_VIRTUAL_PATH L1 | Virtual path used for the singleton Tags tab
 by src/lib/core/editor/editor.logic.ts:TAGS_VIRTUAL_PATH <- src/lib/core/layout/layout.logic.ts:18 in NO_RIGHT_SIDEBAR_PATHS ref
-by src/lib/core/editor/editor.logic.ts:TAGS_VIRTUAL_PATH <- src/lib/features/rail-shell/rail-items.logic.ts:65 in railItems ref
+by src/lib/core/editor/editor.logic.ts:TAGS_VIRTUAL_PATH <- src/lib/features/rail-shell/rail-items.logic.ts:66 in railItems ref
 by src/lib/core/editor/editor.logic.ts:TAGS_VIRTUAL_PATH <- src/lib/features/tags/tags.service.ts:127 in openTagsTab ref +3
 sym src/lib/core/editor/editor.logic.ts:15 const EVENT_CALENDAR_VIRTUAL_PATH L1 | Virtual path used for the singleton Calendar tab
 by src/lib/core/editor/editor.logic.ts:EVENT_CALENDAR_VIRTUAL_PATH <- src/lib/core/layout/layout.logic.ts:16 in NO_RIGHT_SIDEBAR_PATHS ref

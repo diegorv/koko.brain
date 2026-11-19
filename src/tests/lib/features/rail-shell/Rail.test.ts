@@ -447,14 +447,16 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 		expect(sectionTitles()).toEqual(['Workspace', 'Tabs']);
 	});
 
-	it('draws the Inbox count as a pill on the item color', () => {
+	it('draws the Inbox count as a pill on the item color, with black text on its blue', () => {
 		typeDefinitionsStore.setEntries([entryV2('/vault/a.md')]);
 		mountRail();
 		const pill = badge() as HTMLElement;
-		for (const name of ['rounded-full', 'text-label', 'tabular-nums', 'text-white']) {
+		for (const name of ['rounded-full', 'text-label', 'tabular-nums']) {
 			expect(pill.classList).toContain(name);
 		}
+		expect(pill.classList).not.toContain('text-white');
 		expect(pill.style.backgroundColor).toBe('var(--rail-c)');
+		expect(pill.style.color).toBe('rgb(0, 0, 0)');
 	});
 
 	it.runIf(labeled)('keeps the Inbox count in the row, and offers the resize handle', () => {

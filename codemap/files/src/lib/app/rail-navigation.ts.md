@@ -16,7 +16,7 @@ imp src/lib/app/commands.ts:55 -> src/lib/app/rail-navigation.ts openRailView,se
 imp src/lib/app/editor-host.ts:36 -> src/lib/app/rail-navigation.ts openRailView
 ## reach
 in2 src/lib/app/rail-navigation.ts 3 files in 2 modules: src/lib/app(2) src/routes(1)
-out2 src/lib/app/rail-navigation.ts 48 files in 15 modules: src/lib/features/tasks(8) src/lib/utils(7) src/lib/features/collection(5) src/lib/core/editor(4) src/lib/core/filesystem(4) +10 modules
+out2 src/lib/app/rail-navigation.ts 49 files in 15 modules: src/lib/features/tasks(8) src/lib/utils(8) src/lib/features/collection(5) src/lib/core/editor(4) src/lib/core/filesystem(4) +10 modules
 ## tests
 test src/tests/lib/app/rail-navigation.test.ts imports src/lib/app/rail-navigation.ts mirror
 ## symbols

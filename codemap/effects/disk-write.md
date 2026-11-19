@@ -70,5 +70,5 @@ fx src/lib/features/file-icons/file-icons.service.ts:103 tauri-fs.writeTextFile 
 fx src/lib/features/type-definitions/type-definitions.service.ts:233 tauri-fs.writeTextFile in renameType
 fx src/lib/features/type-definitions/type-definitions.service.ts:430 tauri-fs.writeTextFile in rewriteViewFileNow
 fx src/lib/plugins/mods/mod-vault.service.ts:160 tauri-fs.writeTextFile in createModVault
-fx src/lib/plugins/templates/templates.service.ts:118 tauri-fs.writeTextFile in ensureTemplatesFolder
+fx src/lib/plugins/templates/templates.service.ts:120 tauri-fs.writeTextFile in ensureTemplatesFolder
 fx src/lib/utils/log.service.ts:103 tauri-fs.writeTextFile in flushPending

@@ -184,7 +184,7 @@ ipc-call src/lib/features/rail-shell/new-note.service.ts:36 in createNoteHere ->
 ipc-call src/lib/features/todoist-sync/closed-note-writer.service.ts:75 in createNoteFile -> ipc:create_folder -> src-tauri/src/commands/vault.rs:1179
 ipc-call src/lib/features/type-definitions/type-definitions.service.ts:134 in createTypedNote -> ipc:create_folder -> src-tauri/src/commands/vault.rs:1179
 ipc-call src/lib/plugins/mods/mod-vault.service.ts:135 in createModVault -> ipc:create_folder -> src-tauri/src/commands/vault.rs:1179
-ipc-call src/lib/plugins/templates/templates.service.ts:107 in ensureTemplatesFolder -> ipc:create_folder -> src-tauri/src/commands/vault.rs:1179
+ipc-call src/lib/plugins/templates/templates.service.ts:109 in ensureTemplatesFolder -> ipc:create_folder -> src-tauri/src/commands/vault.rs:1179
 ipc-call src/lib/plugins/mods/mod-vault.service.ts:278 in createModData -> ipc:write_mod_data -> src-tauri/src/commands/vault.rs:1206
 ipc-call src/lib/plugins/mods/mods-host.service.ts:991 in writePendingSettings -> ipc:write_mod_data -> src-tauri/src/commands/vault.rs:1206
 ipc-call src/lib/plugins/mods/mod-vault.service.ts:246 in createModData -> ipc:read_mod_data -> src-tauri/src/commands/vault.rs:1222

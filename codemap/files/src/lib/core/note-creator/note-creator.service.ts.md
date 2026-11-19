@@ -56,7 +56,7 @@ by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib
 by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib/plugins/one-on-one/one-on-one.service.ts:92 in createOneOnOneNote call
 by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib/plugins/periodic-notes/periodic-notes.service.ts:53 in openOrCreatePeriodicNoteForDate call
 by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib/plugins/quick-capture/note-composer.service.ts:47 in createNoteComposer call
-by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib/plugins/templates/templates.service.ts:63 in createFileFromTemplate call
+by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib/plugins/templates/templates.service.ts:65 in createFileFromTemplate call
 ## calls
 call src/lib/core/note-creator/note-creator.service.ts:63 in loadNoteTemplate -> src/lib/utils/template.ts:processTemplate call
 call src/lib/core/note-creator/note-creator.service.ts:84 in openOrCreateNote -> src/lib/utils/log.service.ts:appendLog call +4

@@ -58,7 +58,7 @@ by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/fe
 by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:404 in getResolvedIcon call
 by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/file-icons/IconPicker.svelte:74 in recentNormalized=$derived call +1
 by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/file-icons/icon-resolver.ts:50 in resolveRef call
-by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/rail-shell/Rail.svelte:215 in actionIcon call
+by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/features/rail-shell/Rail.svelte:216 in actionIcon call
 by src/lib/features/file-icons/file-icons.icon-data.ts:getIconSync <- src/lib/plugins/mods/mods-host.service.ts:593 in createModContext call
 sym src/lib/features/file-icons/file-icons.icon-data.ts:316 fn preloadPacks(packIds: IconPackId[]): Promise<void> L5 | Pre-loads specific packs into cache (call at startup for packs referenced in saved icons)
 by src/lib/features/file-icons/file-icons.icon-data.ts:preloadPacks <- src/lib/features/file-icons/file-icons.service.ts:230 in buildFrontmatterIconIndex call +1

@@ -28,3 +28,12 @@ export const COLOR_PRESET_BG: Record<string, string> = Object.fromEntries(
 export const COLOR_PRESET_TEXT: Record<string, string> = Object.fromEntries(
 	Object.entries(PALETTE).map(([name, val]) => [name, rgb(val)])
 );
+
+/**
+ * Named color presets for text on a `COLOR_PRESET_BG` chip: the preset moved 70%
+ * toward `--editor-fg`, so it keeps its hue and stays readable on the chip tint.
+ * `src/tests/lib/utils/color-presets.test.ts` enforces 4.5:1 on the built-in themes.
+ */
+export const COLOR_PRESET_CHIP_TEXT: Record<string, string> = Object.fromEntries(
+	Object.entries(PALETTE).map(([name, val]) => [name, `color-mix(in oklab, ${rgb(val)} 30%, var(--editor-fg))`])
+);

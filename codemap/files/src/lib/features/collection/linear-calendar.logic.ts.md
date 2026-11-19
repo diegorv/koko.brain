@@ -7,7 +7,7 @@ imp src/lib/features/collection/linear-calendar.logic.ts:2 -> src/lib/features/c
 imp src/lib/features/collection/linear-calendar.logic.ts:3 -> src/lib/features/collection/calendar.logic.ts extractDateFromRecord
 imp src/lib/features/collection/linear-calendar.logic.ts:4 -> src/lib/features/collection/collection.logic.ts getPropertyValue
 ## imported-by
-imp src/lib/features/collection/CollectionLinearCalendarView.svelte:3 -> src/lib/features/collection/linear-calendar.logic.ts buildLinearYearLayout,buildColorMapping,getColorForValue,type:MonthRow,type:ColorMapping
+imp src/lib/features/collection/CollectionLinearCalendarView.svelte:3 -> src/lib/features/collection/linear-calendar.logic.ts buildLinearYearLayout,buildColorMapping,getColorForValue,barTextColor,type:MonthRow,type:ColorMapping
 imp src/lib/features/collection/collection-block-widget.ts:20 -> src/lib/features/collection/linear-calendar.logic.ts buildLinearYearLayout,buildColorMapping,getColorForValue,barTextColor
 ## reach
 in2 src/lib/features/collection/linear-calendar.logic.ts 3 files in 2 modules: src/lib/app(2) src/lib/features/collection(1)
@@ -18,9 +18,9 @@ test src/tests/lib/features/collection/linear-calendar-logic.test.ts imports src
 ## symbols
 sym src/lib/features/collection/linear-calendar.logic.ts:9 interface LinearCalendarEvent L16 | A single event positioned in the linear calendar layout
 sym src/lib/features/collection/linear-calendar.logic.ts:27 interface MonthRow L12 | Layout information for a single month row
-by src/lib/features/collection/linear-calendar.logic.ts:MonthRow <- src/lib/features/collection/CollectionLinearCalendarView.svelte:7 in (script) import
+by src/lib/features/collection/linear-calendar.logic.ts:MonthRow <- src/lib/features/collection/CollectionLinearCalendarView.svelte:8 in (script) import
 sym src/lib/features/collection/linear-calendar.logic.ts:41 interface ColorMapping L6 | Deterministic color palette mapping from property values to CSS colors
-by src/lib/features/collection/linear-calendar.logic.ts:ColorMapping <- src/lib/features/collection/CollectionLinearCalendarView.svelte:8 in (script) import
+by src/lib/features/collection/linear-calendar.logic.ts:ColorMapping <- src/lib/features/collection/CollectionLinearCalendarView.svelte:9 in (script) import
 sym src/lib/features/collection/linear-calendar.logic.ts:61 const COLOR_PALETTE L14 | 12-color HSL palette for deterministic color assignment
 sym src/lib/features/collection/linear-calendar.logic.ts:83 fn getDaysInMonth(year: number, month: number): number L3 | Returns the number of days in a given month.
 sym src/lib/features/collection/linear-calendar.logic.ts:91 fn getLinearYearGrid(year: number): MonthRow[] L13 | Generates the 12-month grid skeleton for a year (no events).
@@ -28,15 +28,16 @@ sym src/lib/features/collection/linear-calendar.logic.ts:111 fn clampDateToMonth
 sym src/lib/features/collection/linear-calendar.logic.ts:124 fn extractEventsForYear(records: PropertyIndexRecord[], year: number, dateProperty: string, endDateProperty?: string, colorProperty?: string):… L41 | Extracts events for a given year from note records.
 sym src/lib/features/collection/linear-calendar.logic.ts:171 fn layoutEventsInMonth(rawEvents: RawEvent[], month: number, year: number): { events: LinearCalendarEvent[]; maxLane: number } L70 | Assigns lanes to events within a single month using greedy collision detection.
 sym src/lib/features/collection/linear-calendar.logic.ts:246 fn buildLinearYearLayout(records: PropertyIndexRecord[], year: number, dateProperty: string, endDateProperty?: string, colorProperty?: string):… L18 | Builds the full linear year layout: 12 month rows with collision-resolved events.
-by src/lib/features/collection/linear-calendar.logic.ts:buildLinearYearLayout <- src/lib/features/collection/CollectionLinearCalendarView.svelte:42 in layout=$derived call
+by src/lib/features/collection/linear-calendar.logic.ts:buildLinearYearLayout <- src/lib/features/collection/CollectionLinearCalendarView.svelte:43 in layout=$derived call
 by src/lib/features/collection/linear-calendar.logic.ts:buildLinearYearLayout <- src/lib/features/collection/collection-block-widget.ts:324 in CollectionBlockWidget.buildLinearCalendar call
 sym src/lib/features/collection/linear-calendar.logic.ts:269 fn buildColorMapping(records: PropertyIndexRecord[], colorProperty: string): ColorMapping L18 | Builds a deterministic color mapping from property values to palette colors.
-by src/lib/features/collection/linear-calendar.logic.ts:buildColorMapping <- src/lib/features/collection/CollectionLinearCalendarView.svelte:47 in colorMapping=$derived call
+by src/lib/features/collection/linear-calendar.logic.ts:buildColorMapping <- src/lib/features/collection/CollectionLinearCalendarView.svelte:48 in colorMapping=$derived call
 by src/lib/features/collection/linear-calendar.logic.ts:buildColorMapping <- src/lib/features/collection/collection-block-widget.ts:325 in CollectionBlockWidget.buildLinearCalendar call
 sym src/lib/features/collection/linear-calendar.logic.ts:292 fn getColorForValue(value: string | null, mapping: ColorMapping): string | null L4 | Looks up the color for a given property value from a ColorMapping.
-by src/lib/features/collection/linear-calendar.logic.ts:getColorForValue <- src/lib/features/collection/CollectionLinearCalendarView.svelte:81 in getBarColor call +1
+by src/lib/features/collection/linear-calendar.logic.ts:getColorForValue <- src/lib/features/collection/CollectionLinearCalendarView.svelte:82 in getBarColor call +1
 by src/lib/features/collection/linear-calendar.logic.ts:getColorForValue <- src/lib/features/collection/collection-block-widget.ts:417 in CollectionBlockWidget.buildLinearCalendar call
 sym src/lib/features/collection/linear-calendar.logic.ts:302 fn barTextColor(barColor: string): string L5 | Text color for an event bar title: black or white, whichever contrasts more with a `COLOR_PALETTE` bar.
+by src/lib/features/collection/linear-calendar.logic.ts:barTextColor <- src/lib/features/collection/CollectionLinearCalendarView.svelte:207 in (markup) markup
 by src/lib/features/collection/linear-calendar.logic.ts:barTextColor <- src/lib/features/collection/collection-block-widget.ts:418 in CollectionBlockWidget.buildLinearCalendar call
 ## locals
 local src/lib/features/collection/linear-calendar.logic.ts:309 fn hslToHex(color: string): string | null L14
