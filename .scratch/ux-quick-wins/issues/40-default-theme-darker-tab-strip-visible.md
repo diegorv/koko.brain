@@ -14,15 +14,15 @@ Not in this ticket: bold and italic off the link blue and `colorDistance` (Issue
 
 **Blocked by:** 20, 39
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** pnpm check + pnpm vitest run, plus bash scripts/e2e.sh <spec> only when a selector or E2E surface changes.
 
-- [ ] Failing test first, `src/tests/lib/core/settings/theme-builder.logic.test.ts` over `BUILTIN_THEMES`: (a) the `tabBar` luminance ratio to `editorBg` is at most 1.5 (2.08 on Default today); (b) the inactive-tab hover composite (`flatten` of the chosen token at its alpha over `tabBar`) is at least 1.1:1 against `tabBar`. (a) fails on Default today; (b) fails on Default once (a) passes with the old hover class (1.02).
-- [ ] `EditorTabs.test.ts`: an inactive tab carries the new hover class and not `hover:bg-muted/30`.
-- [ ] The snapshot (`src/tests/lib/core/settings/__snapshots__/theme-snapshot.test.ts.snap`), `theme.logic.test.ts:40` and `theme.service.test.ts:25,32` move on purpose to the new `--tab-bar`. `READABILITY_PAIRS` (`tabTextActive` and `tabTextInactive` on `tabBar`, `theme-builder.logic.ts:118-119`) still pass on both themes, and gain contrast on Default.
-- [ ] By eye on Default dark and Lavender Haze: the tab strip, the five navigator and panel headers, the rail strip, the empty-state bands and the resize handle top. If it was not checked by eye, the commit says so.
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, `src/tests/lib/core/settings/theme-builder.logic.test.ts` over `BUILTIN_THEMES`: (a) the `tabBar` luminance ratio to `editorBg` is at most 1.5 (2.08 on Default today); (b) the inactive-tab hover composite (`flatten` of the chosen token at its alpha over `tabBar`) is at least 1.1:1 against `tabBar`. (a) fails on Default today; (b) fails on Default once (a) passes with the old hover class (1.02).
+- [x] `EditorTabs.test.ts`: an inactive tab carries the new hover class and not `hover:bg-muted/30`.
+- [x] The snapshot (`src/tests/lib/core/settings/__snapshots__/theme-snapshot.test.ts.snap`), `theme.logic.test.ts:40` and `theme.service.test.ts:25,32` move on purpose to the new `--tab-bar`. `READABILITY_PAIRS` (`tabTextActive` and `tabTextInactive` on `tabBar`, `theme-builder.logic.ts:118-119`) still pass on both themes, and gain contrast on Default.
+- [x] By eye on Default dark and Lavender Haze: the tab strip, the five navigator and panel headers, the rail strip, the empty-state bands and the resize handle top. If it was not checked by eye, the commit says so.
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Original proposal
 
@@ -54,3 +54,4 @@ Shell-sidebars-ux 34 (`issues/34-pane-band-utility.md`, "land last") adds `@util
 
 - 2026-11-18, triage: ready-for-agent. Decided by the owner: the order and grouping. Defaults (not individually answered): 40.1 (raised by the coverage check): the title says "tab strip" but the change darkens every pane header band on Default in every vault. Default: accept, as validated in P109, and the by-eye check covers all ten sites.
 - 2026-11-18, split while the owner was away, after the first run blocked: deleting the Default `inlineFg` (old item 3) makes bold equal body text, which fails the Issue 05 test "draws bold text in its own color, apart from body text" (`theme-builder.logic.test.ts:161-168`). Choosing between that rule and the item is the owner's call, so old items 3 and 4 and criterion (c) moved to Issue 53 (needs-info). This Issue keeps the tab strip, the hover and the blast radius, which the conflict does not touch.
+- 2026-11-18, delivered from branch `issue/40-default-theme-darker-tab-strip-visible`: Default `--tab-bar` darkened to `#21222e` (strip to editor 1.17:1), and the inactive tab hover moved from `hover:bg-muted/30` to `hover:bg-tab-text-inactive/10` (1.20:1 on Default, 1.17:1 on Lavender Haze), with contrast tests over `BUILTIN_THEMES` and an EditorTabs class pin. Not checked by eye; the owner should look at the ten band sites and whether a hovered tab on Default reads like the active one (review finding 1). Tests: `pnpm vitest run` exit 0, 663 files, 17843 passed, 56 skipped, 1 todo. Review round 1: APPROVED (one minor and two nits, none changed; see `work/40/review.md` Resolution).

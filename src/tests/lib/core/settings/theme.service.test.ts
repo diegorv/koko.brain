@@ -22,7 +22,7 @@ describe('applyTheme', () => {
 
 		expect(document.documentElement.style.getPropertyValue('--background')).toBe('#21222e');
 		expect(document.documentElement.style.getPropertyValue('--card')).toBe('#2a2e3d');
-		expect(document.documentElement.style.getPropertyValue('--tab-bar')).toBe('#5a5c79');
+		expect(document.documentElement.style.getPropertyValue('--tab-bar')).toBe('#21222e');
 	});
 
 	it('sets syntax colors with correct prefix', () => {

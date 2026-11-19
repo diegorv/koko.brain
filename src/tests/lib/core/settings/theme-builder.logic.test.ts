@@ -266,3 +266,22 @@ describe('readable contrast', () => {
 		}
 	});
 });
+
+describe('tab strip of every built-in theme', () => {
+	it('keeps the tab strip within 1.5:1 of the editor, so it is not brighter than the page it labels', () => {
+		for (const theme of BUILTIN_THEMES) {
+			const { ui } = theme.colors;
+			expect(contrastRatio(ui.tabBar, ui.editorBg)!, theme.name).toBeLessThanOrEqual(1.5);
+		}
+	});
+
+	it('shows the inactive tab hover at 1.1:1 or more against the strip', () => {
+		for (const theme of BUILTIN_THEMES) {
+			const { ui } = theme.colors;
+			// EditorTabs' `hover:bg-tab-text-inactive/10`: 10% alpha, here 0x1a (0.102)
+			const hover = flatten(alpha(ui.tabTextInactive, '1a'), ui.tabBar);
+			expect(hover, theme.name).not.toBeNull();
+			expect(contrastRatio(hover!, ui.tabBar)!, theme.name).toBeGreaterThanOrEqual(1.1);
+		}
+	});
+});
