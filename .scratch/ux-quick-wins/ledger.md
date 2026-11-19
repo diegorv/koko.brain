@@ -85,7 +85,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 48 | [New File from Template keeps a typed name inside the vault](issues/48-template-file-name-stays-inside-vault.md) | none | done | issue/48-template-file-name-stays-inside-vault (f0654735a) | 2026-11-18 |
 | 49 | [The mod run log is a live region before its first line arrives](issues/49-mod-run-log-live-region-mounts-early.md) | none | done | issue/49-mod-run-log-live-region-mounts-early (0c4692315) | 2026-11-19 |
 | 50 | [The Kanban card menu opens from the keyboard](issues/50-kanban-card-menu-opens-from-keyboard.md) | none | todo | | |
-| 51 | [The Create note path warning names a path and follows the typed text](issues/51-auto-organize-create-path-warning-reads-draft.md) | none | in-progress | | |
+| 51 | [The Create note path warning names a path and follows the typed text](issues/51-auto-organize-create-path-warning-reads-draft.md) | none | done | issue/51-auto-organize-create-path-warning-reads-draft (29563b109) | 2026-11-19 |
 | 52 | [Readable note list chips, archived rows and search snippet](issues/52-note-list-chips-archived-rows-search-snippet.md) | none | todo | | |
 | 53 | [Default theme: bold and italic off the link blue](issues/53-default-bold-italic-off-link-blue.md) | 40 | todo | | |
 
@@ -175,3 +175,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 00:07 — 49 — start — launched by /relay-lite:run — 3f1ce101f
 - 2026-11-19 00:17 — 49 — deliver — merged after review 1 APPROVED with two findings, fix round (sr-only comment reworded; layout E2E not added), re-review 2 APPROVED (claude); full vitest suite passed (17863 tests) — 0c4692315
 - 2026-11-19 00:17 — 51 — start — launched by /relay-lite:run — cc071a7c6
+- 2026-11-19 00:27 — 51 — deliver — merged after review 1 APPROVED with two findings, fix round (effect clears a refused draft when the stored path changes, live warning test), re-review 2 APPROVED (claude); full vitest suite passed (17868 tests) — 29563b109
