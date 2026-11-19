@@ -35,14 +35,14 @@ by src/lib/core/settings/theme-editor.logic.ts:WIKILINK_COLOR_GROUPS <- src/lib/
 sym src/lib/core/settings/theme-editor.logic.ts:183 const CALLOUT_COLOR_GROUPS: ColorSubGroup<keyof CalloutColors>[] L6
 by src/lib/core/settings/theme-editor.logic.ts:CALLOUT_COLOR_GROUPS <- src/lib/core/settings/sections/ThemeEditor.svelte:67 in GROUP_SUB_GROUPS ref
 sym src/lib/core/settings/theme-editor.logic.ts:198 fn camelCaseToLabel(key: string): string L7 | Converts a camelCase token key to a human-readable label.
-by src/lib/core/settings/theme-editor.logic.ts:camelCaseToLabel <- src/lib/core/settings/sections/ThemeColorRow.svelte:98 in (markup) markup
+by src/lib/core/settings/theme-editor.logic.ts:camelCaseToLabel <- src/lib/core/settings/sections/ThemeColorRow.svelte:30 in shownGate=$derived call +1
 by src/lib/core/settings/theme-editor.logic.ts:camelCaseToLabel <- src/lib/core/settings/sections/ThemeEditor.svelte:199 in (markup) markup
 sym src/lib/core/settings/theme-editor.logic.ts:214 fn isValidHex(value: string): boolean L3 | Returns true if the string is a valid 3 or 6 character hex color (with or without `#`)
-by src/lib/core/settings/theme-editor.logic.ts:isValidHex <- src/lib/core/settings/sections/ThemeColorRow.svelte:49 in handleTextBlur call
+by src/lib/core/settings/theme-editor.logic.ts:isValidHex <- src/lib/core/settings/sections/ThemeColorRow.svelte:57 in handleTextBlur call
 sym src/lib/core/settings/theme-editor.logic.ts:219 fn normalizeHex(value: string): string L7 | Normalizes a hex string: ensures `#` prefix, expands 3-char to 6-char, lowercases
-by src/lib/core/settings/theme-editor.logic.ts:normalizeHex <- src/lib/core/settings/sections/ThemeColorRow.svelte:50 in handleTextBlur call
+by src/lib/core/settings/theme-editor.logic.ts:normalizeHex <- src/lib/core/settings/sections/ThemeColorRow.svelte:58 in handleTextBlur call
 sym src/lib/core/settings/theme-editor.logic.ts:231 fn hexToColorInputValue(value: string): string L6 | Converts a color value to a format accepted by `<input type="color">` (`#rrggbb`).
-by src/lib/core/settings/theme-editor.logic.ts:hexToColorInputValue <- src/lib/core/settings/sections/ThemeColorRow.svelte:78 in (markup) markup
+by src/lib/core/settings/theme-editor.logic.ts:hexToColorInputValue <- src/lib/core/settings/sections/ThemeColorRow.svelte:86 in (markup) markup
 by src/lib/core/settings/theme-editor.logic.ts:hexToColorInputValue <- src/lib/features/tags/TagColorPicker.svelte:67 in (markup) markup
 sym src/lib/core/settings/theme-editor.logic.ts:246 fn validateThemeName(name: string, existingNames: string[]): string | null L13 | Validates a theme name for the editor.
 by src/lib/core/settings/theme-editor.logic.ts:validateThemeName <- src/lib/core/settings/sections/ThemeEditor.svelte:85 in handleSave call
