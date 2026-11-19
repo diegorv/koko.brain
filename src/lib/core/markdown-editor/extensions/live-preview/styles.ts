@@ -505,7 +505,8 @@ export const livePreviewStyles = EditorView.baseTheme({
 		display: 'inline-block',
 		width: '1.2em',
 		textAlign: 'center',
-		opacity: '0.6',
+		// The lowest resting opacity that keeps the chevron at 3:1 on the callout tint (styles.test.ts)
+		opacity: '0.75',
 		transition: 'opacity 0.15s ease',
 		userSelect: 'none',
 	},
@@ -523,16 +524,15 @@ export const livePreviewStyles = EditorView.baseTheme({
 		border: 'none',
 		padding: '0 4px',
 		font: 'inherit',
+		// Full strength: the builder lifts each callout hue to 4.5:1 on the callout tint
 		color: 'var(--cm-lp-callout-accent, inherit)',
 		cursor: 'pointer',
 		fontWeight: '500',
 		textTransform: 'capitalize',
-		opacity: '0.85',
 		borderRadius: 'var(--radius-xs)',
-		transition: 'background-color 0.15s ease, opacity 0.15s ease',
+		transition: 'background-color 0.15s ease',
 	},
 	'.cm-lp-callout-type-label:hover': {
-		opacity: '1',
 		background: 'var(--lp-table-alt, rgba(255,255,255,0.05))',
 	},
 	'.cm-lp-callout-type-popover': {

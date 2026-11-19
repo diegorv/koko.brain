@@ -80,7 +80,7 @@ function parseRgb(color: string): [number, number, number] | null {
 	return rgba ? [rgba[0], rgba[1], rgba[2]] : null;
 }
 
-/** 0-255 channels to a 6-digit hex. */
+/** 0-255 channels to hex: 6 digits for RGB, 8 with a fourth (alpha) channel. */
 function toHex(rgb: number[]): string {
 	return '#' + rgb.map((c) => Math.round(c).toString(16).padStart(2, '0')).join('');
 }
@@ -105,6 +105,17 @@ export function tint(color: string, share: number, base: string): string | null 
 	if (!fg || !bg) return null;
 	const a = fg[3] * share;
 	return toHex([0, 1, 2].map((i) => fg[i] * a + bg[i] * (1 - a)));
+}
+
+/**
+ * `color` with its alpha scaled by `share` (0-1), as an 8-digit hex: the
+ * translucent twin of `tint`, for a background that must stay see-through.
+ * Null when the color is unparseable.
+ */
+export function fade(color: string, share: number): string | null {
+	const rgba = parseRgba(color);
+	if (!rgba) return null;
+	return toHex([rgba[0], rgba[1], rgba[2], clamp01(rgba[3] * share) * 255]);
 }
 
 /** sRGB channel (0-255) to linear light (0-1). */

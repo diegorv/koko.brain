@@ -1,5 +1,5 @@
-import type { Theme, ThemeColors, UIColors } from './theme.types';
-import { apcaContrast, contrastRatio, ensureContrast, ensureContrastOn, flatten, mixColors, shiftLightness, tint } from '#lib/utils/color.js';
+import type { PreviewColors, Theme, ThemeColors, UIColors } from './theme.types';
+import { apcaContrast, colorDistance, contrastRatio, ensureContrast, ensureContrastOn, fade, flatten, mixColors, shiftLightness, tint } from '#lib/utils/color.js';
 
 /**
  * Names of the categorical type palette. A `_color` set to one of them renders
@@ -95,12 +95,40 @@ export function alpha(color: string, a: string): string {
 }
 
 /**
+ * The surface a translucent background is flattened over: a `ui` token, or a
+ * preview block the background is drawn inside (`preview.collectionBg` under a
+ * zebra row), itself flattened over `editorBg`.
+ */
+type SurfaceBase = keyof UIColors | `preview.${keyof PreviewColors}`;
+
+/**
  * A foreground token, the background token it is read on, the minimum WCAG
- * contrast, and the `ui` surface a translucent background is flattened over
- * (`editorBg` when absent).
+ * contrast, the surface a translucent background is flattened over
+ * (`editorBg` when absent), and the share the background token is drawn at
+ * when the surface is a tint of it (the whole token when absent).
  */
 type ReadabilityPair = [
-	group: keyof ThemeColors, key: string, bgGroup: keyof ThemeColors, bgKey: string, min: number, base?: keyof UIColors,
+	group: keyof ThemeColors, key: string, bgGroup: keyof ThemeColors, bgKey: string, min: number, base?: SurfaceBase,
+	share?: number,
+];
+
+/**
+ * Share of `--callout-note` in the callout line tint, `color-mix(in srgb,
+ * var(--callout-note) 7%, transparent)` in `live-preview/styles.ts`.
+ */
+export const CALLOUT_TINT = 0.07;
+
+const CALLOUT_TOKENS = ['note', 'tip', 'important', 'warning', 'caution', 'quote'] as const;
+
+/**
+ * Text drawn on `==highlight==`, and the `ui` surface each sits on: the editor's
+ * text, emphasis and links, and search snippet matches (`[data-search-result]
+ * mark`), whose list surface lies between the sidebar and the editor.
+ */
+const HIGHLIGHT_TEXT: [group: keyof ThemeColors, key: string, base: keyof UIColors][] = [
+	['ui', 'editorFg', 'editorBg'], ['syntax', 'strong', 'editorBg'], ['syntax', 'emphasis', 'editorBg'],
+	['syntax', 'link', 'editorBg'], ['preview', 'link', 'editorBg'], ['preview', 'wikilink', 'editorBg'],
+	['ui', 'fileExplorerFg', 'fileExplorerBg'], ['ui', 'fileExplorerFg', 'editorBg'],
 ];
 
 /** APCA |Lc| floor for muted and small text, the second gate next to WCAG 2. */
@@ -113,9 +141,10 @@ export function minLcOf(min: number): number {
 
 /**
  * Pairs every built-in theme must keep readable: 4.5:1 for text, 7:1 for body
- * text, 3:1 for headings, markers and accent hues (large or non-text). Text
- * pairs also need APCA |Lc| `TEXT_LC` (`minLcOf`). A token read on several
- * surfaces appears once per surface.
+ * text, 3:1 for headings, markers and accent hues (large or non-text), 1.05:1
+ * for zebra rows, which only need to differ from their block. Text pairs also
+ * need APCA |Lc| `TEXT_LC` (`minLcOf`). A token read on several surfaces
+ * appears once per surface.
  */
 export const READABILITY_PAIRS: ReadabilityPair[] = [
 	// Hover (`muted`) and selected (`accent`) rows from the same palette: chips and hover
@@ -196,23 +225,45 @@ export const READABILITY_PAIRS: ReadabilityPair[] = [
 	['syntax', 'code', 'preview', 'codeBg', 4.5],
 	['syntax', 'quote', 'ui', 'editorBg', 4.5],
 	['syntax', 'strikethrough', 'ui', 'editorBg', 3],
-	['syntax', 'meta', 'ui', 'editorBg', 3],
+	['syntax', 'meta', 'ui', 'editorBg', 4.5],
 	['preview', 'link', 'ui', 'editorBg', 4.5],
 	['preview', 'wikilink', 'ui', 'editorBg', 4.5],
 	['preview', 'footnote', 'ui', 'editorBg', 4.5],
-	['preview', 'olMarker', 'ui', 'editorBg', 3],
+	['preview', 'olMarker', 'ui', 'editorBg', 4.5],
 	['preview', 'taskChecked', 'ui', 'editorBg', 3],
 	['preview', 'collectionHeader', 'preview', 'collectionBg', 4.5],
 	['preview', 'collectionTableHeaderText', 'preview', 'collectionTableHeaderBg', 4.5],
 	['preview', 'collectionLoading', 'preview', 'collectionBg', 4.5],
 	['preview', 'embedContent', 'preview', 'embedBg', 4.5],
+	// Text on the editor's tinted surfaces. The callout type label is the callout's own hue on
+	// the note tint; `callout.note` comes first, as the tint the others are measured on.
+	...CALLOUT_TOKENS.map((k): ReadabilityPair => ['callout', k, 'callout', 'note', 4.5, 'editorBg', CALLOUT_TINT]),
+	['syntax', 'quote', 'callout', 'note', 4.5, 'editorBg', CALLOUT_TINT],
+	['syntax', 'quote', 'preview', 'blockquoteBg', 4.5],
+	['syntax', 'quote', 'preview', 'blockquoteBg2', 4.5],
+	['syntax', 'quote', 'preview', 'blockquoteBg3', 4.5],
+	// Collection and QueryJS blocks: errors (also Mermaid's, on the code block), placeholders, links.
+	['preview', 'collectionError', 'preview', 'collectionBg', 4.5],
+	['preview', 'collectionError', 'preview', 'codeblockBg', 4.5],
+	['preview', 'collectionNull', 'preview', 'collectionBg', 4.5],
+	['preview', 'collectionEmpty', 'preview', 'collectionBg', 4.5],
+	['preview', 'link', 'preview', 'collectionBg', 4.5],
+	['preview', 'wikilink', 'preview', 'collectionBg', 4.5],
+	['ui', 'editorFg', 'syntax', 'activeLineGutter', 4.5],
+	// `==highlight==` text: the highlight fades first (`readableHighlight`), the text moves only past its floor.
+	...HIGHLIGHT_TEXT.map(([g, k, base]): ReadabilityPair => [g, k, 'preview', 'highlightBg', 4.5, base]),
+	// Zebra rows are decorative: the minimum only keeps them apart from the block. Row text is
+	// then measured on the zebra row as it ends up, over the block.
+	['preview', 'collectionTableAlt', 'preview', 'collectionBg', 1.05],
+	...(['collectionNull', 'link', 'wikilink'] as const).map(
+		(k): ReadabilityPair => ['preview', k, 'preview', 'collectionTableAlt', 4.5, 'preview.collectionBg'],
+	),
+	['ui', 'editorFg', 'preview', 'collectionTableAlt', 4.5, 'preview.collectionBg'],
 	['wikilink', 'bracket', 'ui', 'editorBg', 3],
 	['wikilink', 'target', 'ui', 'editorBg', 4.5],
 	['wikilink', 'heading', 'ui', 'editorBg', 4.5],
 	['wikilink', 'display', 'ui', 'editorBg', 4.5],
-	...(['note', 'tip', 'important', 'warning', 'caution', 'quote'] as const).map(
-		(k): ReadabilityPair => ['callout', k, 'ui', 'editorBg', 3],
-	),
+	...CALLOUT_TOKENS.map((k): ReadabilityPair => ['callout', k, 'ui', 'editorBg', 3]),
 	// Control edges and indicators (WCAG 1.4.11). `border` stays a quiet divider and is not paired.
 	['ui', 'input', 'ui', 'inputBg', 3],
 	['ui', 'input', 'ui', 'settingItemBg', 3],
@@ -239,30 +290,94 @@ function copyGroups(colors: ThemeColors) {
 }
 
 /**
- * `surface` flattened over the `base` surface of `ui` (itself flattened over
- * `editorBg`): the opaque color a translucent background is seen as.
+ * `surface` flattened over its `base` surface (itself flattened over
+ * `editorBg`), at `share` when given: the opaque color a translucent
+ * background or a tint of a token is seen as.
  */
-function flattenedSurface(surface: string, ui: Record<string, string>, base: keyof UIColors = 'editorBg'): string {
-	const under = ui[base] ?? ui.editorBg;
-	return flatten(surface, flatten(under, ui.editorBg) ?? under) ?? surface;
+function flattenedSurface(
+	surface: string, groups: { ui: Record<string, string>; preview?: Record<string, string> }, base: SurfaceBase = 'editorBg', share?: number,
+): string {
+	const { ui } = groups;
+	const under = (base.startsWith('preview.') ? groups.preview?.[base.slice('preview.'.length)] : ui[base]) ?? ui.editorBg;
+	const opaque = flatten(under, ui.editorBg) ?? under;
+	return (share === undefined ? flatten(surface, opaque) : tint(surface, share, opaque)) ?? surface;
+}
+
+/**
+ * Each `HIGHLIGHT_TEXT` color with its opaque surface, keeping only the text
+ * that reads on the bare surface: the highlight answers for nothing else.
+ */
+function highlightReaders(groups: ReturnType<typeof copyGroups>): HighlightReader[] {
+	return HIGHLIGHT_TEXT.flatMap(([group, key, base]): HighlightReader[] => {
+		const fg = (groups[group] as Record<string, string>)[key];
+		const surface = groups.ui[base] === undefined ? undefined : flattenedSurface(groups.ui[base], groups);
+		return fg !== undefined && surface !== undefined && readsAsLabel(fg, surface) ? [{ group, key, fg, surface }] : [];
+	});
+}
+
+/** A text drawn on `==highlight==`: its token, its color and the opaque surface under the highlight. */
+interface HighlightReader {
+	/** Group of the text token */
+	group: keyof ThemeColors;
+	/** Text token */
+	key: string;
+	/** Text color */
+	fg: string;
+	/** Opaque surface the highlight sits on */
+	surface: string;
+}
+
+/**
+ * OKLab distance (`colorDistance`) a faded `==highlight==` keeps from the
+ * editor, so it still shows. Not a WCAG ratio: a yellow highlight on a light
+ * editor is about 1:1 by luminance and shows by its hue.
+ */
+export const HIGHLIGHT_FLOOR = 6;
+
+/**
+ * `highlight` with its alpha lowered in 1% steps until each reader reads on it
+ * over its surface, but not below `HIGHLIGHT_FLOOR` against `editor`: the text
+ * keeps its color and the highlight gets fainter, as far as it stays visible;
+ * the highlight pairs of `READABILITY_PAIRS` then move what still fails.
+ * Returned as is when it already passes, sits under the floor or cannot be parsed.
+ */
+function readableHighlight(highlight: string, readers: HighlightReader[], editor: string): string {
+	const reads = (h: string) => readers.every(({ fg, surface }) => readsAsLabel(fg, flatten(h, surface) ?? surface));
+	const visible = (h: string | null): h is string => h !== null && (colorDistance(flatten(h, editor) ?? editor, editor) ?? 0) >= HIGHLIGHT_FLOOR;
+	let out = highlight;
+	for (let step = 1; step <= 100 && !reads(out); step++) {
+		const next = fade(highlight, 1 - step / 100);
+		if (!visible(next)) break;
+		out = next;
+	}
+	return out;
 }
 
 /**
  * Moves each failing foreground of `READABILITY_PAIRS` to its minimum contrast
  * (WCAG, and APCA for text) and returns the result as a copy; backgrounds are
- * never changed, except primary, which is moved away from its label until the
- * label also reads on the 90% hover fill. A no-op on a theme that already passes.
+ * never changed, except two: the `==highlight==` background, faded first until
+ * the text on it reads (`readableHighlight`), and primary, which is moved away
+ * from its label until the label also reads on the 90% hover fill. A no-op on a
+ * theme that already passes.
  */
 export function withReadableContrast(colors: ThemeColors): ThemeColors {
 	const out = copyGroups(colors);
-	for (const [group, key, bgGroup, bgKey, min, base] of READABILITY_PAIRS) {
+	if (out.preview.highlightBg !== undefined && out.ui.editorBg !== undefined) {
+		out.preview.highlightBg = readableHighlight(out.preview.highlightBg, highlightReaders(out), out.ui.editorBg);
+	}
+	for (const [group, key, bgGroup, bgKey, min, base, share] of READABILITY_PAIRS) {
 		const tokens: Record<string, string> = out[group];
 		const bgTokens: Record<string, string> = out[bgGroup];
 		// A theme saved before a token existed lacks it until `mergeThemeWithDefaults` fills it in
 		if (tokens[key] === undefined || bgTokens[bgKey] === undefined) continue;
-		const bg = flattenedSurface(bgTokens[bgKey], out.ui, base);
 		const before = tokens[key];
-		tokens[key] = ensureContrast(before, bg, min, minLcOf(min));
+		// A surface that is a tint of the token itself (the note callout) moves with it: measure again
+		for (let pass = 0; pass < 3; pass++) {
+			const next = ensureContrast(tokens[key], flattenedSurface(bgTokens[bgKey], out, base, share), min, minLcOf(min));
+			if (next === tokens[key]) break;
+			tokens[key] = next;
+		}
 		const tint = `${key}Decoration`;
 		if (tokens[key] !== before && tokens[tint]?.toLowerCase() === `${before}45`.toLowerCase()) {
 			tokens[tint] = `${tokens[key]}45`;
@@ -282,7 +397,7 @@ export function withReadableContrast(colors: ThemeColors): ThemeColors {
 function buttonSurfaces(ui: Record<string, string>): string[] {
 	return ['editorBg', 'background', 'card', 'popover', 'settingsDialogBg', 'settingItemBg']
 		.filter((k) => ui[k] !== undefined)
-		.map((k) => flattenedSurface(ui[k], ui));
+		.map((k) => flattenedSurface(ui[k], { ui }));
 }
 
 /** A `READABILITY_PAIRS` pair that a theme's own foreground fails. */
@@ -323,18 +438,27 @@ export function readabilityFailures(colors: ThemeColors): Map<string, Readabilit
 		const worst = out.get(id);
 		if (!worst || failureShare(failure) < failureShare(worst)) out.set(id, failure);
 	};
-	for (const [group, key, bgGroup, bgKey, min, base] of READABILITY_PAIRS) {
+	for (const [group, key, bgGroup, bgKey, min, base, share] of READABILITY_PAIRS) {
 		const typed: Record<string, string> = typedGroups[group];
 		const bgTokens: Record<string, string> = lifted[bgGroup];
 		const fg = typed[key];
 		const surface = bgTokens[bgKey];
 		if (fg === undefined || surface === undefined) continue;
-		const bg = flattenedSurface(surface, lifted.ui, base);
+		const bg = flattenedSurface(surface, lifted, base, share);
 		const minLc = minLcOf(min);
 		const ratio = contrastRatio(fg, bg);
 		const lc = apcaContrast(fg, bg);
 		if (ratio === null || lc === null || ensureContrast(fg, bg, min, minLc) === fg) continue;
 		record(`${group}.${key}`, { bgGroup, bgKey, ratio, min, lc: Math.abs(lc), minLc });
+	}
+	// A faded highlight is the token reported, on the text it hid, measured on the typed highlight.
+	const highlight = colors.preview.highlightBg;
+	if (highlight !== undefined && lifted.preview.highlightBg !== highlight) {
+		for (const { group, key, fg, surface } of highlightReaders(typedGroups)) {
+			const bg = flatten(highlight, surface) ?? surface;
+			if (readsAsLabel(fg, bg)) continue;
+			record('preview.highlightBg', { bgGroup: group, bgKey: key, ratio: contrastRatio(fg, bg) ?? 0, min: 4.5, lc: lcOf(fg, bg), minLc: TEXT_LC });
+		}
 	}
 	// A primary the app moves only for its label on the hover fill: primary is the token
 	// reported, on its typed fill. A primary failing a pair already names that change.
@@ -435,7 +559,7 @@ function readableCore(p: CorePalette, ui: Partial<UIColors> = {}): CorePalette {
 		errorFg: ensureContrast(p.errorFg, error, 4.5, TEXT_LC),
 		inlineFg: p.inlineFg && lift(p.inlineFg, 4.5),
 		linkFg: p.linkFg && lift(p.linkFg, 4.5),
-		meta: p.meta && lift(p.meta, 3),
+		meta: p.meta && lift(p.meta, 4.5),
 		blockquoteAccent: p.blockquoteAccent && lift(p.blockquoteAccent, 3),
 		blue: lift(p.blue, 3),
 		green: lift(p.green, 3),

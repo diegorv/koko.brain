@@ -5,8 +5,8 @@ import { EditorView } from '@codemirror/view';
 import { buildEditorTheme } from '#lib/core/markdown-editor/setup/editor-theme.js';
 import { APP_SANS_FONT_STACK } from '#lib/utils/font-stacks.js';
 import { BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
-import { contrastRatio, flatten } from '#lib/utils/color.js';
-import { HARD_PALETTE_THEMES } from '../../../../fixtures/hard-palette-themes.fixture';
+import { apcaContrast, contrastRatio, flatten } from '#lib/utils/color.js';
+import { HARD_DARK_PALETTE_THEMES, HARD_PALETTE_THEMES } from '../../../../fixtures/hard-palette-themes.fixture';
 
 /** The CSS rule the theme emits for `selector`, read from its style rules. */
 function themeRule(selector: string, fontFamily = 'Menlo', fontSize = 16): string | undefined {
@@ -36,6 +36,22 @@ describe('native text selection', () => {
 		for (const { name, colors } of [...BUILTIN_THEMES, ...HARD_PALETTE_THEMES]) {
 			const tint = flatten(colors.syntax.selection, colors.ui.editorBg)!;
 			expect(contrastRatio(colors.ui.editorFg, tint)!, name).toBeGreaterThanOrEqual(4.5);
+		}
+	});
+});
+
+describe('active-line gutter', () => {
+	it('draws the active line number in the editor text color on the gutter fill', () => {
+		const rule = themeRule('.cm-activeLineGutter');
+		expect(rule).toContain('background-color: var(--syntax-active-line-gutter)');
+		expect(rule).toContain('color: var(--editor-fg)');
+	});
+
+	it('reads the editor text at 4.5:1 and |Lc| 45 on the active-line gutter fill of every theme', () => {
+		for (const { name, colors } of [...BUILTIN_THEMES, ...HARD_PALETTE_THEMES, ...HARD_DARK_PALETTE_THEMES]) {
+			const fill = flatten(colors.syntax.activeLineGutter, colors.ui.editorBg)!;
+			expect(contrastRatio(colors.ui.editorFg, fill)!, name).toBeGreaterThanOrEqual(4.5 - 0.005);
+			expect(Math.abs(apcaContrast(colors.ui.editorFg, fill)!), name).toBeGreaterThanOrEqual(45 - 0.05);
 		}
 	});
 });

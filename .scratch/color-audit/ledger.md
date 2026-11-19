@@ -39,8 +39,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [Rail, tag and icon palettes stay visible on every theme](issues/02-rail-tag-icon-palettes-follow-theme.md) | none | done | issue/02-rail-tag-icon-palettes-follow-theme (c648cd459) | 2026-11-19 |
 | 03 | [Accent and status text on its own tint: rows, search, menus](issues/03-accent-text-own-tint-rows-search-menus.md) | none | done | issue/03-accent-text-own-tint-rows-search-menus (df9a93639) | 2026-11-19 |
 | 04 | [Accent and status text on its own tint: kanban, collection functions, file history](issues/04-accent-text-own-tint-kanban-collection-diff.md) | 03 | done | issue/04-accent-text-own-tint-kanban-collection-diff (d2d8f050a) | 2026-11-19 |
-| 05 | [Theme builder keeps text readable on every surface it derives, by WCAG and APCA](issues/05-theme-builder-text-every-surface-apca.md) | none | in-progress | | |
-| 06 | [Editor text on tinted surfaces: callouts, blockquote, highlight, code, collection](issues/06-theme-builder-editor-tinted-surfaces.md) | 05, 07 | todo | | |
+| 05 | [Theme builder keeps text readable on every surface it derives, by WCAG and APCA](issues/05-theme-builder-text-every-surface-apca.md) | none | done | issue/05-theme-builder-text-every-surface-apca (251c60180) | 2026-11-19 |
+| 06 | [Editor text on tinted surfaces: callouts, blockquote, highlight, code, collection](issues/06-theme-builder-editor-tinted-surfaces.md) | 05, 07 | in-progress | | |
 | 07 | [Borders, inputs, switches, checkboxes and focus rings reach 3:1](issues/07-non-text-boundaries-focus-states.md) | none | done | issue/07-non-text-boundaries-focus-states (cc6b30159) | 2026-11-19 |
 | 08 | [Live-preview and QueryJS dimmed text stays readable](issues/08-live-preview-queryjs-dimmed-text.md) | 06 | todo | | |
 | 09 | [Canvas text, edges, groups and presets read on light themes](issues/09-canvas-readable-on-light-themes.md) | none | todo | | |
@@ -69,3 +69,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-19 18:17 — 13 — deliver — done by hand in the themes repo: Zettlr palettes (eb9f062), palette-design checks in pnpm validate plus 13 themes fixed (bfdd3d8); Themes CI green — 3a8eb75f5
 - 2026-11-19 18:29 — 12 — deliver — merged; review APPROVED, fix round, round 2 APPROVED (1 nit); owner to confirm the Default error red #fd746e (typeRed/orange/pink derive from the 4.5 lift); ThemePreview unlifted is a follow-up; full suite 684 files passed — 9c8ff9717
 - 2026-11-19 19:30 — 05 — start — launched by /relay-lite:run — e8059fa12
+- 2026-11-19 20:05 — 05 — deliver — merged; reviews APPROVED x2 (claude); full suite 684 files passed; 2 minor round-2 findings left for a follow-up — 251c60180
+- 2026-11-19 20:05 — 06 — start — launched by /relay-lite:run — a8779035a
