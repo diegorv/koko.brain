@@ -8,7 +8,9 @@
 
 **Stale in the text below:** EditorView moved to src/lib/app/EditorView.svelte (board views at :80-84, MarkdownEditor at :92); MarkdownEditor onDestroy null is at :416 (Issue :148); saveFileByPath clean-tab no-op is now in writeTab at editor.service.ts:189 (Issue :163); restoreSnapshot spans :82-105 (Issue :86-99). Opener refs commands.ts:303-311 are now commands.ts:361-364; global-keybindings file-history:open is at :168-175.
 
-**Status:** ready-for-agent
+**Status:** wontfix
+
+**Superseded by:** [codex-audit 09](../../codex-audit/issues/09-history-restore-target.md). Replaced, not rejected or fixed.
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -78,6 +80,8 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 - [ ] Gate, frontend only: pnpm check + pnpm vitest run.
 
 ## Comments
+
+- 2026-11-25: Owner-authorized migration retaining guard-first scope and Markdown undo. Delayed session ownership and truthful failure are included; path restoration remains separate in codex-audit 10.
 
 - 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/12-file-history-restore-wrong-tab.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: narrowed to the guard by the owner after the challenge review; restore by path moved to Issue 160.

@@ -4,7 +4,7 @@
 
 **What to build:** moveItem throws when the target exists or the rename fails (src/lib/core/filesystem/fs.service.ts:307-327, targetExistsError at :272-274 and :312) and only logs through error() (:324), which writes console, Sentry and the optional log file, never a toast. evaluateAndMove catches it with a bare `catch { return; }` (src/lib/features/auto-move/auto-move.service.ts:189-194), also skipping the rule's icon. For a lifecycle rule the note stays flagged `_archived: true` in its old folder, so it leaves the lists and the missing move goes unnoticed. The failure repeats silently on every later save. Fix direction: report the failure in a toast naming the note and destination (moveItem's message already names the clash), without stacking a new toast on every autosave of the same note for the same failure.
 
-**Blocked by:** 031, 233
+**Blocked by:** 031
 
 **Status:** ready-for-agent
 
@@ -28,6 +28,8 @@
 **Second opinion (audit 2026-11-05, round 2):** upheld (ux, low). Confirmed. moveItem throws targetExistsError when the target exists (fs.service.ts:312) and logs through error() before rethrowing (:323-326). evaluateAndMove catches it with a bare `catch { return; }` (auto-move.service.ts:189-194), which also skips the icon. The auto-move feature has no toast. auto-move.service.test.ts already mocks fs.service moveItem (:17-18), so the proposed test fits the existing mocking pattern. Corrections to apply while implementing: Optional: a failure to create the destination folder (auto-move.service.ts:176-185) is also only logged and returns silently. It could join the same toast path, or be stated as out of scope.
 
 ## Comments
+
+- 2026-11-25: Removed terminal predecessor 233 from active blockers during migration. Ordinary numbering shipped in vault-organization-v2 01; the broader no-clobber reconsideration is not a prerequisite for this failure-toast outcome. Blocker 031 and remaining acceptance are unchanged.
 
 - 2026-11-06: Blocked by 116 added after the order review (`raw/first-wave-order-review.json`): the two edit the same code.
 - 2026-11-11: Issue 233 makes a move into a taken name land the note as `<name> 2`, so after it this Issue covers the notes 233 never renames (not Markdown, system or templates folder, type definition, Todoist project note) and disk errors. Blocked by 233 added: the two edit the same move step (`src/lib/features/auto-organize/auto-organize.service.ts:315-346`; the `auto-move` paths above are the old name of that file).

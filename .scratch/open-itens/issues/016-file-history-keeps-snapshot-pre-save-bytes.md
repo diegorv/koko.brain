@@ -8,7 +8,9 @@
 
 **Stale in the text below:** Line refs drifted: deep-link pre-write save at deep-link.service.ts:247-250 and :265-267 (Issue :246-250, :266-269), overwrite write at :310 and snapshot at :312 (Issue :314/:317), prepend/append at :270-303, closed-note frontmatter rewrite at frontmatter-write.service.ts:153 (Issue :149/:157), daily append at deep-link-actions.ts:71 (Issue :55-66); vault.rs write_atomic for task toggle is at :779 (Issue :683). The deep-link.service.ts:264 comment now asserts the overwrite snapshot behavior, which is misleading for a clean or closed note. Criteria for the original sections were added on 2026-11-06.
 
-**Status:** ready-for-agent
+**Status:** wontfix
+
+**Superseded by:** [codex-audit 18](../../codex-audit/issues/18-history-baseline-retention.md). Replaced, not rejected or fixed.
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -71,6 +73,8 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). The cri
 **Second opinion (audit 2026-11-05, round 2):** upheld (content, low). The missing baseline is real. saveSnapshotForFile is called only from the after-save observer (file-history.service.ts:190-196) with the bytes just written, and nothing snapshots a note on open or before a write (rg finds no other caller). The deep-link overwrite path (deep-link.service.ts:262-266 -> saveFileByPath does nothing for a clean or closed note; writeTextFile :310; notifyAfterSave(new content) :313) leaves no copy of the replaced text, and the comment at :262 claims otherwise. Likelihood is low: the trigger is a user mistake that is not undone in the session, or a deep link with overwrite=true. Corrections to apply while implementing: The title's retention half ('retention never deletes a note's last snapshot') is documented, intended behavior: help/documentation/15-file-history.md:48-57 says 'Old: All snapshots are permanently deleted', and src-tauri/src/db/history_repo.rs:194-205 tests that. Changing it needs an owner decision, so drop it from the title or record that decision. The status should not be ready-for-agent while the text says 'Triage must add criteria for the original sections above before this Issue runs': the main pre-save-baseline section still has no criteria (the moved repro .scratch/archived/file-io-audit/repro/o05-settings-history/file-history-baseline.test.ts should be its red test). Line numbers: saveOpenNoteBeforeWrite is at :242-246 (not :247-250), the misleading comment at :262 (not :264), the call at :263-265, notifyAfterSave at :313 (not :312).
 
 ## Comments
+
+- 2026-11-25: Owner-authorized migration retaining first-save baseline, clean/closed deep-link overwrite, and approved keep-latest retention. The close-tab prerequisite is delivered; dependent 099 now follows codex-audit 18.
 
 - 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/13-file-history-no-baseline.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

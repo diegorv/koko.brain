@@ -6,7 +6,9 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
+
+**Superseded by:** [codex-audit 23](../../codex-audit/issues/23-image-completion-extension.md). Replaced, not rejected or fixed.
 
 **Answered:** approved by the owner on 2026-11-12 as a deep-dive addition to the queue. Nothing open.
 
@@ -29,5 +31,7 @@
 - **Source:** audit 2026-11-05, domain `editor`, finding `N-editor-04` (from editor-spec-2). Size S.
 
 ## Comments
+
+- 2026-11-25: Owner-authorized migration preserving full non-Markdown filenames, Markdown stems, PDF disambiguation and aliases. Completion-to-image verification does not broaden embed-loading or resolver policy.
 
 - 2026-11-12: deep dive (sweep-s3, validate-s3+s4) confirmed it at `635b4af36` and found no edit needed beyond pointers. Approved as an addition. The `editor-host.ts` and `wikilink-resolution.logic.ts` line pointers are updated, and the optional `loadEmbedContent` guard moved to Notes as out of scope.

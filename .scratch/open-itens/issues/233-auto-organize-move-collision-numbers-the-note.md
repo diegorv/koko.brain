@@ -8,7 +8,9 @@ Rules with a `rename` already pick a free name (`applyRename`, `auto-organize.se
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
+
+**Superseded by:** [codex-audit 19](../../codex-audit/issues/19-no-clobber-path-changes.md), needs-triage. Ordinary numbering has shipped; broader retained criteria and the explicitly accepted overwrite race are accounted for there.
 
 **Gate:** frontend, with a core change: `pnpm check` + `pnpm vitest run`, plus `./scripts/e2e.sh e2e/specs/auto-organize.spec.ts e2e/specs/auto-organize-flows.spec.ts e2e/specs/file-operations.spec.ts`.
 
@@ -57,3 +59,5 @@ Rules with a `rename` already pick a free name (`applyRename`, `auto-organize.se
 - **Not on the never-numbered list, on purpose:** periodic notes and person notes (a move already breaks their canonical path, and the periodic detector lives in `plugins/`, which `features/` may not import); a tab with unsaved edits (the single path change re-paths the dirty buffer).
 
 ## Comments
+
+- 2026-11-25: Owner-authorized migration. Ordinary numbering/toast shipped in vault-organization-v2 01. The successor retains one-path rename/move, suffix bounds, self-identity, exclusions and downstream actions; reopening the accepted race and native-platform contract still needs triage. No no-clobber fix is claimed.

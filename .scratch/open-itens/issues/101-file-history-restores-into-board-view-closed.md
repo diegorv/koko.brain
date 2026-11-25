@@ -6,7 +6,9 @@
 
 **Blocked by:** 023
 
-**Status:** ready-for-agent
+**Status:** wontfix
+
+**Superseded by:** [codex-audit 10](../../codex-audit/issues/10-history-restore-by-path.md). Its active prerequisite is codex-audit 09. Replaced, not rejected or fixed.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -18,5 +20,7 @@
 
 
 ## Comments
+
+- 2026-11-25: Owner-authorized migration preserving visual-view restoration, direct restoration of an existing closed file and missing-target refusal. The original blocker above is historical.
 
 - 2026-11-06: split off by the owner after the first-wave challenge review (`raw/first-wave-challenge.json`).

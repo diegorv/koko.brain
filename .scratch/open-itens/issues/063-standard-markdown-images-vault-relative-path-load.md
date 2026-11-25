@@ -8,7 +8,9 @@
 
 **Blocked by (origin):** closed blockers dropped: audit-2026-11-05 10.
 
-**Status:** ready-for-agent
+**Status:** wontfix
+
+**Superseded by:** [codex-audit 24](../../codex-audit/issues/24-relative-markdown-images.md). Replaced, not rejected or fixed.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -27,3 +29,5 @@
 - **Source:** audit 2026-11-05, domain `live-preview`, finding `N-live-preview-05` (from live-preview-ux-3, live-preview-spec-2). Size S.
 
 ## Comments
+
+- 2026-11-25: Owner-authorized migration preserving existing host-based resolution, decoding, missing-state and URL behavior. No source-note-folder plumbing is mandated. The historical default-vault asset-scope blocker is stale.

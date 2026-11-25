@@ -8,7 +8,9 @@
 
 **Stale in the text below:** The 'unserialized same-path saves' half of section 2 is fixed (saveTails); only the retry-chain stacking remains. Line refs moved: retry at editor.service.ts:217-219 (was :192); saveFileByPath :171-179; path-change diskOp/update :162-171 (was :127-132); app-lifecycle configureSentry :203, startSettingsPersistence :211 (was :202/:210); properties flag arm :100 (was :89), consumeSkipNextParse :37-40 (was :33-37).
 
-**Status:** needs-triage
+**Status:** wontfix
+
+**Superseded by:** [codex-audit 11](../../codex-audit/issues/11-properties-freshness.md), [21](../../codex-audit/issues/21-vault-settings-isolation.md), and the [R105 residual register](../../codex-audit/deferred.md#residual-scope-from-105). Replaced, not fixed; unrelated sections remain individually tracked.
 
 **Blocked by:** none
 Priority: P3
@@ -169,6 +171,8 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 - Verified at the current main: properties.service.ts:24 (flag), :33-37 (consumed whatever the content), :78-98 (commitChanges arms the flag at :89 with no `newContent !== content` check); PropertiesView.svelte:100-114 (the effect reads only activeTabPath and the tab content); src/lib/core/editor/editor.store.svelte.ts:139-144 (updateTabContentOnly assigns the same string, so nothing re-runs); PropertyField.svelte:61-66 (number field commits `Number(input.value)`).
 
 ## Comments
+
+- 2026-11-25: Owner-authorized consolidation. Properties and both settings-corruption directions have focused successors. Autosave/rename, retry accumulation, create/restore, calendar rollback and create-refresh reporting remain individually tracked outside the severe queue. Original evidence is preserved.
 
 - 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/41-minor-write-races.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: its no-op-commit criteria moved to Issue 152, in the first wave; the rest of this Issue stays for later.

@@ -10,7 +10,9 @@
 
 **Owner decision (2026-11-06):** keep the rename and list the notes that were not updated (toast plus log); no rollback.
 
-**Status:** ready-for-agent
+**Status:** wontfix
+
+**Superseded by:** [codex-audit 12](../../codex-audit/issues/12-type-yaml-and-partial-results.md). Replaced, not rejected or fixed.
 
 **Blocked by:** none
 Priority: P2
@@ -94,6 +96,8 @@ Criteria for the editor-data-safety amendment (2026-11-02):
 - Verified at the current main: parsing.rs:143-152 (raw value compare, then `None => new_type.to_string()` at :150); type-definitions.logic.ts:194-206 (quote kept, `newType` interpolated raw); type-definitions.service.ts:73; fs.logic.ts:117-124 allows `#`, `[`, `]`, `{`, `&`, `!` and `'`; entry.rs:362-369 accepts only a string `_type`. The quote, number and apostrophe variants are traced from the same lines, not run.
 
 ## Comments
+
+- 2026-11-25: Owner-authorized migration of all accepted scope: exact YAML values, typed-note creation, trailing-value matching, continuing after member failures and listing unsuccessful notes. Keep-rename/no-rollback remains unchanged.
 
 - 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/34-type-rename-partial-failure.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

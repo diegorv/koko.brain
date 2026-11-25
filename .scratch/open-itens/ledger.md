@@ -40,9 +40,9 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 003 | [Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working](issues/003-closing-main-window-never-leaves-windowless-app.md) | none | todo | | |
 | 004 | [A canvas edit closed inside the debounce window reaches its .canvas file](issues/004-canvas-edit-closed-renamed-inside-debounce-window.md) | 015 | done | issue/004-canvas-edit-closed-renamed-inside-debounce-window (5cb784f0f) | 2026-11-12 |
 | 005 | [Setting a folder icon never stacks a second frontmatter block](issues/005-empty-frontmatter-block-matched-writers-never-stack.md) | none | todo | | |
-| 006 | [A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab](issues/006-kanban-card-lane-title-being-edited-saved.md) | 004 | todo | | |
+| 006 | [A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab](issues/006-kanban-card-lane-title-being-edited-saved.md) | 004 | wontfix | | Superseded by codex-audit 05 |
 | 007 | [Paste, cut and copy inside a meta-bind number or date input act on the input, not the note](issues/007-paste-cut-copy-inside-meta-bind-number.md) | none | done | issue/007-paste-cut-copy-inside-meta-bind-number (74219cc76) | 2026-11-19 |
-| 008 | [A Properties panel commit that changes nothing does not arm the skip flag](issues/008-properties-panel-commit-that-changes-nothing-does.md) | none | todo | | |
+| 008 | [A Properties panel commit that changes nothing does not arm the skip flag](issues/008-properties-panel-commit-that-changes-nothing-does.md) | none | wontfix | | Superseded by codex-audit 11 |
 | 009 | [Tab rename and delete keep `_rail_view` in sync](issues/009-rail-view-follows-tab-rename.md) | none | todo | | |
 | 010 | [Filters report unknown methods](issues/010-filters-report-unknown-methods.md) | none | todo | | |
 | 011 | [Edit view saves only what the user changed](issues/011-save-only-what-changed.md) | 009 | todo | | |
@@ -50,14 +50,14 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 013 | [The Filter panel cannot write an empty or unparseable filter](issues/013-filter-panel-safe-writes.md) | 012, 010 | todo | | |
 | 014 | [Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen at the same index version](issues/014-backlinks-outgoing-links-always-show-open-note.md) | none | wontfix | | |
 | 015 | [Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails](issues/015-closing-tab-unsaved-text-saves-closes-prompt.md) | none | done | issue/015-closing-tab-unsaved-text-saves-closes-prompt (da26b0dcd) | 2026-11-12 |
-| 016 | [File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot](issues/016-file-history-keeps-snapshot-pre-save-bytes.md) | 015 | todo | | |
+| 016 | [File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot](issues/016-file-history-keeps-snapshot-pre-save-bytes.md) | 015 | wontfix | | Superseded by codex-audit 18 |
 | 017 | [An external change to an open note is never overwritten by the next autosave or calendar write](issues/017-external-change-open-note-never-overwritten-next.md) | none | done | issue/017-external-change-open-note-never-overwritten-next (4b4602bdb) | 2026-11-19 |
 | 018 | [A note deleted or renamed outside the app is closed or marked orphaned, never recreated by the next autosave](issues/018-note-deleted-renamed-outside-app-closed-marked.md) | 017 | todo | | |
-| 019 | [Every tab write checks the disk first, so an external change is never overwritten without a copy](issues/019-every-tab-write-checks-disk-first-so.md) | 017 | todo | | |
+| 019 | [Every tab write checks the disk first, so an external change is never overwritten without a copy](issues/019-every-tab-write-checks-disk-first-so.md) | 017 | wontfix | | Superseded by codex-audit 17; policy triage |
 | 020 | [A failed tree refresh still fans out the burst, and scan_vault skips an unreadable subfolder](issues/020-watcher-events-keep-fts5-semantic-rust-indexes.md) | none | todo | | |
 | 021 | [Guarded, status-preserving toggle](issues/021-guarded-status-preserving-toggle.md) | none | done | issue/021-guarded-status-preserving-toggle (fc8741157) | 2026-11-09 |
 | 022 | [An empty --- --- frontmatter block from outside the app is matched, and writers never stack a second block](issues/022-empty-frontmatter-block-from-outside-app-matched.md) | 005 | todo | | |
-| 023 | [File History Restore writes the snapshot into the note shown in the dialog, never into whichever tab is active](issues/023-file-history-restore-writes-snapshot-into-note.md) | none | todo | | |
+| 023 | [File History Restore writes the snapshot into the note shown in the dialog, never into whichever tab is active](issues/023-file-history-restore-writes-snapshot-into-note.md) | none | wontfix | | Superseded by codex-audit 09 |
 | 024 | [A meta-bind button stops its remaining actions when an open action fails](issues/024-meta-bind-button-stops-remaining-actions-when.md) | none | todo | | |
 | 025 | [A meta-bind button's updateMetadata always writes the button's own note, also after an open or createNote action](issues/025-meta-bind-button-s-updatemetadata-always-writes.md) | 024 | todo | | |
 | 026 | [Clearing a canvas node's color or a link node's title is saved to the .canvas file](issues/026-clearing-canvas-node-s-color-link-node.md) | none | todo | | |
@@ -97,8 +97,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 060 | [A kb.table, kb.ui.table or kb.list cell holding an array or DataArray of links renders each link as a clickable link](issues/060-kb-table-kb-ui-table-kb-list.md) | none | todo | | |
 | 061 | [A task checkbox in live preview reacts only to the primary button](issues/061-live-preview-controls-change-only-text-user.md) | none | todo | | |
 | 062 | [Rendered table cells show links, line breaks and escaped pipes as formatted content](issues/062-rendered-table-cells-show-links-highlight-underscore.md) | none | done | issue/062-rendered-table-cells-show-links-highlight-underscore (4424b60b4) | 2026-11-12 |
-| 063 | [Standard markdown images with a vault-relative path load from the vault](issues/063-standard-markdown-images-vault-relative-path-load.md) | none | todo | | |
-| 064 | [Wikilink autocomplete inserts a non-markdown file with its extension, so ![[photo.png]] embeds the image](issues/064-wikilink-autocomplete-inserts-non-markdown-file-extension.md) | none | todo | | |
+| 063 | [Standard markdown images with a vault-relative path load from the vault](issues/063-standard-markdown-images-vault-relative-path-load.md) | none | wontfix | | Superseded by codex-audit 24 |
+| 064 | [Wikilink autocomplete inserts a non-markdown file with its extension, so ![[photo.png]] embeds the image](issues/064-wikilink-autocomplete-inserts-non-markdown-file-extension.md) | none | wontfix | | Superseded by codex-audit 23 |
 | 065 | [A calendar day with more than three notes lets the user reach every note](issues/065-calendar-day-more-than-three-notes-lets.md) | none | todo | | |
 | 066 | [The status bar note count follows notes created, imported and deleted during the session](issues/066-status-bar-note-count-follows-notes-created.md) | none | todo | | |
 | 067 | [Columns and sort keys resolve like expressions](issues/067-columns-resolve-like-expressions.md) | 010 | todo | | |
@@ -114,30 +114,30 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 079 | [An Auto Move rule edit made just before Settings closes or changes section is still written to auto-move-rules.json](issues/079-auto-move-rule-edit-made-just-before.md) | 031 | todo | | |
 | 080 | [A failure after the disk op still reports a completed rename as done and re-keys the index](issues/080-failure-after-disk-op-still-reports-completed.md) | none | todo | | |
 | 081 | [A note with an unquoted wikilink value (up: [[Home]]) accepts property, lifecycle, icon and meta-bind writes](issues/081-note-unquoted-wikilink-value-up-home-accepts.md) | none | todo | | |
-| 082 | [A failed Auto Move tells the user which note did not move and why](issues/082-failed-auto-move-tells-user-which-note.md) | 031, 233 | todo | | |
+| 082 | [A failed Auto Move tells the user which note did not move and why](issues/082-failed-auto-move-tells-user-which-note.md) | 031 | todo | | Ordinary numbering prerequisite delivered |
 | 083 | [A vault picked outside the two allowed folders is refused with a message naming them, never half-working](issues/083-vault-picked-outside-two-allowed-folders-refused.md) | none | todo | | |
 | 084 | [A note whose live-preview widget throws on every render stays editable and in sync with its tab](issues/084-note-whose-live-preview-widget-throws-every.md) | none | todo | | |
 | 085 | [read_files_batch only reads inside the vault that is actually open](issues/085-read-files-batch-only-reads-inside-vault.md) | none | todo | | |
 | 086 | [QueryJS pager clicks keep the widget rendered; wikilinks in inline code and media tags in code render as text](issues/086-queryjs-pager-clicks-keep-widget-rendered-wikilinks.md) | none | todo | | |
 | 087 | [The local graph center follows every way the graph tab gets focus, and hints when the center note is gone](issues/087-local-graph-center-follows-every-way-graph.md) | none | todo | | |
 | 088 | [A watcher rescan (dropped FSEvents) reloads open tabs before the next save](issues/088-watcher-rescan-dropped-fsevents-reloads-open-tabs.md) | none | todo | | |
-| 089 | [Keystrokes typed during link rewrite, type rename or watcher reload writes are kept](issues/089-keystrokes-typed-during-link-rewrite-type-rename.md) | none | todo | | |
+| 089 | [Keystrokes typed during link rewrite, type rename or watcher reload writes are kept](issues/089-keystrokes-typed-during-link-rewrite-type-rename.md) | none | wontfix | | Superseded by codex-audit 07/08; residuals registered |
 | 090 | [Dock Quit, logout and shutdown run the exit flush before the app ends](issues/090-dock-quit-logout-shutdown-run-exit-flush.md) | none | todo | | |
 | 091 | [Deep-link prepend goes below the frontmatter, and non-silent new keeps <% %> in the sent text](issues/091-deep-link-prepend-goes-below-frontmatter-non.md) | none | todo | | |
 | 092 | [An unreadable or corrupt trash manifest is backed up, never replaced by a partial list, and trash writers never orphan trashed items](issues/092-unreadable-corrupt-trash-manifest-backed-up-never.md) | none | todo | | |
-| 093 | [Type rename reports partial failure and also updates _type values with a trailing comment](issues/093-type-rename-reports-partial-failure-also-updates.md) | none | todo | | |
+| 093 | [Type rename reports partial failure and also updates _type values with a trailing comment](issues/093-type-rename-reports-partial-failure-also-updates.md) | none | wontfix | | Superseded by codex-audit 12 |
 | 094 | [Non-UTF-8 files open read-only or as binary, never written back with U+FFFD](issues/094-non-utf-8-files-open-read-only.md) | none | todo | | |
 | 095 | [CRLF notes keep their CRLF line endings after an edit](issues/095-crlf-notes-keep-their-crlf-line-endings.md) | none | todo | | |
 | 096 | [Root unarchive writes vault/x.md, auto-move refuses .. segments, and a case or NFC variant of a path reuses the open tab](issues/096-root-unarchive-writes-vault-x-md-auto.md) | none | todo | | |
 | 097 | [The quick-capture dedupe anchor advances only after the frontend accepts the capture](issues/097-quick-capture-dedupe-anchor-advances-only-after.md) | none | todo | | |
 | 098 | [Collection link() cells never navigate the app webview and drop unsafe schemes](issues/098-collection-link-cells-never-navigate-app-webview.md) | none | todo | | |
-| 099 | [Deep-link prepend and append, daily capture and the closed-note frontmatter rewrite snapshot a note with an empty history first](issues/099-deep-link-prepend-append-daily-capture-closed.md) | 016 | todo | | |
+| 099 | [Deep-link prepend and append, daily capture and the closed-note frontmatter rewrite snapshot a note with an empty history first](issues/099-deep-link-prepend-append-daily-capture-closed.md) | [codex-audit 18](../codex-audit/issues/18-history-baseline-retention.md) | todo | | Dependency migrated |
 | 100 | [Renaming or moving a note updates the file nodes that point at it in canvases](issues/100-renaming-moving-note-updates-file-nodes-that.md) | 039, 004, 052 | todo | | |
-| 101 | [File History restores into a board view or a closed tab by path](issues/101-file-history-restores-into-board-view-closed.md) | 023 | todo | | |
+| 101 | [File History restores into a board view or a closed tab by path](issues/101-file-history-restores-into-board-view-closed.md) | 023 | wontfix | | Superseded by codex-audit 10 |
 | 102 | [A tree refresh failure after a successful rename still reports it as done](issues/102-tree-refresh-failure-after-successful-rename-still.md) | 080 | todo | | |
 | 103 | [Note-writing commands refuse paths outside the open vault](issues/103-note-writing-commands-refuse-paths-outside-open.md) | 085 | todo | | |
 | 104 | [Vault-root commands (scan, index builds, watcher, model init) only accept the open vault](issues/104-vault-root-commands-scan-index-builds-watcher.md) | 103 | todo | | |
-| 105 | [Minor write races are closed: autosave during rename, retry-chain stacking, create vs restore, superseded init, calendar rollback, the properties skip flag](issues/105-minor-write-races-are-closed-autosave-during.md) | none | todo | | |
+| 105 | [Minor write races are closed: autosave during rename, retry-chain stacking, create vs restore, superseded init, calendar rollback, the properties skip flag](issues/105-minor-write-races-are-closed-autosave-during.md) | none | wontfix | | Superseded by codex-audit 11/21; R105 residual register |
 | 106 | [Watcher events keep FTS5 and semantic rows current, and a read error is not treated as a delete](issues/106-watcher-events-keep-fts5-semantic-rows-current.md) | 020 | todo | | |
 | 107 | [A semantic update still embedding when its note is deleted leaves no chunks for the trashed note](issues/107-semantic-update-still-embedding-when-note-deleted.md) | none | todo | | |
 | 114 | [Task writes reach search and the QueryJS cache](issues/114-task-writes-reach-search.md) | 021 | done | issue/114-task-writes-reach-search (108a60047) | 2026-11-09 |
@@ -245,7 +245,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 230 | [Linear-calendar bars line up with their day columns](issues/230-linear-calendar-bar-geometry.md) | none | todo | | |
 | 231 | [Separate verbose renderer diagnostics from ordinary file logs](issues/231-opt-in-renderer-diagnostics.md) | none | todo | | |
 | 232 | [Future: icon colors customizable in Settings > Appearance](issues/232-future-custom-icon-colors.md) | none | todo | | |
-| 233 | [An Auto Organize move into a folder that already has the name lands the note as `<name> 2`](issues/233-auto-organize-move-collision-numbers-the-note.md) | none | todo | | |
+| 233 | [An Auto Organize move into a folder that already has the name lands the note as `<name> 2`](issues/233-auto-organize-move-collision-numbers-the-note.md) | none | wontfix | | Numbering delivered; remaining scope codex-audit 19 |
 | 249 | [Rendered table cells show highlight, underscore emphasis and bold italic](issues/249-table-cells-render-highlight-underscore-emphasis-bold-italic.md) | 062 | todo | | |
 | 250 | [Views say how many notes their filter could not evaluate](issues/250-views-count-notes-filter-could-not-evaluate.md) | 010 | todo | | |
 | 251 | [The code-block language switch keeps the rest of the fence info string](issues/251-code-block-language-switch-keeps-info-string.md) | none | todo | | |

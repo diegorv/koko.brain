@@ -6,7 +6,9 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
+
+**Superseded by:** [codex-audit 11](../../codex-audit/issues/11-properties-freshness.md). Replaced, not rejected or fixed.
 
 **First wave:** yes, split from Issue 121 by the owner on 2026-11-06.
 
@@ -21,5 +23,7 @@
 - Size S. The timing variant of the same flag (a second edit within 300 ms) stays in Issue 121.
 
 ## Comments
+
+- 2026-11-25: Owner-authorized migration retaining the accepted no-op guard and adding the reproduced same-note second-change case from 105.
 
 - 2026-11-06: split off by the owner after the first-wave challenge review (`raw/first-wave-challenge.json`).

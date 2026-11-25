@@ -50,4 +50,6 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 
 ## Comments
 
+- 2026-11-25: Preserved as wontfix. [codex-audit 22](../../../codex-audit/issues/22-cross-vault-action-policy.md) records a needs-triage reconsideration under the owner-authorized audit migration. The one-vault decision is not silently reversed.
+
 - 2026-11-06: closed by audit 2026-11-05 at `5f8003d67` (wontfix): Against the owner decision 'one vault per session'. A deep link to another vault is dropped only because it triggers switchVault -> teardownVault (deep-link.service.ts:161-173), and that vault switch inside a session is not a real scenario.

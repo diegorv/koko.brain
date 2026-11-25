@@ -6,7 +6,9 @@
 
 **Blocked by:** 017
 
-**Status:** ready-for-agent
+**Status:** wontfix
+
+**Superseded by:** [codex-audit 17](../../codex-audit/issues/17-preserve-observed-external-version.md). Replaced, not rejected or fixed.
 
 **First wave:** yes, added by the owner on 2026-11-06 after the order review (`raw/first-wave-order-review.json`): the go/no-go reviewer: with agents writing the vault, an autosave that fires before the watcher event still overwrites their write.
 
@@ -25,6 +27,8 @@
 - Owner decision on 98 (a) applies: keep both, save the typing, toast.
 
 ## Comments
+
+- 2026-11-25: Owner-authorized migration retaining keep-both behavior. The successor is needs-triage for preservation failure/disabled history and limits its guarantee to observed versions: rereading is not atomic protection against arbitrary external writers. Blocker 017 is delivered.
 
 - 2026-11-06: split off by the owner after the first-wave challenge review (`raw/first-wave-challenge.json`).
 - 2026-11-06: added to the first wave after the order review.

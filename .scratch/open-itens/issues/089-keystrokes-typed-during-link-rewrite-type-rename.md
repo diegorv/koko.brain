@@ -8,7 +8,9 @@
 
 **Stale in the text below:** Calendar-delete section is narrowed: applyPathChange now re-saves dirty tabs right before the close (path-change.service.ts:155-160, commit f1b3cde9d), so the window is the final save IPC, not the calendar's own save. Line refs moved: link-updater :54/:58/:66 (was :35/:39/:47); type-definitions :231-235 (was :216-220); editor.service.ts reload :445-449 (was :396-401); onContentChange :254-257 (was :224-227).
 
-**Status:** ready-for-agent
+**Status:** wontfix
+
+**Superseded by:** [codex-audit 07](../../codex-audit/issues/07-backlink-rewrite-settlement.md), [08](../../codex-audit/issues/08-trash-save-boundary.md), and the [residual register](../../codex-audit/deferred.md#residual-scope-from-089).
 
 **Blocked by:** none
 Priority: P2
@@ -126,5 +128,7 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 - [ ] Gate, frontend only: pnpm check + pnpm vitest run.
 
 ## Comments
+
+- 2026-11-25: Owner-authorized split. Link rewriting and final-delete-save losses migrate to 07/08. Current watcher reload rechecks baseline/dirtiness after reads, so the old subsection is stale. Type-rename typing is blocked by the busy dialog and retained as unproven residual scope, not declared fixed.
 
 - 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/33-keystrokes-lost-during-async-writes.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

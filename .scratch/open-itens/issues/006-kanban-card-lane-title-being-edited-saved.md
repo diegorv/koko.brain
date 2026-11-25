@@ -6,7 +6,9 @@
 
 **Blocked by:** 004
 
-**Status:** ready-for-agent
+**Status:** wontfix
+
+**Superseded by:** [codex-audit 05](../../codex-audit/issues/05-kanban-draft-publication.md). Replaced, not rejected or fixed.
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -29,3 +31,5 @@
 - **Source:** audit 2026-11-05, domain `boards`, finding `N-boards-07` (from boards-content-1). Size M.
 
 ## Comments
+
+- 2026-11-25: Owner-authorized migration. Own-board writes, blur/no-blur navigation, Escape cancellation, and exit flushing are retained in codex-audit 05.
