@@ -203,6 +203,12 @@ jobs:
           releaseDraft: false
           prerelease: true
 
+      - name: Point latest.json at browser download URLs
+        uses: ./.github/actions/rewrite-updater-urls
+        with:
+          tag: nightly
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish checksums
         uses: ./.github/actions/publish-checksums
         with:

@@ -1,0 +1,45 @@
+name: "Rewrite updater URLs"
+description: "Point latest.json at the release's browser download URLs instead of API asset URLs"
+
+# tauri-action v1 writes https://api.github.com/repos/<repo>/releases/assets/<id>
+# into latest.json (src/upload-version-json.ts, no input to change it). The
+# updater downloads that URL unauthenticated, so every install on one IP shares
+# GitHub's 60 requests/hour API limit and fails with 403 once it runs out. The
+# browser download URL serves the same bytes without that limit; the updater
+# signature covers the file, not the URL.
+
+inputs:
+  tag:
+    description: "Release tag whose latest.json is rewritten"
+    required: true
+  token:
+    description: "Token with contents:write on the repository"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Rewrite latest.json download URLs
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        TAG: ${{ inputs.tag }}
+        REPO: ${{ github.repository }}
+      run: |
+        set -euo pipefail
+        dir=$(mktemp -d)
+        mkdir "$dir/out"
+        gh release download "$TAG" --repo "$REPO" -p latest.json -D "$dir"
+        gh api "repos/$REPO/releases/tags/$TAG" \
+          --jq '[.assets[] | {key: .url, value: .browser_download_url}] | from_entries' > "$dir/urls.json"
+        # A URL that is not an asset API URL (already rewritten) is kept as is.
+        jq --slurpfile urls "$dir/urls.json" \
+          '.platforms |= with_entries(.value.url = ($urls[0][.value.url] // .value.url))' \
+          "$dir/latest.json" > "$dir/out/latest.json"
+        if jq -e '[.platforms[].url | startswith("https://api.github.com/")] | any' "$dir/out/latest.json" > /dev/null; then
+          echo "::error::latest.json still points at an api.github.com asset URL"
+          cat "$dir/out/latest.json"
+          exit 1
+        fi
+        jq -r '.platforms | to_entries[] | "\(.key): \(.value.url)"' "$dir/out/latest.json"
+        gh release upload "$TAG" --repo "$REPO" "$dir/out/latest.json" --clobber

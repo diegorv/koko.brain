@@ -178,6 +178,12 @@ jobs:
           # (the Stable updater channel) keeps serving the last stable.
           prerelease: ${{ contains(github.ref_name, '-') }}
 
+      - name: Point latest.json at browser download URLs
+        uses: ./.github/actions/rewrite-updater-urls
+        with:
+          tag: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish checksums
         uses: ./.github/actions/publish-checksums
         with:
