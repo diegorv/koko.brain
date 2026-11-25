@@ -35,6 +35,16 @@ async function getMermaid(theme: MermaidTheme): Promise<typeof import('mermaid')
 	return mermaidInstance;
 }
 
+/** Moves mermaid's `#<render id>` style scope to a class, so the id can be dropped without unstyling the diagram */
+function rescopeStylesToClass(svg: SVGSVGElement, renderId: string): void {
+	svg.removeAttribute('id');
+	svg.classList.add(renderId);
+	const idSelector = new RegExp(`#${renderId}(?![\\w-])`, 'g');
+	for (const style of svg.querySelectorAll('style')) {
+		style.textContent = (style.textContent ?? '').replace(idSelector, `.${renderId}`);
+	}
+}
+
 /** Counter to generate unique IDs for each mermaid render */
 let renderCounter = 0;
 
@@ -109,7 +119,7 @@ export class MermaidWidget extends WidgetType {
 				// Sanitize before inserting to strip any scripts/event handlers from mermaid output
 				diagramEl.innerHTML = sanitizeMermaidSvg(result.svg);
 				const svg = diagramEl.querySelector('svg');
-				if (svg) svg.removeAttribute('id');
+				if (svg) rescopeStylesToClass(svg, id);
 				// Cache AFTER the id strip so cached copies carry no duplicate ids. Skip it when
 				// another widget re-initialized mermaid with another theme mid-render.
 				if (initializedTheme === theme) mermaidCache.set(cacheKey, diagramEl.innerHTML);

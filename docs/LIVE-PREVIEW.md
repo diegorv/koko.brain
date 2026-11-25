@@ -207,7 +207,7 @@ Widgets with expensive `toDOM()` work must cache, because CodeMirror destroys an
 | Widget | Cache | Key | Cached value | Teardown clear |
 |--------|-------|-----|--------------|----------------|
 | `plugins/queryjs/queryjs-block-widget.ts` (src/lib) | `queryjsSessionStore` (`plugins/queryjs/queryjs-session.store.svelte.ts`) | `jsContent` | The **live container element**, re-attached on hit | `queryjsSessionStore.reset()` |
-| `widgets/mermaid-widget.ts` | `mermaidCache: Map<string, string>` | Diagram source | Sanitized SVG markup, stored **after** the render-id strip | `clearMermaidCache()` |
+| `widgets/mermaid-widget.ts` | `mermaidCache: Map<string, string>` | Diagram source | Sanitized SVG markup, stored **after** the render-id strip (mermaid's `#<id>` style scope is moved to a class first) | `clearMermaidCache()` |
 | `widgets/math-widget.ts` | `mathCache: Map<string, string>` | `block:<formula>` / `inline:<formula>` | Sanitized KaTeX HTML | `clearMathCache()` |
 | `features/collection/collection-block-widget.ts` (src/lib) | `collectionCache: Map<string, CollectionCacheEntry>` | `yamlContent` | Query **data** - `{ version, view, result }`; the DOM is rebuilt per `toDOM()` | `clearCollectionCache()` |
 

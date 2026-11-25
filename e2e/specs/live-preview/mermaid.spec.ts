@@ -39,6 +39,14 @@ test.describe('Live Preview - Mermaid', () => {
 		await expect(page.locator('.cm-lp-mermaid-diagram svg')).toBeVisible({ timeout: 5000 });
 	});
 
+	test('mermaid nodes keep the theme styles', async ({ lpPage: page }) => {
+		await clickOnLine(page, 'Plain text at the end');
+		const node = page.locator('.cm-lp-mermaid-diagram svg .node .label-container').first();
+		await expect(node).toBeVisible({ timeout: 5000 });
+		const fill = await node.evaluate((el) => getComputedStyle(el).fill);
+		expect(fill).not.toBe('rgb(0, 0, 0)');
+	});
+
 	test('mermaid SVG has expected structure', async ({ lpPage: page }) => {
 		await clickOnLine(page, 'Plain text at the end');
 		const svg = page.locator('.cm-lp-mermaid-diagram svg');
