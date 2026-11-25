@@ -4,7 +4,7 @@ Functional correctness and content-preservation audit of Kokobrain. No security/
 
 ## Outcome
 
-- 24 tickets: **19 ready-for-agent**, **5 needs-triage**.
+- 25 tickets: **20 ready-for-agent**, **5 needs-triage**.
 - Primary queue: lost edits, wrong-target writes, persistence boundaries, and recovery.
 - Two lower-priority editor-feature tickets retain already-approved image behavior. Cosmetic findings, recoverable derived-index drift, and unrelated UI work stay outside this implementation queue.
 - Initial discovery used 24 investigators and 16 validators. The subsequent deep dive used **20 additional agents**, each with a distinct assignment. All completed before ticket publication.
@@ -30,6 +30,7 @@ Dependency chains:
 
 - **02 → 03 → 05**: final exit boundary, pending-view publication, Kanban draft integration.
 - **09 → 10**: history target safety, then supported path-based restoration.
+- **18 → 25**: history baseline and retention, then append/daily/closed-note writers.
 
 Other shared files require scheduling coordination, not artificial blocking edges. In particular, 01/02/06/07/08/17/18 touch persistence surfaces, but their independently reproducible outcomes do not require a mandatory linear refactor.
 

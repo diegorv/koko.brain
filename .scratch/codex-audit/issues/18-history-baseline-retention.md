@@ -21,6 +21,8 @@
 
 ## Provenance
 
+The append/prepend, daily-note and closed-note frontmatter follow-up is [25](25-history-baseline-other-writers.md), migrated from open-itens 099 and blocked by this ticket.
+
 Supersedes the full approved scope of [open-itens 016](../../open-itens/issues/016-file-history-keeps-snapshot-pre-save-bytes.md). The prior close-tab prerequisite is delivered. This is retained approved recovery work, not a newly executed deep-dive reproduction. [Evidence](../evidence.md#history-baseline).
 
 ## Comments

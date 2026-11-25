@@ -131,7 +131,7 @@ An Issue can start when its ledger status is `todo`, every Issue in its "Blocked
 | 096 | [Root unarchive writes vault/x.md, auto-move refuses .. segments, and a case or NFC variant of a path reuses the open tab](issues/096-root-unarchive-writes-vault-x-md-auto.md) | none | todo | | |
 | 097 | [The quick-capture dedupe anchor advances only after the frontend accepts the capture](issues/097-quick-capture-dedupe-anchor-advances-only-after.md) | none | todo | | |
 | 098 | [Collection link() cells never navigate the app webview and drop unsafe schemes](issues/098-collection-link-cells-never-navigate-app-webview.md) | none | todo | | |
-| 099 | [Deep-link prepend and append, daily capture and the closed-note frontmatter rewrite snapshot a note with an empty history first](issues/099-deep-link-prepend-append-daily-capture-closed.md) | none | todo | | |
+| 099 | [Deep-link prepend and append, daily capture and the closed-note frontmatter rewrite snapshot a note with an empty history first](issues/099-deep-link-prepend-append-daily-capture-closed.md) | none | wontfix | | |
 | 100 | [Renaming or moving a note updates the file nodes that point at it in canvases](issues/100-renaming-moving-note-updates-file-nodes-that.md) | 039, 004, 052 | todo | | |
 | 101 | [File History restores into a board view or a closed tab by path](issues/101-file-history-restores-into-board-view-closed.md) | 023 | wontfix | | |
 | 102 | [A tree refresh failure after a successful rename still reports it as done](issues/102-tree-refresh-failure-after-successful-rename-still.md) | 080 | todo | | |
@@ -315,4 +315,4 @@ An Issue can start when its ledger status is `todo`, every Issue in its "Blocked
 - 2026-11-19 07:15 — 017 — start — launched by /relay-lite:run — f8bfbc0a9
 - 2026-11-19 07:36 — 017 — deliver — merged 4b4602bdb; review 1 CHANGES_REQUESTED (1 blocker, 1 minor, 2 nits; fixed), review 2 APPROVED (1 nit kept); full suite 18012 passed — 4b4602bdb
 - 2026-11-25 — Audit migration: 006→codex-audit/05, 008→11, 016→18, 019→17, 023→09, 063→24, 064→23, 089→07/08, 093→12, 101→10, 105→11/21 plus residual register, 233→19. These predecessors are wontfix as superseded; original decisions remain in their files.
-- 2026-11-25 — Corrected relay fields: migration notes belong in Log, not Merged. Ordinary numbering prerequisite for 082 is delivered. Issue 099 has no same-feature blocker and remains needs-info for the external prerequisite codex-audit/18; restore ready-for-agent only after its delivery.
+- 2026-11-25 — Corrected relay fields: migration notes belong in Log, not Merged. Ordinary numbering prerequisite for 082 is delivered. Owner requested superseding 099 with codex-audit/25, blocked by codex-audit/18; 099 is wontfix.

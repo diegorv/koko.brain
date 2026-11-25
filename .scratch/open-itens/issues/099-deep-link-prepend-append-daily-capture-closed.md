@@ -6,9 +6,9 @@
 
 **Blocked by:** none
 
-**External prerequisite:** [codex-audit 18](../../codex-audit/issues/18-history-baseline-retention.md) must be delivered first. Relay dependency IDs are local to a feature; keep this issue `needs-info` until that delivery is verified, then restore `ready-for-agent`.
+**Status:** wontfix
 
-**Status:** needs-info
+**Superseded by:** [codex-audit 25](../../codex-audit/issues/25-history-baseline-other-writers.md), blocked by codex-audit 18. Replaced, not rejected or fixed.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -20,7 +20,7 @@
 
 ## Comments
 
-- 2026-11-25: Corrected the unsupported cross-feature blocker syntax. The explicit external prerequisite remains; needs-info prevents relay from launching this issue before codex-audit 18 is delivered.
+- 2026-11-25: Owner requested migrating this dependent into codex-audit rather than retaining an external prerequisite. Both acceptance criteria and the dependency on the baseline work are preserved in codex-audit 25.
 
 - 2026-11-25: Dependency follows the owner-authorized replacement of 016 by codex-audit 18. Scope and readiness remain unchanged.
 

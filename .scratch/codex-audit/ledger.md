@@ -30,8 +30,10 @@ No implementation has started. Ledger progress is `todo`; issue-file readiness r
 | 22 | [Reconsider reliable deep-link delivery across vault switches](issues/22-cross-vault-action-policy.md) | none | todo | | |
 | 23 | [Preserve non-Markdown extensions in wikilink completion](issues/23-image-completion-extension.md) | none | todo | | |
 | 24 | [Load relative Markdown images through the vault asset host](issues/24-relative-markdown-images.md) | none | todo | | |
+| 25 | [Preserve pre-write history for append, daily capture and closed-note metadata writes](issues/25-history-baseline-other-writers.md) | 18 | todo | | |
 
 ## Log
 
 - 2026-11-25 — Published 24 audit tickets; no implementation started.
 - 2026-11-25 — Corrected relay metadata and ledger schema; preserved issue readiness and dependency chains.
+- 2026-11-25 — Migrated open-itens/099 to 25 at the owner's request; predecessor wontfix, successor ready-for-agent and blocked by 18. Total: 25 issues, 20 ready and 5 triage.
