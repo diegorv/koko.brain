@@ -138,7 +138,7 @@ file src/lib/core/markdown-editor/extensions/live-preview/styles.ts other L1077 
 file src/lib/core/markdown-editor/extensions/live-preview/widgets.ts other L1145 module src/lib/core/markdown-editor in8 t15
 file src/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.ts other L190 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/extensions/live-preview/widgets/math-widget.ts other L77 module src/lib/core/markdown-editor in3 t1
-file src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts other L139 module src/lib/core/markdown-editor in2 t2
+file src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts other L156 module src/lib/core/markdown-editor in2 t2
 file src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts other L143 module src/lib/core/markdown-editor in1 t4
 file src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts other L66 module src/lib/core/markdown-editor in4 t3
 file src/lib/core/markdown-editor/extensions/source-frontmatter/index.ts other L1 module src/lib/core/markdown-editor in1 t0
@@ -179,7 +179,7 @@ sym src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:51 fn
 sym src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:66 fn profileEnd(label: string, start: number, threshold: number = 0.5): void L8 | Ends a profiling measurement and logs the result if it exceeds the threshold.
 sym src/lib/core/markdown-editor/extensions/live-preview/embed-resolver.logic.ts:54 fn stripFrontmatter(content: string): string L9 | Strips YAML frontmatter from content if present
 sym src/lib/core/markdown-editor/extensions/live-preview/widgets/math-widget.ts:13 fn clearMathCache(): void L3 | Drops all cached renders.
-sym src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts:50 fn clearMermaidCache(): void L3 | Drops all cached renders.
+sym src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts:67 fn clearMermaidCache(): void L3 | Drops all cached renders.
 sym src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:17 fn followWikilink(host: EditorHost, target: string, anchor?: LinkAnchor): Promise<void> L6 | Follows a wikilink target through the host: opens the note it resolves to, or creates it (a periodic note when the name matches a periodic format).
 sym src/lib/core/markdown-editor/extensions/tag/completion.ts:14 fn tagCompletionSource(context: CompletionContext): Promise<CompletionResult | null> L28 | Completion source for `#tags`: the vault's tags (through `editorHost`) that the prefix typed after `#` fuzzy-matches, most-used first among equal matches.
 sym src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:26 fn detectWikilinkContext(docText: string, pos: number): WikilinkMatch | null L47 | Detects whether the cursor is inside a `[[...]]` wikilink and determines the completion mode (file, heading, or blockId).

@@ -23,4 +23,4 @@ by src/lib/utils/sanitize.ts:sanitizeSvgContent <- src/lib/features/file-icons/I
 sym src/lib/utils/sanitize.ts:57 fn sanitizeSnippetHtml(html: string): string L16 | Sanitizes an FTS5 snippet string that may contain <mark> tags.
 by src/lib/utils/sanitize.ts:sanitizeSnippetHtml <- src/lib/features/search/SearchResult.svelte:173 in (markup) markup
 sym src/lib/utils/sanitize.ts:77 fn sanitizeMermaidSvg(svg: string): string L10 | Sanitizes mermaid SVG output.
-by src/lib/utils/sanitize.ts:sanitizeMermaidSvg <- src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts:110 in MermaidWidget.toDOM call
+by src/lib/utils/sanitize.ts:sanitizeMermaidSvg <- src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts:127 in MermaidWidget.toDOM call
