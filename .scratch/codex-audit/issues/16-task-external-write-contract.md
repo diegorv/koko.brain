@@ -2,7 +2,8 @@
 
 **What to build:** Task read-modify-write operations detect or preserve competing external edits under an explicit, testable concurrency contract.
 
-**Blocked by:** None (policy decision required before implementation).
+**Blocked by:** none
+**Files:** src-tauri/src/commands/vault.rs, src-tauri/src/utils/fs.rs, src-tauri/src/vault/parsing.rs, src-tauri/src/vault/task_lines.rs, src/lib/features/tasks/tasks.service.ts, src/lib/features/todoist-sync/closed-note-writer.service.ts, src-tauri/tests/vault_task_test.rs, src-tauri/tests/vault_task_text_test.rs, src-tauri/tests/vault_task_lines_test.rs, src/tests/lib/features/tasks/, src/tests/lib/features/todoist-sync/closed-note-writer.service.test.ts
 **Status:** needs-triage
 **Priority:** P1
 **Gate:** Both.
@@ -12,6 +13,8 @@
 Task status/text/batch edits can read A, then replace an externally written B with a task-modified A. Atomic replacement prevents partial files, not lost updates.
 
 ## Decision required
+
+Policy decision required before implementation.
 
 Choose bounded detection/refusal for changes observed before commit, or a stronger independently verified preservation mechanism. A reread, hash comparison, or application-local lock must not be described as compare-and-swap against arbitrary writers.
 
@@ -29,3 +32,5 @@ Choose bounded detection/refusal for changes observed before commit, or a strong
 ## Provenance
 
 Separate from frontend response settlement in 06. [Evidence](../evidence.md#external-writers).
+
+## Comments

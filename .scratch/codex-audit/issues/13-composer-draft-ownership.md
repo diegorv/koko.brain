@@ -2,7 +2,8 @@
 
 **What to build:** A capture completion consumes only its own inherited unsaved text, once, and cannot truncate a replacement composition or alter a newer save's UI.
 
-**Blocked by:** None (can start immediately).
+**Blocked by:** none
+**Files:** src/routes/composer/+page.svelte, src/lib/plugins/quick-capture/composer-editor.ts, src/tests/routes/composer-page.test.ts
 **Status:** ready-for-agent
 **Priority:** P1
 **Gate:** Frontend with the mounted production composer and editor.
@@ -26,3 +27,5 @@ Save `buy `, dismiss/reopen during the Saved flash, and type `buy milk`. The ear
 ## Provenance
 
 A distinct regression follow-up to delivered composer preservation work. [Evidence](../evidence.md#composer).
+
+## Comments

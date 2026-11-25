@@ -2,7 +2,8 @@
 
 **What to build:** Removing a duplicated task anchor resumes reconciliation without losing remote completion changes received while that task was frozen.
 
-**Blocked by:** None (can start immediately).
+**Blocked by:** none
+**Files:** src/lib/features/todoist-sync/sync-now.service.ts, src/lib/features/todoist-sync/completion.logic.ts, src/lib/features/todoist-sync/todoist-sync.store.svelte.ts, src-tauri/src/db/todoist_repo.rs, src/tests/lib/features/todoist-sync/sync-now.service.test.ts, src/tests/lib/features/todoist-sync/completion.logic.test.ts, src/tests/fixtures/todoist-sync.fake.ts, src/tests/fixtures/todoist-vault.fake.ts, src-tauri/tests/todoist_state_test.rs
 **Status:** ready-for-agent
 **Priority:** P2
 **Gate:** Frontend with consecutive production sync cycles.
@@ -25,3 +26,5 @@ Sync an open nonrecurring task, duplicate its anchored line, complete it remotel
 ## Provenance
 
 New follow-up to delivered freeze and two-way completion tickets, which did not cover replay after unfreezing. [Evidence](../evidence.md#todoist-freeze).
+
+## Comments

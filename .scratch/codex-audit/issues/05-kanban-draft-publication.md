@@ -2,10 +2,11 @@
 
 **What to build:** Existing-card edits and lane-title drafts survive keyboard navigation, tab close, and intercepted exit independently of browser blur delivery.
 
-**Blocked by:** [03: Publish pending views before exit](03-canvas-exit-publication.md).
+**Blocked by:** 03
 **Status:** ready-for-agent
 **Priority:** P1
 **Gate:** Frontend plus targeted WebKit keyboard-navigation verification.
+**Files:** src/lib/plugins/kanban/KanbanCard.svelte, src/lib/plugins/kanban/KanbanLane.svelte, src/lib/plugins/kanban/KanbanView.svelte, src/lib/plugins/kanban/kanban.logic.ts, src/lib/app/EditorView.svelte, src/lib/core/editor/editor.service.ts, src/tests/lib/plugins/kanban/, src/tests/lib/core/editor/editor.service.test.ts, e2e/specs/kanban-view.spec.ts, e2e/specs/tabs.spec.ts
 
 ## Acceptance criteria
 
@@ -23,3 +24,5 @@
 ## Provenance
 
 Supersedes [open-itens 006](../../open-itens/issues/006-kanban-card-lane-title-being-edited-saved.md). Its delivered Canvas prerequisite is replaced by the remaining exit integration dependency. [Evidence](../evidence.md#buffered-views).
+
+## Comments

@@ -2,7 +2,8 @@
 
 **What to build:** Closing a note preserves its final accepted content even when Undo makes the tab appear clean while an older save is outstanding.
 
-**Blocked by:** None (can start immediately).
+**Blocked by:** none
+**Files:** src/lib/core/editor/editor.service.ts, src/lib/core/editor/editor.store.svelte.ts, src/lib/core/markdown-editor/EditorTabs.svelte, src/lib/core/markdown-editor/MarkdownEditor.svelte, src/lib/app/global-keybindings.ts, src/tests/lib/core/editor/editor.service.test.ts, src/tests/lib/core/markdown-editor/MarkdownEditor.test.ts, src/tests/lib/core/markdown-editor/EditorTabs.test.ts, src/tests/lib/app/global-keybindings.test.ts
 **Status:** ready-for-agent
 **Priority:** P1
 **Gate:** Frontend, with rendered-editor regression coverage.
@@ -24,3 +25,5 @@ Save A, edit to B, delay B's save, undo to A, and close the tab. The tab disappe
 ## Provenance
 
 Distinct follow-up to delivered close-tab protection, not reopening its completed work. See [evidence](../evidence.md#save-boundaries).
+
+## Comments

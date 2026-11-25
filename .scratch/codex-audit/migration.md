@@ -23,7 +23,7 @@ All links below identify exact files; numeric IDs alone are ambiguous across gro
 
 ## Dependency repairs
 
-- [open-itens 099](../open-itens/issues/099-deep-link-prepend-append-daily-capture-closed.md) now points to 18 rather than the superseded 016.
+- [open-itens 099](../open-itens/issues/099-deep-link-prepend-append-daily-capture-closed.md) records 18 as an external prerequisite rather than the superseded 016. Relay only accepts same-feature IDs in `Blocked by`; 099 is held as `needs-info` until 18 is delivered, then its readiness can return to `ready-for-agent`.
 - [open-itens 082](../open-itens/issues/082-failed-auto-move-tells-user-which-note.md) retains blocker 031. Its ordinary collision-numbering prerequisite was delivered in [vault-organization-v2 01](../vault-organization-v2/issues/01-move-collision-is-silent.md); exclusive rename is not required for its failure-toast work. Shared move-service files alone do not establish a new dependency on 19.
 - Historical dependency fields in terminal predecessor tickets are retained as history. The new ledger expresses the active graph.
 

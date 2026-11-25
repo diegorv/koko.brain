@@ -24,6 +24,8 @@ Each ticket is a user-verifiable vertical slice. Read the linked evidence and ap
 
 `ready-for-agent` does not override a blocker. The active frontier consists of ready tickets whose predecessors have been completed. Do not launch `needs-triage` tickets until their recorded decisions are answered.
 
+Relay metadata follows `agent-relay-lite`'s `docs/format.md` and `src/ledger.ts`: `Blocked by` is lowercase `none` or same-feature IDs separated by commas; `Files` is a comma-separated list of repository-relative paths without Markdown quoting or globs. These paths describe expected edit surfaces for overlap scheduling, not a requirement to modify every listed file. Directory entries cover test additions or conditional implementation surfaces. Ledger progress uses `todo`, while readiness remains in each issue's `Status` field. `relay pick` excludes the five triage tickets.
+
 Dependency chains:
 
 - **02 → 03 → 05**: final exit boundary, pending-view publication, Kanban draft integration.

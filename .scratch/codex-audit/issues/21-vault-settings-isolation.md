@@ -2,7 +2,8 @@
 
 **What to build:** Superseded vault initialization cannot publish obsolete settings or start persistence against the wrong vault.
 
-**Blocked by:** None (can start immediately).
+**Blocked by:** none
+**Files:** src/lib/app/lifecycle/app-lifecycle.service.ts, src/lib/core/settings/settings.service.ts, src/lib/core/settings/settings.store.svelte.ts, src/lib/core/settings/settings-persistence.svelte.ts, src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts, src/tests/lib/core/settings/settings.service.test.ts, src/tests/lib/core/settings/settings-persistence.test.ts, src/tests/lib/core/settings/
 **Status:** ready-for-agent
 **Priority:** P1
 **Gate:** Frontend with real initialization, settings loading, and persistence.
@@ -21,3 +22,5 @@
 ## Provenance
 
 Supersedes the settings section of [open-itens 105](../../open-itens/issues/105-minor-write-races-are-closed-autosave-during.md). The original post-monitoring gap and newly reproduced stale-loader direction both belong here. Remaining 105 claims are tracked in [deferred findings](../deferred.md). [Evidence](../evidence.md#vault-settings).
+
+## Comments

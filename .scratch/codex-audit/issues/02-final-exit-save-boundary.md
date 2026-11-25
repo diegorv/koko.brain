@@ -2,7 +2,8 @@
 
 **What to build:** Window close, intercepted Quit, update restart, and vault switching preserve accepted editor changes through the entire destructive transition.
 
-**Blocked by:** None (can start immediately).
+**Blocked by:** none
+**Files:** src/lib/core/editor/editor.service.ts, src/lib/core/editor/editor.store.svelte.ts, src/lib/core/vault/exit.service.ts, src/lib/core/vault/vault.service.ts, src/lib/app/lifecycle/app-lifecycle.service.ts, src/lib/app/tauri-listeners.service.ts, src/lib/core/settings/sections/UpdateSection.svelte, src/tests/lib/core/editor/editor.service.test.ts, src/tests/lib/core/vault/exit.service.test.ts, src/tests/lib/core/vault/vault.service.switch-save.test.ts, src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts, src/tests/lib/app/tauri-listeners.service.test.ts, src/tests/lib/core/settings/UpdateSection.restart.test.ts
 **Status:** ready-for-agent
 **Priority:** P1
 **Gate:** Frontend; exercise the existing native-exit entry points.
@@ -25,3 +26,5 @@ Begin exit with B dirty, delay its write, type C, and finish B's write. Exit is 
 ## Provenance
 
 The vault-switch fallback may rescue an earlier edit; tests must exercise the final transition, not claim loss from the first save alone. [Evidence](../evidence.md#save-boundaries).
+
+## Comments

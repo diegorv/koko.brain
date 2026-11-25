@@ -2,7 +2,8 @@
 
 **What to build:** An explicitly approved extension of hidden-frontmatter protection for source-mode transitions, search, pointer selections, and history-restored carets.
 
-**Blocked by:** None (owner behavior decision required before implementation).
+**Blocked by:** none
+**Files:** src/lib/core/markdown-editor/extensions/live-preview/plugins/frontmatter-field.ts, src/lib/core/markdown-editor/extensions/live-preview/core/frontmatter-slice.ts, src/lib/core/markdown-editor/setup/editor-extensions.ts, src/lib/core/markdown-editor/MarkdownEditor.svelte, src/lib/core/markdown-editor/tab-view-state.ts, src/lib/core/editor/editor.store.svelte.ts, src/tests/lib/core/markdown-editor/, e2e/
 **Status:** needs-triage
 **Priority:** P1
 **Gate:** Frontend plus real pointer/focus and native-input verification.
@@ -25,3 +26,7 @@ The corruption is reproduced, but these paths were expressly excluded by the del
 ## Provenance
 
 Follow-up policy request to [resolved open-itens 002](../../open-itens/issues/002-keyboard-edits-next-hidden-frontmatter-never-change.md), whose completed status and historical decisions remain intact. [Evidence](../evidence.md#hidden-frontmatter).
+
+## Comments
+
+The owner behavior decision above is required before implementation.

@@ -2,10 +2,11 @@
 
 **What to build:** Automatic reference rewriting preserves newer edits and all successful link transformations through overlapping saves and renames.
 
-**Blocked by:** None (can start immediately).
+**Blocked by:** none
 **Status:** ready-for-agent
 **Priority:** P1
 **Gate:** Frontend with rendered-editor history coverage.
+**Files:** src/lib/core/filesystem/link-updater.service.ts, src/lib/core/filesystem/link-updater.logic.ts, src/lib/core/filesystem/path-change.service.ts, src/lib/core/filesystem/note-change.service.ts, src/lib/core/editor/editor.service.ts, src/lib/core/editor/editor.store.svelte.ts, src/lib/core/markdown-editor/MarkdownEditor.svelte, src/lib/core/markdown-editor/tab-view-state.ts, src/tests/lib/core/filesystem/link-updater.service.test.ts, src/tests/lib/core/filesystem/link-updater.logic.test.ts, src/tests/lib/core/filesystem/fs.service.test.ts, src/tests/lib/core/filesystem/note-change.service.test.ts, src/tests/lib/core/editor/, src/tests/lib/core/markdown-editor/
 
 ## Acceptance criteria
 
@@ -22,3 +23,5 @@
 ## Provenance
 
 Supersedes the link-rewrite portion of [open-itens 089](../../open-itens/issues/089-keystrokes-typed-during-link-rewrite-type-rename.md). Its stale watcher subsection and UI-unproven type-rename scenario are separately disposed in [deferred findings](../deferred.md). [Evidence](../evidence.md#backlink-rewrites).
+
+## Comments

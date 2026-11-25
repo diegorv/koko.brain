@@ -2,7 +2,8 @@
 
 **What to build:** If cross-vault actions are approved, an accepted action executes against its intended ready vault or is visibly rejected, never silently dropped or redirected.
 
-**Blocked by:** None (owner scope and delivery-policy decision required).
+**Blocked by:** none
+**Files:** src/lib/features/deep-link/deep-link.service.ts, src/lib/features/deep-link/deep-link.store.svelte.ts, src/lib/app/lifecycle/app-lifecycle.service.ts, src/lib/core/vault/vault.service.ts, src/lib/app/deep-link-actions.ts, src/tests/lib/features/deep-link/, src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts, src/tests/lib/app/
 **Status:** needs-triage
 **Priority:** P2
 **Gate:** Frontend with real lifecycle and deep-link state.
@@ -10,6 +11,8 @@
 ## Disposition
 
 This duplicates an archived wontfix decision based on one vault per session. The later approved switch-menu work warrants reconsideration but does not automatically reopen that decision or become a prerequisite.
+
+An owner scope and delivery-policy decision is required before implementation.
 
 ## Decisions and acceptance criteria
 
@@ -24,3 +27,5 @@ This duplicates an archived wontfix decision based on one vault per session. The
 ## Provenance
 
 Reconsideration successor to [archived file-io-audit 26](../../archived/file-io-audit/issues/26-cross-vault-deep-link-dropped.md), which remains wontfix with a forward reference. [Evidence](../evidence.md#cross-vault-actions).
+
+## Comments

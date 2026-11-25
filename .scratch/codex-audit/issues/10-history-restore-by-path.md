@@ -2,7 +2,8 @@
 
 **What to build:** Apply a confirmed snapshot to its original file even without an active Markdown editor, retaining the history-session safety of 09.
 
-**Blocked by:** [09: History restore target safety](09-history-restore-target.md).
+**Blocked by:** 09
+**Files:** src/lib/features/file-history/file-history.service.ts, src/lib/features/file-history/file-history.store.svelte.ts, src/lib/features/file-history/FileHistoryDialog.svelte, src/lib/core/editor/editor.service.ts, src/lib/core/editor/editor.hooks.ts, src/lib/core/filesystem/note-change.service.ts, src/lib/app/EditorView.svelte, src/lib/features/canvas/CanvasInner.svelte, src/lib/plugins/kanban/KanbanView.svelte, src/lib/features/collection/CollectionView.svelte, src/lib/features/type-definitions/type-definitions.service.ts, src/tests/lib/features/file-history/, src/tests/lib/core/editor/editor.service.test.ts, src/tests/lib/core/filesystem/note-change.service.test.ts, src/tests/lib/app/EditorView.test.ts, src/tests/lib/features/canvas/, src/tests/lib/plugins/kanban/, src/tests/lib/features/collection/, src/tests/lib/core/markdown-editor/undo-history-across-notes.test.ts
 **Status:** ready-for-agent
 **Priority:** P2
 **Gate:** Frontend with rendered Canvas, Kanban, and Collection restoration.
@@ -22,3 +23,5 @@
 ## Provenance
 
 Supersedes [open-itens 101](../../open-itens/issues/101-file-history-restores-into-board-view-closed.md), retaining its approved closed-file behavior and genuine dependency. [Evidence](../evidence.md#history-restoration).
+
+## Comments

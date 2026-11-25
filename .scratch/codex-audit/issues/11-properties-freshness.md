@@ -2,7 +2,8 @@
 
 **What to build:** Editing a property never reconstructs the note from a stale property snapshot or suppresses a newer same-note refresh.
 
-**Blocked by:** None (can start immediately).
+**Blocked by:** none
+**Files:** src/lib/features/properties/properties.service.ts, src/lib/features/properties/properties.store.svelte.ts, src/lib/features/properties/PropertiesView.svelte, src/lib/features/properties/PropertyField.svelte, src/lib/core/frontmatter/properties.logic.ts, src/lib/core/frontmatter/frontmatter-write.service.ts, src/lib/core/editor/editor.service.ts, src/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input-plugin.ts, src/tests/lib/features/properties/, src/tests/lib/core/frontmatter/properties.logic.test.ts, src/tests/lib/core/editor/editor.service.test.ts, src/tests/lib/core/markdown-editor/extensions/live-preview/meta-bind-input-widgets.test.ts, src/tests/lib/core/markdown-editor/extensions/live-preview/meta-bind-writers.test.ts
 **Status:** ready-for-agent
 **Priority:** P1
 **Gate:** Frontend with mounted Properties and meta-bind coverage.
@@ -22,3 +23,5 @@
 ## Provenance
 
 Supersedes [open-itens 008](../../open-itens/issues/008-properties-panel-commit-that-changes-nothing-does.md) and the Properties section of [105](../../open-itens/issues/105-minor-write-races-are-closed-autosave-during.md). Other 105 claims have explicit dispositions in [deferred findings](../deferred.md). [Evidence](../evidence.md#properties-and-types).
+
+## Comments

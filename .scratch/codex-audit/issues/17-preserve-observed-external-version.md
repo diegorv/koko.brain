@@ -2,7 +2,8 @@
 
 **What to build:** Saving a locally edited note preserves competing disk bytes it observes before replacement, rather than depending on delayed watcher reads.
 
-**Blocked by:** None (failure-policy decision required before implementation).
+**Blocked by:** none
+**Files:** src/lib/core/editor/editor.service.ts, src/lib/core/editor/editor.store.svelte.ts, src/lib/core/editor/editor.hooks.ts, src/lib/features/file-history/file-history.service.ts, src-tauri/src/commands/history.rs, src-tauri/src/db/history_repo.rs, src/tests/lib/core/editor/, src/tests/lib/core/frontmatter/frontmatter-write.service.test.ts, src/tests/lib/features/file-history/, src-tauri/tests/history_test.rs
 **Status:** needs-triage
 **Priority:** P1
 **Gate:** Frontend; Both if durable preservation changes the backend contract.
@@ -26,3 +27,7 @@ Retain the predecessor's approved policy: keep both versions, save the user's ty
 ## Provenance
 
 Supersedes [open-itens 019](../../open-itens/issues/019-every-tab-write-checks-disk-first-so.md). Its watcher prerequisite is already delivered. Status is deliberately triage because its old title promised more than read-before-write can guarantee. [Evidence](../evidence.md#external-writers).
+
+## Comments
+
+The failure-policy decision above is required before implementation.

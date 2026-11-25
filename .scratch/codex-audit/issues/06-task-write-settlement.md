@@ -2,10 +2,11 @@
 
 **What to build:** Tasks and Todoist task writes settle against the correct note incarnation and write order without discarding newer typing or falsely declaring stale content saved.
 
-**Blocked by:** None (can start immediately).
+**Blocked by:** none
 **Status:** ready-for-agent
 **Priority:** P1
 **Gate:** Frontend; use Both if the task-command result contract changes.
+**Files:** src/lib/core/filesystem/task-write.service.ts, src/lib/core/filesystem/note-change.service.ts, src/lib/core/editor/editor.service.ts, src/lib/core/editor/editor.store.svelte.ts, src/lib/core/editor/editor.types.ts, src/lib/core/markdown-editor/MarkdownEditor.svelte, src/lib/core/markdown-editor/tab-view-state.ts, src/lib/features/tasks/tasks.service.ts, src/lib/features/todoist-sync/closed-note-writer.service.ts, src/lib/features/todoist-sync/note-writer.service.ts, src/lib/features/todoist-sync/sync-now.service.ts, src/tests/lib/core/filesystem/task-write.service.test.ts, src/tests/lib/core/filesystem/note-change.service.test.ts, src/tests/lib/core/editor/, src/tests/lib/core/markdown-editor/, src/tests/lib/features/tasks/, src/tests/lib/features/todoist-sync/
 
 ## Acceptance criteria
 
@@ -24,3 +25,5 @@
 ## Provenance
 
 A follow-up to delivered preflight protection and Todoist writers. It is independent of the external-writer race in 16. [Evidence](../evidence.md#task-settlement).
+
+## Comments

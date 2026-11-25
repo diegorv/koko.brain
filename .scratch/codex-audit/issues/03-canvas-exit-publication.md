@@ -2,7 +2,8 @@
 
 **What to build:** Publish and persist pending Canvas text under its original file ownership before a destructive lifecycle transition.
 
-**Blocked by:** [02: Final exit save boundary](02-final-exit-save-boundary.md).
+**Blocked by:** 02
+**Files:** src/lib/features/canvas/CanvasInner.svelte, src/lib/features/canvas/TextNode.svelte, src/lib/features/canvas/canvas-history.logic.ts, src/lib/app/EditorView.svelte, src/lib/core/editor/editor.service.ts, src/lib/core/vault/exit.service.ts, src/lib/core/vault/vault.service.ts, src/lib/app/lifecycle/app-lifecycle.service.ts, src/tests/lib/features/canvas/, src/tests/lib/core/vault/exit.service.test.ts, src/tests/lib/core/vault/vault.service.switch-save.test.ts, src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts
 **Status:** ready-for-agent
 **Priority:** P1
 **Gate:** Frontend, including mounted Canvas integration.
@@ -21,3 +22,5 @@
 ## Provenance
 
 Delivered Canvas close-tab flushing is not superseded. This covers the remaining lifecycle boundary. [Evidence](../evidence.md#buffered-views).
+
+## Comments

@@ -2,7 +2,8 @@
 
 **What to build:** Scheme-less inline and reference-style Markdown image destinations resolve through the existing vault host and load as filesystem assets.
 
-**Blocked by:** None (can start immediately).
+**Blocked by:** none
+**Files:** src/lib/core/markdown-editor/extensions/live-preview/widgets.ts, src/lib/core/markdown-editor/extensions/live-preview/plugins/image-plugin.ts, src/lib/app/editor-host.ts, src/lib/features/deep-link/deep-link.service.ts, src/tests/lib/core/markdown-editor/extensions/live-preview/widgets/image-widget.test.ts, src/tests/lib/core/markdown-editor/extensions/live-preview/plugins/image-plugin.test.ts, src/tests/lib/app/editor-host.test.ts, src/tests/lib/app/, src/tests/lib/features/deep-link/, e2e/
 **Status:** ready-for-agent
 **Priority:** P2
 **Gate:** Frontend plus native asset-loading verification in a supported vault.
@@ -21,3 +22,5 @@
 ## Provenance
 
 Supersedes [open-itens 063](../../open-itens/issues/063-standard-markdown-images-vault-relative-path-load.md). The old missing-default-vault asset-scope claim is stale and is not a blocker. [Evidence](../evidence.md#markdown-images).
+
+## Comments

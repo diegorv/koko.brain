@@ -2,7 +2,8 @@
 
 **What to build:** Context-menu Paste never inserts into another note or a changed selection after asynchronous clipboard reading.
 
-**Blocked by:** None (can start immediately).
+**Blocked by:** none
+**Files:** src/lib/core/markdown-editor/MarkdownEditor.svelte, src/tests/lib/core/markdown-editor/MarkdownEditor.test.ts, src/tests/lib/core/markdown-editor/undo-history-across-notes.test.ts
 **Status:** ready-for-agent
 **Priority:** P1
 **Gate:** Frontend with real tab switching and CodeMirror state.
@@ -20,3 +21,5 @@
 ## Provenance
 
 New follow-up to delivered clipboard menu work, which guarded Cut but not the pending Paste destination. It is not the parked TSV-conversion issue. [Evidence](../evidence.md#clipboard).
+
+## Comments

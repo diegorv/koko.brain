@@ -2,7 +2,8 @@
 
 **What to build:** Bind history selection, confirmation, loading, and restoration to the same file and history session; reject unsafe targets without writing.
 
-**Blocked by:** None (can start immediately).
+**Blocked by:** none
+**Files:** src/lib/features/file-history/file-history.service.ts, src/lib/features/file-history/file-history.store.svelte.ts, src/lib/features/file-history/FileHistoryDialog.svelte, src/lib/core/editor/editor.service.ts, src/lib/core/editor/editor.store.svelte.ts, src/lib/core/markdown-editor/MarkdownEditor.svelte, src/tests/lib/features/file-history/, src/tests/lib/core/editor/editor.service.test.ts, src/tests/lib/core/markdown-editor/undo-history-across-notes.test.ts
 **Status:** ready-for-agent
 **Priority:** P1
 **Gate:** Frontend with a real CodeMirror view and delayed-IPC integration.
@@ -27,3 +28,5 @@ Retain the previously approved first slice: restore only into the active Markdow
 ## Provenance
 
 Supersedes [open-itens 023](../../open-itens/issues/023-file-history-restore-writes-snapshot-into-note.md). Preserves its guard-first scope and undo policy. [Evidence](../evidence.md#history-restoration).
+
+## Comments

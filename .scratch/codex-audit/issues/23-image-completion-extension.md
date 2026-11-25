@@ -2,7 +2,8 @@
 
 **What to build:** Selecting an image or other non-Markdown file inserts and displays its full filename so the editor routes it to the correct feature.
 
-**Blocked by:** None (can start immediately).
+**Blocked by:** none
+**Files:** src/lib/core/markdown-editor/extensions/wikilink/completion.ts, src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts, src/lib/app/editor-host.ts, src/lib/core/markdown-editor/extensions/live-preview/widgets.ts, src/tests/lib/core/markdown-editor/extensions/wikilink/, src/tests/lib/core/markdown-editor/extensions/live-preview/widgets/wikilink-image-embed-widget.test.ts, src/tests/lib/app/editor-host.test.ts
 **Status:** ready-for-agent
 **Priority:** P2
 **Gate:** Frontend with completion-to-render integration.
@@ -20,3 +21,5 @@
 ## Provenance
 
 Supersedes the full approved scope of [open-itens 064](../../open-itens/issues/064-wikilink-autocomplete-inserts-non-markdown-file-extension.md). A broken primary image-insertion flow, not a cosmetic improvement; lower priority than data-loss fixes. [Evidence](../evidence.md#markdown-images).
+
+## Comments

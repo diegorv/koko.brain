@@ -2,7 +2,8 @@
 
 **What to build:** Treat pending Canvas edits as local modifications before deciding whether external file content can replace the view.
 
-**Blocked by:** None (can start immediately).
+**Blocked by:** none
+**Files:** src/lib/features/canvas/CanvasInner.svelte, src/lib/features/canvas/canvas-history.logic.ts, src/lib/app/EditorView.svelte, src/lib/core/editor/editor.service.ts, src/lib/core/editor/editor.store.svelte.ts, src/lib/features/file-history/file-history.service.ts, src/tests/lib/features/canvas/, src/tests/lib/core/editor/editor.service.test.ts, src/tests/lib/features/file-history/file-history.service.test.ts
 **Status:** ready-for-agent
 **Priority:** P1
 **Gate:** Frontend, including mounted Canvas integration.
@@ -20,3 +21,5 @@
 ## Provenance
 
 Independent from exit interception and final-save ordering. [Evidence](../evidence.md#buffered-views).
+
+## Comments

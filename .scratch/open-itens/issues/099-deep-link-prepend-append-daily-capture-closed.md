@@ -4,9 +4,11 @@
 
 **What to build:** Split from Issue 08 on 2026-11-06: the owner kept only its cheap part in the first wave. Read Issue 08 first; its Details and evidence apply here. Extend the pre-write baseline of Issue 08 to the remaining writers: deep-link prepend and append, the daily append and prepend, and the closed-note frontmatter rewrite.
 
-**Blocked by:** [codex-audit 18](../../codex-audit/issues/18-history-baseline-retention.md)
+**Blocked by:** none
 
-**Status:** ready-for-agent
+**External prerequisite:** [codex-audit 18](../../codex-audit/issues/18-history-baseline-retention.md) must be delivered first. Relay dependency IDs are local to a feature; keep this issue `needs-info` until that delivery is verified, then restore `ready-for-agent`.
+
+**Status:** needs-info
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -17,6 +19,8 @@
 
 
 ## Comments
+
+- 2026-11-25: Corrected the unsupported cross-feature blocker syntax. The explicit external prerequisite remains; needs-info prevents relay from launching this issue before codex-audit 18 is delivered.
 
 - 2026-11-25: Dependency follows the owner-authorized replacement of 016 by codex-audit 18. Scope and readiness remain unchanged.
 
