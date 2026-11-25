@@ -35,7 +35,14 @@ async function getMermaid(theme: MermaidTheme): Promise<typeof import('mermaid')
 	return mermaidInstance;
 }
 
-/** Moves mermaid's `#<render id>` style scope to a class, so the id can be dropped without unstyling the diagram */
+/**
+ * Strips the render id from the svg and moves mermaid's style scope to a class.
+ * Mermaid prefixes every rule of its embedded `<style>` with `#<renderId>`, so
+ * without the id no rule matches and nodes fall back to a black fill. The id
+ * must go: cached copies would duplicate it, and the cleanup in `toDOM` removes
+ * any element with that id from the document. The lookahead leaves ids that
+ * only start with the render id (markers like `<renderId>_flowchart-v2-pointEnd`).
+ */
 function rescopeStylesToClass(svg: SVGSVGElement, renderId: string): void {
 	svg.removeAttribute('id');
 	svg.classList.add(renderId);

@@ -70,6 +70,26 @@ describe('MermaidWidget', () => {
 		}
 	});
 
+	it('leaves ids that only start with the render id untouched', async () => {
+		type RenderResult = Awaited<ReturnType<typeof mermaid.render>>;
+		vi.mocked(mermaid.render).mockImplementationOnce(
+			async (id: string) =>
+				({
+					svg:
+						`<svg id="${id}"><style>#${id} path{marker-end:url(#${id}_pointEnd);}` +
+						`#${id}-gradient{fill:blue;}</style><path></path></svg>`,
+				}) as RenderResult,
+		);
+
+		const dom = new MermaidWidget(SOURCE).toDOM();
+		await flushAsync();
+
+		const renderId = vi.mocked(mermaid.render).mock.calls[0][0];
+		expect(dom.querySelector('.cm-lp-mermaid-diagram svg style')?.textContent).toBe(
+			`.${renderId} path{marker-end:url(#${renderId}_pointEnd);}#${renderId}-gradient{fill:blue;}`,
+		);
+	});
+
 	it('renders an error container for an empty source without invoking mermaid', () => {
 		const dom = new MermaidWidget('   ').toDOM();
 

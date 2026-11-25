@@ -47,6 +47,25 @@ test.describe('Live Preview - Mermaid', () => {
 		expect(fill).not.toBe('rgb(0, 0, 0)');
 	});
 
+	// SVG text labels rely on mermaid's scoped `text-anchor: middle`; unscoped,
+	// each label starts at the node center and overflows to the right.
+	test('mermaid SVG text labels are centered in their nodes', async ({ lpPage: page }) => {
+		await openMarkdownFile(
+			page,
+			'svg-labels.md',
+			'```mermaid\n---\nconfig:\n  htmlLabels: false\n---\nflowchart LR\n  A["Input"] --> B["Process"]\n```\n\nPlain text at the end.\n',
+		);
+		await clickOnLine(page, 'Plain text at the end');
+		const node = page.locator('.cm-lp-mermaid-diagram svg .node').first();
+		await expect(node).toBeVisible({ timeout: 5000 });
+		const offset = await node.evaluate((el) => {
+			const box = el.querySelector('rect, polygon, path')!.getBoundingClientRect();
+			const label = el.querySelector('.label')!.getBoundingClientRect();
+			return label.x + label.width / 2 - (box.x + box.width / 2);
+		});
+		expect(Math.abs(offset)).toBeLessThan(2);
+	});
+
 	test('mermaid SVG has expected structure', async ({ lpPage: page }) => {
 		await clickOnLine(page, 'Plain text at the end');
 		const svg = page.locator('.cm-lp-mermaid-diagram svg');
