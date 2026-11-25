@@ -49,6 +49,47 @@ describe('MermaidWidget', () => {
 		expect(diagram?.querySelector('svg')?.hasAttribute('id')).toBe(false);
 	});
 
+	it('keeps the id-scoped mermaid styles matching the diagram after the render id is stripped', async () => {
+		type RenderResult = Awaited<ReturnType<typeof mermaid.render>>;
+		vi.mocked(mermaid.render).mockImplementationOnce(
+			async (id: string) =>
+				({
+					svg: `<svg id="${id}"><style>#${id} .node rect{fill:#333;}</style><g class="node"><rect></rect></g></svg>`,
+				}) as RenderResult,
+		);
+
+		const fresh = new MermaidWidget(SOURCE).toDOM();
+		await flushAsync();
+		const cached = new MermaidWidget(SOURCE).toDOM();
+
+		for (const dom of [fresh, cached]) {
+			const svg = dom.querySelector('.cm-lp-mermaid-diagram svg')!;
+			const selector = svg.querySelector('style')!.textContent!.split('{')[0];
+			expect(svg.hasAttribute('id')).toBe(false);
+			expect(svg.querySelector('rect')!.matches(selector)).toBe(true);
+		}
+	});
+
+	it('leaves ids that only start with the render id untouched', async () => {
+		type RenderResult = Awaited<ReturnType<typeof mermaid.render>>;
+		vi.mocked(mermaid.render).mockImplementationOnce(
+			async (id: string) =>
+				({
+					svg:
+						`<svg id="${id}"><style>#${id} path{marker-end:url(#${id}_pointEnd);}` +
+						`#${id}-gradient{fill:blue;}</style><path></path></svg>`,
+				}) as RenderResult,
+		);
+
+		const dom = new MermaidWidget(SOURCE).toDOM();
+		await flushAsync();
+
+		const renderId = vi.mocked(mermaid.render).mock.calls[0][0];
+		expect(dom.querySelector('.cm-lp-mermaid-diagram svg style')?.textContent).toBe(
+			`.${renderId} path{marker-end:url(#${renderId}_pointEnd);}#${renderId}-gradient{fill:blue;}`,
+		);
+	});
+
 	it('renders an error container for an empty source without invoking mermaid', () => {
 		const dom = new MermaidWidget('   ').toDOM();
 
