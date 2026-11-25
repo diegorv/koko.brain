@@ -29,7 +29,7 @@ entry src-tauri/src/commands/watcher.rs ext-in1 src-tauri/src/lib.rs
 ## files
 file src-tauri/src/commands/app_exit.rs rust L64 module src-tauri/src/commands in1 t1 | Quit goes through the frontend's `prepareForExit` (save dirty tabs, ask before discarding failed saves, drain pending writes, flush settings) before the proces…
 file src-tauri/src/commands/db.rs rust L18 module src-tauri/src/commands in1 t1
-file src-tauri/src/commands/debug.rs rust L54 module src-tauri/src/commands in1 t1 t:inline
+file src-tauri/src/commands/debug.rs rust L57 module src-tauri/src/commands in1 t1 t:inline
 file src-tauri/src/commands/files.rs rust L84 module src-tauri/src/commands in1 t1
 file src-tauri/src/commands/fonts.rs rust L113 module src-tauri/src/commands in1 t0 t:inline
 file src-tauri/src/commands/history.rs rust L168 module src-tauri/src/commands in1 t2
@@ -52,7 +52,7 @@ sym src-tauri/src/commands/db.rs:7 cmd open_vault_db(vault_path: String) -> Resu
 sym src-tauri/src/commands/db.rs:15 cmd close_vault_db() -> Result<(), String> L4 | Closes the database.
 sym src-tauri/src/commands/debug.rs:12 cmd set_tauri_debug_mode(enabled: bool) -> Result<(), String> L7 | Enables or disables Rust-side debug logging to the frontend.
 sym src-tauri/src/commands/debug.rs:23 cmd set_main_thread_heartbeat(app: tauri::AppHandle, enabled: bool) -> Result<(), String> L4 | Starts or stops the native main-thread heartbeat (`[MAIN-HB] stall Nms` lines through `debug_log`).
-sym src-tauri/src/commands/debug.rs:30 cmd get_process_memory() -> Result<u64, String> L14 | Returns the current process's resident set size (RSS) in bytes.
+sym src-tauri/src/commands/debug.rs:30 cmd get_process_memory() -> Result<u64, String> L17 | Returns the current process's resident set size (RSS) in bytes.
 sym src-tauri/src/commands/files.rs:24 cmd read_files_batch(vault_path: String, paths: Vec<String>,) -> Result<Vec<FileReadResult>, String> L61 | Reads the text content of multiple files in a single call.
 sym src-tauri/src/commands/fonts.rs:6 cmd list_system_fonts() -> Result<Vec<String>, String> L70 | Returns a sorted list of all available font family names on the system.
 sym src-tauri/src/commands/history.rs:61 cmd save_snapshot(file_path: String, content: String) -> Result<bool, String> L5 | Saves a snapshot of file content if its hash differs from the last snapshot.

@@ -115,10 +115,12 @@ jobs:
             import { resolveVersion } from './src/lib/utils/build-info.js';
             console.log(resolveVersion({ pkgVersion: process.argv[1], gitHash: process.argv[2], commitCount: process.argv[3], channel: 'nightly' }));
           " "$BASE_VERSION" "$SHORT_SHA" "$COMMIT_COUNT")
-          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
-          echo "commit_count=${COMMIT_COUNT}" >> "$GITHUB_OUTPUT"
-          echo "base_version=${BASE_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "nightly_version=${NIGHTLY_VERSION}" >> "$GITHUB_OUTPUT"
+          {
+            echo "short_sha=${SHORT_SHA}"
+            echo "commit_count=${COMMIT_COUNT}"
+            echo "base_version=${BASE_VERSION}"
+            echo "nightly_version=${NIGHTLY_VERSION}"
+          } >> "$GITHUB_OUTPUT"
           echo "Computed nightly version: ${NIGHTLY_VERSION}"
 
       - name: Patch tauri.conf.json with nightly version
