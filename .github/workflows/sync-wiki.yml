@@ -53,20 +53,24 @@ jobs:
               | sed 's/\b\(.\)/\u\1/g')
             dest="Examples ${title}.md"
 
-            echo "# Examples: ${title}" > "$dest"
-            echo "" >> "$dest"
-            echo "Sample files for the **${title}** feature." >> "$dest"
-            echo "" >> "$dest"
+            {
+              echo "# Examples: ${title}"
+              echo ""
+              echo "Sample files for the **${title}** feature."
+              echo ""
+            } > "$dest"
 
             find "$dir" -type f ! -name '.DS_Store' | sort | while read -r f; do
               fname=$(basename "$f")
-              relpath="${f#$dir}"
+              relpath="${f#"$dir"}"
               ext="${fname##*.}"
 
-              echo "---" >> "$dest"
-              echo "" >> "$dest"
-              echo "## \`${relpath}\`" >> "$dest"
-              echo "" >> "$dest"
+              {
+                echo "---"
+                echo ""
+                echo "## \`${relpath}\`"
+                echo ""
+              } >> "$dest"
 
               case "$ext" in
                 md)         lang="markdown" ;;
@@ -75,11 +79,13 @@ jobs:
                 *)          lang="" ;;
               esac
 
-              echo "\`\`\`${lang}" >> "$dest"
-              cat "$f" >> "$dest"
-              echo "" >> "$dest"
-              echo "\`\`\`" >> "$dest"
-              echo "" >> "$dest"
+              {
+                echo "\`\`\`${lang}"
+                cat "$f"
+                echo ""
+                echo "\`\`\`"
+                echo ""
+              } >> "$dest"
             done
           done
 
