@@ -30,7 +30,10 @@ pub fn set_main_thread_heartbeat(app: tauri::AppHandle, enabled: bool) -> Result
 pub fn get_process_memory() -> Result<u64, String> {
 	let pid = Pid::from_u32(std::process::id());
 	let mut guard = SYSTEM.lock().map_err(|e| format!("Lock error: {e}"))?;
-	let sys = guard.get_or_insert_with(System::new);
+	let sys = match &mut *guard {
+		Some(sys) => sys,
+		empty => empty.insert(System::new().map_err(|e| format!("Failed to initialize sysinfo: {e}"))?),
+	};
 	sys.refresh_processes_specifics(
 		sysinfo::ProcessesToUpdate::Some(&[pid]),
 		true,
