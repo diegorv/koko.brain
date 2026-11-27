@@ -98,7 +98,7 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 
 ### Network, data and settings
 
-- [ ] Every `fetch` goes to a host in the app's `connect-src`: `https://api.todoist.com`, `https://huggingface.co`, `https://github.com`, `https://objects.githubusercontent.com` (and Sentry ingest hosts). It passes `run.signal` and has a timeout (use `fetchText` from [Network and platform](11-network-and-platform.md#timeouts)).
+- [ ] Every `fetch` goes to a host in the app's `connect-src`: `https://api.todoist.com`, `https://huggingface.co`, `https://github.com`, `https://objects.githubusercontent.com`, loopback `http://127.0.0.1` on any port (and Sentry ingest hosts). It passes `run.signal` and has a timeout (use `fetchText` from [Network and platform](11-network-and-platform.md#timeouts)).
 - [ ] Every regular expression that matches line or paragraph separators uses `\p{Zl}\p{Zp}` with the `u` flag, never a `\u` escape of them: a write tool that expands the escape leaves a literal separator in the regex, and the file fails to load.
 - [ ] `loadData` is called before the first `saveData`, and a `ModDataCorruptError` is handled.
 - [ ] No secret (token, password, API key) is written to `ctx.log`, `run.log`, a note, `data.json` or the source.
@@ -219,7 +219,7 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `fetch` rejects with a generic `TypeError` | The host is not in the CSP `connect-src` (`api.github.com`, `raw.githubusercontent.com`, LLM APIs and `localhost` are all blocked) | Use an allowed host; a new host needs an app release |
+| `fetch` rejects with a generic `TypeError` | The host is not in the CSP `connect-src` (`api.github.com`, `raw.githubusercontent.com`, LLM APIs and `localhost` are all blocked; a local server is reachable only as `127.0.0.1`) | Use an allowed host; a new host needs an app release |
 | `JSON.parse` fails on a 200 response | A captive portal or error page returned HTML | Read `res.text()` and parse inside `try` |
 | `saveData refused: ...` | The previous `loadData` failed | Call `loadData` again and handle its error |
 | `saveData needs a value JSON can represent: a Map at "tags"` | A `Map`, `Set`, class instance, `NaN` or `undefined` in an array | Convert to plain objects and arrays |

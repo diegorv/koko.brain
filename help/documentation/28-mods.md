@@ -774,7 +774,7 @@ This uses the existing local buffered writer, normally flushing every 250 ms or 
 - **No `import`**, one file per mod; bundle packages with [your own build](#your-own-ui-and-packages).
 - **`export default` declares no name.** The loader turns it into an assignment, so after `export default function foo() {}` or `export default class Foo {}` the rest of the file cannot refer to `foo` or `Foo` (and the loader rejects both, since the default export must be an object). Declare the object first and export it: `const mod = { onload(ctx) { /* ... */ } }; export default mod;`.
 - **Long work** should check `run.signal.aborted` between steps in an action (it aborts on **Stop** and at unload), or `ctx.signal.aborted` in work the mod started outside an action.
-- **`fetch` reaches only the hosts the app's Content Security Policy allows** (`connect-src` in `src-tauri/tauri.conf.json`: `https://api.todoist.com`, `https://huggingface.co`, `https://github.com`, `https://objects.githubusercontent.com` and the Sentry ingest hosts). A request to any other host, including `api.github.com` and `raw.githubusercontent.com`, is blocked by the web view.
+- **`fetch` reaches only the hosts the app's Content Security Policy allows** (`connect-src` in `src-tauri/tauri.conf.json`: `https://api.todoist.com`, `https://huggingface.co`, `https://github.com`, `https://objects.githubusercontent.com`, the Sentry ingest hosts and loopback `http://127.0.0.1` on any port). A request to any other host, including `api.github.com`, `raw.githubusercontent.com` and `localhost`, is blocked by the web view.
 - **Raw access is unstable**: a mod that uses `ctx.app` or `ctx.kb` can break when the app changes.
 
 ## Next Steps
