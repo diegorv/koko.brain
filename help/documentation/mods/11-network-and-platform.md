@@ -11,7 +11,7 @@ The web view is macOS's **WKWebView**: the system WebKit, the same engine and ve
 The full policy, verbatim:
 
 ```
-default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data: https:; font-src 'self' data:; connect-src ipc: http://ipc.localhost https://api.todoist.com https://huggingface.co https://github.com https://objects.githubusercontent.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io
+default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data: https:; font-src 'self' data:; connect-src ipc: http://ipc.localhost https://api.todoist.com https://huggingface.co https://github.com https://objects.githubusercontent.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io http://127.0.0.1:*
 ```
 
 `connect-src`, entry by entry:
@@ -24,6 +24,7 @@ default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-in
 | `https://github.com` | github.com itself (not its API host) |
 | `https://objects.githubusercontent.com` | GitHub release downloads |
 | `https://*.ingest.sentry.io`, `https://*.ingest.us.sentry.io`, `https://*.ingest.de.sentry.io` | Sentry ingest |
+| `http://127.0.0.1:*` | Loopback on this machine, any port: a server the user runs locally (a sync daemon, a local model server). The request never leaves the machine |
 
 Blocked, among everything else not listed:
 
@@ -32,8 +33,8 @@ Blocked, among everything else not listed:
 | `https://api.github.com` | Blocked: not the same host as `github.com` |
 | `https://raw.githubusercontent.com` | Blocked |
 | LLM APIs (`api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, ...) | Blocked |
-| `http://localhost:*`, `http://127.0.0.1:*`, a local model server | Blocked |
-| Any `http:` URL | Blocked (only the IPC entry is `http:`) |
+| `http://localhost:*` | Blocked: reach a local server through `http://127.0.0.1` instead |
+| Any other `http:` URL | Blocked (only the IPC and loopback entries are `http:`) |
 | `ws:` / `wss:` WebSockets and `EventSource` streams to unlisted hosts | Blocked: they follow `connect-src` too |
 
 > [!NOTE]
